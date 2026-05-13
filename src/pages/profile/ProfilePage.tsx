@@ -889,11 +889,11 @@ export function ProfilePage() {
   const hasNewNotifications = notifications.some((n) => !n.read_at);
 
   return (
-    <div className="min-h-dvh bg-white pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pt-0 text-neutral-900">
+    <div className="min-h-dvh overflow-x-hidden bg-white pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pt-0 text-neutral-900">
       <HomeHeader isDemoMaster={isMasterCabinet} onProfileTab={onProfileTab} />
 
-      <div className="rounded-b-[44px] bg-[#F1EFEF] px-4 pb-5 pt-[calc(5.5rem+env(safe-area-inset-top,0px))] shadow-[0_18px_55px_rgba(17,17,17,0.05)]">
-        <div className="mx-auto max-w-lg">
+      <div className="mx-auto w-full max-w-lg px-4 sm:px-5">
+        <div className="rounded-b-[44px] bg-[#F1EFEF] pb-5 pt-[calc(5.5rem+env(safe-area-inset-top,0px))] shadow-[0_18px_55px_rgba(17,17,17,0.05)]">
           <h1 className="text-[38px] font-semibold leading-none tracking-[-0.065em] text-neutral-950">
             Мой профиль
           </h1>
@@ -1052,9 +1052,8 @@ export function ProfilePage() {
             </div>
           </section>
         </div>
-      </div>
 
-      <div className="mx-auto max-w-lg px-4">
+        <div className="w-full min-w-0">
         {mainTab === 'appointments' ? (
           <section className="mt-7">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1272,6 +1271,7 @@ export function ProfilePage() {
             </div>
           </section>
         ) : null}
+        </div>
       </div>
 
       {selectedAppointment ? (
