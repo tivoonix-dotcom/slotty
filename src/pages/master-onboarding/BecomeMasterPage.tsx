@@ -27,6 +27,7 @@ import {
 } from '../../features/master-onboarding/api/becomeMasterApi';
 
 const TOTAL_STEPS = 7;
+const ONBOARDING_CITY = 'Минск';
 const LOGO_SRC = '/photos/logo.png';
 
 type PriceType = 'fixed' | 'from';
@@ -364,7 +365,7 @@ export function BecomeMasterPage() {
   const [profileFieldErrors, setProfileFieldErrors] = useState<Record<string, string>>({});
 
   const [visitType, setVisitType] = useState<MasterVisitType>('studio');
-  const [city, setCity] = useState('');
+  const [city] = useState(ONBOARDING_CITY);
   const [street, setStreet] = useState('');
   const [building, setBuilding] = useState('');
   const [lat, setLat] = useState<number | undefined>(undefined);
@@ -679,9 +680,6 @@ export function BecomeMasterPage() {
   const validateAddressStep = useCallback((): boolean => {
     const errs: Record<string, string> = {};
 
-    if (!city.trim()) errs.city = 'Укажите город.';
-    else if (city.trim().length > 120) errs.city = 'Не длиннее 120 символов.';
-
     if (!street.trim()) errs.street = 'Укажите улицу и дом (или район для выезда).';
     else if (street.trim().length > 200) errs.street = 'Не длиннее 200 символов.';
 
@@ -702,7 +700,7 @@ export function BecomeMasterPage() {
         lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);
       if (!hasCoords) {
         errs.coords =
-          'Выберите адрес из справочника выше — так на карте будет точная метка для клиентов.';
+          'Укажите точку на карте: поиск, клик по карте или перетаскивание метки — так клиенты увидят вас на карте.';
       }
     }
 
@@ -710,7 +708,6 @@ export function BecomeMasterPage() {
     return Object.keys(errs).length === 0;
   }, [
     building,
-    city,
     clientNote,
     directions,
     entrance,
@@ -880,7 +877,7 @@ export function BecomeMasterPage() {
   if (success) {
     return (
       <div className="min-h-dvh bg-white px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] pt-[calc(0.75rem+env(safe-area-inset-top,0px))] text-neutral-900">
-        <div className="mx-auto max-w-lg">
+        <div className="mx-auto w-full max-w-2xl">
           <div className="rounded-[42px] bg-[#F1EFEF] p-3 shadow-[0_24px_70px_rgba(17,17,17,0.06)]">
             <div className="rounded-[34px] bg-white px-6 py-8 text-center">
               <img
@@ -927,13 +924,13 @@ export function BecomeMasterPage() {
           : 'pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))]'
       }`}
     >
-      <header className="sticky top-0 z-40 border-b border-neutral-200/80 bg-white pt-[calc(0.75rem+env(safe-area-inset-top,0px))] shadow-none">
-        <div className="mx-auto max-w-lg px-4 pb-3">
+      <header className="sticky top-0 z-40 bg-[#F1EFEF] pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
+        <div className="mx-auto w-full max-w-2xl px-4 pb-3">
           <div className="flex items-center justify-between gap-3">
             {step === 1 ? (
               <Link
                 to={HUB_PATH}
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-[14px] font-semibold text-neutral-900 transition active:opacity-80"
+                className="inline-flex min-h-10 items-center gap-2 rounded-full bg-white/90 px-3.5 py-2 text-[14px] font-semibold text-neutral-900 shadow-none transition active:opacity-80"
               >
                 ← На главную
               </Link>
@@ -941,18 +938,18 @@ export function BecomeMasterPage() {
               <button
                 type="button"
                 onClick={goBack}
-                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-[14px] font-semibold text-neutral-900 transition active:opacity-80"
+                className="inline-flex min-h-10 items-center justify-center rounded-full bg-white/90 px-3.5 py-2 text-[14px] font-semibold text-neutral-900 shadow-none transition active:opacity-80"
               >
                 Назад
               </button>
             )}
 
-            <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2.5 py-1.5 text-[13px] font-semibold tabular-nums text-neutral-600">
+            <span className="rounded-full bg-white/90 px-3 py-1.5 text-[13px] font-semibold tabular-nums text-neutral-600 shadow-none">
               {step} / {TOTAL_STEPS}
             </span>
           </div>
 
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#F1EFEF]">
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/70">
             <div
               className="h-full rounded-full bg-[#E29595] transition-[width] duration-300 ease-out"
               style={{ width: `${progressPct}%` }}
@@ -962,7 +959,7 @@ export function BecomeMasterPage() {
       </header>
 
       {step >= 2 && (!backendConfigured || (!authLoading && !isAuthenticated)) ? (
-        <div className="mx-auto max-w-lg space-y-2 px-4 pt-3">
+        <div className="mx-auto w-full max-w-2xl space-y-2 px-4 pt-3">
           {!backendConfigured ? (
             <p className="rounded-[18px] bg-[#FFF4E8] px-4 py-3 text-[13px] font-semibold leading-snug text-[#B66A24]">
               Не задан <span className="font-mono text-[12px]">VITE_API_URL</span> — категории и публикация профиля не заработают, пока не подключите бэкенд.
@@ -976,9 +973,9 @@ export function BecomeMasterPage() {
         </div>
       ) : null}
 
-      <div className="mx-auto max-w-lg px-4 pt-4">
-        <div className="rounded-[42px] bg-[#F1EFEF] p-3 shadow-[0_24px_70px_rgba(17,17,17,0.06)]">
-          <div className="relative z-10 rounded-[34px] bg-white px-5 py-6 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
+      <div className="mx-auto w-full max-w-2xl px-4 pt-4">
+        <div className="rounded-[42px] bg-[#F1EFEF] p-2.5 shadow-[0_24px_70px_rgba(17,17,17,0.06)] sm:p-3">
+          <div className="relative z-10 rounded-[34px] bg-white px-4 py-5 shadow-[0_10px_30px_rgba(17,17,17,0.035)] sm:px-6 sm:py-6">
             {step === 1 ? (
               <div className="text-center">
                 <img
@@ -1203,7 +1200,7 @@ export function BecomeMasterPage() {
                     Формат приема
                   </p>
 
-                  <div className="mt-2 grid grid-cols-2 gap-2 rounded-[26px] bg-[#F1EFEF] p-1.5">
+                  <div className="mt-2 grid grid-cols-1 gap-2 rounded-[26px] bg-[#F1EFEF] p-1.5 sm:grid-cols-2">
                     {VISIT_TYPES.map((type) => {
                       const active = visitType === type;
 
@@ -1228,29 +1225,14 @@ export function BecomeMasterPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 space-y-4">
-                  <Field
-                    label="Город *"
-                    value={city}
-                    onChange={(value) => {
-                      setCity(value);
-                      setAddressFieldErrors((prev) => {
-                        const next = { ...prev };
-                        delete next.city;
-                        return next;
-                      });
-                    }}
-                    placeholder="Например, Минск"
-                    hint="Город или населённый пункт приёма / выезда. До 120 символов."
-                    error={addressFieldErrors.city}
-                    maxLength={120}
-                  />
-                </div>
+                <p className="mt-5 text-[13px] leading-relaxed text-neutral-500">
+                  Город: <span className="font-semibold text-neutral-700">Минск</span> — сейчас анкета только для приёма в Минске.
+                </p>
 
                 <div className="mt-5 overflow-visible rounded-[30px] bg-[#F1EFEF] p-3">
                   <OnboardingAddressMap
-                    key={`${visitType}-${city.trim()}`}
-                    city={city}
+                    key={visitType}
+                    city={ONBOARDING_CITY}
                     visitType={visitType}
                     addressLine={
                       street.trim()
@@ -1321,7 +1303,7 @@ export function BecomeMasterPage() {
                     maxLength={120}
                   />
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Field
                       label="Этаж"
                       value={floor}
@@ -1438,8 +1420,8 @@ export function BecomeMasterPage() {
                   text="Укажите, что клиент сможет выбрать при записи."
                 />
 
-                <div className="mt-6 rounded-[30px] bg-[#F1EFEF] p-3">
-                  <div className="rounded-[26px] bg-white p-4">
+                <div className="mt-6 rounded-[30px] bg-[#F1EFEF] p-2 sm:p-3">
+                  <div className="rounded-[26px] bg-white px-3 py-4 sm:px-5 sm:py-5">
                     <Field
                       label="Название услуги *"
                       value={svcTitle}
@@ -1450,7 +1432,7 @@ export function BecomeMasterPage() {
                       maxLength={300}
                     />
 
-                    <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-4">
                       <Field
                         label="Длительность *"
                         value={svcDur}
@@ -1477,7 +1459,7 @@ export function BecomeMasterPage() {
                         Тип цены
                       </p>
 
-                      <div className="mt-2 grid grid-cols-2 gap-2 rounded-[26px] bg-[#F1EFEF] p-1.5">
+                      <div className="mt-2 grid grid-cols-1 gap-2 rounded-[26px] bg-[#F1EFEF] p-1.5 sm:grid-cols-2">
                         <button
                           type="button"
                           onClick={() => setSvcPriceType('fixed')}
@@ -1534,7 +1516,7 @@ export function BecomeMasterPage() {
                 </div>
 
                 {services.length > 0 ? (
-                  <ul className="mt-4 flex flex-col gap-3 rounded-[30px] bg-[#F1EFEF] p-3">
+                  <ul className="mt-4 flex flex-col gap-3 rounded-[30px] bg-[#F1EFEF] p-2 sm:p-3">
                     {services.map((service) => (
                       <li
                         key={service.id}
@@ -1570,12 +1552,12 @@ export function BecomeMasterPage() {
                     ))}
                   </ul>
                 ) : (
-                  <div className="mt-4 rounded-[30px] bg-[#F1EFEF] px-5 py-8 text-center">
+                  <div className="mt-4 rounded-[30px] bg-[#F1EFEF] px-4 py-8 text-center sm:px-6">
                     <p className="text-[18px] font-semibold tracking-[-0.045em] text-neutral-950">
                       Услуг пока нет
                     </p>
 
-                    <p className="mx-auto mt-2 max-w-[19rem] text-[14px] leading-relaxed text-neutral-500">
+                    <p className="mx-auto mt-2 max-w-none text-[14px] leading-relaxed text-neutral-500 sm:max-w-xl">
                       Добавьте хотя бы одну услугу, чтобы клиенты могли записываться.
                     </p>
                   </div>
@@ -1591,8 +1573,8 @@ export function BecomeMasterPage() {
                   text="Этот шаг необязательный. Добавьте курсы или дипломы, если хотите повысить доверие клиентов."
                 />
 
-                <div className="mt-6 rounded-[30px] bg-[#F1EFEF] p-3">
-                  <div className="rounded-[26px] bg-white p-4">
+                <div className="mt-6 rounded-[30px] bg-[#F1EFEF] p-2 sm:p-3">
+                  <div className="rounded-[26px] bg-white px-3 py-4 sm:px-5 sm:py-5">
                     <Field
                       label="Название сертификата"
                       value={certTitle}
@@ -1697,7 +1679,7 @@ export function BecomeMasterPage() {
                 </div>
 
                 {certificates.length > 0 ? (
-                  <ul className="mt-4 flex flex-col gap-3 rounded-[30px] bg-[#F1EFEF] p-3">
+                  <ul className="mt-4 flex flex-col gap-3 rounded-[30px] bg-[#F1EFEF] p-2 sm:p-3">
                     {certificates.map((certificate) => (
                       <li
                         key={certificate.id}
@@ -1745,12 +1727,12 @@ export function BecomeMasterPage() {
                     ))}
                   </ul>
                 ) : (
-                  <div className="mt-4 rounded-[30px] bg-[#F1EFEF] px-5 py-8 text-center">
+                  <div className="mt-4 rounded-[30px] bg-[#F1EFEF] px-4 py-8 text-center sm:px-6">
                     <p className="text-[18px] font-semibold tracking-[-0.045em] text-neutral-950">
                       Можно пропустить
                     </p>
 
-                    <p className="mx-auto mt-2 max-w-[19rem] text-[14px] leading-relaxed text-neutral-500">
+                    <p className="mx-auto mt-2 max-w-none text-[14px] leading-relaxed text-neutral-500 sm:max-w-xl">
                       Сертификаты необязательны. Их можно добавить позже в кабинете мастера.
                     </p>
                   </div>
@@ -1772,8 +1754,8 @@ export function BecomeMasterPage() {
                   </p>
                 ) : null}
 
-                <div className="mt-6 rounded-[34px] bg-[#F1EFEF] p-3">
-                  <div className="rounded-[30px] bg-white p-5 shadow-[0_12px_34px_rgba(17,17,17,0.045)]">
+                <div className="mt-6 rounded-[34px] bg-[#F1EFEF] p-2 sm:p-3">
+                  <div className="rounded-[30px] bg-white px-3 py-5 shadow-[0_12px_34px_rgba(17,17,17,0.045)] sm:px-6 sm:py-6">
                     <div className="flex items-start gap-4">
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[24px] bg-[#E29595] text-[26px] font-semibold text-white shadow-[0_10px_26px_rgba(226,149,149,0.26)]">
                         {name.trim().charAt(0).toUpperCase() || 'S'}
@@ -1955,7 +1937,7 @@ export function BecomeMasterPage() {
 
       {step > 1 ? (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-200 bg-white px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3">
-          <div className="mx-auto max-w-lg">
+          <div className="mx-auto w-full max-w-2xl">
             {step < TOTAL_STEPS ? (
               <button
                 type="button"

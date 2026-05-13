@@ -5,11 +5,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const MINSK_CENTER: L.LatLngExpression = [53.9025, 27.5615];
 const DEFAULT_ZOOM = 12;
 
-const OSM_TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+/** Wikimedia OSM — часто стабильнее во встроенных WebView, чем tile.openstreetmap.org. */
+const TILE_URL = 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png';
+const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> · Wikimedia';
 
 const NOMINATIM_SEARCH = 'https://nominatim.openstreetmap.org/search';
 const NOMINATIM_REVERSE = 'https://nominatim.openstreetmap.org/reverse';
+
+const NOMINATIM_HEADERS: HeadersInit = {
+  Accept: 'application/json',
+  'Accept-Language': 'ru',
+};
 
 export type MapPickResult = {
   addressLine: string;
@@ -26,8 +32,6 @@ type NominatimAddress = {
   town?: string;
   village?: string;
   house_number?: string;
-  state?: string;
-  country?: string;
 };
 
 type NominatimHit = {
@@ -37,6 +41,13 @@ type NominatimHit = {
   display_name: string;
   address?: NominatimAddress;
 };
+
+const pinIcon = L.divIcon({
+  className: '',
+  html: '<div style="width:22px;height:22px;border-radius:50%;background:#E29595;border:3px solid #fff;box-shadow:0 2px 12px rgba(17,17,17,0.2);pointer-events:none"></div>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+});
 
 /** Короткая строка для формы из ответа Nominatim. */
 export function nominatimLineForForm(hit: NominatimHit): string {
@@ -71,17 +82,10 @@ async function nominatimSearch(q: string, signal: AbortSignal): Promise<Nominati
   url.searchParams.set('limit', '10');
   url.searchParams.set('addressdetails', '1');
   url.searchParams.set('countrycodes', 'by');
-  /** Приоритет окрестности Минска (не жёсткая граница). */
   url.searchParams.set('viewbox', '27.38,53.95,27.72,53.82');
   url.searchParams.set('bounded', '0');
 
-  const res = await fetch(url.toString(), {
-    signal,
-    headers: {
-      Accept: 'application/json',
-      'Accept-Language': 'ru',
-    },
-  });
+  const res = await fetch(url.toString(), { signal, headers: NOMINATIM_HEADERS });
   if (!res.ok) throw new Error(`nominatim ${res.status}`);
   const data = (await res.json()) as unknown;
   return Array.isArray(data) ? (data as NominatimHit[]) : [];
@@ -94,13 +98,7 @@ async function nominatimReverse(lat: number, lon: number, signal: AbortSignal): 
   url.searchParams.set('lon', String(lon));
   url.searchParams.set('addressdetails', '1');
 
-  const res = await fetch(url.toString(), {
-    signal,
-    headers: {
-      Accept: 'application/json',
-      'Accept-Language': 'ru',
-    },
-  });
+  const res = await fetch(url.toString(), { signal, headers: NOMINATIM_HEADERS });
   if (!res.ok) throw new Error(`nominatim reverse ${res.status}`);
   const data = (await res.json()) as NominatimHit & { error?: string };
   if (data?.error) return null;
@@ -118,16 +116,20 @@ type Props = {
 export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 'studio', coordsError }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.CircleMarker | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
+  const lineRef = useRef('');
+  const addressLinePropRef = useRef(addressLine);
+  addressLinePropRef.current = addressLine;
 
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<NominatimHit[]>([]);
   const [hint, setHint] = useState<string | null>(null);
-  const [picked, setPicked] = useState<{ lat: number; lng: number } | null>(null);
+  const [hasPoint, setHasPoint] = useState(false);
+  const [point, setPoint] = useState<{ lat: number; lng: number } | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -135,26 +137,56 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
   const abortSearchRef = useRef<AbortController | null>(null);
   const abortReverseRef = useRef<AbortController | null>(null);
 
-  const applyPick = useCallback((lat: number, lng: number, line: string) => {
-    const map = mapRef.current;
-    if (map) {
-      map.setView([lat, lng], 16, { animate: true });
-      if (markerRef.current) {
-        map.removeLayer(markerRef.current);
-        markerRef.current = null;
-      }
-      const m = L.circleMarker([lat, lng], {
-        radius: 9,
-        color: '#ffffff',
-        weight: 2,
-        fillColor: '#E29595',
-        fillOpacity: 1,
-      }).addTo(map);
-      markerRef.current = m;
-    }
-    setPicked({ lat, lng });
+  useEffect(() => {
+    if (addressLine.trim()) lineRef.current = addressLine.trim();
+  }, [addressLine]);
+
+  const pushCoords = useCallback((lat: number, lng: number, line: string) => {
+    lineRef.current = line;
+    setPoint({ lat, lng });
+    setHasPoint(true);
     onPickRef.current({ addressLine: line, lat, lng });
   }, []);
+
+  const attachDragHandler = useCallback(
+    (marker: L.Marker) => {
+      marker.off('dragend');
+      marker.on('dragend', () => {
+        const ll = marker.getLatLng();
+        const line = lineRef.current || addressLinePropRef.current || 'Минск';
+        pushCoords(ll.lat, ll.lng, line);
+      });
+    },
+    [pushCoords],
+  );
+
+  const ensureMarker = useCallback(
+    (map: L.Map, lat: number, lng: number) => {
+      const latlng: L.LatLngExpression = [lat, lng];
+      if (markerRef.current) {
+        markerRef.current.setLatLng(latlng);
+        attachDragHandler(markerRef.current);
+        return markerRef.current;
+      }
+      const m = L.marker(latlng, { draggable: true, icon: pinIcon }).addTo(map);
+      attachDragHandler(m);
+      markerRef.current = m;
+      return m;
+    },
+    [attachDragHandler],
+  );
+
+  const applyPick = useCallback(
+    (lat: number, lng: number, line: string) => {
+      const map = mapRef.current;
+      if (map) {
+        map.setView([lat, lng], Math.max(map.getZoom(), 15), { animate: true });
+        ensureMarker(map, lat, lng);
+      }
+      pushCoords(lat, lng, line);
+    },
+    [ensureMarker, pushCoords],
+  );
 
   useEffect(() => {
     const el = containerRef.current;
@@ -163,10 +195,24 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
     const map = L.map(el, {
       zoomControl: true,
       attributionControl: true,
+      preferCanvas: true,
     }).setView(MINSK_CENTER, DEFAULT_ZOOM);
 
-    L.tileLayer(OSM_TILE, { attribution: OSM_ATTR, maxZoom: 19 }).addTo(map);
+    L.tileLayer(TILE_URL, { attribution: TILE_ATTR, maxZoom: 19, maxNativeZoom: 19 }).addTo(map);
     mapRef.current = map;
+
+    const bumpSize = () => {
+      map.invalidateSize({ animate: false });
+    };
+
+    map.whenReady(() => {
+      bumpSize();
+      requestAnimationFrame(() => {
+        bumpSize();
+        window.setTimeout(bumpSize, 120);
+        window.setTimeout(bumpSize, 400);
+      });
+    });
     setMapReady(true);
 
     const onMapClick = (e: L.LeafletMouseEvent) => {
@@ -176,26 +222,22 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
       abortReverseRef.current = ac;
       void nominatimReverse(lat, lng, ac.signal)
         .then((hit) => {
-          const line = hit ? nominatimLineForForm(hit) : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          const line = hit ? nominatimLineForForm(hit) : lineRef.current || addressLinePropRef.current || 'Минск';
           applyPick(lat, lng, line);
           setHint(null);
         })
         .catch((err: unknown) => {
           if ((err as { name?: string }).name === 'AbortError') return;
           console.warn('[SLOTTY] reverse geocode', err);
-          applyPick(lat, lng, `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+          applyPick(lat, lng, lineRef.current || addressLinePropRef.current || 'Минск');
         });
     };
     map.on('click', onMapClick);
 
-    const t = window.setTimeout(() => map.invalidateSize(), 200);
-    const ro = new ResizeObserver(() => {
-      map.invalidateSize();
-    });
+    const ro = new ResizeObserver(() => bumpSize());
     ro.observe(el);
 
     return () => {
-      window.clearTimeout(t);
       ro.disconnect();
       map.off('click', onMapClick);
       map.remove();
@@ -227,13 +269,13 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
         setItems(list);
         setOpen(list.length > 0);
         if (list.length === 0) {
-          setHint('Ничего не нашли — уточните запрос или кликните по карте.');
+          setHint('Ничего не нашли — уточните запрос, кликните по карте или перетащите метку.');
         }
       } catch (err: unknown) {
         if ((err as { name?: string }).name === 'AbortError') return;
         console.warn('[SLOTTY] nominatim search', err);
         setItems([]);
-        setHint('Поиск временно недоступен. Попробуйте позже или укажите адрес вручную ниже.');
+        setHint('Поиск временно недоступен. Укажите адрес вручную ниже или поставьте метку на карте.');
       } finally {
         setLoading(false);
       }
@@ -259,9 +301,9 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
-      const el = wrapRef.current;
-      if (!el || !(e.target instanceof Node)) return;
-      if (!el.contains(e.target)) setOpen(false);
+      const w = wrapRef.current;
+      if (!w || !(e.target instanceof Node)) return;
+      if (!w.contains(e.target)) setOpen(false);
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
@@ -282,8 +324,8 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
     <div className="space-y-2">
       <p className="text-[12px] leading-snug text-neutral-500">
         {visitType === 'at_home'
-          ? 'Как на картах: введите адрес или район — список подсказок; можно кликнуть по карте, чтобы поставить метку.'
-          : 'Поиск по OpenStreetMap (Беларусь): подсказки в списке, метка на карте — координаты сохраняются для клиентов.'}
+          ? 'Подсказки, клик по карте или перетаскивание метки. Город — Минск. Клиентам точка показывается на Яндекс.Картах.'
+          : 'Подсказки, клик по карте или перетаскивание метки. Точка сохранится для клиентов (Яндекс.Карты).'}
       </p>
 
       <div ref={wrapRef} className="relative z-[120]">
@@ -304,7 +346,7 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
             }}
             placeholder="Улица, дом, ТЦ, метро…"
             autoComplete="off"
-            className="min-h-11 min-w-0 flex-1 rounded-full bg-[#F1EFEF] px-4 text-[15px] text-neutral-900 outline-none placeholder:text-neutral-400"
+            className="min-h-11 min-w-0 flex-1 rounded-full bg-white px-4 text-[15px] text-neutral-900 outline-none placeholder:text-neutral-400"
           />
           <button
             type="button"
@@ -320,7 +362,7 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
 
         {open && items.length > 0 ? (
           <ul
-            className="absolute left-0 right-0 top-[calc(100%+6px)] z-[130] max-h-[min(220px,38dvh)] overflow-auto rounded-[18px] border border-neutral-200 bg-white py-1 shadow-[0_12px_40px_rgba(17,17,17,0.1)]"
+            className="absolute left-0 right-0 top-[calc(100%+6px)] z-[130] max-h-[min(220px,38dvh)] overflow-auto rounded-[18px] bg-white py-1 shadow-[0_12px_40px_rgba(17,17,17,0.1)]"
             role="listbox"
           >
             {items.map((hit) => (
@@ -328,7 +370,7 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
                 <button
                   type="button"
                   role="option"
-                  className="flex w-full px-3 py-2.5 text-left text-[13px] leading-snug text-neutral-900 transition hover:bg-[#F1EFEF] active:bg-[#EAE8E8]"
+                  className="flex w-full px-3 py-2.5 text-left text-[13px] leading-snug text-neutral-900 transition hover:bg-white/80 active:bg-[#EAE8E8]"
                   onClick={() => onSelectHit(hit)}
                 >
                   <span className="line-clamp-2">{hit.display_name}</span>
@@ -342,12 +384,20 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
       {hint ? <p className="text-[12px] leading-snug text-[#B66A24]">{hint}</p> : null}
       {coordsError ? <p className="text-[12px] leading-snug text-[#B66A24]">{coordsError}</p> : null}
 
-      <div
-        ref={containerRef}
-        className={`relative z-0 h-[min(260px,45dvh)] w-full min-h-[200px] overflow-hidden rounded-[22px] bg-[#E8E6E6] ${
-          mapReady ? '' : 'animate-pulse'
-        }`}
-      />
+      <div className="overflow-hidden rounded-[22px] bg-neutral-200 shadow-[inset_0_0_0_1px_rgba(17,17,17,0.04)]">
+        <p className="px-2 pb-1 pt-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+          Карта (клик — метка)
+        </p>
+        <div className="px-2 pb-2">
+          <div
+            ref={containerRef}
+            className={`relative z-0 h-[min(260px,48dvh)] w-full min-h-[220px] overflow-hidden rounded-[18px] bg-[#E4E2E2] sm:h-[min(280px,42dvh)] ${
+              mapReady ? '' : 'animate-pulse'
+            }`}
+            style={{ minHeight: 200 }}
+          />
+        </div>
+      </div>
 
       {addressLine ? (
         <p className="text-[13px] font-medium text-neutral-700">
@@ -355,21 +405,15 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
         </p>
       ) : null}
 
-      {picked && Number.isFinite(picked.lat) && Number.isFinite(picked.lng) ? (
-        <div className="rounded-[22px] border border-neutral-200 bg-neutral-50 px-3 py-3 text-[13px] text-neutral-700">
-          <p className="font-semibold text-neutral-900">Метка на карте</p>
-          <p className="mt-1 tabular-nums text-neutral-600">
-            {picked.lat.toFixed(5)}, {picked.lng.toFixed(5)}
-          </p>
-          <a
-            href={yandexMapsPointUrl(picked.lat, picked.lng)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex text-[13px] font-semibold text-[#E29595] underline-offset-2 hover:underline"
-          >
-            Открыть в Яндекс.Картах
-          </a>
-        </div>
+      {hasPoint && point && Number.isFinite(point.lat) && Number.isFinite(point.lng) ? (
+        <a
+          href={yandexMapsPointUrl(point.lat, point.lng)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex text-[13px] font-semibold text-[#E29595] underline-offset-2 hover:underline"
+        >
+          Открыть в Яндекс.Картах
+        </a>
       ) : null}
     </div>
   );

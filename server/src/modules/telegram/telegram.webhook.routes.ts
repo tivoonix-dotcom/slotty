@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { env } from '../../config/env.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
-import { sendTelegramHelpReply, sendTelegramStartReply } from './telegram.webhook.service.js';
+import { sendTelegramHelpReply, sendTelegramStartReply, isTelegramHelpCommand, isTelegramStartCommand } from './telegram.webhook.service.js';
 
 export const telegramWebhookRouter = Router();
 
@@ -32,9 +32,9 @@ telegramWebhookRouter.post(
     const chatId = msg.chat.id;
 
     try {
-      if (text.startsWith('/start')) {
+      if (isTelegramStartCommand(text)) {
         await sendTelegramStartReply(chatId);
-      } else if (text.startsWith('/help')) {
+      } else if (isTelegramHelpCommand(text)) {
         await sendTelegramHelpReply(chatId);
       }
     } catch (e) {
