@@ -13,6 +13,11 @@ import {
   retrieveLaunchParams,
 } from '@telegram-apps/sdk';
 import { ensureDevTelegramMock, resetDevTelegramMockState } from '../lib/devTelegramMock';
+import {
+  getTelegramWebAppInitDataRaw,
+  readTelegramWebAppUserPreview,
+  type TelegramUserPreview,
+} from '../lib/telegramWebApp';
 
 /** Один раз за сессию: mountMiniAppSync / mountViewport нельзя вызывать из каждого useTelegram (ConcurrentCallError). */
 let telegramShellMounted = false;
@@ -110,6 +115,8 @@ export interface UseTelegramResult {
   isTelegramWebApp: boolean;
   /** URL фото пользователя из initData (если Telegram передал). */
   telegramUserPhotoUrl: string | undefined;
+  /** Имя / username из Mini App до ответа бэка (initDataUnsafe / initData). */
+  telegramUserPreview: TelegramUserPreview | null;
 }
 
 function tryInit(): VoidFunction | undefined {
@@ -134,14 +141,27 @@ function tryInit(): VoidFunction | undefined {
 
 export function useTelegram(): UseTelegramResult {
   const [isReady, setIsReady] = useState(false);
+  /** После первого кадра перечитываем WebApp — initData иногда появляется чуть позже. */
+  const [classicRefresh, setClassicRefresh] = useState(0);
 
   useEffect(() => {
     const dispose = tryInit();
 
     tryMountTelegramShell();
 
+    try {
+      const w = (window as unknown as { Telegram?: { WebApp?: { ready?: () => void } } }).Telegram?.WebApp;
+      w?.ready?.();
+    } catch {
+      /* ignore */
+    }
+
     setIsReady(true);
+    const raf = requestAnimationFrame(() => {
+      setClassicRefresh((n) => n + 1);
+    });
     return () => {
+      cancelAnimationFrame(raf);
       dispose?.();
       resetDevTelegramMockState();
     };
@@ -152,21 +172,30 @@ export function useTelegram(): UseTelegramResult {
   const initDataRawValue = useMemo(() => {
     if (!isReady) return undefined;
     try {
-      return initDataRaw() || undefined;
+      const fromSdk = initDataRaw()?.trim();
+      if (fromSdk) return fromSdk;
     } catch {
-      return undefined;
+      /* fall through to classic WebApp */
     }
-  }, [isReady]);
+    return getTelegramWebAppInitDataRaw();
+  }, [isReady, classicRefresh]);
+
+  const telegramUserPreview = useMemo(() => {
+    if (!isReady) return null;
+    return readTelegramWebAppUserPreview();
+  }, [isReady, classicRefresh]);
 
   const telegramUserPhotoUrl = useMemo(() => {
     if (!isReady) return undefined;
     try {
-      const raw = initDataRaw() || undefined;
-      return readTelegramUserPhotoFromInitDataRaw(raw);
+      const fromRaw = readTelegramUserPhotoFromInitDataRaw(initDataRawValue);
+      if (fromRaw) return fromRaw;
     } catch {
-      return undefined;
+      /* ignore */
     }
-  }, [isReady]);
+    const p = telegramUserPreview?.photoUrl?.trim();
+    return p || undefined;
+  }, [isReady, initDataRawValue, telegramUserPreview]);
 
   const startFromSignal = useMemo(() => {
     if (!isReady) return undefined;
@@ -188,7 +217,8 @@ export function useTelegram(): UseTelegramResult {
     isReady,
     initDataRaw: initDataRawValue,
     masterId,
-    isTelegramWebApp: Boolean(initDataRawValue),
+    isTelegramWebApp: Boolean(initDataRawValue || telegramUserPreview),
     telegramUserPhotoUrl,
+    telegramUserPreview,
   };
 }

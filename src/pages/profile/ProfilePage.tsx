@@ -40,6 +40,7 @@ import { useAuth } from '../../features/auth/AuthProvider';
 import { openBookingVoucherPrint } from '../../features/booking/lib/bookingConfirmationVoucherPrint';
 import { NothingFoundCard } from '../../shared/ui/NothingFoundCard';
 import { useTelegram } from '../../shared/hooks/useTelegram';
+import { formatTelegramUserDisplayName } from '../../shared/lib/telegramWebApp';
 import { apiFetch, getApiBaseUrl } from '../../shared/api/backendClient';
 import { HomeHeader } from '../HomeHeader';
 
@@ -551,7 +552,7 @@ function AppointmentBottomSheet({
 
 export function ProfilePage() {
   const { profile, isLoading: authLoading, isAuthenticated, backendConfigured, refreshProfile } = useAuth();
-  const { isTelegramWebApp, telegramUserPhotoUrl } = useTelegram();
+  const { isTelegramWebApp, telegramUserPhotoUrl, telegramUserPreview } = useTelegram();
   const isMasterCabinet = isDemoMaster() || profile?.role === 'master';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -652,15 +653,21 @@ export function ProfilePage() {
   );
 
   const { displayName, roleSubtitle, initialLetter } = useMemo(() => {
-    if (!profile) {
-      return { displayName: 'Гость', roleSubtitle: 'Войдите через Telegram', initialLetter: '?' };
+    if (profile) {
+      const name = profile.full_name;
+      const sub = profile.role === 'master' ? 'Мастер SLOTTY' : 'Клиент SLOTTY';
+      const t = name.trim();
+      const ini = t.length ? t[0]!.toUpperCase() : '?';
+      return { displayName: name, roleSubtitle: sub, initialLetter: ini };
     }
-    const name = profile.full_name;
-    const sub = profile.role === 'master' ? 'Мастер SLOTTY' : 'Клиент SLOTTY';
-    const t = name.trim();
-    const ini = t.length ? t[0]!.toUpperCase() : '?';
-    return { displayName: name, roleSubtitle: sub, initialLetter: ini };
-  }, [profile]);
+    if (telegramUserPreview) {
+      const name = formatTelegramUserDisplayName(telegramUserPreview);
+      const t = name.trim();
+      const ini = t.length ? t[0]!.toUpperCase() : '?';
+      return { displayName: name, roleSubtitle: 'Клиент SLOTTY', initialLetter: ini };
+    }
+    return { displayName: 'Гость', roleSubtitle: 'Войдите через Telegram', initialLetter: '?' };
+  }, [profile, telegramUserPreview]);
 
   const selectMainTab = useCallback(
     (tab: MainTab) => {
@@ -920,6 +927,13 @@ export function ProfilePage() {
                     <img src={avatarPreviewUrl} alt="" className="h-full w-full object-cover" decoding="async" />
                   ) : profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" decoding="async" />
+                  ) : telegramUserPreview?.photoUrl ? (
+                    <img
+                      src={telegramUserPreview.photoUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      decoding="async"
+                    />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center" aria-hidden>
                       {initialLetter}
@@ -1213,9 +1227,11 @@ export function ProfilePage() {
                   <p className="mt-1 text-[17px] font-semibold text-neutral-950">
                     {profile?.telegram_username
                       ? `@${profile.telegram_username}`
-                      : isTelegramWebApp
-                        ? 'Подключен'
-                        : '—'}
+                      : telegramUserPreview?.username
+                        ? `@${telegramUserPreview.username}`
+                        : isTelegramWebApp
+                          ? 'Подключен'
+                          : '—'}
                   </p>
                 </div>
 
