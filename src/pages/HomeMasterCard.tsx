@@ -35,10 +35,13 @@ export function MasterCard({
   item,
   style,
   onPick,
+  priorityImage,
 }: {
   item: MasterFeedItem;
   style?: CSSProperties;
   onPick: (id: string) => void;
+  /** Первые карточки в горизонтальной ленте — без отложенной загрузки фото. */
+  priorityImage?: boolean;
 }) {
   return (
     <button
@@ -78,7 +81,9 @@ export function MasterCard({
               'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80'
             }
             alt={item.full_name}
-            loading="lazy"
+            loading={priorityImage ? 'eager' : 'lazy'}
+            decoding="async"
+            fetchPriority={priorityImage ? 'high' : 'low'}
             className="
               aspect-[4/4.5]
               w-full

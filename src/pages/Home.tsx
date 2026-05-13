@@ -85,7 +85,11 @@ export function Home() {
             <img
               src="/photos/hero.png"
               alt=""
+              width={1200}
+              height={900}
               decoding="async"
+              fetchPriority="high"
+              loading="eager"
               className="h-auto w-[min(145vw,48rem)] max-w-none translate-y-[19%] object-contain opacity-[0.22] sm:w-[min(120vw,54rem)] sm:translate-y-[22%]"
             />
           </div>

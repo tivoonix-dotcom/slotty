@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { getSupabase } from '../../../shared/api/supabase';
+import { getApiBaseUrl } from '../../../shared/api/backendClient';
+import { defaultMasterAvatarUrl } from '../../master/model/masterDraftStorage';
+import type { MasterLocation } from '../../profile/model/masterLocation';
+import { formatPublicAddress } from '../../profile/model/masterLocation';
+import { fetchPublishedMasters, type PublishedMasterDto } from '../../services/api/publishedMastersApi';
 
 export interface MasterFeedItem {
   id: string;
@@ -11,61 +15,40 @@ export interface MasterFeedItem {
   priceFrom: string;
 }
 
-const DEMO: MasterFeedItem[] = [
-  {
-    id: 'demo-1',
-    full_name: 'Анна Волкова',
-    avatar_url: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=400&h=400&fit=crop',
-    rating: 4.9,
-    addressLine: 'ул. Немига · ~1 км',
-    priceFrom: 'от 40 BYN',
-  },
-  {
-    id: 'demo-2',
-    full_name: 'Studio Glow',
-    avatar_url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=400&fit=crop',
-    rating: 4.8,
-    addressLine: 'центр · студия',
-    priceFrom: 'от 55 BYN',
-  },
-  {
-    id: 'demo-3',
-    full_name: 'Мария Ким',
-    avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop',
-    rating: 5,
-    addressLine: 'пр-т Независимости',
-    priceFrom: 'от 35 BYN',
-  },
-];
+function publishedToFeedItem(m: PublishedMasterDto): MasterFeedItem {
+  let addressLine = 'Адрес в профиле';
+  if (m.location) {
+    const loc: MasterLocation = {
+      visitType: 'studio',
+      city: m.location.city?.trim() || undefined,
+      street: (m.location.publicAddress || '').trim() || '—',
+      building: '',
+    };
+    addressLine = formatPublicAddress(loc) || addressLine;
+  }
+  const name = m.displayName.trim() || 'Мастер';
+  const price =
+    m.minServicePrice != null && Number.isFinite(m.minServicePrice)
+      ? `от ${Math.round(m.minServicePrice)} BYN`
+      : '—';
+
+  return {
+    id: m.masterId,
+    full_name: name,
+    avatar_url: (m.photoUrl && m.photoUrl.trim()) || defaultMasterAvatarUrl(name),
+    rating: m.rating,
+    addressLine,
+    priceFrom: price,
+  };
+}
 
 export function useMastersFeed() {
   return useQuery({
-    queryKey: ['masters-feed'],
+    queryKey: ['masters-feed', 'published'],
     queryFn: async (): Promise<MasterFeedItem[]> => {
-      const sb = getSupabase();
-      if (!sb) return DEMO;
-
-      const { data, error } = await sb
-        .from('profiles')
-        .select('id, full_name, avatar_url, masters_metadata ( rating )')
-        .eq('role', 'master')
-        .limit(8);
-
-      if (error || !data?.length) return DEMO;
-
-      return data.map((row: Record<string, unknown>) => {
-        const meta = row.masters_metadata as { rating?: string } | { rating?: string }[] | null;
-        const ratingVal = Array.isArray(meta) ? meta[0]?.rating : meta?.rating;
-        const r = ratingVal ? Number.parseFloat(String(ratingVal)) : 4.8;
-        return {
-          id: String(row.id),
-          full_name: String(row.full_name ?? 'Мастер'),
-          avatar_url: (row.avatar_url as string | null) ?? null,
-          rating: Number.isFinite(r) ? r : 4.8,
-          addressLine: 'Адрес в профиле',
-          priceFrom: 'от 40 BYN',
-        };
-      });
+      if (!getApiBaseUrl()) return [];
+      const masters = await fetchPublishedMasters({ limit: 24 });
+      return masters.map(publishedToFeedItem);
     },
   });
 }

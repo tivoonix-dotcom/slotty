@@ -50,7 +50,7 @@ export const HomeCategories: FC<HomeCategoriesProps> = ({ onCategory }) => {
 
       <div className="rounded-[36px] bg-[#F1EFEF] px-4 py-5 shadow-[0_24px_70px_rgba(17,17,17,0.05)]">
         <div className="flex flex-col gap-3">
-          {CATEGORIES.map((category) => (
+          {CATEGORIES.map((category, index) => (
             <button
               key={category.key}
               type="button"
@@ -75,7 +75,9 @@ export const HomeCategories: FC<HomeCategoriesProps> = ({ onCategory }) => {
                 <img
                   src={category.image}
                   alt={category.label}
-                  loading="lazy"
+                  loading={index < 2 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  fetchPriority={index < 2 ? 'high' : 'low'}
                   draggable={false}
                   className="h-[4.5rem] w-[4.5rem] origin-center scale-[1.32] select-none object-contain sm:h-[5rem] sm:w-[5rem] sm:scale-[1.26]"
                 />
