@@ -1,7 +1,5 @@
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { setupTelegramBot } from '../modules/telegram/telegram.service.js';
-
-dotenv.config();
 
 function requireEnv(name: string): string {
   const v = process.env[name];
