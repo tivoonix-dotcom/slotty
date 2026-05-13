@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type ReactNode,
@@ -16,6 +17,7 @@ import {
 } from '../../features/profile/model/masterLocation';
 import { OnboardingAddressMap } from './OnboardingAddressMap';
 import { useAuth } from '../../features/auth/AuthProvider';
+import { useTelegram } from '../../shared/hooks/useTelegram';
 import { getApiBaseUrl } from '../../shared/api/backendClient';
 import {
   DEFAULT_WEEKDAY_SCHEDULE,
@@ -62,6 +64,31 @@ const CATEGORY_HINTS: Record<string, string> = {
   fitness: 'Тренировки и тело',
   tattoo: 'Татуировки и эскизы',
 };
+
+type ContactMessengerId = 'telegram' | 'viber' | 'vk' | 'instagram' | 'whatsapp' | 'other';
+
+const CONTACT_MESSENGERS: { id: ContactMessengerId; label: string; placeholder: string }[] = [
+  { id: 'telegram', label: 'Telegram', placeholder: '@username или ссылка t.me/…' },
+  { id: 'viber', label: 'Viber', placeholder: 'Номер +375… или ссылка viber://…' },
+  { id: 'vk', label: 'VK', placeholder: 'Ссылка vk.com/… или id…' },
+  { id: 'instagram', label: 'Instagram', placeholder: '@ник или ссылка на профиль' },
+  { id: 'whatsapp', label: 'WhatsApp', placeholder: 'Номер в международном формате' },
+  { id: 'other', label: 'Другое', placeholder: 'Любой удобный контакт или ссылка' },
+];
+
+function composeContactLine(messenger: ContactMessengerId, handle: string): string {
+  const h = handle.trim();
+  if (!h) return '';
+  const prefix: Record<ContactMessengerId, string> = {
+    telegram: 'Telegram',
+    viber: 'Viber',
+    vk: 'VK',
+    instagram: 'Instagram',
+    whatsapp: 'WhatsApp',
+    other: 'Контакт',
+  };
+  return `${prefix[messenger]}: ${h}`;
+}
 
 const VISIT_TYPES: MasterVisitType[] = ['studio', 'at_home'];
 
@@ -304,6 +331,17 @@ function MiniInfoCard({
 export function BecomeMasterPage() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading, profile, backendConfigured, refreshProfile } = useAuth();
+  const { telegramUserPreview } = useTelegram();
+
+  const suggestedTgUsername = useMemo(() => {
+    const fromProfile = profile?.telegram_username?.trim();
+    if (fromProfile) return fromProfile.replace(/^@+/, '');
+    const fromTg = telegramUserPreview?.username?.trim();
+    if (fromTg) return fromTg.replace(/^@+/, '');
+    return '';
+  }, [profile?.telegram_username, telegramUserPreview?.username]);
+
+  const contactTgPrefilledRef = useRef(false);
 
   const [step, setStep] = useState(1);
   const [success, setSuccess] = useState(false);
@@ -317,7 +355,8 @@ export function BecomeMasterPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [contact, setContact] = useState('');
+  const [contactMessenger, setContactMessenger] = useState<ContactMessengerId>('telegram');
+  const [contactHandle, setContactHandle] = useState('');
   const [phone, setPhone] = useState('');
   const [profileFieldErrors, setProfileFieldErrors] = useState<Record<string, string>>({});
 
@@ -393,9 +432,22 @@ export function BecomeMasterPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (contactTgPrefilledRef.current) return;
+    if (!suggestedTgUsername) return;
+    contactTgPrefilledRef.current = true;
+    setContactMessenger('telegram');
+    setContactHandle(`@${suggestedTgUsername}`);
+  }, [suggestedTgUsername]);
+
   const progressPct = useMemo(
     () => (success ? 100 : (step / TOTAL_STEPS) * 100),
     [step, success],
+  );
+
+  const contactComposed = useMemo(
+    () => composeContactLine(contactMessenger, contactHandle),
+    [contactMessenger, contactHandle],
   );
 
   const selectedCategory = useMemo(
@@ -609,12 +661,12 @@ export function BecomeMasterPage() {
       errs.phone = 'Только цифры, +, пробелы и скобки, от 5 до 50 символов.';
     }
 
-    const contactTrim = contact.trim();
+    const contactTrim = contactComposed.trim();
     if (contactTrim.length > 500) errs.contact = 'Не длиннее 500 символов.';
 
     setProfileFieldErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [contact, description, name, phone]);
+  }, [contactComposed, description, name, phone]);
 
   const validateAddressStep = useCallback((): boolean => {
     const errs: Record<string, string> = {};
@@ -733,7 +785,7 @@ export function BecomeMasterPage() {
         name: name.trim(),
         description: description.trim() || undefined,
         phone: phone.trim() || null,
-        contact: contact.trim() || null,
+        contact: contactComposed.trim() || null,
         photoUrl,
         location: {
           visitType,
@@ -776,7 +828,7 @@ export function BecomeMasterPage() {
     certificates,
     city,
     clientNote,
-    contact,
+    contactComposed,
     description,
     directions,
     entrance,
@@ -1068,15 +1120,62 @@ export function BecomeMasterPage() {
                     maxLength={50}
                   />
 
-                  <Field
-                    label="Контакт (мессенджер, соцсеть)"
-                    value={contact}
-                    onChange={setContact}
-                    placeholder="@username или ссылка"
-                    hint="Необязательно. Удобный способ связи для клиента, до 500 символов."
-                    error={profileFieldErrors.contact}
-                    maxLength={500}
-                  />
+                  <div className="mt-2">
+                    <p className="text-[13px] font-semibold text-neutral-500">Контакт для клиентов</p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-neutral-400">
+                      Подставляется Telegram из аккаунта. При необходимости выберите Viber, VK и т.д. и укажите ник,
+                      номер или ссылку.
+                    </p>
+
+                    <div className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+                      {CONTACT_MESSENGERS.map((m) => {
+                        const active = contactMessenger === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => {
+                              setContactMessenger(m.id);
+                              setProfileFieldErrors((prev) => {
+                                const next = { ...prev };
+                                delete next.contact;
+                                return next;
+                              });
+                            }}
+                            className={`min-h-10 rounded-full px-1.5 text-[11px] font-semibold leading-tight transition active:scale-[0.98] sm:px-2 sm:text-[12px] ${
+                              active
+                                ? 'bg-[#E29595] text-white shadow-[0_8px_20px_rgba(226,149,149,0.22)]'
+                                : 'bg-[#F1EFEF] text-neutral-600'
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <Field
+                      label={`${
+                        CONTACT_MESSENGERS.find((x) => x.id === contactMessenger)?.label ?? 'Контакт'
+                      } — ник, номер или ссылка`}
+                      value={contactHandle}
+                      onChange={(v) => {
+                        setContactHandle(v);
+                        setProfileFieldErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.contact;
+                          return next;
+                        });
+                      }}
+                      placeholder={
+                        CONTACT_MESSENGERS.find((x) => x.id === contactMessenger)?.placeholder ??
+                        'Ссылка или ник'
+                      }
+                      hint="Необязательно. В профиле клиент увидит подпись вида «Telegram: …» или выбранный канал."
+                      error={profileFieldErrors.contact}
+                      maxLength={460}
+                    />
+                  </div>
                 </div>
               </>
             ) : null}
@@ -1679,7 +1778,7 @@ export function BecomeMasterPage() {
                       </p>
                     ) : null}
 
-                    {phone.trim() || contact.trim() ? (
+                    {phone.trim() || contactComposed.trim() ? (
                       <div className="mt-5 space-y-3">
                         {phone.trim() ? (
                           <div className="rounded-[26px] bg-[#F1EFEF] px-4 py-4">
@@ -1693,14 +1792,14 @@ export function BecomeMasterPage() {
                           </div>
                         ) : null}
 
-                        {contact.trim() ? (
+                        {contactComposed.trim() ? (
                           <div className="rounded-[26px] bg-[#F1EFEF] px-4 py-4">
                             <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-neutral-400">
                               Контакт
                             </p>
 
                             <p className="mt-2 text-[15px] font-semibold leading-snug text-neutral-950">
-                              {contact.trim()}
+                              {contactComposed.trim()}
                             </p>
                           </div>
                         ) : null}
