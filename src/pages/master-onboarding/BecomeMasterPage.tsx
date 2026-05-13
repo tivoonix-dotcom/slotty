@@ -4,6 +4,7 @@ import {
   useMemo,
   useState,
   type ChangeEvent,
+  type ReactNode,
 } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ADMIN_PATH, HUB_PATH } from '../../app/paths';
@@ -237,22 +238,65 @@ function Field({
   );
 }
 
+function IconOnboardingProfile({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path d="M20 21a8 8 0 1 0-16 0" strokeLinecap="round" />
+      <circle cx="12" cy="8" r="4" />
+    </svg>
+  );
+}
+
+function IconOnboardingMap({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path d="M12 21s7-4.35 7-10a7 7 0 1 0-14 0c0 5.65 7 10 7 10Z" strokeLinejoin="round" />
+      <circle cx="12" cy="11" r="2.25" />
+    </svg>
+  );
+}
+
+function IconOnboardingServices({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path d="M8 6h13M8 12h13M8 18h13" strokeLinecap="round" />
+      <path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" strokeLinecap="round" strokeWidth="2.5" />
+    </svg>
+  );
+}
+
+function IconOnboardingTrust({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path d="M12 3 4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-3Z" strokeLinejoin="round" />
+      <path d="m9 12 2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function MiniInfoCard({
   title,
   text,
+  icon,
 }: {
   title: string;
   text: string;
+  icon: ReactNode;
 }) {
   return (
     <div className="rounded-[26px] bg-[#F1EFEF] px-4 py-4">
-      <p className="text-[16px] font-semibold tracking-[-0.04em] text-neutral-950">
-        {title}
-      </p>
-
-      <p className="mt-1 text-[13px] leading-relaxed text-neutral-500">
-        {text}
-      </p>
+      <div className="flex gap-3">
+        <div
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] bg-white text-[#c47878] shadow-[0_4px_14px_rgba(17,17,17,0.06)]"
+          aria-hidden
+        >
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[16px] font-semibold tracking-[-0.04em] text-neutral-950">{title}</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-neutral-500">{text}</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -892,10 +936,14 @@ export function BecomeMasterPage() {
                   </p>
 
                   <div className="mt-7 grid grid-cols-2 gap-2 text-left">
-                    <MiniInfoCard title="Профиль" text="Имя, описание и контакты." />
-                    <MiniInfoCard title="Адрес" text="Куда клиенту ехать и как пройти." />
-                    <MiniInfoCard title="Услуги" text="Цена, длительность и описание." />
-                    <MiniInfoCard title="Доверие" text="Сертификаты можно добавить сразу или позже." />
+                    <MiniInfoCard title="Профиль" text="Имя, описание и контакты." icon={<IconOnboardingProfile className="h-5 w-5" />} />
+                    <MiniInfoCard title="Адрес" text="Куда клиенту ехать и как пройти." icon={<IconOnboardingMap className="h-5 w-5" />} />
+                    <MiniInfoCard title="Услуги" text="Цена, длительность и описание." icon={<IconOnboardingServices className="h-5 w-5" />} />
+                    <MiniInfoCard
+                      title="Доверие"
+                      text="Сертификаты можно добавить сразу или позже."
+                      icon={<IconOnboardingTrust className="h-5 w-5" />}
+                    />
                   </div>
 
                   <button
