@@ -1,0 +1,36 @@
+{
+  "name": "slotty",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:browser": "vite --open",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "db:apply": "node scripts/apply-schema.mjs",
+    "db:v2:baseline": "node scripts/apply-migrations-v2.mjs --baseline",
+    "db:v2:migrate": "node scripts/apply-migrations-v2.mjs",
+    "db:v2:status": "node scripts/apply-migrations-v2.mjs --status",
+    "db:v2:smoke": "node scripts/apply-migrations-v2.mjs --smoke"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.0.1",
+    "autoprefixer": "^10.5.0",
+    "pg": "^8.13.1",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.12"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "@tanstack/react-query": "^5.100.10",
+    "@telegram-apps/sdk": "^3.11.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.15.0"
+  }
+}

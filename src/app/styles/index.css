@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    @apply max-w-full overflow-x-clip;
+    overscroll-behavior-x: none;
+  }
+  body {
+    @apply min-h-dvh max-w-full overflow-x-clip bg-brand-bg text-brand-text;
+    touch-action: pan-y pinch-zoom;
+    overscroll-behavior-x: none;
+  }
+
+  #root {
+    @apply min-h-dvh max-w-full overflow-x-clip;
+  }
+
+  /* без подчёркивания / точек под текстом (в т.ч. как у abbr в preflight) */
+  abbr[title] {
+    text-decoration: none;
+  }
+}
