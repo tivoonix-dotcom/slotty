@@ -82,9 +82,14 @@ export type SetupTelegramBotReport = {
   menuButton: StepResult;
   shortDescription: StepResult;
   description: StepResult;
+  webhook?: StepResult;
 };
 
-export async function setupTelegramBot(params: { webAppUrl: string }): Promise<SetupTelegramBotReport> {
+export async function setupTelegramBot(params: {
+  webAppUrl: string;
+  webhookUrl?: string;
+  webhookSecret?: string;
+}): Promise<SetupTelegramBotReport> {
   const token = getBotToken();
   if (!token) {
     const err = { ok: false as const, error: 'TELEGRAM_BOT_TOKEN is not set' };
@@ -115,5 +120,16 @@ export async function setupTelegramBot(params: { webAppUrl: string }): Promise<S
       'SLOTTY помогает быстро найти мастера, выбрать свободное время и записаться на услугу прямо в Telegram. Клиенты видят услуги, цены, адрес и свободные окна, а мастера получают удобный кабинет для управления записями, расписанием и профилем.',
   });
 
-  return { commands, menuButton, shortDescription, description };
+  const wurl = params.webhookUrl?.trim();
+  const wsec = params.webhookSecret?.trim();
+  let webhook: StepResult | undefined;
+  if (wurl && wsec) {
+    webhook = await callBotMethod(token, 'setWebhook', {
+      url: wurl,
+      secret_token: wsec,
+      allowed_updates: ['message'],
+    });
+  }
+
+  return { commands, menuButton, shortDescription, description, webhook };
 }

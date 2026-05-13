@@ -15,6 +15,16 @@ const envSchema = z.object({
     (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
     z.string().url().optional(),
   ),
+  /** Полный HTTPS URL вебхука бэкенда, например `https://api.example.com/api/telegram/webhook`. Для `npm run telegram:setup`. */
+  TELEGRAM_WEBHOOK_URL: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    z.string().url().optional(),
+  ),
+  /** Секрет для заголовка `X-Telegram-Bot-Api-Secret-Token` (до 256 символов). Должен совпадать с `secret_token` в setWebhook. */
+  TELEGRAM_WEBHOOK_SECRET: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    z.string().min(1).max(256).optional(),
+  ),
   /** В production: разрешить PATCH .../subscription/mock (только при `true`). В dev/test mock включён по NODE_ENV. */
   ALLOW_SUBSCRIPTION_MOCK: z
     .string()

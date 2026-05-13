@@ -14,6 +14,7 @@ import { notificationsRouter } from './modules/notifications/notifications.route
 import { billingRouter } from './modules/billing/billing.routes.js';
 import { reviewsRouter } from './modules/reviews/reviews.routes.js';
 import { catalogRouter } from './modules/catalog/catalog.routes.js';
+import { telegramWebhookRouter } from './modules/telegram/telegram.webhook.routes.js';
 
 export function createApp() {
   const app = express();
@@ -38,6 +39,7 @@ export function createApp() {
   api.use('/masters', mastersRouter);
   api.use('/slots', slotsPublicRouter);
   api.use('/billing', billingRouter);
+  api.use('/telegram/webhook', telegramWebhookRouter);
 
   app.use('/api', api);
   app.use(notFound);

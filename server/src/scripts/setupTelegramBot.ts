@@ -31,14 +31,34 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const report = await setupTelegramBot({ webAppUrl });
+  const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL?.trim();
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+  if ((webhookUrl && !webhookSecret) || (!webhookUrl && webhookSecret)) {
+    console.warn(
+      'TELEGRAM_WEBHOOK_URL и TELEGRAM_WEBHOOK_SECRET задайте вместе — иначе setWebhook пропущен.',
+    );
+  }
+
+  const report = await setupTelegramBot({
+    webAppUrl,
+    webhookUrl: webhookUrl || undefined,
+    webhookSecret: webhookSecret || undefined,
+  });
 
   printStep('commands set', report.commands);
   printStep('menu button set', report.menuButton);
   printStep('short description set', report.shortDescription);
   printStep('description set', report.description);
+  if (report.webhook) {
+    printStep('webhook set', report.webhook);
+  }
 
-  const failed = [report.commands, report.menuButton, report.shortDescription, report.description].some((s) => !s.ok);
+  const failed =
+    !report.commands.ok ||
+    !report.menuButton.ok ||
+    !report.shortDescription.ok ||
+    !report.description.ok ||
+    (report.webhook !== undefined && !report.webhook.ok);
   if (failed) {
     process.exit(1);
   }
