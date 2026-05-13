@@ -234,5 +234,6 @@ profiles (standalone, Telegram + JWT backend)
 - v2 — **нормализованное** ядро записи: слот → атомарная запись → талон + уведомления.
 - **`master_profiles.master_id`** — единый PK/FK для всех дочерних таблиц мастера.
 - С **`014`**: **`profiles`** живут без **`auth.users`**; вход через **Telegram Web App** и **JWT** обслуживает **Node.js** backend (`Express` + `pg`).
-- Настройка Telegram-бота (меню Web App, уведомления): см. **[TELEGRAM_BOT.md](./TELEGRAM_BOT.md)**.
+- Настройка Telegram-бота (меню Web App, уведомления): **[TELEGRAM_BOT.md](./TELEGRAM_BOT.md)**.
+- Деплой на Railway (фронт + API в одном проекте): **[RAILWAY.md](./RAILWAY.md)**.
 - Старая **`supabase/schema.sql`** остаётся архивом v1; v2 живёт отдельно до решения о cutover.

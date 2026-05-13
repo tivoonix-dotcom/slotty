@@ -19,6 +19,8 @@ SLOTTY использует Telegram Web App и Bot API для кнопки ме
 
 Остальные переменные (`DATABASE_URL`, `JWT_SECRET`, `PORT`, `CLIENT_URL` и т.д.) — по `server/.env.example`.
 
+На **Railway** те же переменные задаются в **Variables** сервиса с root `server` (см. [RAILWAY.md](./RAILWAY.md)).
+
 ## 3. Настройка команд и кнопки меню
 
 Из каталога `server/`:

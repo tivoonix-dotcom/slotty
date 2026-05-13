@@ -8,6 +8,8 @@
     "dev:browser": "vite --open",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "start:static": "node ./scripts/static-serve.mjs",
+    "start": "node ./scripts/static-serve.mjs",
     "db:apply": "node scripts/apply-schema.mjs",
     "db:v2:baseline": "node scripts/apply-migrations-v2.mjs --baseline",
     "db:v2:migrate": "node scripts/apply-migrations-v2.mjs",
