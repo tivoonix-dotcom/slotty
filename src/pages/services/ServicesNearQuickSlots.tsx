@@ -62,6 +62,10 @@ export const ServicesNearQuickSlots: FC<Props> = ({ category, apiSlots }) => {
 
   const backendStatus = apiSlots === 'loading' || apiSlots === 'error' ? apiSlots : null;
 
+  if (backendStatus !== 'loading' && backendStatus !== 'error' && slots.length === 0) {
+    return null;
+  }
+
   const goBook = (masterId: string, serviceId: string, slotId: string) => {
     void setProfileRole('client');
     navigate(getBookingPath(masterId, serviceId, slotId, { from: 'services' }));
@@ -88,13 +92,6 @@ export const ServicesNearQuickSlots: FC<Props> = ({ category, apiSlots }) => {
             <p className="text-[15px] font-semibold text-neutral-600">Не удалось загрузить ближайшие окна</p>
             <p className="mx-auto mt-2 max-w-[20rem] text-[13px] leading-relaxed text-neutral-500">
               Проверьте соединение с сервером или откройте раздел позже.
-            </p>
-          </div>
-        ) : slots.length === 0 ? (
-          <div className="mt-3 rounded-[28px] bg-white/90 px-4 py-6 text-center shadow-[0_10px_28px_rgba(17,17,17,0.035)]">
-            <p className="text-[15px] font-semibold text-neutral-600">Свободных окон пока нет</p>
-            <p className="mx-auto mt-2 max-w-[20rem] text-[13px] leading-relaxed text-neutral-500">
-              Попробуйте выбрать другую категорию или открыть список мастеров.
             </p>
           </div>
         ) : (

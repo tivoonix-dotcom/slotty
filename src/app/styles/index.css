@@ -7,6 +7,7 @@
     -webkit-tap-highlight-color: transparent;
     @apply max-w-full overflow-x-clip;
     overscroll-behavior-x: none;
+    scrollbar-gutter: stable;
   }
   body {
     @apply min-h-dvh max-w-full overflow-x-clip bg-brand-bg text-brand-text;
@@ -21,5 +22,15 @@
   /* без подчёркивания / точек под текстом (в т.ч. как у abbr в preflight) */
   abbr[title] {
     text-decoration: none;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
   }
 }

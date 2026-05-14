@@ -16,7 +16,6 @@ import { HomeTariffs } from './HomeTariffs';
 import { HomeTelegramShowcase } from './HomeTelegramShowcase';
 import { HomeTopMasters } from './HomeTopMasters';
 import { HomeTrust } from './HomeTrust';
-import { HomeWeeklyTopMasters } from './HomeWeeklyTopMasters';
 
 export function Home() {
   const navigate = useNavigate();
@@ -119,8 +118,6 @@ export function Home() {
         <HomeCategories onCategory={onCategory} />
 
         <HomeQuickSlots />
-
-        <HomeWeeklyTopMasters />
 
         <HomeTopMasters masters={masters} isLoading={isLoading} onPick={onMasterCard} />
 

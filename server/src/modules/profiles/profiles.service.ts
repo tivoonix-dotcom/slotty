@@ -8,6 +8,10 @@ export interface ProfileDto {
   full_name: string;
   avatar_url: string | null;
   role: string;
+  phone: string | null;
+  address: string | null;
+  privacy_consent_accepted_at: string | null;
+  terms_accepted_at: string | null;
 }
 
 function toTelegramUserIdNumber(raw: string | null): number | null {
@@ -29,8 +33,14 @@ export async function getProfileById(profileId: string): Promise<ProfileDto> {
     full_name: string;
     avatar_url: string | null;
     role: string;
+    phone: string | null;
+    address: string | null;
+    privacy_consent_accepted_at: Date | string | null;
+    terms_accepted_at: Date | string | null;
   }>(
-    `select id, telegram_user_id::text, telegram_username, full_name, avatar_url, role::text as role
+    `select id, telegram_user_id::text, telegram_username, full_name, avatar_url, role::text as role,
+            phone, address,
+            privacy_consent_accepted_at::text, terms_accepted_at::text
      from public.profiles where id = $1`,
     [profileId],
   );
@@ -45,12 +55,24 @@ export async function getProfileById(profileId: string): Promise<ProfileDto> {
     full_name: row.full_name,
     avatar_url: row.avatar_url,
     role: row.role,
+    phone: row.phone,
+    address: row.address,
+    privacy_consent_accepted_at:
+      row.privacy_consent_accepted_at == null ? null : String(row.privacy_consent_accepted_at),
+    terms_accepted_at: row.terms_accepted_at == null ? null : String(row.terms_accepted_at),
   };
 }
 
 export async function updateProfile(
   profileId: string,
-  patch: { full_name?: string; avatar_url?: string | null },
+  patch: {
+    full_name?: string;
+    avatar_url?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    privacy_consent_accepted_at?: string | null;
+    terms_accepted_at?: string | null;
+  },
 ): Promise<ProfileDto> {
   const fields: string[] = [];
   const vals: unknown[] = [];
@@ -62,6 +84,22 @@ export async function updateProfile(
   if (patch.avatar_url !== undefined) {
     fields.push(`avatar_url = $${i++}`);
     vals.push(patch.avatar_url);
+  }
+  if (patch.phone !== undefined) {
+    fields.push(`phone = $${i++}`);
+    vals.push(patch.phone);
+  }
+  if (patch.address !== undefined) {
+    fields.push(`address = $${i++}`);
+    vals.push(patch.address);
+  }
+  if (patch.privacy_consent_accepted_at !== undefined) {
+    fields.push(`privacy_consent_accepted_at = $${i++}`);
+    vals.push(patch.privacy_consent_accepted_at);
+  }
+  if (patch.terms_accepted_at !== undefined) {
+    fields.push(`terms_accepted_at = $${i++}`);
+    vals.push(patch.terms_accepted_at);
   }
   if (!fields.length) {
     return getProfileById(profileId);

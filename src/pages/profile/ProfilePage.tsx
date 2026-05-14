@@ -45,6 +45,9 @@ import { apiFetch, getApiBaseUrl } from '../../shared/api/backendClient';
 import { optimizeAvatarUrl } from '../../shared/lib/optimizeAvatarUrl';
 import { ImageReveal } from '../../shared/ui/ImageReveal';
 import { HomeHeader } from '../HomeHeader';
+import { formatBelarusPhoneDisplay } from '../../features/profile/lib/belarusPhone';
+import { ClientSettingsSheet } from './components/ClientSettingsSheet';
+import { ProfileEditModal } from './components/ProfileEditModal';
 
 function IconChevronRight({ className }: { className?: string }) {
   return (
@@ -79,6 +82,26 @@ function IconBell({ className }: { className?: string }) {
     >
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
+
+function IconGear({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   );
 }
@@ -553,7 +576,7 @@ function AppointmentBottomSheet({
         className="pointer-events-auto flex max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2.5rem))] w-full max-w-lg flex-col overflow-hidden rounded-t-[36px] bg-white shadow-[0_24px_90px_rgba(0,0,0,0.2)] sm:max-h-[min(88dvh,calc(100dvh-4rem))] sm:rounded-[36px]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain p-5 [-webkit-overflow-scrolling:touch]">
+        <div className="scrollbar-hidden min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain p-5 [-webkit-overflow-scrolling:touch]">
           {children}
         </div>
       </div>
@@ -562,13 +585,15 @@ function AppointmentBottomSheet({
 }
 
 export function ProfilePage() {
-  const { profile, isLoading: authLoading, isAuthenticated, backendConfigured, refreshProfile } = useAuth();
+  const { profile, isLoading: authLoading, isAuthenticated, backendConfigured, refreshProfile, logout } = useAuth();
   const { isTelegramWebApp, telegramUserPhotoUrl, telegramUserPreview } = useTelegram();
   const isMasterCabinet = isDemoMaster() || profile?.role === 'master';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [apptSubTab, setApptSubTab] = useState<DemoAppointmentTab>('upcoming');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
@@ -578,13 +603,18 @@ export function ProfilePage() {
     setIsNotificationsOpen(false);
   }, []);
 
+  const sheetBlocksScroll = isNotificationsOpen || editProfileOpen || settingsOpen;
+
   useEffect(() => {
-    if (!isNotificationsOpen) return undefined;
+    if (!sheetBlocksScroll) return undefined;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeNotifications();
+      if (event.key !== 'Escape') return;
+      closeNotifications();
+      setEditProfileOpen(false);
+      setSettingsOpen(false);
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -593,7 +623,7 @@ export function ProfilePage() {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [isNotificationsOpen, closeNotifications]);
+  }, [sheetBlocksScroll, closeNotifications]);
 
   useEffect(() => {
     return () => {
@@ -970,6 +1000,7 @@ export function ProfilePage() {
                   </p>
                 </div>
 
+                <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -988,6 +1019,16 @@ export function ProfilePage() {
                     />
                   ) : null}
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  aria-label="Настройки"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F1EFEF] text-neutral-800 shadow-[0_8px_24px_rgba(17,17,17,0.06)] transition hover:bg-[#ebe8e8] active:scale-[0.97]"
+                >
+                  <IconGear className="h-[22px] w-[22px] shrink-0" />
+                </button>
+                </div>
               </div>
 
               {avatarErr ? (
@@ -1002,7 +1043,7 @@ export function ProfilePage() {
                     onClick={() => void applyTelegramAvatar()}
                     className="rounded-full bg-[#F1EFEF] px-3 py-1.5 text-[12px] font-semibold text-neutral-800 transition hover:bg-[#ebe8e8] disabled:opacity-50"
                   >
-                    Подставить фото из Telegram
+                    Обновить фото из Telegram
                   </button>
                 </div>
               ) : null}
@@ -1054,7 +1095,7 @@ export function ProfilePage() {
           </section>
         </div>
 
-        <div className="w-full min-w-0">
+        <div className="scrollbar-hidden w-full min-w-0">
         {mainTab === 'appointments' ? (
           <section className="mt-7">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1252,6 +1293,26 @@ export function ProfilePage() {
 
                 <div className="rounded-[28px] border border-neutral-100 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(17,17,17,0.04)]">
                   <p className="text-[13px] font-medium text-neutral-400">
+                    Телефон
+                  </p>
+
+                  <p className="mt-1 text-[17px] font-semibold text-neutral-950">
+                    {profile?.phone ? formatBelarusPhoneDisplay(profile.phone) : 'Не указан'}
+                  </p>
+                </div>
+
+                <div className="rounded-[28px] border border-neutral-100 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(17,17,17,0.04)]">
+                  <p className="text-[13px] font-medium text-neutral-400">
+                    Адрес
+                  </p>
+
+                  <p className="mt-1 whitespace-pre-wrap break-words text-[17px] font-semibold text-neutral-950">
+                    {profile?.address?.trim() ? profile.address.trim() : 'Не указан'}
+                  </p>
+                </div>
+
+                <div className="rounded-[28px] border border-neutral-100 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(17,17,17,0.04)]">
+                  <p className="text-[13px] font-medium text-neutral-400">
                     Роль
                   </p>
 
@@ -1259,6 +1320,16 @@ export function ProfilePage() {
                     {profile?.role === 'master' ? 'Мастер SLOTTY' : profile ? 'Клиент SLOTTY' : 'Клиент SLOTTY'}
                   </p>
                 </div>
+
+                {isAuthenticated ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditProfileOpen(true)}
+                    className="mt-1 flex min-h-[3.25rem] w-full items-center justify-center rounded-full bg-[#F1EFEF] px-5 text-[16px] font-semibold text-neutral-900 transition active:scale-[0.98]"
+                  >
+                    Редактировать
+                  </button>
+                ) : null}
 
                 <Link
                   to={isMasterCabinet ? ADMIN_PATH : BECOME_MASTER_PATH}
@@ -1499,7 +1570,7 @@ export function ProfilePage() {
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:px-4">
+            <div className="scrollbar-hidden min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:px-4">
               {notificationsError ? (
                 <p className="rounded-2xl bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800">{notificationsError}</p>
               ) : notificationsLoading ? (
@@ -1526,6 +1597,21 @@ export function ProfilePage() {
           </div>
         </div>
       ) : null}
+
+      <ProfileEditModal
+        open={editProfileOpen}
+        onClose={() => setEditProfileOpen(false)}
+        profile={profile}
+        isAuthenticated={isAuthenticated}
+        refreshProfile={refreshProfile}
+        telegramUserPhotoUrl={telegramUserPhotoUrl ?? null}
+      />
+      <ClientSettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onOpenEditProfile={() => setEditProfileOpen(true)}
+        onLogout={logout}
+      />
     </div>
   );
 }

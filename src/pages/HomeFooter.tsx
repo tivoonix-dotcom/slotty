@@ -12,8 +12,8 @@ import { TIVONIX_SITE_URL } from './legal/legalSiteInfo';
 const FOOTER_IMAGE = '/photos/FOOTER.png';
 const FOOTER_LOGO_SRC = '/photos/logo.png';
 
-/** Сдвиг логотипа по горизонтали (например `-8px` влево, `4px` вправо). */
-const FOOTER_LOGO_TRANSLATE_X = '-45px';
+/** Сдвиг логотипа по горизонтали; при ширине как у хедера обычно достаточно 0. */
+const FOOTER_LOGO_TRANSLATE_X = '0';
 
 const FOOTER_LINKS = [
   { key: 'booking', label: 'Запись', to: BOOKING_PATH },
@@ -39,7 +39,7 @@ export const HomeFooter: FC = () => {
         sm:mt-20
       "
     >
-      <div className="mx-auto max-w-[430px] px-4 sm:max-w-[720px]">
+      <div className="mx-auto max-w-[1100px] px-4 sm:px-6">
         <div
           className="
             overflow-hidden

@@ -1,6 +1,12 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  nominatimLineForForm,
+  nominatimReverseMinsk,
+  nominatimSearchMinsk,
+  type NominatimMinskHit,
+} from '../../shared/lib/nominatimMinsk';
 
 const MINSK_CENTER: L.LatLngExpression = [53.9025, 27.5615];
 const DEFAULT_ZOOM = 12;
@@ -9,37 +15,10 @@ const DEFAULT_ZOOM = 12;
 const TILE_URL = 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png';
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> · Wikimedia';
 
-const NOMINATIM_SEARCH = 'https://nominatim.openstreetmap.org/search';
-const NOMINATIM_REVERSE = 'https://nominatim.openstreetmap.org/reverse';
-
-const NOMINATIM_HEADERS: HeadersInit = {
-  Accept: 'application/json',
-  'Accept-Language': 'ru',
-};
-
 export type MapPickResult = {
   addressLine: string;
   lat: number;
   lng: number;
-};
-
-type NominatimAddress = {
-  road?: string;
-  pedestrian?: string;
-  neighbourhood?: string;
-  suburb?: string;
-  city?: string;
-  town?: string;
-  village?: string;
-  house_number?: string;
-};
-
-type NominatimHit = {
-  place_id: number;
-  lat: string;
-  lon: string;
-  display_name: string;
-  address?: NominatimAddress;
 };
 
 const pinIcon = L.divIcon({
@@ -48,17 +27,6 @@ const pinIcon = L.divIcon({
   iconSize: [22, 22],
   iconAnchor: [11, 11],
 });
-
-/** Короткая строка для формы из ответа Nominatim. */
-export function nominatimLineForForm(hit: NominatimHit): string {
-  const a = hit.address;
-  if (a?.road && a.house_number) return `${a.road}, ${a.house_number}`;
-  if (a?.pedestrian && a.house_number) return `${a.pedestrian}, ${a.house_number}`;
-  if (a?.road) return a.road;
-  if (a?.pedestrian) return a.pedestrian;
-  const parts = hit.display_name.split(',').map((s) => s.trim());
-  return parts.slice(0, 2).join(', ') || 'Точка на карте';
-}
 
 /** Разбор строки «улица, дом» в поля формы (fallback). */
 export function splitReferenceLabelToStreetBuilding(label: string): { street: string; building: string } {
@@ -73,36 +41,6 @@ export function splitReferenceLabelToStreetBuilding(label: string): { street: st
 function yandexMapsPointUrl(lat: number, lng: number): string {
   const ll = `${lng},${lat}`;
   return `https://yandex.ru/maps/?ll=${encodeURIComponent(ll)}&z=16&pt=${encodeURIComponent(ll)},pm2rdm`;
-}
-
-async function nominatimSearch(q: string, signal: AbortSignal): Promise<NominatimHit[]> {
-  const url = new URL(NOMINATIM_SEARCH);
-  url.searchParams.set('format', 'jsonv2');
-  url.searchParams.set('q', q);
-  url.searchParams.set('limit', '10');
-  url.searchParams.set('addressdetails', '1');
-  url.searchParams.set('countrycodes', 'by');
-  url.searchParams.set('viewbox', '27.38,53.95,27.72,53.82');
-  url.searchParams.set('bounded', '0');
-
-  const res = await fetch(url.toString(), { signal, headers: NOMINATIM_HEADERS });
-  if (!res.ok) throw new Error(`nominatim ${res.status}`);
-  const data = (await res.json()) as unknown;
-  return Array.isArray(data) ? (data as NominatimHit[]) : [];
-}
-
-async function nominatimReverse(lat: number, lon: number, signal: AbortSignal): Promise<NominatimHit | null> {
-  const url = new URL(NOMINATIM_REVERSE);
-  url.searchParams.set('format', 'jsonv2');
-  url.searchParams.set('lat', String(lat));
-  url.searchParams.set('lon', String(lon));
-  url.searchParams.set('addressdetails', '1');
-
-  const res = await fetch(url.toString(), { signal, headers: NOMINATIM_HEADERS });
-  if (!res.ok) throw new Error(`nominatim reverse ${res.status}`);
-  const data = (await res.json()) as NominatimHit & { error?: string };
-  if (data?.error) return null;
-  return data;
 }
 
 type Props = {
@@ -126,7 +64,7 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<NominatimHit[]>([]);
+  const [items, setItems] = useState<NominatimMinskHit[]>([]);
   const [hint, setHint] = useState<string | null>(null);
   const [hasPoint, setHasPoint] = useState(false);
   const [point, setPoint] = useState<{ lat: number; lng: number } | null>(null);
@@ -220,7 +158,7 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
       if (abortReverseRef.current) abortReverseRef.current.abort();
       const ac = new AbortController();
       abortReverseRef.current = ac;
-      void nominatimReverse(lat, lng, ac.signal)
+      void nominatimReverseMinsk(lat, lng, ac.signal)
         .then((hit) => {
           const line = hit ? nominatimLineForForm(hit) : lineRef.current || addressLinePropRef.current || 'Минск';
           applyPick(lat, lng, line);
@@ -255,9 +193,6 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
         setHint(null);
         return;
       }
-      const cityPart = city.trim() || 'Минск';
-      const fullQ = `${cityPart}, ${q}`;
-
       if (abortSearchRef.current) abortSearchRef.current.abort();
       const ac = new AbortController();
       abortSearchRef.current = ac;
@@ -265,7 +200,7 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
       setLoading(true);
       setHint(null);
       try {
-        const list = await nominatimSearch(fullQ, ac.signal);
+        const list = await nominatimSearchMinsk(city, q, ac.signal);
         setItems(list);
         setOpen(list.length > 0);
         if (list.length === 0) {
@@ -309,7 +244,7 @@ export function OnboardingAddressMap({ city, addressLine, onPick, visitType = 's
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  const onSelectHit = (hit: NominatimHit) => {
+  const onSelectHit = (hit: NominatimMinskHit) => {
     const lat = Number.parseFloat(hit.lat);
     const lng = Number.parseFloat(hit.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
