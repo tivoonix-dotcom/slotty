@@ -18,6 +18,10 @@ export type MasterLocation = {
   street: string;
   /** Доп. уточнение (подъезд, корпус) — опционально */
   building: string;
+  /** Дом / корпус (деталь), опционально */
+  buildingDetail?: string;
+  /** Название салона / студии (studio) */
+  salonName?: string;
   entrance?: string;
   floor?: string;
   room?: string;
@@ -26,6 +30,8 @@ export type MasterLocation = {
   directions?: string;
   clientNote?: string;
   district?: string;
+  /** Для at_home: точный адрес в каталоге только после записи */
+  showExactAddressAfterBooking?: boolean;
   homeVisitMinPriceByn?: number;
   homeVisitComment?: string;
   onlineChannel?: string;
@@ -56,9 +62,33 @@ export function formatPublicAddress(loc: MasterLocation | null | undefined): str
   if (!loc) return '';
   const base = baseAddressLine(loc);
   if (loc.visitType === 'at_home') {
+    if (loc.showExactAddressAfterBooking === true) {
+      const c = (loc.city ?? '').trim() || 'Минск';
+      const d = loc.district?.trim();
+      if (d) return `На дому · ${c}, ${d}`;
+      return `На дому · ${c}`;
+    }
     return base ? `На дому · ${base}` : 'На дому';
   }
-  return base || 'Адрес уточняется';
+  if (!base) return 'Адрес пока не указан';
+  const salon = loc.salonName?.trim();
+  return salon ? `${salon} · ${base}` : base;
+}
+
+/** Строка «до записи» для at_home при скрытии точного адреса */
+export function formatHomePublicBeforeBooking(loc: MasterLocation | null | undefined): string {
+  if (!loc || loc.visitType !== 'at_home') return '';
+  const c = (loc.city ?? '').trim() || 'Минск';
+  const d = loc.district?.trim();
+  return d ? `${c}, ${d}` : c;
+}
+
+/** Основная строка адреса с городом (для превью «после записи» / салон) */
+export function formatCityWithAddressLine(loc: MasterLocation | null | undefined): string {
+  if (!loc) return '';
+  const c = (loc.city ?? '').trim() || 'Минск';
+  const line = baseAddressLine(loc);
+  return line ? `${c}, ${line}` : c;
 }
 
 /** Полная строка для подтверждений и «как добраться» одной строкой */
@@ -94,6 +124,8 @@ export function masterLocationSearchHaystack(loc: MasterLocation | null | undefi
     loc.city,
     loc.street,
     loc.building,
+    loc.buildingDetail,
+    loc.salonName,
     loc.district,
     loc.landmark,
     loc.entrance,
@@ -116,7 +148,10 @@ export function masterLocationDetailRows(loc: MasterLocation | null | undefined)
   if (!loc) return [];
   const rows: { label: string; value: string }[] = [];
   rows.push({ label: 'Формат', value: masterVisitTypeLabel(loc.visitType) });
+  if (loc.salonName?.trim()) rows.push({ label: 'Салон', value: loc.salonName.trim() });
   rows.push({ label: 'Адрес', value: baseAddressLine(loc) || '—' });
+  if (loc.buildingDetail?.trim()) rows.push({ label: 'Дом / корпус', value: loc.buildingDetail.trim() });
+  if (loc.district?.trim()) rows.push({ label: 'Район / метро', value: loc.district.trim() });
   if (loc.entrance?.trim()) rows.push({ label: 'Вход', value: loc.entrance.trim() });
   if (loc.floor?.trim()) rows.push({ label: 'Этаж', value: loc.floor.trim() });
   if (loc.room?.trim()) rows.push({ label: 'Кабинет', value: loc.room.trim() });

@@ -233,7 +233,7 @@ export function cabinetDtoToMasterDraft(cabinet: MasterCabinetDto): MasterDraft 
   const certs: MasterCertificate[] = certificates.map((c) => ({
     id: c.id,
     title: c.title,
-    issuer: c.issuer,
+    issuer: c.issuer ?? '',
     year: c.year != null ? String(c.year) : undefined,
     imageUrl: c.imageUrl ?? undefined,
     description: c.description ?? undefined,

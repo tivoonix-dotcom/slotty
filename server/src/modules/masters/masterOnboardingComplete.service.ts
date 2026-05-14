@@ -2,6 +2,10 @@ import type { PoolClient } from 'pg';
 import { withTransaction } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { ensureMasterSubscriptionWithClient } from '../billing/billing.service.js';
+import {
+  contactsToLegacyContactLine,
+  type MasterContactPayload,
+} from './masterContactsCodec.js';
 
 export type OnboardingLocationInput = {
   visitType: 'studio' | 'at_home';
@@ -9,6 +13,9 @@ export type OnboardingLocationInput = {
   street: string;
   building: string;
   buildingDetail?: string | null;
+  salonName?: string | null;
+  district?: string | null;
+  showExactAddressAfterBooking?: boolean | null;
   entrance?: string | null;
   floor?: string | null;
   room?: string | null;
@@ -39,7 +46,7 @@ export type OnboardingServiceInput = {
 
 export type OnboardingCertificateInput = {
   title: string;
-  issuer: string;
+  issuer: string | null;
   year?: number | null;
   imageUrl?: string | null;
   description?: string | null;
@@ -51,12 +58,17 @@ export type CompleteMasterOnboardingInput = {
   name: string;
   description?: string;
   phone?: string | null;
+  /** Legacy одна строка; если передан `contacts`, сервер соберёт строку сам. */
   contact?: string | null;
+  contacts?: MasterContactPayload[] | null;
   photoUrl?: string | null;
   location: OnboardingLocationInput;
   scheduleRules: OnboardingScheduleRuleInput[];
   services: OnboardingServiceInput[];
   certificates: OnboardingCertificateInput[];
+  /** Через онбординг без оплаты сохраняется только basic. */
+  masterPlan?: 'basic';
+  proInterested?: boolean;
 };
 
 function num(v: string | null): number | null {
@@ -79,15 +91,21 @@ async function upsertPublishedProfile(
     bio: string;
     phone: string | null;
     contact: string | null;
+    contacts: MasterContactPayload[] | null;
     photoUrl: string | null;
+    masterPlan: 'basic' | 'pro';
+    proInterested: boolean;
+    proStatus: string | null;
   },
 ): Promise<void> {
   await client.query(`update public.profiles set role = 'master', updated_at = now() where id = $1`, [masterId]);
 
   await client.query(
     `insert into public.master_profiles (
-       master_id, display_name, slug, primary_category_id, bio, phone, contact, photo_url, publication_status
-     ) values ($1, $2, null, $3, $4, $5, $6, $7, 'published'::public.master_publication_status)
+       master_id, display_name, slug, primary_category_id, bio, phone, contact, contacts, photo_url, publication_status,
+       master_plan, pro_interested, pro_status, published_at
+     ) values ($1, $2, null, $3, $4, $5, $6, $7::jsonb, $8, 'published'::public.master_publication_status,
+       $9, $10, $11, now())
      on conflict (master_id) do update set
        display_name = excluded.display_name,
        slug = coalesce(excluded.slug, public.master_profiles.slug),
@@ -95,8 +113,13 @@ async function upsertPublishedProfile(
        bio = excluded.bio,
        phone = excluded.phone,
        contact = excluded.contact,
+       contacts = excluded.contacts,
        photo_url = excluded.photo_url,
        publication_status = 'published'::public.master_publication_status,
+       master_plan = excluded.master_plan,
+       pro_interested = excluded.pro_interested,
+       pro_status = excluded.pro_status,
+       published_at = coalesce(public.master_profiles.published_at, excluded.published_at),
        updated_at = now()`,
     [
       masterId,
@@ -105,7 +128,11 @@ async function upsertPublishedProfile(
       input.bio,
       input.phone,
       input.contact,
+      input.contacts?.length ? JSON.stringify(input.contacts) : null,
       input.photoUrl,
+      input.masterPlan,
+      input.proInterested,
+      input.proStatus,
     ],
   );
 }
@@ -116,9 +143,11 @@ async function replacePrimaryLocation(client: PoolClient, masterId: string, loc:
   await client.query(
     `insert into public.master_locations (
        master_id, visit_type, city, street, building, building_detail, entrance, floor, room,
-       intercom, landmark, directions, client_note, lat, lng, public_address, is_primary
+       intercom, landmark, directions, client_note, lat, lng, public_address,
+       salon_name, district, show_exact_address_after_booking, is_primary
      ) values (
-       $1, $2::public.visit_type, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, true
+       $1, $2::public.visit_type, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+       $17, $18, $19, true
      )`,
     [
       masterId,
@@ -137,6 +166,9 @@ async function replacePrimaryLocation(client: PoolClient, masterId: string, loc:
       loc.lat ?? null,
       loc.lng ?? null,
       loc.publicAddress.trim(),
+      loc.salonName?.trim() || null,
+      loc.district?.trim() || null,
+      loc.showExactAddressAfterBooking === true,
     ],
   );
 }
@@ -203,7 +235,7 @@ async function replaceCertificatesTx(
       [
         masterId,
         item.title.trim(),
-        item.issuer.trim(),
+        item.issuer?.trim() ? item.issuer.trim() : null,
         y,
         item.imageUrl?.trim() || null,
         item.description?.trim() || null,
@@ -223,6 +255,7 @@ async function loadOnboardingResult(client: PoolClient, masterId: string) {
     bio: string;
     phone: string | null;
     contact: string | null;
+    contacts: unknown | null;
     photo_url: string | null;
     publication_status: string;
     rating_avg: string;
@@ -230,10 +263,15 @@ async function loadOnboardingResult(client: PoolClient, masterId: string) {
     global_buffer_minutes: number;
     category_code: string | null;
     category_name: string | null;
+    master_plan: string;
+    pro_interested: boolean;
+    pro_status: string | null;
+    published_at: string | null;
   }>(
-    `select mp.master_id, mp.display_name, mp.slug, mp.primary_category_id, mp.bio, mp.phone, mp.contact, mp.photo_url,
+    `select mp.master_id, mp.display_name, mp.slug, mp.primary_category_id, mp.bio, mp.phone, mp.contact, mp.contacts, mp.photo_url,
             mp.publication_status::text, mp.rating_avg::text, mp.reviews_count, mp.global_buffer_minutes,
-            sc.code as category_code, sc.name as category_name
+            sc.code as category_code, sc.name as category_name,
+            mp.master_plan, mp.pro_interested, mp.pro_status, mp.published_at::text
        from public.master_profiles mp
        left join public.service_categories sc on sc.id = mp.primary_category_id
       where mp.master_id = $1`,
@@ -251,6 +289,9 @@ async function loadOnboardingResult(client: PoolClient, masterId: string) {
     street: string;
     building: string;
     building_detail: string | null;
+    salon_name: string | null;
+    district: string | null;
+    show_exact_address_after_booking: boolean;
     entrance: string | null;
     floor: string | null;
     room: string | null;
@@ -262,7 +303,8 @@ async function loadOnboardingResult(client: PoolClient, masterId: string) {
     lng: number | null;
     public_address: string;
   }>(
-    `select id, visit_type::text, city, street, building, building_detail, entrance, floor, room, intercom,
+    `select id, visit_type::text, city, street, building, building_detail, salon_name, district,
+            show_exact_address_after_booking, entrance, floor, room, intercom,
             landmark, directions, client_note, lat, lng, public_address
        from public.master_locations
       where master_id = $1 and is_primary = true`,
@@ -327,6 +369,7 @@ async function loadOnboardingResult(client: PoolClient, masterId: string) {
       bio: m.bio,
       phone: m.phone,
       contact: m.contact,
+      contacts: m.contacts ?? null,
       photoUrl: m.photo_url,
       publicationStatus: m.publication_status,
       rating: num(m.rating_avg) ?? 0,
@@ -336,6 +379,10 @@ async function loadOnboardingResult(client: PoolClient, masterId: string) {
         m.category_code != null
           ? { code: m.category_code, name: m.category_name ?? m.category_code }
           : null,
+      masterPlan: m.master_plan,
+      proInterested: m.pro_interested,
+      proStatus: m.pro_status,
+      publishedAt: m.published_at,
     },
     location: lr
       ? {
@@ -345,6 +392,9 @@ async function loadOnboardingResult(client: PoolClient, masterId: string) {
           street: lr.street,
           building: lr.building,
           buildingDetail: lr.building_detail,
+          salonName: lr.salon_name,
+          district: lr.district,
+          showExactAddressAfterBooking: lr.show_exact_address_after_booking,
           entrance: lr.entrance,
           floor: lr.floor,
           room: lr.room,
@@ -397,13 +447,25 @@ export async function completeMyMasterOnboarding(masterId: string, body: Complet
       throw ApiError.badRequest('Неизвестная категория', 'BAD_CATEGORY_CODE');
     }
 
+    const proInterested = Boolean(body.proInterested);
+    const proStatus = proInterested ? 'interested' : null;
+
     await upsertPublishedProfile(client, masterId, {
       displayName: body.name.trim(),
       primaryCategoryId: categoryId,
       bio: (body.description ?? '').trim(),
       phone: body.phone == null || body.phone === '' ? null : body.phone.trim(),
-      contact: body.contact == null || body.contact === '' ? null : body.contact.trim(),
+      contact:
+        body.contacts?.length
+          ? contactsToLegacyContactLine(body.contacts)
+          : body.contact == null || body.contact === ''
+            ? null
+            : body.contact.trim(),
+      contacts: body.contacts?.length ? body.contacts : null,
       photoUrl: body.photoUrl?.trim() || null,
+      masterPlan: 'basic',
+      proInterested,
+      proStatus,
     });
 
     await replacePrimaryLocation(client, masterId, body.location);

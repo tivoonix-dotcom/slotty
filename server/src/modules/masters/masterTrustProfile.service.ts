@@ -241,7 +241,7 @@ export async function deleteMyCareerItem(masterId: string, itemId: string): Prom
 export type CertificateCamel = {
   id: string;
   title: string;
-  issuer: string;
+  issuer: string | null;
   year: number | null;
   imageUrl: string | null;
   description: string | null;
@@ -252,7 +252,7 @@ export async function listMyCertificates(masterId: string): Promise<CertificateC
   const r = await query<{
     id: string;
     title: string;
-    issuer: string;
+    issuer: string | null;
     year: number | null;
     image_url: string | null;
     description: string | null;
@@ -279,7 +279,7 @@ export async function createMyCertificate(
   masterId: string,
   input: {
     title: string;
-    issuer: string;
+    issuer: string | null;
     year?: number | null;
     description?: string | null;
     imageUrl?: string | null;
@@ -289,7 +289,7 @@ export async function createMyCertificate(
   const r = await query<{
     id: string;
     title: string;
-    issuer: string;
+    issuer: string | null;
     year: number | null;
     image_url: string | null;
     description: string | null;
@@ -302,7 +302,7 @@ export async function createMyCertificate(
     [
       masterId,
       input.title.trim(),
-      input.issuer.trim(),
+      input.issuer?.trim() ? input.issuer.trim() : null,
       input.year ?? null,
       input.imageUrl?.trim() || null,
       input.description?.trim() || null,
@@ -327,7 +327,7 @@ export async function updateMyCertificate(
   certId: string,
   patch: {
     title?: string;
-    issuer?: string;
+    issuer?: string | null;
     year?: number | null;
     description?: string | null;
     imageUrl?: string | null;
@@ -344,7 +344,7 @@ export async function updateMyCertificate(
   }
   if (patch.issuer !== undefined) {
     sets.push(`issuer = $${i}`);
-    vals.push(patch.issuer.trim());
+    vals.push(patch.issuer == null ? null : patch.issuer.trim() || null);
     i += 1;
   }
   if (patch.year !== undefined) {

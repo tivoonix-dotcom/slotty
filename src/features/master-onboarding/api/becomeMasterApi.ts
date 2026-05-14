@@ -41,6 +41,9 @@ export type PrimaryLocationBody = {
   street: string;
   building: string;
   buildingDetail?: string | null;
+  salonName?: string | null;
+  district?: string | null;
+  showExactAddressAfterBooking?: boolean | null;
   entrance?: string | null;
   floor?: string | null;
   room?: string | null;
@@ -73,7 +76,7 @@ export async function putMasterScheduleRules(rules: ScheduleRuleDto[]): Promise<
 
 export type CertificateItemDto = {
   title: string;
-  issuer: string;
+  issuer: string | null;
   year?: number | null;
   description?: string | null;
   imageUrl?: string | null;
@@ -118,6 +121,9 @@ export type MasterOnboardingLocationPayload = {
   street: string;
   building: string;
   buildingDetail?: string | null;
+  salonName?: string | null;
+  district?: string | null;
+  showExactAddressAfterBooking?: boolean | null;
   entrance?: string | null;
   floor?: string | null;
   room?: string | null;
@@ -148,11 +154,16 @@ export type MasterOnboardingServicePayload = {
 
 export type MasterOnboardingCertificatePayload = {
   title: string;
-  issuer: string;
+  issuer: string | null;
   year?: number | null;
   imageUrl?: string | null;
   description?: string | null;
   sortOrder?: number;
+};
+
+export type MasterOnboardingContactItem = {
+  type: 'telegram' | 'viber' | 'vk' | 'instagram' | 'whatsapp' | 'other';
+  value: string;
 };
 
 export type MasterOnboardingPayload = {
@@ -160,12 +171,17 @@ export type MasterOnboardingPayload = {
   name: string;
   description?: string;
   phone?: string | null;
+  /** Краткая строка для совместимости; при наличии `contacts` дублирует агрегат на клиенте. */
   contact?: string | null;
+  contacts?: MasterOnboardingContactItem[] | null;
   photoUrl?: string | null;
   location: MasterOnboardingLocationPayload;
   scheduleRules: MasterOnboardingScheduleRulePayload[];
   services: MasterOnboardingServicePayload[];
   certificates: MasterOnboardingCertificatePayload[];
+  /** Сейчас без оплаты сохраняется только basic. */
+  masterPlan?: 'basic';
+  proInterested?: boolean;
 };
 
 export type MasterOnboardingResponse = {

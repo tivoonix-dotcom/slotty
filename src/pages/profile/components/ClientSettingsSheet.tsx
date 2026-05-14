@@ -58,7 +58,7 @@ export function ClientSettingsSheet({ open, onClose }: Props) {
             }}
             className="mb-2 text-[14px] font-semibold text-neutral-500 transition hover:text-neutral-800"
           >
-            ← Назад
+            Назад
           </button>
           <h2 id="legal-doc-title" className="text-[22px] font-semibold tracking-[-0.05em] text-neutral-950">
             {doc.title}

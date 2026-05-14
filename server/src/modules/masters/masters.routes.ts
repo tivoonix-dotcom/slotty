@@ -36,8 +36,28 @@ import { masterServicesRouter } from '../services/services.routes.js';
 import { masterSlotsRouter } from '../slots/slots.routes.js';
 import { masterAppointmentsRouter } from '../appointments/appointments.routes.js';
 import { getMasterSubscriptionWithUsage, switchMasterSubscriptionMock } from '../billing/billing.service.js';
+import { normalizeBelarusPhone, isOptionalBelarusPhoneValid } from '../../utils/belarusPhone.js';
 
 export const mastersRouter = Router();
+
+const optionalBelarusMobile = z
+  .union([z.string(), z.null()])
+  .optional()
+  .transform((v) => {
+    if (v == null) return null;
+    const s = typeof v === 'string' ? v.trim() : '';
+    return s === '' ? null : s;
+  })
+  .superRefine((v, ctx) => {
+    if (v == null) return;
+    if (!isOptionalBelarusPhoneValid(v)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Введите корректный номер Беларуси',
+      });
+    }
+  })
+  .transform((v) => (v ? normalizeBelarusPhone(v) : null));
 
 const listQuery = z.object({
   category: z.string().min(1).optional(),
@@ -117,14 +137,7 @@ const postMe = z.object({
     .transform((s) => s.trim())
     .refine((s) => s.length >= 1, { message: 'Имя не может быть пустым' }),
   bio: z.string().max(10_000).optional(),
-  phone: z
-    .string()
-    .max(50)
-    .nullable()
-    .optional()
-    .refine((v) => v == null || v === '' || /^[\d\s+()\-]{5,50}$/.test(v.trim()), {
-      message: 'Телефон: только цифры, пробелы и + ( ) -, от 5 символов',
-    }),
+  phone: optionalBelarusMobile,
   contact: z.string().max(500).nullable().optional(),
   photoUrl: photoUrlNullable,
   slug: slugNullable,
@@ -147,14 +160,7 @@ const patchMe = z.object({
     .refine((s) => s.length >= 1, { message: 'Имя не может быть пустым' })
     .optional(),
   bio: z.string().max(10_000).optional(),
-  phone: z
-    .string()
-    .max(50)
-    .nullable()
-    .optional()
-    .refine((v) => v == null || v === '' || /^[\d\s+()\-]{5,50}$/.test(v.trim()), {
-      message: 'Телефон: только цифры, пробелы и + ( ) -, от 5 символов',
-    }),
+  phone: optionalBelarusMobile,
   contact: z.string().max(500).nullable().optional(),
   photoUrl: photoUrlNullable,
   slug: slugNullable,
@@ -190,6 +196,9 @@ const primaryLocationBody = z
       .transform((s) => s.trim())
       .refine((s) => s.length >= 1, { message: 'Укажите номер дома' }),
     buildingDetail: z.string().max(120).nullable().optional(),
+    salonName: z.string().max(120).nullable().optional(),
+    district: z.string().max(120).nullable().optional(),
+    showExactAddressAfterBooking: z.boolean().optional(),
     entrance: z.string().max(120).nullable().optional(),
     floor: z.string().max(40).nullable().optional(),
     room: z.string().max(80).nullable().optional(),
@@ -229,14 +238,21 @@ const certificatesBatchBody = z.object({
           .string()
           .max(300)
           .transform((s) => s.trim())
-          .refine((s) => s.length >= 1, { message: 'Укажите название сертификата' }),
+          .refine((s) => s.length >= 2, { message: 'Название сертификата минимум 2 символа' }),
         issuer: z
           .string()
           .max(300)
+          .optional()
+          .default('')
           .transform((s) => s.trim())
-          .refine((s) => s.length >= 1, { message: 'Укажите организацию' }),
+          .transform((s) => (s.length > 0 ? s : null)),
         year: z.number().int().min(1950).max(2100).nullable().optional(),
-        description: z.string().max(5000).nullable().optional(),
+        description: z
+          .string()
+          .max(1000)
+          .nullable()
+          .optional()
+          .transform((s) => (s == null ? null : s.trim() || null)),
         imageUrl: z.union([z.literal(''), httpsImageUrl]).nullable().optional(),
       }),
     )
@@ -273,19 +289,34 @@ const careerPatchBody = z.object({
 });
 
 const certificateCreateBody = z.object({
-  title: z.string().min(1).max(300),
-  issuer: z.string().min(1).max(300),
+  title: z
+    .string()
+    .max(300)
+    .transform((s) => s.trim())
+    .refine((s) => s.length >= 2, { message: 'Название сертификата минимум 2 символа' }),
+  issuer: z
+    .string()
+    .max(300)
+    .optional()
+    .default('')
+    .transform((s) => s.trim())
+    .transform((s) => (s.length > 0 ? s : null)),
   year: z.number().int().min(1950).max(2100).nullable().optional(),
-  description: z.string().max(5000).nullable().optional(),
+  description: z
+    .string()
+    .max(1000)
+    .optional()
+    .default('')
+    .transform((s) => s.trim() || null),
   imageUrl: z.union([z.literal(''), httpsImageUrl]).nullable().optional(),
   sortOrder: z.coerce.number().int().min(0).optional(),
 });
 
 const certificatePatchBody = z.object({
-  title: z.string().min(1).max(300).optional(),
-  issuer: z.string().min(1).max(300).optional(),
+  title: z.string().min(2).max(300).optional(),
+  issuer: z.string().max(300).nullable().optional(),
   year: z.number().int().min(1950).max(2100).nullable().optional(),
-  description: z.string().max(5000).nullable().optional(),
+  description: z.string().max(1000).nullable().optional(),
   imageUrl: z.union([z.literal(''), httpsImageUrl]).nullable().optional(),
   sortOrder: z.coerce.number().int().min(0).optional(),
 });
@@ -323,6 +354,9 @@ const onboardingLocationSchema = z
       .transform((s) => s.trim())
       .refine((s) => s.length >= 1, { message: 'Укажите номер дома' }),
     buildingDetail: z.string().max(120).nullable().optional(),
+    salonName: z.string().max(120).nullable().optional(),
+    district: z.string().max(120).nullable().optional(),
+    showExactAddressAfterBooking: z.boolean().optional(),
     entrance: z.string().max(120).nullable().optional(),
     floor: z.string().max(40).nullable().optional(),
     room: z.string().max(80).nullable().optional(),
@@ -355,50 +389,97 @@ const onboardingServiceSchema = z.object({
     .string()
     .max(300)
     .transform((s) => s.trim())
-    .refine((s) => s.length >= 1, { message: 'Название услуги не может быть пустым' }),
-  description: z.string().max(20_000).optional().default('').transform((s) => s.trim()),
-  durationMinutes: z.coerce.number().int().finite().min(1).max(24 * 60),
+    .refine((s) => s.length >= 2, { message: 'Название услуги минимум 2 символа' }),
+  description: z.string().max(1000).optional().default('').transform((s) => s.trim()),
+  durationMinutes: z.coerce.number().int().finite().min(5).max(24 * 60),
   priceAmount: z.coerce.number().finite().min(0).max(MAX_SERVICE_PRICE_AMOUNT),
   priceType: z.enum(['fixed', 'from']).optional(),
   sortOrder: z.coerce.number().int().finite().min(0).optional(),
 });
 
 const onboardingCertificateSchema = z.object({
-  title: z.string().min(1).max(300),
-  issuer: z.string().min(1).max(300),
+  title: z
+    .string()
+    .max(300)
+    .transform((s) => s.trim())
+    .refine((s) => s.length >= 2, { message: 'Название сертификата минимум 2 символа' }),
+  issuer: z
+    .string()
+    .max(300)
+    .optional()
+    .default('')
+    .transform((s) => s.trim())
+    .transform((s) => (s.length > 0 ? s : null)),
   year: z.number().int().min(1950).max(2100).nullable().optional(),
-  description: z.string().max(5000).nullable().optional(),
+  description: z
+    .string()
+    .max(1000)
+    .optional()
+    .default('')
+    .transform((s) => s.trim() || null),
   imageUrl: z.union([z.literal(''), httpsImageUrl]).nullable().optional(),
   sortOrder: z.coerce.number().int().min(0).optional(),
 });
 
-const onboardingBody = z.object({
-  categoryCode: z
+const masterContactItemSchema = z.object({
+  type: z.enum(['telegram', 'viber', 'vk', 'instagram', 'whatsapp', 'other']),
+  value: z
     .string()
-    .max(80)
+    .max(500)
     .transform((s) => s.trim())
-    .refine((s) => s.length >= 1, { message: 'Укажите категорию' }),
-  name: z
-    .string()
-    .max(200)
-    .transform((s) => s.trim())
-    .refine((s) => s.length >= 2, { message: 'Имя минимум 2 символа' }),
-  description: z.string().max(10_000).optional(),
-  phone: z
-    .string()
-    .max(50)
-    .nullable()
-    .optional()
-    .refine((v) => v == null || v === '' || /^[\d\s+()\-]{5,50}$/.test(v.trim()), {
-      message: 'Телефон: только цифры, пробелы и + ( ) -, от 5 символов',
-    }),
-  contact: z.string().max(500).nullable().optional(),
-  photoUrl: photoUrlNullable,
-  location: onboardingLocationSchema,
-  scheduleRules: z.array(onboardingScheduleItemSchema).min(1).max(56),
-  services: z.array(onboardingServiceSchema).min(1).max(100),
-  certificates: z.array(onboardingCertificateSchema).max(50).default([]),
+    .refine((s) => s.length >= 1, { message: 'Заполните контакт' }),
 });
+
+const onboardingBody = z
+  .object({
+    categoryCode: z
+      .string()
+      .max(80)
+      .transform((s) => s.trim())
+      .refine((s) => s.length >= 1, { message: 'Укажите категорию' }),
+    name: z
+      .string()
+      .max(200)
+      .transform((s) => s.trim())
+      .refine((s) => s.length >= 2, { message: 'Имя минимум 2 символа' }),
+    description: z.string().max(10_000).optional(),
+    phone: optionalBelarusMobile,
+    contact: z.string().max(500).nullable().optional(),
+    contacts: z.array(masterContactItemSchema).max(12).optional().default([]),
+    photoUrl: photoUrlNullable,
+    location: onboardingLocationSchema,
+    scheduleRules: z.array(onboardingScheduleItemSchema).min(1).max(56),
+    services: z.array(onboardingServiceSchema).min(1).max(100),
+    certificates: z.array(onboardingCertificateSchema).max(50).default([]),
+    /** Без оплаты через онбординг принимается только basic. */
+    masterPlan: z.literal('basic').optional(),
+    proInterested: z.boolean().optional().default(false),
+  })
+  .superRefine((data, ctx) => {
+    const list = data.contacts ?? [];
+    const seen = new Map<string, number>();
+    for (const c of list) {
+      seen.set(c.type, (seen.get(c.type) ?? 0) + 1);
+    }
+    for (const [t, n] of seen) {
+      if (t !== 'other' && n > 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Каждый канал — не более одного раза',
+          path: ['contacts'],
+        });
+        return;
+      }
+      if (t === 'other' && n > 5) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Не более пяти полей «Другое»',
+          path: ['contacts'],
+        });
+        return;
+      }
+    }
+  });
 
 mastersRouter.post(
   '/me',
@@ -408,7 +489,7 @@ mastersRouter.post(
     const out = await upsertMyMasterProfile(req.user!.id, {
       displayName: body.displayName,
       bio: body.bio,
-      phone: body.phone === '' || body.phone == null ? null : body.phone.trim(),
+      phone: body.phone ?? null,
       contact: body.contact === '' ? null : body.contact,
       photoUrl: body.photoUrl === '' || body.photoUrl == null ? null : body.photoUrl,
       slug: body.slug === '' || body.slug == null ? null : body.slug,
@@ -430,8 +511,9 @@ mastersRouter.post(
       categoryCode: body.categoryCode.trim(),
       name: body.name.trim(),
       description: body.description?.trim(),
-      phone: body.phone === '' || body.phone == null ? null : body.phone.trim(),
+      phone: body.phone ?? null,
       contact: body.contact === '' ? null : body.contact?.trim() ?? null,
+      contacts: body.contacts?.length ? body.contacts : null,
       photoUrl: body.photoUrl === '' || body.photoUrl == null ? null : body.photoUrl,
       location: {
         visitType: body.location.visitType,
@@ -439,6 +521,9 @@ mastersRouter.post(
         street: body.location.street.trim(),
         building: body.location.building.trim(),
         buildingDetail: body.location.buildingDetail?.trim() || null,
+        salonName: body.location.salonName?.trim() || null,
+        district: body.location.district?.trim() || null,
+        showExactAddressAfterBooking: body.location.showExactAddressAfterBooking ?? null,
         entrance: body.location.entrance?.trim() || null,
         floor: body.location.floor?.trim() || null,
         room: body.location.room?.trim() || null,
@@ -472,6 +557,8 @@ mastersRouter.post(
         imageUrl: c.imageUrl === '' || c.imageUrl == null ? null : c.imageUrl,
         sortOrder: c.sortOrder,
       })),
+      masterPlan: body.masterPlan,
+      proInterested: body.proInterested,
     });
     res.status(201).json(out);
   }),
@@ -486,7 +573,7 @@ mastersRouter.patch(
     const out = await patchMyMasterProfile(req.user!.id, {
       displayName: body.displayName,
       bio: body.bio,
-      phone: body.phone === '' || body.phone == null ? null : body.phone.trim(),
+      phone: body.phone ?? null,
       contact: body.contact === '' ? null : body.contact,
       photoUrl: body.photoUrl === '' || body.photoUrl == null ? null : body.photoUrl,
       slug: body.slug === '' || body.slug == null ? null : body.slug,
@@ -523,6 +610,9 @@ mastersRouter.put(
       street: body.street,
       building: body.building,
       buildingDetail: body.buildingDetail,
+      salonName: body.salonName,
+      district: body.district,
+      showExactAddressAfterBooking: body.showExactAddressAfterBooking,
       entrance: body.entrance,
       floor: body.floor,
       room: body.room,
@@ -667,7 +757,7 @@ mastersRouter.patch(
     const body = certificatePatchBody.parse(req.body);
     const patch: {
       title?: string;
-      issuer?: string;
+      issuer?: string | null;
       year?: number | null;
       description?: string | null;
       imageUrl?: string | null;

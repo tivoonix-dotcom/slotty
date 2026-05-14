@@ -7,6 +7,9 @@ export type PrimaryLocationInput = {
   street: string;
   building: string;
   buildingDetail?: string | null;
+  salonName?: string | null;
+  district?: string | null;
+  showExactAddressAfterBooking?: boolean | null;
   entrance?: string | null;
   floor?: string | null;
   room?: string | null;
@@ -25,9 +28,11 @@ export async function upsertPrimaryLocation(masterId: string, loc: PrimaryLocati
   await query(
     `insert into public.master_locations (
        master_id, visit_type, city, street, building, building_detail, entrance, floor, room,
-       intercom, landmark, directions, client_note, lat, lng, public_address, is_primary
+       intercom, landmark, directions, client_note, lat, lng, public_address,
+       salon_name, district, show_exact_address_after_booking, is_primary
      ) values (
-       $1, $2::public.visit_type, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, true
+       $1, $2::public.visit_type, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+       $17, $18, $19, true
      )`,
     [
       masterId,
@@ -46,6 +51,9 @@ export async function upsertPrimaryLocation(masterId: string, loc: PrimaryLocati
       loc.lat ?? null,
       loc.lng ?? null,
       loc.publicAddress.trim(),
+      loc.salonName?.trim() || null,
+      loc.district?.trim() || null,
+      loc.showExactAddressAfterBooking === true,
     ],
   );
 }
@@ -104,7 +112,7 @@ export async function listMyScheduleRules(masterId: string): Promise<ScheduleRul
 
 export type CertificateInput = {
   title: string;
-  issuer: string;
+  issuer: string | null;
   year?: number | null;
   description?: string | null;
   imageUrl?: string | null;
@@ -121,7 +129,7 @@ export async function insertCertificates(masterId: string, items: CertificateInp
       [
         masterId,
         item.title.trim(),
-        item.issuer.trim(),
+        item.issuer?.trim() ? item.issuer.trim() : null,
         y,
         item.imageUrl?.trim() || null,
         item.description?.trim() || null,

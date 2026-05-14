@@ -11,7 +11,7 @@ export const LegalPageShell: FC<{ title: string; children: ReactNode }> = ({ tit
             to={HUB_PATH}
             className="text-[14px] font-semibold text-[#E29595] transition hover:opacity-90 active:scale-[0.99]"
           >
-            ← На главную
+            На главную
           </Link>
           <span className="truncate text-right text-[13px] font-medium text-neutral-500">SLOTTY</span>
         </div>

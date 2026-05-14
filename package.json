@@ -17,7 +17,6 @@
     "db:v2:smoke": "node scripts/apply-migrations-v2.mjs --smoke"
   },
   "devDependencies": {
-    "@types/leaflet": "^1.9.21",
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.0.1",
@@ -32,7 +31,6 @@
     "@supabase/supabase-js": "^2.105.4",
     "@tanstack/react-query": "^5.100.10",
     "@telegram-apps/sdk": "^3.11.8",
-    "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.15.0"
