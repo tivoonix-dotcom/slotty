@@ -565,7 +565,7 @@ function AppointmentBottomSheet({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[51] flex items-end justify-center overflow-x-hidden overflow-y-hidden bg-black/30 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(2.5rem,env(safe-area-inset-top,0px))] backdrop-blur-[2px] sm:items-center sm:overflow-y-auto sm:p-4 sm:py-8"
+      className="scrollbar-hidden fixed inset-0 z-[51] flex items-end justify-center overflow-x-hidden overflow-y-hidden bg-black/30 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(2.5rem,env(safe-area-inset-top,0px))] backdrop-blur-[2px] sm:items-center sm:overflow-y-auto sm:p-4 sm:py-8"
       role="presentation"
       onClick={onClose}
     >
@@ -585,7 +585,7 @@ function AppointmentBottomSheet({
 }
 
 export function ProfilePage() {
-  const { profile, isLoading: authLoading, isAuthenticated, backendConfigured, refreshProfile, logout } = useAuth();
+  const { profile, isLoading: authLoading, isAuthenticated, backendConfigured, refreshProfile } = useAuth();
   const { isTelegramWebApp, telegramUserPhotoUrl, telegramUserPreview } = useTelegram();
   const isMasterCabinet = isDemoMaster() || profile?.role === 'master';
   const navigate = useNavigate();
@@ -696,7 +696,7 @@ export function ProfilePage() {
   const { displayName, roleSubtitle, initialLetter } = useMemo(() => {
     if (profile) {
       const name = profile.full_name;
-      const sub = profile.role === 'master' ? 'Мастер SLOTTY' : 'Клиент SLOTTY';
+      const sub = profile.role === 'master' ? 'Мастер\u00a0SLOTTY' : 'Клиент\u00a0SLOTTY';
       const t = name.trim();
       const ini = t.length ? t[0]!.toUpperCase() : '?';
       return { displayName: name, roleSubtitle: sub, initialLetter: ini };
@@ -705,7 +705,7 @@ export function ProfilePage() {
       const name = formatTelegramUserDisplayName(telegramUserPreview);
       const t = name.trim();
       const ini = t.length ? t[0]!.toUpperCase() : '?';
-      return { displayName: name, roleSubtitle: 'Клиент SLOTTY', initialLetter: ini };
+      return { displayName: name, roleSubtitle: 'Клиент\u00a0SLOTTY', initialLetter: ini };
     }
     return { displayName: 'Гость', roleSubtitle: 'Войдите через Telegram', initialLetter: '?' };
   }, [profile, telegramUserPreview]);
@@ -1041,7 +1041,7 @@ export function ProfilePage() {
                     type="button"
                     disabled={avatarBusy}
                     onClick={() => void applyTelegramAvatar()}
-                    className="rounded-full bg-[#F1EFEF] px-3 py-1.5 text-[12px] font-semibold text-neutral-800 transition hover:bg-[#ebe8e8] disabled:opacity-50"
+                    className="flex w-full min-h-9 items-center justify-center whitespace-nowrap rounded-full bg-[#F1EFEF] px-3 py-2 text-[11px] font-semibold leading-none text-neutral-800 transition hover:bg-[#ebe8e8] disabled:opacity-50 sm:text-[12px]"
                   >
                     Обновить фото из Telegram
                   </button>
@@ -1606,12 +1606,7 @@ export function ProfilePage() {
         refreshProfile={refreshProfile}
         telegramUserPhotoUrl={telegramUserPhotoUrl ?? null}
       />
-      <ClientSettingsSheet
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        onOpenEditProfile={() => setEditProfileOpen(true)}
-        onLogout={logout}
-      />
+      <ClientSettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

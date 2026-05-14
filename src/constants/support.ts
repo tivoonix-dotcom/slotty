@@ -1,9 +1,8 @@
 /**
- * Контакты поддержки SLOTTY (замените на реальные перед продакшеном).
- * Не дублируйте строки в компонентах — импортируйте отсюда.
+ * Контакты поддержки SLOTTY. Не дублируйте строки в компонентах — импортируйте отсюда.
  */
-export const SUPPORT_TELEGRAM = '[указать Telegram поддержки]';
-export const SUPPORT_EMAIL = '[указать email поддержки]';
+export const SUPPORT_TELEGRAM = '@TIVONIX';
+export const SUPPORT_EMAIL = 'tivoonix@gmail.com';
 
 export function isPlaceholderContact(value: string): boolean {
   return /^\[.*]$/.test(value.trim());

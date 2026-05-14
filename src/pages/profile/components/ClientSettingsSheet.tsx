@@ -8,16 +8,14 @@ import {
 } from '../../../constants/support';
 import { ProfileSheetShell } from './ProfileSheetShell';
 
-type View = 'menu' | 'account' | 'support' | 'documents' | 'legal';
+type View = 'menu' | 'support' | 'documents' | 'legal';
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  onOpenEditProfile: () => void;
-  onLogout: () => void;
 };
 
-export function ClientSettingsSheet({ open, onClose, onOpenEditProfile, onLogout }: Props) {
+export function ClientSettingsSheet({ open, onClose }: Props) {
   const [view, setView] = useState<View>('menu');
   const [legalId, setLegalId] = useState<LegalDocId | null>(null);
 
@@ -153,45 +151,6 @@ export function ClientSettingsSheet({ open, onClose, onOpenEditProfile, onLogout
     );
   }
 
-  if (view === 'account') {
-    return (
-      <ProfileSheetShell onClose={() => setView('menu')} labelledBy="settings-account-title">
-        <button
-          type="button"
-          onClick={() => setView('menu')}
-          className="mb-2 text-[14px] font-semibold text-neutral-500 transition hover:text-neutral-800"
-        >
-          ← Назад
-        </button>
-        <h2 id="settings-account-title" className="text-[26px] font-semibold tracking-[-0.055em] text-neutral-950">
-          Аккаунт
-        </h2>
-        <div className="mt-5 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onOpenEditProfile();
-            }}
-            className="flex min-h-12 w-full items-center justify-center rounded-full bg-[#F1EFEF] px-4 text-[15px] font-semibold text-neutral-900 transition active:scale-[0.98]"
-          >
-            Редактировать профиль
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onLogout();
-              onClose();
-            }}
-            className="flex min-h-12 w-full items-center justify-center rounded-full border-2 border-neutral-200 bg-white px-4 text-[15px] font-semibold text-neutral-800 transition active:scale-[0.98]"
-          >
-            Выйти из аккаунта
-          </button>
-        </div>
-      </ProfileSheetShell>
-    );
-  }
-
   return (
     <ProfileSheetShell onClose={onClose} labelledBy="settings-title">
       <h2 id="settings-title" className="text-[26px] font-semibold tracking-[-0.055em] text-neutral-950">
@@ -199,13 +158,6 @@ export function ClientSettingsSheet({ open, onClose, onOpenEditProfile, onLogout
       </h2>
 
       <div className="mt-6 flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={() => setView('account')}
-          className="flex min-h-12 w-full items-center justify-between rounded-[22px] bg-[#F1EFEF] px-4 text-left text-[15px] font-semibold text-neutral-900 transition active:scale-[0.99]"
-        >
-          Аккаунт
-        </button>
         <button
           type="button"
           onClick={() => setView('support')}

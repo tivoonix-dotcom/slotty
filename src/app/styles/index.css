@@ -5,14 +5,23 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
-    @apply max-w-full overflow-x-clip;
+    @apply max-w-full overflow-x-clip bg-brand-bg;
     overscroll-behavior-x: none;
-    scrollbar-gutter: stable;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  html::-webkit-scrollbar {
+    display: none;
   }
   body {
     @apply min-h-dvh max-w-full overflow-x-clip bg-brand-bg text-brand-text;
     touch-action: pan-y pinch-zoom;
     overscroll-behavior-x: none;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  body::-webkit-scrollbar {
+    display: none;
   }
 
   #root {

@@ -3,6 +3,7 @@ import type { BackendProfile } from '../../../features/auth/types';
 import { formatBelarusPhoneDisplay, normalizeBelarusPhone } from '../../../features/profile/lib/belarusPhone';
 import { apiFetch } from '../../../shared/api/backendClient';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
+import { ServicesFilterAddressInput } from '../../services/ServicesFilterAddressInput';
 import { ProfileSheetShell } from './ProfileSheetShell';
 
 type Props = {
@@ -177,7 +178,7 @@ export function ProfileEditModal({
               type="button"
               disabled={busy}
               onClick={() => void applyTelegramAvatar()}
-              className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#F1EFEF] px-4 text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98] disabled:opacity-50"
+              className="flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-full bg-[#F1EFEF] px-4 text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98] disabled:opacity-50"
             >
               Обновить фото из Telegram
             </button>
@@ -223,15 +224,18 @@ export function ProfileEditModal({
         {phoneErr ? <p className="mt-1.5 text-[13px] font-medium text-red-600">{phoneErr}</p> : null}
       </label>
 
-      <label className="mt-4 block">
+      <label htmlFor="profile-edit-address" className="mt-4 block">
         <span className="text-[13px] font-semibold text-neutral-500">Адрес</span>
-        <textarea
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          rows={3}
-          placeholder="Можно указать адрес, чтобы быстрее находить мастеров рядом"
-          className="mt-1.5 w-full resize-none rounded-[22px] bg-[#F1EFEF] px-4 py-3 text-[15px] font-semibold text-neutral-950 outline-none"
-        />
+        <div className="mt-1.5">
+          <ServicesFilterAddressInput
+            id="profile-edit-address"
+            value={address}
+            onChange={setAddress}
+            viewportDropdown
+            placeholder="Можно указать адрес, чтобы быстрее находить мастеров рядом"
+            inputClassName="rounded-[22px] bg-[#F1EFEF] px-4 py-3 text-[15px] font-semibold text-neutral-950 placeholder:font-medium placeholder:text-neutral-400"
+          />
+        </div>
       </label>
 
       {banner === 'ok' ? (
