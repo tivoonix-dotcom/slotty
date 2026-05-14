@@ -516,7 +516,7 @@ function FilterButton({
       onClick={onClick}
       className={`rounded-full px-4 py-2.5 text-[14px] font-semibold transition active:scale-[0.98] ${
         active
-          ? 'bg-[#E29595] text-white shadow-[0_10px_24px_rgba(226,149,149,0.22)]'
+          ? 'bg-[#E29595] text-white'
           : 'bg-[#F1EFEF] text-neutral-700'
       }`}
     >
@@ -1015,7 +1015,10 @@ export function ServicesPage() {
                   <IconSearch className="shrink-0 text-neutral-400" />
 
                   <input
-                    type="search"
+                    type="text"
+                    inputMode="search"
+                    enterKeyHint="search"
+                    role="searchbox"
                     value={applied.search}
                     onChange={(event) => setSearch(event.target.value)}
                     placeholder="Услуга, мастер или салон"
@@ -1051,7 +1054,7 @@ export function ServicesPage() {
                   onClick={() => setPillCategory(label)}
                   className={`shrink-0 rounded-full px-4 py-2.5 text-[15px] font-semibold transition active:scale-[0.98] ${
                     active
-                      ? 'bg-[#E29595] text-white shadow-[0_10px_24px_rgba(226,149,149,0.22)]'
+                      ? 'bg-[#E29595] text-white'
                       : 'bg-[#F1EFEF] text-neutral-700'
                   }`}
                 >
@@ -1061,20 +1064,22 @@ export function ServicesPage() {
             })}
           </div>
 
-          <div className="mt-4">
-            <p className="mb-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-neutral-400">Район или адрес</p>
-            <ServicesDbLocationField
-              locationId={applied.locationId}
-              addressLine={applied.address}
-              onChange={(next) =>
-                setApplied((current) => ({
-                  ...current,
-                  locationId: next.locationId,
-                  address: next.addressLine,
-                }))
-              }
-            />
-          </div>
+          {!filterOpen ? (
+            <div className="mt-4">
+              <p className="mb-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-neutral-400">Район или адрес</p>
+              <ServicesDbLocationField
+                locationId={applied.locationId}
+                addressLine={applied.address}
+                onChange={(next) =>
+                  setApplied((current) => ({
+                    ...current,
+                    locationId: next.locationId,
+                    address: next.addressLine,
+                  }))
+                }
+              />
+            </div>
+          ) : null}
 
           <div className="mt-4 flex items-center gap-2">
             <button
@@ -1234,7 +1239,7 @@ export function ServicesPage() {
 
       {filterOpen ? (
         <div
-          className="fixed inset-0 z-50 flex flex-col justify-end overflow-x-hidden overflow-y-hidden lg:items-center lg:justify-center lg:p-6"
+          className="fixed inset-0 z-[100] flex flex-col justify-end overflow-x-hidden overflow-y-hidden lg:items-center lg:justify-center lg:p-6"
           role="presentation"
         >
           <button
@@ -1289,6 +1294,7 @@ export function ServicesPage() {
             <div className="mt-2">
               <ServicesDbLocationField
                 id="services-filter-address-modal"
+                viewportDropdown
                 locationId={modalDraft.locationId}
                 addressLine={modalDraft.address}
                 onChange={(next) =>
@@ -1578,7 +1584,7 @@ export function ServicesPage() {
 
       {sortSheetOpen ? (
         <div
-          className="fixed inset-0 z-50 flex flex-col justify-end overflow-x-hidden overflow-y-hidden lg:items-center lg:justify-center lg:p-6"
+          className="fixed inset-0 z-[100] flex flex-col justify-end overflow-x-hidden overflow-y-hidden lg:items-center lg:justify-center lg:p-6"
           role="presentation"
         >
           <button
