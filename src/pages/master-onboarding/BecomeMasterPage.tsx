@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { BY } from 'country-flag-icons/react/1x1';
 import { ADMIN_PATH, getMasterPath, HUB_PATH } from '../../app/paths';
 import { priceForPlan } from '../../features/billing/model/masterPlans';
 import type { MasterOnboardingService } from '../../features/profile/lib/demoMasterStorage';
@@ -1691,7 +1692,7 @@ export function BecomeMasterPage() {
                             }`}
                           >
                             <span
-                              className={`relative flex h-[3.35rem] w-[3.35rem] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E4E0E0] sm:h-14 sm:w-14 ${
+                              className={`relative flex h-[3.35rem] w-[3.35rem] shrink-0 items-center justify-center overflow-hidden rounded-full bg-white sm:h-14 sm:w-14 ${
                                 active ? 'ring-2 ring-[#E29595]/45 ring-offset-2 ring-offset-[#FDF9F9]' : ''
                               }`}
                               aria-hidden
@@ -1705,7 +1706,7 @@ export function BecomeMasterPage() {
                                   loading={index < 3 ? 'eager' : 'lazy'}
                                   decoding="async"
                                   draggable={false}
-                                  className="h-[2.7rem] w-[2.7rem] scale-[1.08] object-contain object-center sm:h-[2.85rem] sm:w-[2.85rem] sm:scale-[1.06]"
+                                  className="h-full w-full object-cover object-center"
                                 />
                               ) : (
                                 <span className="text-[12px] font-semibold text-neutral-400" aria-hidden>
@@ -1779,13 +1780,14 @@ export function BecomeMasterPage() {
 
                   <Field
                     label="Телефон для связи"
+                    hint="Вставьте номер из буфера или введите вручную — не больше одного мобильного РБ."
                     labelAdornment={
                       <span
-                        className="flex h-6 w-6 items-center justify-center rounded-full border border-neutral-200 bg-white text-[13px] leading-none shadow-[0_2px_6px_rgba(17,17,17,0.04)]"
+                        className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full border border-neutral-200 bg-white shadow-[0_2px_6px_rgba(17,17,17,0.04)]"
                         title="Беларусь"
                         aria-hidden
                       >
-                        🇧🇾
+                        <BY title="Беларусь" className="h-full w-full object-cover" />
                       </span>
                     }
                     value={phone}
@@ -1801,7 +1803,7 @@ export function BecomeMasterPage() {
                     placeholder="+375 29 000-00-00"
                     inputMode="tel"
                     error={showProfileFieldError('phone') ? profileFieldErrors.phone : undefined}
-                    maxLength={50}
+                    maxLength={24}
                   />
 
                   <MasterProfileContactsBlock

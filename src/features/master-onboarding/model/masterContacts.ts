@@ -39,31 +39,31 @@ export function validateContactValue(type: ContactType, raw: string): string | n
   switch (type) {
     case 'telegram':
       if (TG_URL.test(v) || TG_USER.test(v.replace(/^https?:\/\//i, ''))) return null;
-      return 'Проверьте формат ссылки или ника';
+      return 'Проверьте формат контакта';
     case 'instagram':
       if (IG_URL.test(v) || IG_USER.test(v)) return null;
-      return 'Проверьте формат ссылки или ника';
+      return 'Проверьте формат контакта';
     case 'vk':
       if (VK_URL.test(v) || VK_SHORT.test(v)) return null;
-      return 'Проверьте формат ссылки или ника';
+      return 'Проверьте формат контакта';
     case 'whatsapp':
       if (WA_URL.test(v) || hasAnyDigit(v)) return null;
-      return 'Проверьте формат ссылки или ника';
+      return 'Проверьте формат контакта';
     case 'viber': {
       if (VIBER_URL.test(v)) return null;
       const noScheme = v.replace(/^https?:\/\//i, '');
-      if (TG_URL.test(v) || TG_URL.test(noScheme)) return 'Проверьте контакт Viber';
+      if (TG_URL.test(v) || TG_URL.test(noScheme)) return 'Проверьте формат контакта';
       const tgCandidate = v.trim().replace(/^@/, '@');
-      if (TG_USER.test(tgCandidate) || TG_USER.test(v.trim())) return 'Проверьте контакт Viber';
-      if (v.trim().startsWith('@') && !hasAnyDigit(v)) return 'Проверьте контакт Viber';
+      if (TG_USER.test(tgCandidate) || TG_USER.test(v.trim())) return 'Проверьте формат контакта';
+      if (v.trim().startsWith('@') && !hasAnyDigit(v)) return 'Проверьте формат контакта';
       if (hasAnyDigit(v)) return null;
-      return 'Проверьте контакт Viber';
+      return 'Проверьте формат контакта';
     }
     case 'other':
-      if (v.length > 200) return 'Проверьте формат ссылки или ника';
+      if (v.length > 200) return 'Проверьте формат контакта';
       return null;
     default:
-      return 'Проверьте формат ссылки или ника';
+      return 'Проверьте формат контакта';
   }
 }
 
@@ -91,11 +91,11 @@ export function contactsToLegacyContactLine(contacts: MasterContact[]): string |
 }
 
 export const CONTACT_CHANNEL_META: { type: ContactType; label: string; placeholder: string }[] = [
-  { type: 'telegram', label: 'Telegram', placeholder: '@username или ссылка' },
-  { type: 'viber', label: 'Viber', placeholder: 'Номер или ссылка' },
-  { type: 'vk', label: 'VK', placeholder: 'Ссылка на профиль' },
-  { type: 'instagram', label: 'Instagram', placeholder: '@username или ссылка' },
-  { type: 'whatsapp', label: 'WhatsApp', placeholder: 'Номер или ссылка wa.me' },
+  { type: 'telegram', label: 'Telegram', placeholder: '@username или t.me/username' },
+  { type: 'viber', label: 'Viber', placeholder: '+375 29 000-00-00' },
+  { type: 'vk', label: 'VK', placeholder: 'vk.com/username' },
+  { type: 'instagram', label: 'Instagram', placeholder: '@username или instagram.com/username' },
+  { type: 'whatsapp', label: 'WhatsApp', placeholder: '+375 29 000-00-00' },
   { type: 'other', label: 'Другое', placeholder: 'Ссылка или контакт' },
 ];
 

@@ -31,8 +31,10 @@
     "@supabase/supabase-js": "^2.105.4",
     "@tanstack/react-query": "^5.100.10",
     "@telegram-apps/sdk": "^3.11.8",
+    "country-flag-icons": "^1.6.17",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-icons": "^5.6.0",
     "react-router-dom": "^7.15.0"
   }
 }
