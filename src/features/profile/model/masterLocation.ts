@@ -53,8 +53,24 @@ export function masterVisitTypeLabel(t: MasterVisitType): string {
 function baseAddressLine(loc: MasterLocation): string {
   const s = loc.street.trim();
   const b = loc.building.trim();
-  if (s && b) return `${s}, ${b}`;
-  return s || b;
+  if (s && b && b !== 'б/н') return `${s}, ${b}`;
+  return s || (b !== 'б/н' ? b : '');
+}
+
+function cityLabel(loc: MasterLocation): string {
+  return (loc.city ?? '').trim() || 'Минск';
+}
+
+/** Дом/корпус уже есть в строке улицы (часто после геокодера). */
+function buildingRedundantWithStreet(street: string, building: string): boolean {
+  const b = building.trim();
+  if (!b || b === 'б/н') return true;
+  const s = street.trim().toLowerCase();
+  if (!s) return false;
+  if (s === b.toLowerCase()) return true;
+  if (s.endsWith(`, ${b.toLowerCase()}`)) return true;
+  if (s.includes(b.toLowerCase())) return true;
+  return false;
 }
 
 /** Короткая строка для карточек */
@@ -63,7 +79,9 @@ export function formatPublicAddress(loc: MasterLocation | null | undefined): str
   const base = baseAddressLine(loc);
   if (loc.visitType === 'at_home') {
     if (loc.showExactAddressAfterBooking === true) {
-      const c = (loc.city ?? '').trim() || 'Минск';
+      const c = cityLabel(loc);
+      const street = loc.street.trim();
+      if (street) return `На дому · ${c}, ${street}`;
       const d = loc.district?.trim();
       if (d) return `На дому · ${c}, ${d}`;
       return `На дому · ${c}`;
@@ -75,20 +93,65 @@ export function formatPublicAddress(loc: MasterLocation | null | undefined): str
   return salon ? `${salon} · ${base}` : base;
 }
 
-/** Строка «до записи» для at_home при скрытии точного адреса */
+/**
+ * Строка «до записи» для at_home: город + поле «Адрес приёма» (улица/район),
+ * без дома, подъезда и прочих деталей из «Дополнительно».
+ */
 export function formatHomePublicBeforeBooking(loc: MasterLocation | null | undefined): string {
   if (!loc || loc.visitType !== 'at_home') return '';
-  const c = (loc.city ?? '').trim() || 'Минск';
+  const c = cityLabel(loc);
+  const street = loc.street.trim();
+  if (street) return `${c}, ${street}`;
   const d = loc.district?.trim();
   return d ? `${c}, ${d}` : c;
 }
 
-/** Основная строка адреса с городом (для превью «после записи» / салон) */
+/** Основная строка адреса с городом (салон или полный адрес без режима скрытия). */
 export function formatCityWithAddressLine(loc: MasterLocation | null | undefined): string {
   if (!loc) return '';
-  const c = (loc.city ?? '').trim() || 'Минск';
+  const c = cityLabel(loc);
   const line = baseAddressLine(loc);
   return line ? `${c}, ${line}` : c;
+}
+
+/** Полная строка «после записи» для at_home: город, улица, дом (если не дублируется). */
+export function formatHomeAfterBookingMainLine(loc: MasterLocation | null | undefined): string {
+  if (!loc || loc.visitType !== 'at_home') return formatCityWithAddressLine(loc);
+  const c = cityLabel(loc);
+  const street = loc.street.trim();
+  const building = loc.building.trim();
+  const parts: string[] = [];
+  if (street) parts.push(street);
+  if (building && building !== 'б/н' && !buildingRedundantWithStreet(street, building)) {
+    parts.push(building);
+  }
+  const line = parts.join(', ');
+  return line ? `${c}, ${line}` : c;
+}
+
+/** Детали приёма на дому — только из «Дополнительно», после записи. */
+export function homeAfterBookingDetailLines(loc: MasterLocation | null | undefined): string[] {
+  if (!loc || loc.visitType !== 'at_home') return [];
+  const lines: string[] = [];
+  if (loc.buildingDetail?.trim()) lines.push(loc.buildingDetail.trim());
+  if (loc.entrance?.trim()) lines.push(`подъезд ${loc.entrance.trim()}`);
+  if (loc.floor?.trim()) lines.push(`этаж ${loc.floor.trim()}`);
+  if (loc.room?.trim()) lines.push(`квартира ${loc.room.trim()}`);
+  if (loc.intercom?.trim()) lines.push(`код домофона ${loc.intercom.trim()}`);
+  if (loc.directions?.trim()) lines.push(loc.directions.trim());
+  if (loc.clientNote?.trim()) lines.push(`Комментарий: ${loc.clientNote.trim()}`);
+  return lines;
+}
+
+/** Адрес в карточке записи клиента (уже после бронирования). */
+export function formatClientAppointmentAddress(loc: MasterLocation | null | undefined): string {
+  if (!loc) return '';
+  if (loc.visitType === 'at_home') {
+    const main = formatHomeAfterBookingMainLine(loc);
+    const tail = homeAfterBookingDetailLines(loc);
+    return tail.length ? `${main} · ${tail.join(' · ')}` : main;
+  }
+  return formatCityWithAddressLine(loc);
 }
 
 /** Полная строка для подтверждений и «как добраться» одной строкой */
@@ -143,13 +206,35 @@ export function masterLocationSearchHaystack(loc: MasterLocation | null | undefi
   return bits.map((s) => (s ?? '').trim().toLowerCase()).filter(Boolean).join(' ');
 }
 
-/** Строки для UI «Подробнее» / профиль мастера */
-export function masterLocationDetailRows(loc: MasterLocation | null | undefined): { label: string; value: string }[] {
+/** Строки для UI «Подробнее» / профиль / детали записи */
+export function masterLocationDetailRows(
+  loc: MasterLocation | null | undefined,
+  opts?: { revealed?: boolean },
+): { label: string; value: string }[] {
   if (!loc) return [];
+  const revealed = opts?.revealed === true;
   const rows: { label: string; value: string }[] = [];
   rows.push({ label: 'Формат', value: masterVisitTypeLabel(loc.visitType) });
   if (loc.salonName?.trim()) rows.push({ label: 'Салон', value: loc.salonName.trim() });
-  rows.push({ label: 'Адрес', value: baseAddressLine(loc) || '—' });
+  const addressValue =
+    loc.visitType === 'at_home' && loc.showExactAddressAfterBooking === true && !revealed
+      ? loc.street.trim() || '—'
+      : loc.visitType === 'at_home'
+        ? formatHomeAfterBookingMainLine(loc)
+        : baseAddressLine(loc) || '—';
+  rows.push({ label: 'Адрес', value: addressValue });
+
+  if (loc.visitType === 'at_home' && loc.showExactAddressAfterBooking === true && !revealed) {
+    return rows;
+  }
+
+  if (loc.visitType === 'at_home' && revealed && loc.showExactAddressAfterBooking === true) {
+    for (const line of homeAfterBookingDetailLines(loc)) {
+      rows.push({ label: ' ', value: line });
+    }
+    return rows;
+  }
+
   if (loc.buildingDetail?.trim()) rows.push({ label: 'Дом / корпус', value: loc.buildingDetail.trim() });
   if (loc.district?.trim()) rows.push({ label: 'Район / метро', value: loc.district.trim() });
   if (loc.entrance?.trim()) rows.push({ label: 'Вход', value: loc.entrance.trim() });

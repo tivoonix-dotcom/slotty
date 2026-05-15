@@ -1358,7 +1358,7 @@ export function ProfilePage() {
             <DetailSheetRow label="Услуга" value={selectedAppointment.serviceTitle} />
             <DetailSheetRow label="Дата" value={selectedAppointment.dateLabel} />
             <DetailSheetRow label="Время" value={selectedAppointment.timeLabel} />
-            {masterLocationDetailRows(selectedAppointment.location).map((line) => (
+            {masterLocationDetailRows(selectedAppointment.location, { revealed: true }).map((line) => (
               <DetailSheetRow key={line.label} label={line.label} value={line.value} />
             ))}
             <DetailSheetRow label="Стоимость" value={formatPriceByn(selectedAppointment.price)} />

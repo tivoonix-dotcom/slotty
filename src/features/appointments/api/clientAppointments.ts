@@ -1,5 +1,5 @@
 import type { MasterLocation } from '../../profile/model/masterLocation';
-import { formatPublicAddress } from '../../profile/model/masterLocation';
+import { formatClientAppointmentAddress } from '../../profile/model/masterLocation';
 import { apiFetch } from '../../../shared/api/backendClient';
 import { readSlottyApiErrorMessage } from '../../../shared/api/slottyApiErrorMessage';
 import type { DemoAppointmentRecord, DemoAppointmentStatus, DemoAppointmentTab } from '../model/demoAppointments';
@@ -108,7 +108,7 @@ export function mapServerAppointmentToRecord(
   tab: DemoAppointmentTab,
 ): DemoAppointmentRecord {
   const location = buildLocationFromServer(row);
-  const addressShort = formatPublicAddress(location);
+  const addressShort = formatClientAppointmentAddress(location);
   const { dateLabel, timeLabel } = formatWhenLabels(row.starts_at);
   const lat = location.lat;
   const lng = location.lng;

@@ -15,10 +15,12 @@ import type { MasterOnboardingService } from '../../features/profile/lib/demoMas
 import type { MasterLocation, MasterVisitType } from '../../features/profile/model/masterLocation';
 import {
   formatHomePublicBeforeBooking,
+  formatHomeAfterBookingMainLine,
+  homeAfterBookingDetailLines,
   formatCityWithAddressLine,
   masterVisitTypeLabel,
 } from '../../features/profile/model/masterLocation';
-import { OnboardingAddressMap, splitReferenceLabelToStreetBuilding } from './OnboardingAddressMap';
+import { OnboardingAddressMap } from './OnboardingAddressMap';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { useTelegram } from '../../shared/hooks/useTelegram';
 import { getApiBaseUrl } from '../../shared/api/backendClient';
@@ -350,8 +352,7 @@ function computeOnboardingPublicAddress(params: {
 
   if (params.visitType === 'at_home') {
     if (params.showExactAddressAfterBooking === true) {
-      const lm = params.landmark?.trim();
-      if (lm) return `${c}, ${lm}`.slice(0, 600);
+      if (s) return `${c}, ${s}`.slice(0, 600);
       return c.slice(0, 600);
     }
     const core = line ? `${c}, ${line}` : c;
@@ -780,9 +781,7 @@ export function BecomeMasterPage() {
         const sn = salonName.trim();
         if (!sn || sn.length < 2) return false;
       }
-      const streetOk = street.trim().length > 0;
-      const buildingEff = building.trim() || (streetOk ? 'б/н' : '');
-      if (!streetOk || !buildingEff) return false;
+      if (!street.trim()) return false;
       const coordsRequired = mapScriptOk === true;
       if (coordsRequired) {
         const hasCoords = lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);
@@ -1232,7 +1231,13 @@ export function BecomeMasterPage() {
     return Object.keys(errs).length === 0;
   }, [clientContacts, description, name, phone]);
 
+  /** Сброс подтверждения адреса без сброса координат — чтобы карта не пересоздавалась на каждый символ. */
   const invalidatePrimaryAddressOnMap = useCallback(() => {
+    setAddressPinnedToMap(false);
+    setPickedAddressSummary(null);
+  }, []);
+
+  const resetPrimaryAddressCoordinates = useCallback(() => {
     setAddressPinnedToMap(false);
     setPickedAddressSummary(null);
     setLat(undefined);
@@ -1260,15 +1265,10 @@ export function BecomeMasterPage() {
       else if (sn.length < 2) errs.salonName = 'Минимум 2 символа.';
     }
 
-    const bEff = building.trim() || (street.trim() ? 'б/н' : '');
-    if (!bEff) errs.building = 'Укажите адрес приёма';
-    else if (building.trim().length > 80) errs.building = 'Не длиннее 80 символов.';
-
     if (entrance.trim().length > 120) errs.entrance = 'Не длиннее 120 символов.';
     if (floor.trim().length > 40) errs.floor = 'Не длиннее 40 символов.';
     if (room.trim().length > 80) errs.room = 'Не длиннее 80 символов.';
     if (intercom.trim().length > 80) errs.intercom = 'Не длиннее 80 символов.';
-    if (landmark.trim().length > 240) errs.landmark = 'Не длиннее 240 символов.';
     if (directions.trim().length > 2000) errs.directions = 'Не длиннее 2000 символов.';
     if (clientNote.trim().length > 2000) errs.clientNote = 'Не длиннее 2000 символов.';
     if (salonName.trim().length > 120) errs.salonName = 'Не длиннее 120 символов.';
@@ -1927,7 +1927,7 @@ export function BecomeMasterPage() {
                             setVisitType(type);
                             setAddressFieldErrors({});
                             setAddressNavigateAttempted(false);
-                            invalidatePrimaryAddressOnMap();
+                            resetPrimaryAddressCoordinates();
                           }}
                           className={`min-h-11 rounded-full px-3 text-[14px] font-semibold transition active:scale-[0.98] ${
                             active
@@ -1965,47 +1965,36 @@ export function BecomeMasterPage() {
                       />
                     </div>
 
-                    <Field
-                      label="Адрес салона *"
-                      value={street}
-                      onChange={(value) => {
-                        invalidatePrimaryAddressOnMap();
-                        setStreet(value);
-                        setAddressFieldErrors((prev) => {
-                          const next = { ...prev };
-                          delete next.street;
-                          return next;
-                        });
-                      }}
-                      onBlur={() => touchAddressField('street')}
-                      placeholder="Адрес"
-                      error={showAddressFieldError('street') ? addressFieldErrors.street : undefined}
-                      maxLength={200}
-                    />
-
                     <div className="mt-4 overflow-visible rounded-[26px] bg-[#F1EFEF] p-3">
                       <OnboardingAddressMap
                         key={`map-${visitType}`}
                         city={ONBOARDING_CITY}
                         visitType={visitType}
-                        addressLine={
-                          street.trim()
-                            ? building.trim() && building.trim() !== 'б/н'
-                              ? `${street.trim()}, ${building.trim()}`
-                              : street.trim()
-                            : ''
-                        }
+                        street={street}
+                        onStreetChange={(value) => {
+                          invalidatePrimaryAddressOnMap();
+                          setStreet(value);
+                          setAddressFieldErrors((prev) => {
+                            const next = { ...prev };
+                            delete next.street;
+                            return next;
+                          });
+                        }}
+                        inputLabel="Адрес салона *"
+                        inputPlaceholder="Адрес"
+                        inputError={showAddressFieldError('street') ? addressFieldErrors.street : undefined}
+                        onInputBlur={() => touchAddressField('street')}
+                        viewportDropdown
                         initialLat={lat ?? null}
                         initialLng={lng ?? null}
                         addressSummary={pickedAddressSummary}
                         coordsError={showAddressFieldError('coords') ? addressFieldErrors.coords : undefined}
                         onMapAvailabilityChange={(ok) => setMapScriptOk(ok)}
                         onPick={(result) => {
-                          const { street: s, building: b } = splitReferenceLabelToStreetBuilding(result.addressLine);
                           setPickedAddressSummary(result.addressLine);
                           setAddressPinnedToMap(true);
-                          setStreet(s);
-                          setBuilding(b);
+                          setStreet(result.addressLine.trim());
+                          setBuilding('б/н');
                           setLat(result.lat);
                           setLng(result.lng);
                           setAddressFieldErrors((prev) => {
@@ -2041,47 +2030,36 @@ export function BecomeMasterPage() {
                   </>
                 ) : (
                   <>
-                    <Field
-                      label="Адрес приёма *"
-                      value={street}
-                      onChange={(value) => {
-                        invalidatePrimaryAddressOnMap();
-                        setStreet(value);
-                        setAddressFieldErrors((prev) => {
-                          const next = { ...prev };
-                          delete next.street;
-                          return next;
-                        });
-                      }}
-                      onBlur={() => touchAddressField('street')}
-                      placeholder="Адрес"
-                      error={showAddressFieldError('street') ? addressFieldErrors.street : undefined}
-                      maxLength={200}
-                    />
-
                     <div className="mt-4 overflow-visible rounded-[26px] bg-[#F1EFEF] p-3">
                       <OnboardingAddressMap
                         key={`map-${visitType}`}
                         city={ONBOARDING_CITY}
                         visitType={visitType}
-                        addressLine={
-                          street.trim()
-                            ? building.trim() && building.trim() !== 'б/н'
-                              ? `${street.trim()}, ${building.trim()}`
-                              : street.trim()
-                            : ''
-                        }
+                        street={street}
+                        onStreetChange={(value) => {
+                          invalidatePrimaryAddressOnMap();
+                          setStreet(value);
+                          setAddressFieldErrors((prev) => {
+                            const next = { ...prev };
+                            delete next.street;
+                            return next;
+                          });
+                        }}
+                        inputLabel="Адрес приёма *"
+                        inputPlaceholder="Адрес"
+                        inputError={showAddressFieldError('street') ? addressFieldErrors.street : undefined}
+                        onInputBlur={() => touchAddressField('street')}
+                        viewportDropdown
                         initialLat={lat ?? null}
                         initialLng={lng ?? null}
                         addressSummary={pickedAddressSummary}
                         coordsError={showAddressFieldError('coords') ? addressFieldErrors.coords : undefined}
                         onMapAvailabilityChange={(ok) => setMapScriptOk(ok)}
                         onPick={(result) => {
-                          const { street: s, building: b } = splitReferenceLabelToStreetBuilding(result.addressLine);
                           setPickedAddressSummary(result.addressLine);
                           setAddressPinnedToMap(true);
-                          setStreet(s);
-                          setBuilding(b);
+                          setStreet(result.addressLine.trim());
+                          setBuilding('б/н');
                           setLat(result.lat);
                           setLng(result.lng);
                           setAddressFieldErrors((prev) => {
@@ -2102,7 +2080,7 @@ export function BecomeMasterPage() {
                         onChange={(e) => setShowExactAddressAfterBooking(e.target.checked)}
                       />
                       <span className="text-[14px] font-semibold leading-snug text-neutral-800">
-                        Показывать точный адрес только после записи
+                        Скрывать подъезд, этаж и детали до записи
                       </span>
                     </label>
                   </>
@@ -2121,24 +2099,6 @@ export function BecomeMasterPage() {
 
                 {addressMoreOpen ? (
                   <div className="mt-3 space-y-3 rounded-[22px] border border-neutral-200/80 bg-white/60 px-3 py-3 sm:px-4">
-                    <Field
-                      label="Уточнение адреса (дом / корпус)"
-                      value={building}
-                      onChange={(v) => {
-                        invalidatePrimaryAddressOnMap();
-                        setBuilding(v);
-                        setAddressFieldErrors((prev) => {
-                          const next = { ...prev };
-                          delete next.building;
-                          return next;
-                        });
-                      }}
-                      onBlur={() => touchAddressField('building')}
-                      placeholder="Если не в адресе выше"
-                      error={showAddressFieldError('building') ? addressFieldErrors.building : undefined}
-                      maxLength={80}
-                    />
-
                     {visitType === 'at_home' ? (
                       <Field
                         label="Корпус / строение"
@@ -2201,16 +2161,6 @@ export function BecomeMasterPage() {
                       placeholder="12В"
                       error={showAddressFieldError('intercom') ? addressFieldErrors.intercom : undefined}
                       maxLength={80}
-                    />
-
-                    <Field
-                      label="Ориентир"
-                      value={landmark}
-                      onChange={setLandmark}
-                      onBlur={() => touchAddressField('landmark')}
-                      placeholder="Рядом с входом в ТЦ"
-                      error={showAddressFieldError('landmark') ? addressFieldErrors.landmark : undefined}
-                      maxLength={240}
                     />
 
                     <Field
@@ -2277,19 +2227,19 @@ export function BecomeMasterPage() {
                         </p>
                         <p className="mt-1 font-semibold text-neutral-950">На дому</p>
                         <p className="mt-1 text-neutral-700">{formatHomePublicBeforeBooking(locationDraft)}</p>
-                        <p className="mt-1 text-[13px] text-neutral-500">Точный адрес будет доступен после записи</p>
+                        <p className="mt-1 text-[13px] text-neutral-500">
+                          Подъезд, этаж и другие детали — только после записи
+                        </p>
                       </div>
                       <div>
                         <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
                           После записи
                         </p>
-                        <p className="mt-1 text-neutral-700">{formatCityWithAddressLine(locationDraft)}</p>
+                        <p className="mt-1 text-neutral-700">{formatHomeAfterBookingMainLine(locationDraft)}</p>
                         <div className="mt-1 space-y-0.5 text-[13px] text-neutral-600">
-                          {entrance.trim() ? <p>подъезд {entrance.trim()}</p> : null}
-                          {floor.trim() ? <p>этаж {floor.trim()}</p> : null}
-                          {room.trim() ? <p>квартира {room.trim()}</p> : null}
-                          {intercom.trim() ? <p>код домофона {intercom.trim()}</p> : null}
-                          {clientNote.trim() ? <p>Комментарий: {clientNote.trim()}</p> : null}
+                          {homeAfterBookingDetailLines(locationDraft).map((line) => (
+                            <p key={line}>{line}</p>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -2772,7 +2722,7 @@ export function BecomeMasterPage() {
                           </p>
 
                           <p className="mt-2.5 whitespace-nowrap text-[11px] font-medium text-neutral-400 sm:text-[12px]">
-                            Новый мастер · отзывов пока нет
+                            отзывов: 0
                           </p>
 
                           <button
@@ -2849,11 +2799,10 @@ export function BecomeMasterPage() {
                             {directions.trim() ? (
                               <p className="text-[13px] text-neutral-600">Как пройти: {directions.trim()}</p>
                             ) : null}
-                            {entrance.trim() || intercom.trim() || landmark.trim() || clientNote.trim() ? (
+                            {entrance.trim() || intercom.trim() || clientNote.trim() ? (
                               <div className="space-y-0.5 text-[13px] text-neutral-600">
                                 {entrance.trim() ? <p>Подъезд {entrance.trim()}</p> : null}
                                 {intercom.trim() ? <p>Домофон {intercom.trim()}</p> : null}
-                                {landmark.trim() ? <p>Ориентир: {landmark.trim()}</p> : null}
                                 {clientNote.trim() ? <p>{clientNote.trim()}</p> : null}
                               </div>
                             ) : null}
@@ -2863,7 +2812,7 @@ export function BecomeMasterPage() {
                             <p className="font-semibold text-neutral-950">На дому</p>
                             <p>{formatHomePublicBeforeBooking(locationDraft)}</p>
                             <p className="text-[13px] text-neutral-500">
-                              Точный адрес будет доступен после записи
+                              Подъезд, этаж и другие детали — только после записи
                             </p>
                           </div>
                         ) : (
