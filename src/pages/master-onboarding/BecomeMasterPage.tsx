@@ -154,14 +154,27 @@ type PublishBlockingIssue = {
   fixStep?: 3 | 4 | 5;
 };
 
+/** Телефон РБ или хотя бы один заполненный и валидный контакт для клиентов. */
+function hasClientReachableContact(phone: string, clientContacts: MasterContactRow[]): boolean {
+  const p = phone.trim();
+  if (p.length > 0 && isOptionalBelarusPhoneValid(p)) return true;
+  for (const row of clientContacts) {
+    const v = row.value.trim();
+    if (!v) continue;
+    if (validateContactValue(row.type, v) == null) return true;
+  }
+  return false;
+}
+
 function collectPublishBlockingIssues(params: {
   name: string;
   publicAddressForApi: string;
   services: OnboardingService[];
   clientContacts: MasterContactRow[];
   selectedCategoryId: string | null;
+  phone: string;
 }): PublishBlockingIssue[] {
-  const { name, publicAddressForApi, services, clientContacts, selectedCategoryId } = params;
+  const { name, publicAddressForApi, services, clientContacts, selectedCategoryId, phone } = params;
   const out: PublishBlockingIssue[] = [];
 
   if (!selectedCategoryId) {
@@ -181,6 +194,23 @@ function collectPublishBlockingIssues(params: {
     out.push({ id: 'services-empty', message: 'Добавьте хотя бы одну услугу', fixStep: 5 });
   } else if (services.some((s) => !isServiceValidForPublish(s))) {
     out.push({ id: 'services-invalid', message: 'Проверьте услуги', fixStep: 5 });
+  }
+
+  const phoneTrim = phone.trim();
+  if (phoneTrim.length > 0 && !isOptionalBelarusPhoneValid(phoneTrim)) {
+    out.push({ id: 'phone-invalid', message: 'Введите корректный номер Беларуси', fixStep: 3 });
+  }
+
+  if (!hasClientReachableContact(phone, clientContacts)) {
+    const pt = phone.trim();
+    const anyEmptyRow = clientContacts.some((r) => !r.value.trim());
+    if ((pt.length === 0 || isOptionalBelarusPhoneValid(pt)) && !anyEmptyRow) {
+      out.push({
+        id: 'contact-reachability',
+        message: 'Укажите телефон для связи или добавьте хотя бы один контакт в мессенджере',
+        fixStep: 3,
+      });
+    }
   }
 
   for (const row of clientContacts) {
@@ -221,7 +251,6 @@ function buildLocationFromForm(
     building: string;
     buildingDetail?: string;
     salonName?: string;
-    district?: string;
     showExactAddressAfterBooking?: boolean;
     lat?: number;
     lng?: number;
@@ -244,7 +273,6 @@ function buildLocationFromForm(
 
   if (fields.buildingDetail?.trim()) base.buildingDetail = fields.buildingDetail.trim();
   if (fields.salonName?.trim()) base.salonName = fields.salonName.trim();
-  if (fields.district?.trim()) base.district = fields.district.trim();
   if (typeof fields.showExactAddressAfterBooking === 'boolean') {
     base.showExactAddressAfterBooking = fields.showExactAddressAfterBooking;
   }
@@ -288,7 +316,7 @@ function computeOnboardingPublicAddress(params: {
   street: string;
   building: string;
   salonName?: string;
-  district?: string;
+  landmark?: string;
   showExactAddressAfterBooking?: boolean;
 }): string {
   const c = params.city.trim() || 'Минск';
@@ -304,8 +332,8 @@ function computeOnboardingPublicAddress(params: {
 
   if (params.visitType === 'at_home') {
     if (params.showExactAddressAfterBooking === true) {
-      const d = params.district?.trim();
-      if (d) return `${c}, ${d}`.slice(0, 600);
+      const lm = params.landmark?.trim();
+      if (lm) return `${c}, ${lm}`.slice(0, 600);
       return c.slice(0, 600);
     }
     const core = line ? `${c}, ${line}` : c;
@@ -539,7 +567,6 @@ export function BecomeMasterPage() {
   const [clientNote, setClientNote] = useState('');
   const [salonName, setSalonName] = useState('');
   const [houseDetail, setHouseDetail] = useState('');
-  const [districtOrMetro, setDistrictOrMetro] = useState('');
   const [showExactAddressAfterBooking, setShowExactAddressAfterBooking] = useState(true);
   const [addressMoreOpen, setAddressMoreOpen] = useState(false);
   const [mapScriptOk, setMapScriptOk] = useState<boolean | null>(null);
@@ -655,7 +682,6 @@ export function BecomeMasterPage() {
         building,
         buildingDetail: houseDetail,
         salonName,
-        district: districtOrMetro,
         showExactAddressAfterBooking: visitType === 'at_home' ? showExactAddressAfterBooking : false,
         lat,
         lng,
@@ -674,7 +700,6 @@ export function BecomeMasterPage() {
       building,
       houseDetail,
       salonName,
-      districtOrMetro,
       showExactAddressAfterBooking,
       lat,
       lng,
@@ -696,10 +721,10 @@ export function BecomeMasterPage() {
         street,
         building,
         salonName,
-        district: districtOrMetro,
+        landmark,
         showExactAddressAfterBooking: visitType === 'at_home' ? showExactAddressAfterBooking : false,
       }),
-    [visitType, city, street, building, salonName, districtOrMetro, showExactAddressAfterBooking],
+    [visitType, city, street, building, salonName, landmark, showExactAddressAfterBooking],
   );
 
   const contactPreviewRows = useMemo(
@@ -715,8 +740,9 @@ export function BecomeMasterPage() {
         services,
         clientContacts,
         selectedCategoryId,
+        phone,
       }),
-    [clientContacts, name, publicAddressForApi, selectedCategoryId, services],
+    [clientContacts, name, phone, publicAddressForApi, selectedCategoryId, services],
   );
 
   const proOnboardingPriceLabel = useMemo(() => `от ${priceForPlan('pro', 'month')} BYN / месяц`, []);
@@ -725,13 +751,14 @@ export function BecomeMasterPage() {
     if (step === 2) return Boolean(selectedCategoryId);
     if (step === 3) {
       const n = name.trim();
-      return n.length >= 2 && n.length <= 200;
+      if (n.length < 2 || n.length > 200) return false;
+      return hasClientReachableContact(phone, clientContacts);
     }
     if (step === 4) {
       const streetOk = street.trim().length > 0;
       const buildingEff = building.trim() || (streetOk ? 'б/н' : '');
       if (!streetOk || !buildingEff) return false;
-      const coordsRequired = mapScriptOk !== false;
+      const coordsRequired = mapScriptOk === true;
       if (coordsRequired) {
         const hasCoords = lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);
         if (!hasCoords) return false;
@@ -752,12 +779,14 @@ export function BecomeMasterPage() {
     lng,
     mapScriptOk,
     name,
+    phone,
     publishBlockingIssues.length,
     selectedCategoryId,
     services.length,
     step,
     street,
     visitType,
+    clientContacts,
   ]);
 
   useEffect(() => {
@@ -1151,6 +1180,15 @@ export function BecomeMasterPage() {
       errs.phone = 'Введите корректный номер Беларуси';
     }
 
+    if (!hasClientReachableContact(phone, clientContacts)) {
+      const pt = phone.trim();
+      const anyEmptyRow = clientContacts.some((r) => !r.value.trim());
+      if ((pt.length === 0 || isOptionalBelarusPhoneValid(pt)) && !anyEmptyRow) {
+        errs.contactReachability =
+          'Укажите телефон для связи или добавьте хотя бы один контакт в мессенджере';
+      }
+    }
+
     for (const row of clientContacts) {
       const v = row.value.trim();
       if (!v) {
@@ -1193,9 +1231,8 @@ export function BecomeMasterPage() {
     if (clientNote.trim().length > 2000) errs.clientNote = 'Не длиннее 2000 символов.';
     if (salonName.trim().length > 120) errs.salonName = 'Не длиннее 120 символов.';
     if (houseDetail.trim().length > 120) errs.houseDetail = 'Не длиннее 120 символов.';
-    if (districtOrMetro.trim().length > 120) errs.districtOrMetro = 'Не длиннее 120 символов.';
 
-    const coordsRequired = mapScriptOk !== false;
+    const coordsRequired = mapScriptOk === true;
     if (coordsRequired) {
       const hasCoords = lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);
       if (!hasCoords) {
@@ -1209,7 +1246,6 @@ export function BecomeMasterPage() {
     building,
     clientNote,
     directions,
-    districtOrMetro,
     entrance,
     floor,
     houseDetail,
@@ -1251,6 +1287,7 @@ export function BecomeMasterPage() {
     setProfileFieldErrors((errs) => {
       const next = { ...errs };
       delete next.contact;
+      delete next.contactReachability;
       return next;
     });
   }, []);
@@ -1260,6 +1297,7 @@ export function BecomeMasterPage() {
     setProfileFieldErrors((errs) => {
       const next = { ...errs };
       delete next[id];
+      delete next.contactReachability;
       return next;
     });
     setProfileTouched((t) => {
@@ -1274,6 +1312,7 @@ export function BecomeMasterPage() {
     setProfileFieldErrors((errs) => {
       const next = { ...errs };
       delete next[id];
+      delete next.contactReachability;
       return next;
     });
   }, []);
@@ -1356,6 +1395,7 @@ export function BecomeMasterPage() {
         services,
         clientContacts,
         selectedCategoryId,
+        phone,
       }).length > 0
     ) {
       return;
@@ -1409,7 +1449,7 @@ export function BecomeMasterPage() {
           building: building.trim() || (street.trim() ? 'б/н' : ''),
           buildingDetail: houseDetail.trim() || null,
           salonName: visitType === 'studio' ? salonName.trim() || null : null,
-          district: visitType === 'at_home' ? districtOrMetro.trim() || null : null,
+          district: null,
           showExactAddressAfterBooking: visitType === 'at_home' ? showExactAddressAfterBooking : false,
           entrance: entrance.trim() || null,
           floor: floor.trim() || null,
@@ -1451,7 +1491,6 @@ export function BecomeMasterPage() {
     clientNote,
     description,
     directions,
-    districtOrMetro,
     entrance,
     floor,
     houseDetail,
@@ -1780,7 +1819,6 @@ export function BecomeMasterPage() {
 
                   <Field
                     label="Телефон для связи"
-                    hint="Вставьте номер из буфера или введите вручную — не больше одного мобильного РБ."
                     labelAdornment={
                       <span
                         className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full border border-neutral-200 bg-white shadow-[0_2px_6px_rgba(17,17,17,0.04)]"
@@ -1796,6 +1834,7 @@ export function BecomeMasterPage() {
                       setProfileFieldErrors((prev) => {
                         const next = { ...prev };
                         delete next.phone;
+                        delete next.contactReachability;
                         return next;
                       });
                     }}
@@ -1805,6 +1844,12 @@ export function BecomeMasterPage() {
                     error={showProfileFieldError('phone') ? profileFieldErrors.phone : undefined}
                     maxLength={24}
                   />
+
+                  {step3NavigateAttempted && profileFieldErrors.contactReachability ? (
+                    <p className="mt-3 rounded-[18px] bg-[#FFF4E8] px-3 py-2 text-[12px] font-semibold leading-snug text-[#B66A24]">
+                      {profileFieldErrors.contactReachability}
+                    </p>
+                  ) : null}
 
                   <MasterProfileContactsBlock
                     rows={clientContacts}
@@ -1885,7 +1930,7 @@ export function BecomeMasterPage() {
                         });
                       }}
                       onBlur={() => touchAddressField('street')}
-                      placeholder="Улица, дом"
+                      placeholder="Адрес"
                       error={showAddressFieldError('street') ? addressFieldErrors.street : undefined}
                       maxLength={200}
                     />
@@ -1957,7 +2002,7 @@ export function BecomeMasterPage() {
                         });
                       }}
                       onBlur={() => touchAddressField('street')}
-                      placeholder="Улица, дом"
+                      placeholder="Адрес"
                       error={showAddressFieldError('street') ? addressFieldErrors.street : undefined}
                       maxLength={200}
                     />
@@ -1991,25 +2036,6 @@ export function BecomeMasterPage() {
                             return next;
                           });
                         }}
-                      />
-                    </div>
-
-                    <div className="mt-4">
-                      <Field
-                        label="Район или метро"
-                        value={districtOrMetro}
-                        onChange={(v) => {
-                          setDistrictOrMetro(v);
-                          setAddressFieldErrors((prev) => {
-                            const next = { ...prev };
-                            delete next.districtOrMetro;
-                            return next;
-                          });
-                        }}
-                        onBlur={() => touchAddressField('districtOrMetro')}
-                        placeholder="Например, Московский район или метро Площадь Ленина"
-                        error={showAddressFieldError('districtOrMetro') ? addressFieldErrors.districtOrMetro : undefined}
-                        maxLength={120}
                       />
                     </div>
 
@@ -2052,7 +2078,7 @@ export function BecomeMasterPage() {
                         });
                       }}
                       onBlur={() => touchAddressField('building')}
-                      placeholder="Если нужно отдельно от строки выше"
+                      placeholder="Если не в адресе выше"
                       error={showAddressFieldError('building') ? addressFieldErrors.building : undefined}
                       maxLength={80}
                     />

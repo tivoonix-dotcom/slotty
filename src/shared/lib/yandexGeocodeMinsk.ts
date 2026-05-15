@@ -1,6 +1,6 @@
 /**
  * Геокодер Яндекса, ограниченный Минском (bbox).
- * Ключ: import.meta.env.VITE_YANDEX_MAPS_API_KEY (или NEXT_PUBLIC_YANDEX_MAPS_API_KEY для совместимости).
+ * Ключ в URL: VITE_YANDEX_MAPS_API_KEY / NEXT_PUBLIC_YANDEX_MAPS_API_KEY (без ключа HTTP-геокодинг недоступен; карта JS может работать без него).
  */
 
 export type YandexGeocodeHit = {

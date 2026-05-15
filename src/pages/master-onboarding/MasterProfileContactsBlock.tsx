@@ -45,7 +45,7 @@ function ContactChannelBrandIcon({
       case 'whatsapp':
         return <SiWhatsapp className={`${cls} text-white`} aria-hidden title="WhatsApp" />;
       default:
-        return <HiLink className={`${cls} text-white`} aria-hidden title="Другое" />;
+        return <HiLink className={`${cls} text-white`} aria-hidden title="Ещё" />;
     }
   }
   switch (type) {
@@ -60,7 +60,7 @@ function ContactChannelBrandIcon({
     case 'whatsapp':
       return <SiWhatsapp className={`${cls} text-[#25D366]`} aria-hidden title="WhatsApp" />;
     default:
-      return <HiLink className={`${cls} text-neutral-400`} aria-hidden title="Другое" />;
+      return <HiLink className={`${cls} text-neutral-400`} aria-hidden title="Ещё" />;
   }
 }
 
@@ -116,14 +116,9 @@ export function MasterProfileContactsBlock({
             );
           })}
         </div>
-        <p className="mt-2 max-w-full text-[12px] leading-snug text-neutral-500">
-          Нажмите канал и вставьте ссылку, ник или номер в поле ниже — можно из буфера обмена.
-        </p>
       </div>
 
-      {rows.length === 0 ? (
-        <p className="text-[13px] text-neutral-400">Добавьте удобные способы связи</p>
-      ) : (
+      {rows.length > 0 ? (
         <ul className="flex flex-col gap-2">
           {rows.map((row) => {
             const meta = CONTACT_CHANNEL_META.find((c) => c.type === row.type)!;
@@ -166,7 +161,7 @@ export function MasterProfileContactsBlock({
             );
           })}
         </ul>
-      )}
+      ) : null}
     </div>
   );
 }

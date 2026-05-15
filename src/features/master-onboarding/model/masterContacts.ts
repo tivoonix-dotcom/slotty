@@ -96,7 +96,7 @@ export const CONTACT_CHANNEL_META: { type: ContactType; label: string; placehold
   { type: 'vk', label: 'VK', placeholder: 'vk.com/username' },
   { type: 'instagram', label: 'Instagram', placeholder: '@username или instagram.com/username' },
   { type: 'whatsapp', label: 'WhatsApp', placeholder: '+375 29 000-00-00' },
-  { type: 'other', label: 'Другое', placeholder: 'Ссылка или контакт' },
+  { type: 'other', label: 'Ещё', placeholder: 'Ссылка или контакт' },
 ];
 
 export function countContactsByType(rows: MasterContactRow[], type: ContactType): number {

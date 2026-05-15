@@ -65,8 +65,12 @@ function getYmaps(): YMapsGlobal | undefined {
   return (window as unknown as { ymaps?: YMapsGlobal }).ymaps;
 }
 
-function loadYandexScript(apiKey: string): Promise<void> {
+function loadYandexScript(apiKey?: string): Promise<void> {
   const id = 'slotty-yandex-maps-2.1';
+  const src =
+    apiKey && apiKey.trim().length > 0
+      ? `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(apiKey.trim())}&lang=ru_RU`
+      : 'https://api-maps.yandex.ru/2.1/?lang=ru_RU';
   if (document.getElementById(id)) {
     return new Promise((resolve, reject) => {
       const y = getYmaps();
@@ -87,7 +91,7 @@ function loadYandexScript(apiKey: string): Promise<void> {
     const s = document.createElement('script');
     s.id = id;
     s.async = true;
-    s.src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(apiKey)}&lang=ru_RU`;
+    s.src = src;
     s.onload = () => {
       getYmaps()?.ready(() => resolve());
     };
@@ -126,7 +130,6 @@ export function OnboardingAddressMap({
   const addressLinePropRef = useRef(addressLine);
   addressLinePropRef.current = addressLine;
 
-  const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<YandexGeocodeHit[]>([]);
@@ -140,6 +143,10 @@ export function OnboardingAddressMap({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortSearchRef = useRef<AbortController | null>(null);
   const abortReverseRef = useRef<AbortController | null>(null);
+
+  const yandexMapsApiKey =
+    (import.meta.env.VITE_YANDEX_MAPS_API_KEY as string | undefined)?.trim() ||
+    (import.meta.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY as string | undefined)?.trim();
 
   useEffect(() => {
     if (addressLine.trim()) lineRef.current = addressLine.trim();
@@ -169,21 +176,11 @@ export function OnboardingAddressMap({
     const el = containerRef.current;
     if (!el) return;
 
-    const key =
-      (import.meta.env.VITE_YANDEX_MAPS_API_KEY as string | undefined)?.trim() ||
-      (import.meta.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY as string | undefined)?.trim();
-
-    if (!key) {
-      setMapHint('Карта недоступна: задайте VITE_YANDEX_MAPS_API_KEY. Адрес можно указать текстом.');
-      onMapAvailabilityChange?.(false);
-      return () => {};
-    }
-
     let cancelled = false;
 
     void (async () => {
       try {
-        await loadYandexScript(key);
+        await loadYandexScript(yandexMapsApiKey);
         if (cancelled) return;
         const ymaps = getYmaps();
         if (!ymaps || !containerRef.current) return;
@@ -280,7 +277,7 @@ export function OnboardingAddressMap({
       placemarkRef.current = null;
       setMapReady(false);
     };
-  }, [applyPick, initialLat, initialLng, onMapAvailabilityChange, pushCoords]);
+  }, [applyPick, initialLat, initialLng, onMapAvailabilityChange, pushCoords, yandexMapsApiKey]);
 
   const runSearch = useCallback(
     async (raw: string) => {
@@ -292,7 +289,7 @@ export function OnboardingAddressMap({
       }
       if (!hasYandexGeocoderKey()) {
         setItems([]);
-        setHint('Нет ключа API для поиска.');
+        setHint(null);
         return;
       }
       if (abortSearchRef.current) abortSearchRef.current.abort();
@@ -321,19 +318,21 @@ export function OnboardingAddressMap({
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.trim().length < 1) {
+    const q = addressLine.trim();
+    if (q.length < 2) {
       setItems([]);
       setOpen(false);
       setHint(null);
+      setLoading(false);
       return;
     }
     debounceRef.current = setTimeout(() => {
-      void runSearch(query);
+      void runSearch(q);
     }, 280);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query, runSearch]);
+  }, [addressLine, runSearch]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -350,7 +349,6 @@ export function OnboardingAddressMap({
     const lng = hit.lon;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     const line = hit.displayLine;
-    setQuery(line.replace(/^Минск,\s*/i, '').trim() || line);
     setOpen(false);
     applyPick(lat, lng, line);
     setHint(null);
@@ -358,41 +356,10 @@ export function OnboardingAddressMap({
 
   return (
     <div className="space-y-2">
-      <div ref={wrapRef} className="relative z-[120]">
-        <div className="flex gap-2">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => {
-              if (items.length > 0) setOpen(true);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') setOpen(false);
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                void runSearch(query);
-                setOpen(true);
-              }
-            }}
-            placeholder="Улица, дом, ТЦ или метро"
-            autoComplete="off"
-            className="min-h-11 min-w-0 flex-1 rounded-full bg-white px-4 text-[15px] text-neutral-900 outline-none placeholder:text-neutral-400"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              void runSearch(query);
-              setOpen(true);
-            }}
-            className="shrink-0 rounded-full bg-[#E29595] px-4 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(226,149,149,0.25)] transition active:scale-[0.97]"
-          >
-            {loading ? '…' : 'Найти'}
-          </button>
-        </div>
-
+      <div ref={wrapRef} className="relative z-[120] overflow-visible">
         {open && items.length > 0 ? (
           <ul
-            className="absolute left-0 right-0 top-[calc(100%+6px)] z-[130] max-h-[min(220px,38dvh)] overflow-auto rounded-[18px] bg-white py-1 shadow-[0_12px_40px_rgba(17,17,17,0.1)]"
+            className="absolute bottom-full left-0 right-0 z-[130] mb-1 max-h-[min(220px,38dvh)] overflow-auto rounded-[18px] bg-white py-1 shadow-[0_12px_40px_rgba(17,17,17,0.1)]"
             role="listbox"
           >
             {items.map((hit, idx) => (
@@ -400,7 +367,7 @@ export function OnboardingAddressMap({
                 <button
                   type="button"
                   role="option"
-                  className="flex w-full px-3 py-2.5 text-left text-[13px] leading-snug text-neutral-900 transition hover:bg-white/80 active:bg-[#EAE8E8]"
+                  className="flex w-full px-3 py-2.5 text-left text-[13px] leading-snug text-neutral-900 transition hover:bg-[#F8F6F6] active:bg-[#EAE8E8]"
                   onClick={() => onSelectHit(hit)}
                 >
                   <span className="line-clamp-2">{hit.displayLine}</span>
@@ -409,20 +376,24 @@ export function OnboardingAddressMap({
             ))}
           </ul>
         ) : null}
-      </div>
 
-      {hint ? <p className="text-[12px] leading-snug text-[#B66A24]">{hint}</p> : null}
-      {coordsError ? <p className="text-[12px] leading-snug text-[#B66A24]">{coordsError}</p> : null}
-      {mapHint ? <p className="text-[12px] leading-snug text-neutral-500">{mapHint}</p> : null}
+        {loading && hasYandexGeocoderKey() && addressLine.trim().length >= 2 ? (
+          <p className="mb-1 text-[12px] font-medium text-neutral-500">Ищем адрес…</p>
+        ) : null}
 
-      <div className="overflow-hidden rounded-[22px] bg-neutral-200 shadow-[inset_0_0_0_1px_rgba(17,17,17,0.04)]">
-        <div className="px-2 pb-2 pt-2">
-          <div
-            ref={containerRef}
-            className={`relative z-0 h-[min(220px,42dvh)] w-full min-h-[200px] overflow-hidden rounded-[18px] bg-[#E4E2E2] sm:h-[min(240px,36dvh)] ${
-              mapReady ? '' : 'animate-pulse'
-            }`}
-          />
+        {hint ? <p className="mb-1 text-[12px] leading-snug text-[#B66A24]">{hint}</p> : null}
+        {coordsError ? <p className="mb-1 text-[12px] leading-snug text-[#B66A24]">{coordsError}</p> : null}
+        {mapHint ? <p className="mb-1 text-[12px] leading-snug text-neutral-500">{mapHint}</p> : null}
+
+        <div className="overflow-hidden rounded-[22px] bg-neutral-200 shadow-[inset_0_0_0_1px_rgba(17,17,17,0.04)]">
+          <div className="px-2 pb-2 pt-2">
+            <div
+              ref={containerRef}
+              className={`relative z-0 h-[min(220px,42dvh)] w-full min-h-[200px] overflow-hidden rounded-[18px] bg-[#E4E2E2] sm:h-[min(240px,36dvh)] ${
+                mapReady ? '' : 'animate-pulse'
+              }`}
+            />
+          </div>
         </div>
       </div>
 
