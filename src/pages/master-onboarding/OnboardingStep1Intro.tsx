@@ -105,7 +105,7 @@ export function OnboardingStep1Intro() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-sm">
+    <div className="mx-auto w-full min-w-0 max-w-sm">
       <div
         className="relative overflow-hidden rounded-[32px] bg-[#F8F0F0] shadow-[inset_0_0_0_1px_rgba(226,149,149,0.12)] sm:rounded-[36px]"
         aria-roledescription="carousel"
@@ -128,7 +128,7 @@ export function OnboardingStep1Intro() {
                 </div>
 
                 <div className="px-1 pb-1 pt-5 text-center sm:px-2 sm:pt-6">
-                  <h2 className="text-[26px] font-semibold leading-tight tracking-[-0.06em] text-neutral-950 sm:text-[28px]">
+                  <h2 className="break-words text-[22px] font-semibold leading-tight tracking-[-0.05em] text-neutral-950 sm:text-[28px] sm:tracking-[-0.06em]">
                     {s.title}
                   </h2>
                   <p className="mt-2 text-[15px] leading-snug text-neutral-500 sm:text-[16px]">{s.text}</p>

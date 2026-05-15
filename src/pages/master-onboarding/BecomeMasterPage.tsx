@@ -113,6 +113,8 @@ function newEntityId(prefix: string): string {
 function fieldClass(): string {
   return `
     mt-1.5
+    min-w-0
+    max-w-full
     w-full
     rounded-[24px]
     bg-[#F1EFEF]
@@ -397,15 +399,15 @@ function StepTitle({
       </p>
 
       <h1
-        className={`font-semibold leading-[1.05] tracking-[-0.065em] text-neutral-950 ${
-          dense ? 'mt-1.5 text-[28px] sm:text-[30px]' : 'mt-2 text-[30px]'
+        className={`break-words text-balance font-semibold leading-[1.08] tracking-[-0.05em] text-neutral-950 sm:tracking-[-0.065em] ${
+          dense ? 'mt-1.5 text-[22px] sm:text-[30px]' : 'mt-2 text-[24px] sm:text-[30px]'
         }`}
       >
         {title}
       </h1>
 
       {text ? (
-        <p className="mt-3 text-[15px] leading-relaxed text-neutral-500">
+        <p className="mt-2 break-words text-[14px] leading-relaxed text-neutral-500 sm:mt-3 sm:text-[15px]">
           {text}
         </p>
       ) : null}
@@ -439,7 +441,7 @@ function Field({
   labelAdornment?: ReactNode;
 }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="flex items-center gap-2 text-[13px] font-semibold text-neutral-500">
         {labelAdornment ? <span className="inline-flex shrink-0 items-center">{labelAdornment}</span> : null}
         <span>{label}</span>
@@ -635,6 +637,15 @@ export function BecomeMasterPage() {
     () => getServiceTemplatesForCategoryCode(selectedCategory?.code ?? ''),
     [selectedCategory?.code],
   );
+
+  const svcPricePreviewLabel = useMemo(() => {
+    const raw = svcPrice.replace(',', '.').trim();
+    if (!raw) return null;
+    const price = Number.parseFloat(raw);
+    if (!Number.isFinite(price) || price < 0) return null;
+    if (price === 0) return 'Бесплатно';
+    return svcPriceType === 'from' ? `от ${price} BYN` : `${price} BYN`;
+  }, [svcPrice, svcPriceType]);
 
   const locationDraft = useMemo(
     () =>
@@ -1583,7 +1594,7 @@ export function BecomeMasterPage() {
       }`}
     >
       <header className="sticky top-0 z-40 bg-[#F1EFEF] pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
-        <div className="mx-auto w-full max-w-2xl px-4 pb-3">
+        <div className="mx-auto w-full min-w-0 max-w-2xl px-3 pb-3 sm:px-4">
           <div className="flex items-center justify-between gap-2 sm:gap-3">
             {step === 1 ? (
               <Link
@@ -1617,7 +1628,7 @@ export function BecomeMasterPage() {
       </header>
 
       {step >= 2 && (!backendConfigured || (!authLoading && !isAuthenticated)) ? (
-        <div className="mx-auto w-full max-w-2xl space-y-2 px-4 pt-3">
+        <div className="mx-auto w-full min-w-0 max-w-2xl space-y-2 px-3 pt-3 sm:px-4">
           {!backendConfigured ? (
             <p className="rounded-[18px] bg-[#FFF4E8] px-4 py-3 text-[13px] font-semibold leading-snug text-[#B66A24]">
               Не задан <span className="font-mono text-[12px]">VITE_API_URL</span> — категории и публикация профиля не заработают, пока не подключите бэкенд.
@@ -1631,19 +1642,19 @@ export function BecomeMasterPage() {
         </div>
       ) : null}
 
-      <div className={`mx-auto w-full max-w-2xl px-4 ${step === 1 ? 'pt-2 sm:pt-3' : 'pt-4'}`}>
+      <div className={`mx-auto w-full min-w-0 max-w-2xl px-3 sm:px-4 ${step === 1 ? 'pt-2 sm:pt-3' : 'pt-4'}`}>
         <div
-          className={`rounded-[42px] bg-[#F1EFEF] shadow-[0_24px_70px_rgba(17,17,17,0.06)] ${
+          className={`min-w-0 rounded-[42px] bg-[#F1EFEF] shadow-[0_24px_70px_rgba(17,17,17,0.06)] ${
             step === 1 ? 'p-2 sm:p-2.5' : 'p-2.5 sm:p-3'
           }`}
         >
           <div
-            className={`relative z-10 rounded-[34px] bg-white shadow-[0_10px_30px_rgba(17,17,17,0.035)] ${
+            className={`relative z-10 min-w-0 overflow-hidden rounded-[34px] bg-white shadow-[0_10px_30px_rgba(17,17,17,0.035)] ${
               step === 1
-                ? 'px-4 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-5'
+                ? 'px-3 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-5'
                 : step === 2
-                  ? 'px-4 py-4 sm:px-6 sm:py-5'
-                  : 'px-4 py-5 sm:px-6 sm:py-6'
+                  ? 'px-3 py-4 sm:px-6 sm:py-5'
+                  : 'px-3 py-5 sm:px-6 sm:py-6'
             }`}
           >
             {step === 1 ? (
@@ -2253,7 +2264,7 @@ export function BecomeMasterPage() {
                   text="Добавьте минимум одну услугу для записи"
                 />
 
-                <div className="mt-6 space-y-6 rounded-[30px] bg-[#F1EFEF] p-3 sm:p-4">
+                <div className="mt-6 space-y-6 rounded-[30px] bg-white p-3 shadow-[0_10px_30px_rgba(17,17,17,0.035)] sm:p-4">
                   {popularServiceTemplates.length > 0 ? (
                     <div>
                       <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
@@ -2267,8 +2278,8 @@ export function BecomeMasterPage() {
                             onClick={() => applyServiceTemplate(tm)}
                             className={`shrink-0 max-w-[min(100%,14rem)] rounded-full border px-3.5 py-2 text-left text-[13px] font-semibold leading-snug transition active:scale-[0.98] ${
                               svcHighlightId === tm.id
-                                ? 'border-[#E29595] bg-white text-neutral-950 shadow-[0_6px_16px_rgba(226,149,149,0.2)]'
-                                : 'border-transparent bg-white/90 text-neutral-800 shadow-[0_4px_12px_rgba(17,17,17,0.04)]'
+                                ? 'border-[#E29595] bg-[#F5E0E0] text-neutral-950 shadow-[0_6px_16px_rgba(226,149,149,0.22)]'
+                                : 'border-[#E29595]/25 bg-[#F8F0F0] text-neutral-900 shadow-[0_4px_12px_rgba(226,149,149,0.08)]'
                             }`}
                           >
                             {tm.title}
@@ -2314,14 +2325,20 @@ export function BecomeMasterPage() {
                     <div>
                       <p className="text-[13px] font-semibold text-neutral-500">Тип цены</p>
 
-                      <div className="mt-2 grid grid-cols-1 gap-2 rounded-[26px] bg-white/60 p-1.5 sm:grid-cols-2">
+                      <div
+                        className="mt-2 grid grid-cols-2 gap-2 rounded-[26px] bg-[#F1EFEF] p-1.5"
+                        role="radiogroup"
+                        aria-label="Тип цены"
+                      >
                         <button
                           type="button"
+                          role="radio"
+                          aria-checked={svcPriceType === 'fixed'}
                           onClick={() => setSvcPriceType('fixed')}
-                          className={`min-h-11 rounded-full text-[14px] font-semibold transition active:scale-[0.98] ${
+                          className={`min-h-11 rounded-full px-2 text-[14px] font-semibold leading-tight transition active:scale-[0.98] ${
                             svcPriceType === 'fixed'
                               ? 'bg-white text-neutral-950 shadow-[0_8px_20px_rgba(17,17,17,0.05)]'
-                              : 'text-neutral-500'
+                              : 'text-neutral-600'
                           }`}
                         >
                           Точная
@@ -2329,16 +2346,29 @@ export function BecomeMasterPage() {
 
                         <button
                           type="button"
+                          role="radio"
+                          aria-checked={svcPriceType === 'from'}
                           onClick={() => setSvcPriceType('from')}
-                          className={`min-h-11 rounded-full text-[14px] font-semibold transition active:scale-[0.98] ${
+                          className={`min-h-11 rounded-full px-2 text-[14px] font-semibold leading-tight transition active:scale-[0.98] ${
                             svcPriceType === 'from'
                               ? 'bg-white text-neutral-950 shadow-[0_8px_20px_rgba(17,17,17,0.05)]'
-                              : 'text-neutral-500'
+                              : 'text-neutral-600'
                           }`}
                         >
                           От
                         </button>
                       </div>
+
+                      <p className="mt-2 text-[12px] font-medium leading-snug text-neutral-500">
+                        {svcPricePreviewLabel ? (
+                          <>
+                            Клиент увидит:{' '}
+                            <span className="font-semibold text-neutral-800">{svcPricePreviewLabel}</span>
+                          </>
+                        ) : (
+                          'Укажите цену — покажем, как она отобразится в каталоге'
+                        )}
+                      </p>
                     </div>
 
                     <div>
@@ -2374,20 +2404,20 @@ export function BecomeMasterPage() {
                       <button
                         type="button"
                         onClick={cancelSvcForm}
-                        className="flex min-h-12 shrink-0 items-center justify-center rounded-full bg-white/90 px-5 text-[14px] font-semibold text-neutral-600 transition active:scale-[0.98]"
+                        className="flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[#F1EFEF] px-5 text-[14px] font-semibold text-neutral-600 transition active:scale-[0.98]"
                       >
                         Отмена
                       </button>
                     ) : null}
                   </div>
 
-                  <div className="border-t border-white/50 pt-5">
+                  <div className="border-t border-[#F1EFEF] pt-5">
                     <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
                       Ваши услуги
                     </p>
 
                     {services.length === 0 ? (
-                      <div className="mt-3 rounded-[22px] bg-white/70 px-4 py-5 text-center">
+                      <div className="mt-3 rounded-[22px] bg-[#F1EFEF] px-4 py-5 text-center">
                         <p className="text-[16px] font-semibold text-neutral-950">Пока нет услуг</p>
                         <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-neutral-500">
                           Добавьте первую услугу — она появится здесь
@@ -2402,16 +2432,16 @@ export function BecomeMasterPage() {
                               svcEditingId === service.id ? 'ring-2 ring-[#E29595]/50' : ''
                             }`}
                           >
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="min-w-0 flex-1">
+                            <div className="flex flex-col gap-3 min-[400px]:flex-row min-[400px]:items-start min-[400px]:justify-between">
+                              <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                                 <p className="break-words text-[17px] font-semibold tracking-[-0.03em] text-neutral-950">
                                   {service.title}
                                 </p>
-                                <p className="mt-1 text-[13px] font-medium text-neutral-500">
+                                <p className="mt-2 inline-flex rounded-full bg-[#F8F0F0] px-2.5 py-1 text-[12px] font-semibold text-neutral-700">
                                   {service.durationMin} мин · {formatPrice(service)}
                                 </p>
                                 {service.description ? (
-                                  <p className="mt-2 line-clamp-2 text-[13px] leading-snug text-neutral-500">
+                                  <p className="mt-3 line-clamp-3 whitespace-pre-wrap break-words rounded-[14px] bg-[#F1EFEF] px-3 py-2.5 text-[13px] leading-relaxed text-neutral-600">
                                     {service.description}
                                   </p>
                                 ) : null}
@@ -2607,7 +2637,7 @@ export function BecomeMasterPage() {
                         return (
                           <li
                             key={certificate.id}
-                            className={`flex gap-3 rounded-[22px] bg-white px-3 py-3 shadow-[0_6px_18px_rgba(17,17,17,0.04)] ${
+                            className={`flex flex-col gap-3 min-[360px]:flex-row rounded-[22px] bg-white px-3 py-3 shadow-[0_6px_18px_rgba(17,17,17,0.04)] ${
                               certEditingId === certificate.id ? 'ring-2 ring-[#E29595]/45' : ''
                             }`}
                           >
@@ -2669,8 +2699,8 @@ export function BecomeMasterPage() {
 
                 <div className="mt-6 rounded-[30px] bg-[#F1EFEF] p-3 sm:p-4">
                   <div className="overflow-hidden rounded-[26px] bg-white shadow-[0_12px_34px_rgba(17,17,17,0.06)]">
-                    <div className="border-b border-neutral-100 px-4 pb-5 pt-5 sm:px-5">
-                      <div className="flex gap-4">
+                    <div className="border-b border-neutral-100 px-3 pb-5 pt-5 sm:px-5">
+                      <div className="flex flex-col items-center gap-4 text-center min-[420px]:flex-row min-[420px]:items-start min-[420px]:text-left">
                         {(() => {
                           const raw = profile?.avatar_url?.trim();
                           const src =
@@ -2689,31 +2719,31 @@ export function BecomeMasterPage() {
                           );
                         })()}
 
-                        <div className="min-w-0 flex-1">
-                          <p className="break-words text-[22px] font-semibold leading-tight tracking-[-0.055em] text-neutral-950">
+                        <div className="min-w-0 w-full flex-1 [overflow-wrap:anywhere]">
+                          <p className="text-[18px] font-semibold leading-snug tracking-[-0.04em] text-neutral-950 sm:text-[22px] sm:leading-tight sm:tracking-[-0.055em]">
                             {name.trim() || 'Имя'}
                           </p>
 
                           {visitType === 'studio' && salonName.trim() ? (
-                            <p className="mt-1 text-[14px] font-medium text-neutral-600">{salonName.trim()}</p>
+                            <p className="mt-1 break-words text-[14px] font-medium text-neutral-600">{salonName.trim()}</p>
                           ) : null}
 
-                          <p className="mt-1.5 text-[14px] font-medium text-neutral-500">
+                          <p className="mt-1.5 break-words text-[14px] font-medium text-neutral-500">
                             {selectedCategory?.name ?? 'Категория'}
                           </p>
 
-                          <p className="mt-2 inline-flex rounded-full bg-[#F1EFEF] px-3 py-1 text-[12px] font-semibold text-neutral-600">
+                          <p className="mt-2 inline-flex max-w-full rounded-full bg-[#F1EFEF] px-3 py-1 text-[12px] font-semibold text-neutral-600">
                             {masterVisitTypeLabel(visitType)}
                           </p>
 
-                          <p className="mt-2.5 whitespace-nowrap text-[11px] font-medium text-neutral-400 sm:text-[12px]">
+                          <p className="mt-2.5 text-[11px] font-medium text-neutral-400 sm:text-[12px]">
                             отзывов: 0
                           </p>
 
                           <button
                             type="button"
                             disabled
-                            className="mt-4 flex min-h-11 w-full max-w-[16rem] cursor-not-allowed items-center justify-center rounded-full bg-[#E29595]/35 px-4 text-[14px] font-semibold text-white/90"
+                            className="mt-4 flex min-h-11 w-full cursor-not-allowed items-center justify-center rounded-full bg-[#E29595]/35 px-4 text-[14px] font-semibold text-white/90 min-[420px]:max-w-[16rem]"
                           >
                             Записаться
                           </button>
@@ -2721,7 +2751,7 @@ export function BecomeMasterPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-5 px-4 py-5 sm:px-5">
+                    <div className="space-y-5 px-3 py-5 sm:px-5">
                       <div>
                         <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
                           Основное
@@ -2740,10 +2770,20 @@ export function BecomeMasterPage() {
                             {masterVisitTypeLabel(visitType)}
                           </li>
                         </ul>
-                        {description.trim() ? (
-                          <p className="mt-3 text-[14px] leading-relaxed text-neutral-600">{description.trim()}</p>
-                        ) : null}
                       </div>
+
+                      {description.trim() ? (
+                        <div>
+                          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                            О себе
+                          </p>
+                          <div className="mt-2 rounded-[18px] bg-[#F8F0F0] px-3.5 py-3 ring-1 ring-[#E29595]/10">
+                            <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-neutral-700">
+                              {description.trim()}
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
 
                       {phone.trim() || contactPreviewRows.length > 0 ? (
                         <div>
@@ -2820,20 +2860,20 @@ export function BecomeMasterPage() {
                         <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
                           Услуги
                         </p>
-                        <ul className="mt-2 flex flex-col gap-2">
+                        <ul className="mt-2 flex flex-col gap-2.5">
                           {services.map((service) => (
                             <li
                               key={service.id}
-                              className="rounded-[18px] bg-[#F1EFEF] px-3 py-2.5"
+                              className="overflow-hidden rounded-[20px] bg-white px-4 py-3.5 shadow-[0_6px_22px_rgba(17,17,17,0.05)] ring-1 ring-[#F1EFEF]"
                             >
-                              <p className="break-words text-[15px] font-semibold tracking-[-0.03em] text-neutral-950">
+                              <p className="break-words text-[16px] font-semibold tracking-[-0.03em] text-neutral-950">
                                 {service.title}
                               </p>
-                              <p className="mt-1 text-[13px] font-medium text-neutral-600">
+                              <p className="mt-2 inline-flex rounded-full bg-[#F8F0F0] px-2.5 py-1 text-[12px] font-semibold text-neutral-700">
                                 {service.durationMin} мин · {formatPreviewServicePrice(service)}
                               </p>
                               {service.description ? (
-                                <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-neutral-500">
+                                <p className="mt-3 whitespace-pre-wrap break-words rounded-[14px] bg-[#F1EFEF] px-3 py-2.5 text-[13px] leading-relaxed text-neutral-600">
                                   {service.description}
                                 </p>
                               ) : null}
@@ -2993,8 +3033,8 @@ export function BecomeMasterPage() {
       </div>
 
       {step > 1 ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-200 bg-white px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3">
-          <div className="mx-auto w-full max-w-2xl">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-200 bg-white px-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 sm:px-4">
+          <div className="mx-auto w-full min-w-0 max-w-2xl">
             {step === 5 && services.length === 0 ? (
               <p className="mb-2 text-center text-[13px] font-medium text-neutral-500">
                 Добавьте хотя бы одну услугу
