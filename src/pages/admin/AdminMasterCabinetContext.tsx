@@ -56,6 +56,11 @@ export type MasterProfilePatch = Pick<
 type Ctx = {
   draft: MasterDraft;
   persistDraft: (next: MasterDraft) => void;
+  /**
+   * После успешного DELETE услуги на сервере: обновить draft и baseline синхронизации,
+   * чтобы список не «откатывался» при сбое тихого refresh и не шёл повторный DELETE из debounce.
+   */
+  commitDraftBaseline: (next: MasterDraft) => void;
   /** В API-режиме: сохранить черновик на сервер и дождаться ответа (без debounce). При ошибке — откат draft с сервера, проброс исключения. */
   flushDraftToBackend: (next: MasterDraft) => Promise<void>;
   /** Только недельные правила (`PUT .../schedule-rules`), без профиля и адреса — чтобы сохранение расписания не зависело от первичной локации. */
@@ -391,6 +396,15 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
     [useCabinetApi, pushDraftToBackend],
   );
 
+  const commitDraftBaseline = useCallback((next: MasterDraft) => {
+    if (syncTimer.current) {
+      clearTimeout(syncTimer.current);
+      syncTimer.current = null;
+    }
+    setDraft(next);
+    lastSyncedSnapshotRef.current = cloneDraft(next);
+  }, []);
+
   const persistDraft = useCallback(
     (next: MasterDraft) => {
       if (useCabinetApi) {
@@ -472,6 +486,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
     () => ({
       draft,
       persistDraft,
+      commitDraftBaseline,
       flushDraftToBackend,
       flushScheduleToBackend,
       patchProfileToBackend,
@@ -485,6 +500,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
     [
       draft,
       persistDraft,
+      commitDraftBaseline,
       flushDraftToBackend,
       flushScheduleToBackend,
       patchProfileToBackend,

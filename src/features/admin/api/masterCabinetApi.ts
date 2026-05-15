@@ -157,7 +157,7 @@ export async function uploadMasterHeroPhotoFile(file: File): Promise<string> {
   return j.imageUrl;
 }
 
-/** После обрезки кадра в SheetMainInfo: JPEG/PNG/WebP blob → multipart на сервер. */
+/** Data URL изображения → multipart на сервер (выбор файла в листе «Основное»). */
 export async function uploadMasterHeroPhotoFromDataUrl(dataUrl: string): Promise<string> {
   const blob = await (await fetch(dataUrl)).blob();
   const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
@@ -266,5 +266,6 @@ export async function patchMasterService(
 
 export async function deleteMasterService(serviceId: string): Promise<void> {
   const res = await apiFetch(`/api/masters/me/services/${serviceId}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error(await readApiError(res));
+  if (res.ok || res.status === 404) return;
+  throw new Error(await readApiError(res));
 }

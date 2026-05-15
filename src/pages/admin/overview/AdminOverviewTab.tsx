@@ -7,8 +7,8 @@ import {
   clampOverviewRangeEnd,
   countActiveVisitsBetween,
   pickNearestUpcomingAppointment,
-  previousOverviewPeriod,
   sumCompletedRevenueBetween,
+  OVERVIEW_MAX_RANGE_DAYS,
   type DemoMasterAppointment,
   type OverviewDayStat,
 } from '../../../features/master/model/demoMasterAppointments';
@@ -19,6 +19,9 @@ import {
   formatAppointmentWhenRu,
   formatBynRu,
   formatDdMm,
+  overviewAppointmentBounds,
+  overviewChartWindow,
+  previousOverviewReportPeriod,
 } from './overviewFormat';
 
 type Props = {
@@ -47,6 +50,15 @@ function ComparisonLine({ current, previous }: { current: number; previous: numb
       {pct}%
     </span>
   );
+}
+
+/** Больше прошлого периода — зелёный, меньше — красный; без базы — нейтральный. */
+function kpiTrendClass(current: number, previous: number): string {
+  if (previous <= 0 && current <= 0) return 'text-neutral-950';
+  if (previous <= 0 && current > 0) return 'text-emerald-700';
+  if (current > previous) return 'text-emerald-700';
+  if (current < previous) return 'text-rose-600';
+  return 'text-neutral-950';
 }
 
 function chartAxisIndices(n: number): number[] {
@@ -125,12 +137,28 @@ function OverviewSkeleton() {
   );
 }
 
+type PeriodMode = 'all' | 'custom';
+
 export function AdminOverviewTab({ draft, appointments, appointmentsPath, onOpenAppointment }: Props) {
   const initial = useMemo(() => defaultOverviewLast30Days(), []);
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('all');
+  const [showPeriodControls, setShowPeriodControls] = useState(false);
   const [from, setFrom] = useState(initial.start);
   const [to, setTo] = useState(initial.end);
   const [datePicker, setDatePicker] = useState<null | 'from' | 'to'>(null);
   const [rangeCapped, setRangeCapped] = useState(false);
+
+  const reportRange = useMemo(() => {
+    if (periodMode === 'all') return overviewAppointmentBounds(appointments);
+    return { start: from, end: to };
+  }, [appointments, from, periodMode, to]);
+
+  const chartRange = useMemo(
+    () => overviewChartWindow(reportRange.start, reportRange.end, OVERVIEW_MAX_RANGE_DAYS),
+    [reportRange.end, reportRange.start],
+  );
+
+  const chartIsTruncated = chartRange.chartStart > reportRange.start;
 
   const applyRange = useCallback(() => {
     setRangeCapped(false);
@@ -144,13 +172,35 @@ export function AdminOverviewTab({ draft, appointments, appointmentsPath, onOpen
     setTo(bClamped);
   }, [from, to]);
 
+  const togglePeriodDetails = useCallback(() => {
+    if (showPeriodControls) {
+      setShowPeriodControls(false);
+      return;
+    }
+    if (periodMode === 'all') {
+      const b = overviewAppointmentBounds(appointments);
+      setFrom(b.start);
+      setTo(b.end);
+    }
+    setShowPeriodControls(true);
+  }, [appointments, periodMode, showPeriodControls]);
+
+  const onShowCustomRange = useCallback(() => {
+    applyRange();
+    setPeriodMode('custom');
+    setShowPeriodControls(false);
+  }, [applyRange]);
+
   const appointmentsInRange = useMemo(
-    () => appointments.filter((r) => r.date >= from && r.date <= to),
-    [appointments, from, to],
+    () => appointments.filter((r) => r.date >= reportRange.start && r.date <= reportRange.end),
+    [appointments, reportRange.end, reportRange.start],
   );
   const hasAnyAppointmentInRange = appointmentsInRange.length > 0;
 
-  const dayStats = useMemo(() => aggregateOverviewByDay(appointments, from, to), [appointments, from, to]);
+  const dayStats = useMemo(
+    () => aggregateOverviewByDay(appointments, chartRange.chartStart, chartRange.chartEnd),
+    [appointments, chartRange.chartEnd, chartRange.chartStart],
+  );
 
   const avgRevenue = useMemo(() => {
     if (!dayStats.length) return 0;
@@ -162,10 +212,19 @@ export function AdminOverviewTab({ draft, appointments, appointmentsPath, onOpen
     return dayStats.reduce((s, d) => s + d.activeVisits, 0) / dayStats.length;
   }, [dayStats]);
 
-  const totalRevenue = useMemo(() => sumCompletedRevenueBetween(appointments, from, to), [appointments, from, to]);
-  const totalVisits = useMemo(() => countActiveVisitsBetween(appointments, from, to), [appointments, from, to]);
+  const totalRevenue = useMemo(
+    () => sumCompletedRevenueBetween(appointments, reportRange.start, reportRange.end),
+    [appointments, reportRange.end, reportRange.start],
+  );
+  const totalVisits = useMemo(
+    () => countActiveVisitsBetween(appointments, reportRange.start, reportRange.end),
+    [appointments, reportRange.end, reportRange.start],
+  );
 
-  const prev = useMemo(() => previousOverviewPeriod(from, to), [from, to]);
+  const prev = useMemo(
+    () => previousOverviewReportPeriod(reportRange.start, reportRange.end),
+    [reportRange.end, reportRange.start],
+  );
   const prevRevenue = useMemo(
     () => (prev ? sumCompletedRevenueBetween(appointments, prev.start, prev.end) : 0),
     [appointments, prev],
@@ -184,48 +243,87 @@ export function AdminOverviewTab({ draft, appointments, appointmentsPath, onOpen
 
   const axisIdx = useMemo(() => chartAxisIndices(dayStats.length), [dayStats.length]);
 
+  const revenueValueClass = prev ? kpiTrendClass(totalRevenue, prevRevenue) : 'text-neutral-950';
+  const visitsValueClass = prev ? kpiTrendClass(totalVisits, prevVisits) : 'text-neutral-950';
+
   return (
     <div className="space-y-5">
       <div className="rounded-[30px] bg-white p-4 shadow-[0_10px_32px_rgba(17,17,17,0.06)]">
-        <p className="text-[14px] font-semibold text-neutral-800">Период</p>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-          <div className="block min-w-[10rem] flex-1">
-            <span className="text-[12px] font-semibold text-neutral-500">С</span>
-            <button
-              type="button"
-              onClick={() => setDatePicker('from')}
-              className="mt-1.5 flex min-h-[2.75rem] w-full items-center justify-between rounded-[20px] bg-[#F1EFEF] px-4 py-2.5 text-left text-[15px] font-medium text-neutral-900 transition active:scale-[0.99]"
-            >
-              {formatRuDate(from)}
-              <span className="text-neutral-400" aria-hidden>
-                ▾
-              </span>
-            </button>
-          </div>
-          <div className="block min-w-[10rem] flex-1">
-            <span className="text-[12px] font-semibold text-neutral-500">По</span>
-            <button
-              type="button"
-              onClick={() => setDatePicker('to')}
-              className="mt-1.5 flex min-h-[2.75rem] w-full items-center justify-between rounded-[20px] bg-[#F1EFEF] px-4 py-2.5 text-left text-[15px] font-medium text-neutral-900 transition active:scale-[0.99]"
-            >
-              {formatRuDate(to)}
-              <span className="text-neutral-400" aria-hidden>
-                ▾
-              </span>
-            </button>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] font-semibold text-neutral-800">Период</p>
+            <p className="mt-0.5 text-[13px] font-medium leading-snug text-neutral-600">
+              {periodMode === 'all' ? 'За всё время' : `${formatRuDate(from)} — ${formatRuDate(to)}`}
+            </p>
           </div>
           <button
             type="button"
-            onClick={applyRange}
-            className="flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[#E29595] px-7 text-[14px] font-semibold text-white shadow-[0_10px_26px_rgba(226,149,149,0.28)] transition active:scale-[0.98] sm:mb-0.5"
+            onClick={togglePeriodDetails}
+            className="shrink-0 rounded-full px-3 py-1.5 text-[13px] font-semibold text-[#c97f7f] ring-1 ring-[#E29595]/40 transition active:scale-[0.98] hover:bg-[#E29595]/10"
           >
-            Показать
+            {showPeriodControls ? 'Скрыть' : 'Подробнее'}
           </button>
         </div>
+        {showPeriodControls ? (
+          <div className="mt-3 space-y-3 border-t border-neutral-100 pt-3">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setPeriodMode('all');
+                  setRangeCapped(false);
+                  setShowPeriodControls(false);
+                }}
+                className="text-[13px] font-semibold text-neutral-700 underline decoration-neutral-300 underline-offset-2 transition hover:text-neutral-900"
+              >
+                За всё время
+              </button>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <div className="block min-w-[10rem] flex-1">
+                <span className="text-[12px] font-semibold text-neutral-500">С</span>
+                <button
+                  type="button"
+                  onClick={() => setDatePicker('from')}
+                  className="mt-1.5 flex min-h-[2.75rem] w-full items-center justify-between rounded-[20px] bg-[#F1EFEF] px-4 py-2.5 text-left text-[15px] font-medium text-neutral-900 transition active:scale-[0.99]"
+                >
+                  {formatRuDate(from)}
+                  <span className="text-neutral-400" aria-hidden>
+                    ▾
+                  </span>
+                </button>
+              </div>
+              <div className="block min-w-[10rem] flex-1">
+                <span className="text-[12px] font-semibold text-neutral-500">По</span>
+                <button
+                  type="button"
+                  onClick={() => setDatePicker('to')}
+                  className="mt-1.5 flex min-h-[2.75rem] w-full items-center justify-between rounded-[20px] bg-[#F1EFEF] px-4 py-2.5 text-left text-[15px] font-medium text-neutral-900 transition active:scale-[0.99]"
+                >
+                  {formatRuDate(to)}
+                  <span className="text-neutral-400" aria-hidden>
+                    ▾
+                  </span>
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={onShowCustomRange}
+                className="flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[#E29595] px-7 text-[14px] font-semibold text-white shadow-[0_10px_26px_rgba(226,149,149,0.28)] transition active:scale-[0.98] sm:mb-0.5"
+              >
+                Показать
+              </button>
+            </div>
+          </div>
+        ) : null}
         {rangeCapped ? (
           <p className="mt-3 rounded-[18px] bg-[#F1EFEF] px-3 py-2 text-[12px] font-medium text-neutral-600">
             Показан максимум за 90 дней
+          </p>
+        ) : null}
+        {chartIsTruncated ? (
+          <p className="mt-2 text-[11px] leading-snug text-neutral-500">
+            Диаграммы — последние {OVERVIEW_MAX_RANGE_DAYS} дней периода; доход и число записей — за весь выбранный интервал.
           </p>
         ) : null}
       </div>
@@ -245,12 +343,16 @@ export function AdminOverviewTab({ draft, appointments, appointmentsPath, onOpen
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-[30px] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(17,17,17,0.05)]">
                 <p className="text-[12px] font-semibold text-neutral-500">Доход</p>
-                <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-neutral-950">{formatBynRu(totalRevenue)}</p>
+                <p className={`mt-2 text-2xl font-semibold tabular-nums tracking-tight ${revenueValueClass}`}>
+                  {formatBynRu(totalRevenue)}
+                </p>
                 <div className="mt-2 min-h-[18px]">{prev ? <ComparisonLine current={totalRevenue} previous={prevRevenue} /> : null}</div>
               </div>
               <div className="rounded-[30px] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(17,17,17,0.05)]">
                 <p className="text-[12px] font-semibold text-neutral-500">Записей</p>
-                <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-neutral-950">{totalVisits}</p>
+                <p className={`mt-2 text-2xl font-semibold tabular-nums tracking-tight ${visitsValueClass}`}>
+                  {totalVisits}
+                </p>
                 <div className="mt-2 min-h-[18px]">{prev ? <ComparisonLine current={totalVisits} previous={prevVisits} /> : null}</div>
               </div>
               <div className="rounded-[30px] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(17,17,17,0.05)]">

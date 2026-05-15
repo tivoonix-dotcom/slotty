@@ -36,9 +36,7 @@ import {
   sanitizeBelarusPhoneInput,
 } from '../../../features/master-onboarding/model/belarusPhone';
 import { getMasterDisplayNameQualityError } from '../../../shared/lib/masterDisplayNamePolicy';
-import { isAdjustablePhotoSrc } from '../../../shared/lib/cropImageToAspect';
 import { SlottySelect } from '../../../shared/ui/SlottySelect';
-import { ProfilePhotoAdjust } from '../../../shared/ui/ProfilePhotoAdjust';
 import { fetchServiceCategories, type ServiceCategoryDto } from '../../../features/master-onboarding/api/becomeMasterApi';
 import { MasterProfileContactsBlock } from '../../master-onboarding/MasterProfileContactsBlock';
 import {
@@ -143,7 +141,7 @@ function hasAtLeastOneValidMessengerContact(rows: MasterContactRow[]): boolean {
   return rows.some((r) => r.value.trim() && validateContactValue(r.type, r.value) === null);
 }
 
-/** Основная информация + фото профиля (с API: обложка грузится на сервер после кадрирования). */
+/** Основная информация + фото профиля (с API: файл после выбора уходит на сервер). */
 export function SheetMainInfo({
   draft,
   onSave,
@@ -153,13 +151,11 @@ export function SheetMainInfo({
   draft: MasterDraft;
   onSave: (patch: Partial<MasterDraft>) => SheetSaveResult;
   onCancel: () => void;
-  /** Если задано — после «Применить кадр» JPEG уходит на сервер, в профиль попадает https URL. */
-  uploadHeroPhoto?: (croppedDataUrl: string) => Promise<string>;
+  /** Если задано — после выбора файла изображение загружается на сервер, в профиль попадает https URL. */
+  uploadHeroPhoto?: (imageDataUrl: string) => Promise<string>;
 }) {
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const photoOriginalRef = useRef<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState(draft.photoUrl ?? '');
-  const [photoAdjustSrc, setPhotoAdjustSrc] = useState<string | null>(null);
   const [name, setName] = useState(draft.name);
   const [catalogCategories, setCatalogCategories] = useState<ServiceCategoryDto[]>([]);
   const [categoryId, setCategoryId] = useState(() => draft.primaryCategoryId ?? '');
@@ -169,7 +165,7 @@ export function SheetMainInfo({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [frameUploadErr, setFrameUploadErr] = useState<string | null>(null);
+  const [photoUploadErr, setPhotoUploadErr] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,7 +206,7 @@ export function SheetMainInfo({
     setDescription(draft.description);
     setFieldErrors({});
     setSubmitAttempted(false);
-    setFrameUploadErr(null);
+    setPhotoUploadErr(null);
   }, [draft, catalogCategories, resolveCategoryId]);
 
   const categoryOptions = useMemo(() => {
@@ -224,25 +220,33 @@ export function SheetMainInfo({
     }));
   }, [catalogCategories, draft.category]);
 
-  const onPhotoChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const r = reader.result;
-      if (typeof r === 'string') {
-        photoOriginalRef.current = r;
-        setPhotoAdjustSrc(r);
-      }
-    };
-    reader.readAsDataURL(file);
-  }, []);
-
-  const openPhotoAdjust = useCallback(() => {
-    const src = photoOriginalRef.current ?? photoUrl.trim();
-    if (src && isAdjustablePhotoSrc(src)) setPhotoAdjustSrc(src);
-  }, [photoUrl]);
+  const onPhotoChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file || !file.type.startsWith('image/')) return;
+      setPhotoUploadErr(null);
+      const reader = new FileReader();
+      reader.onload = () => {
+        void (async () => {
+          const r = reader.result;
+          if (typeof r !== 'string') return;
+          try {
+            if (uploadHeroPhoto) {
+              const url = await uploadHeroPhoto(r);
+              setPhotoUrl(url);
+            } else {
+              setPhotoUrl(r);
+            }
+          } catch (err) {
+            setPhotoUploadErr(err instanceof Error ? err.message : 'Не удалось загрузить фото');
+          }
+        })();
+      };
+      reader.readAsDataURL(file);
+    },
+    [uploadHeroPhoto],
+  );
 
   const preview = photoUrl.trim() || defaultMasterAvatarUrl(name || draft.name);
 
@@ -317,71 +321,34 @@ export function SheetMainInfo({
           className="sr-only"
           onChange={onPhotoChange}
         />
-        {photoAdjustSrc ? (
-          <div className="mt-3">
-            <ProfilePhotoAdjust
-              src={photoAdjustSrc}
-              onApply={async (cropped) => {
-                setFrameUploadErr(null);
-                try {
-                  if (uploadHeroPhoto) {
-                    const url = await uploadHeroPhoto(cropped);
-                    setPhotoUrl(url);
-                  } else {
-                    setPhotoUrl(cropped);
-                  }
-                  setPhotoAdjustSrc(null);
-                } catch (e) {
-                  setFrameUploadErr(e instanceof Error ? e.message : 'Не удалось загрузить фото');
-                }
-              }}
-              onCancel={() => {
-                setFrameUploadErr(null);
-                setPhotoAdjustSrc(null);
+        <div className="relative mx-auto mt-3 w-full max-w-[320px]">
+          <div className="relative aspect-[16/10] overflow-hidden rounded-[22px] bg-white shadow-[0_8px_24px_rgba(17,17,17,0.06)]">
+            <img
+              src={preview}
+              alt=""
+              className="h-full w-full object-cover"
+              decoding="async"
+              onError={(ev) => {
+                (ev.target as HTMLImageElement).src = defaultMasterAvatarUrl(name || 'Мастер');
               }}
             />
-            {frameUploadErr ? (
-              <p className="mt-2 text-center text-[12px] font-medium text-red-600">{frameUploadErr}</p>
-            ) : null}
           </div>
-        ) : (
-          <>
-            <div className="relative mx-auto mt-3 w-full max-w-[320px]">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-[22px] bg-white shadow-[0_8px_24px_rgba(17,17,17,0.06)]">
-              <img
-                src={preview}
-                alt=""
-                className="h-full w-full object-cover"
-                decoding="async"
-                onError={(ev) => {
-                  (ev.target as HTMLImageElement).src = defaultMasterAvatarUrl(name || 'Мастер');
-                }}
-              />
-            </div>
-            <div className="absolute bottom-2 right-2 flex flex-wrap justify-end gap-1.5">
-              {isAdjustablePhotoSrc(photoUrl) || photoOriginalRef.current ? (
-                <button
-                  type="button"
-                  onClick={openPhotoAdjust}
-                  className="rounded-full bg-white px-3 py-2 text-[12px] font-semibold text-neutral-800 shadow-md ring-2 ring-white transition active:scale-[0.97]"
-                >
-                  Настроить кадр
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => photoInputRef.current?.click()}
-                className="rounded-full bg-[#E29595] px-3 py-2 text-[12px] font-semibold text-white shadow-md ring-2 ring-white transition active:scale-[0.97]"
-              >
-                Сменить
-              </button>
-            </div>
-            </div>
-            <p className="mt-2 text-center text-[12px] leading-snug text-neutral-500">
-              Кадр как на карточке профиля. Нажмите «Настроить кадр», если обрезало лицо или голову.
-            </p>
-          </>
-        )}
+          <div className="absolute bottom-2 right-2 flex flex-wrap justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              className="rounded-full bg-[#E29595] px-3 py-2 text-[12px] font-semibold text-white shadow-md ring-2 ring-white transition active:scale-[0.97]"
+            >
+              Сменить
+            </button>
+          </div>
+        </div>
+        <div className="mt-2 space-y-1">
+          {photoUploadErr ? <p className="text-center text-[12px] font-medium text-red-600">{photoUploadErr}</p> : null}
+          <p className="text-center text-[12px] leading-snug text-neutral-500">
+            JPG или PNG. Так фото будет выглядеть на карточке в каталоге.
+          </p>
+        </div>
       </div>
 
       <label className="block">
@@ -681,11 +648,11 @@ export function SheetAddress({
 
       <div className="space-y-2 overflow-visible">
         <p className="text-[13px] font-semibold text-neutral-500">Карта</p>
-        <p className="text-[12px] leading-snug text-neutral-500">
-          {visitType === 'at_home'
-            ? 'Поставьте метку по адресу выезда. Клиент откроет точку в картах после записи.'
-            : 'Поставьте метку у входа в салон — так проще найти вас на месте.'}
-        </p>
+        {visitType === 'studio' ? (
+          <p className="text-[12px] leading-snug text-neutral-500">
+            Поставьте метку у входа в салон — так проще найти вас на месте.
+          </p>
+        ) : null}
         <OnboardingAddressMap
           key={`${visitType}-${draft.masterId ?? 'local'}-${locationSyncFingerprint}`}
           city={MASTER_CABINET_CITY}

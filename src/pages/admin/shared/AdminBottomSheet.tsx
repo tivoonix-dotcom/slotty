@@ -10,7 +10,7 @@ type Props = {
 };
 
 /** Жест открытия (touch / синтетический click) часто «пробивает» в только что смонтированный backdrop и мгновенно закрывает шторку. */
-const BACKDROP_CLOSE_DELAY_MS = 450;
+const BACKDROP_CLOSE_DELAY_MS = 520;
 
 export function AdminBottomSheet({ open, onClose, title, children }: Props) {
   const suppressBackdropCloseRef = useRef(false);

@@ -9,6 +9,7 @@ export function useAdminMasterDraft() {
   const {
     draft,
     persistDraft,
+    commitDraftBaseline,
     flushDraftToBackend,
     flushScheduleToBackend,
     patchProfileToBackend,
@@ -17,6 +18,7 @@ export function useAdminMasterDraft() {
   return {
     draft,
     persistDraft,
+    commitDraftBaseline,
     flushDraftToBackend,
     flushScheduleToBackend,
     patchProfileToBackend,

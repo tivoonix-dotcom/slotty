@@ -143,7 +143,7 @@ function reindexServices(list: ManagedService[]): ManagedService[] {
 
 export function AdminServicesTab({ draft, onPersist }: Props) {
   const navigate = useNavigate();
-  const { useCabinetApi, refreshDraft } = useAdminMasterCabinet();
+  const { useCabinetApi, refreshDraft, commitDraftBaseline } = useAdminMasterCabinet();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [freeLimitOpen, setFreeLimitOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -476,10 +476,12 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     try {
       if (isUuid(deleteTarget.id)) {
         await deleteMasterService(deleteTarget.id);
+        const filtered = reindexServices(services.filter((service) => service.id !== deleteTarget.id));
+        commitDraftBaseline({ ...draft, services: filtered });
         setDeleteTarget(null);
         setDeleteError(null);
         showSuccessToast('Услуга удалена');
-        await refreshDraft();
+        void refreshDraft();
       } else {
         persistServices(services.filter((service) => service.id !== deleteTarget.id), 'Услуга удалена');
         setDeleteTarget(null);
@@ -488,7 +490,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     } catch (e) {
       setDeleteError(e instanceof Error ? e.message : 'Не удалось удалить');
     }
-  }, [deleteTarget, persistServices, refreshDraft, services, showSuccessToast, useCabinetApi]);
+  }, [commitDraftBaseline, deleteTarget, draft, persistServices, refreshDraft, services, showSuccessToast, useCabinetApi]);
 
   return (
     <div className="space-y-4">
@@ -687,7 +689,10 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
                     e.stopPropagation();
                     setPreviewTarget(null);
                     setDeleteError(null);
-                    setDeleteTarget(service);
+                    const svc = service;
+                    window.requestAnimationFrame(() => {
+                      setDeleteTarget(svc);
+                    });
                   }}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-400 shadow-[inset_0_0_0_1px_rgba(17,17,17,0.05)] transition active:scale-[0.96]"
                   aria-label="Удалить услугу"
