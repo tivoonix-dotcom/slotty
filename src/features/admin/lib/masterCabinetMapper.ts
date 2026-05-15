@@ -177,6 +177,9 @@ function cabinetLocationToDraft(loc: NonNullable<MasterCabinetDto['primaryLocati
     city: loc.city?.trim() || undefined,
     street: (loc.street || '').trim() || '—',
     building: (loc.building || '').trim() || '—',
+    buildingDetail: loc.buildingDetail?.trim() || undefined,
+    salonName: loc.salonName?.trim() || undefined,
+    district: loc.district?.trim() || undefined,
     entrance: loc.entrance?.trim() || undefined,
     floor: loc.floor?.trim() || undefined,
     room: loc.room?.trim() || undefined,
@@ -196,12 +199,16 @@ export function draftToPrimaryLocationBody(loc: MasterLocation): PrimaryLocation
   const building = (loc.building || '').trim() || '—';
   const publicAddress = formatStoredPublicAddress(loc).slice(0, 600) || street;
 
+  const isHome = loc.visitType === 'at_home';
+
   return {
-    visitType: loc.visitType === 'at_home' ? 'at_home' : 'studio',
+    visitType: isHome ? 'at_home' : 'studio',
     city,
     street,
     building,
-    buildingDetail: null,
+    buildingDetail: loc.buildingDetail?.trim() || null,
+    salonName: !isHome ? loc.salonName?.trim() || null : null,
+    district: isHome ? loc.district?.trim() || null : null,
     entrance: loc.entrance?.trim() || null,
     floor: loc.floor?.trim() || null,
     room: loc.room?.trim() || null,
@@ -212,8 +219,7 @@ export function draftToPrimaryLocationBody(loc: MasterLocation): PrimaryLocation
     publicAddress,
     lat: loc.lat != null && Number.isFinite(loc.lat) ? loc.lat : null,
     lng: loc.lng != null && Number.isFinite(loc.lng) ? loc.lng : null,
-    showExactAddressAfterBooking:
-      loc.visitType === 'at_home' ? loc.showExactAddressAfterBooking === true : null,
+    showExactAddressAfterBooking: isHome ? loc.showExactAddressAfterBooking === true : undefined,
   };
 }
 

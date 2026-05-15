@@ -6,7 +6,7 @@ export function AdminScheduleSection() {
   const { draft, persistDraft } = useAdminMasterDraft();
 
   return (
-    <AdminSectionLayout title="Расписание">
+    <AdminSectionLayout title="График работы">
       <AdminScheduleTab draft={draft} onPersist={persistDraft} />
     </AdminSectionLayout>
   );

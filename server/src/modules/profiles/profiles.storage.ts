@@ -1,18 +1,6 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { env } from '../../config/env.js';
+import { getSupabaseStorageAdmin } from '../../lib/supabaseStorageAdmin.js';
 import { ApiError } from '../../utils/ApiError.js';
-
-let adminClient: SupabaseClient | null | undefined;
-
-function getStorageAdmin(): SupabaseClient | null {
-  const url = env.SUPABASE_URL?.trim();
-  const key = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !key) return null;
-  if (adminClient === undefined) {
-    adminClient = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-  }
-  return adminClient;
-}
 
 const allowedMime = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
@@ -26,7 +14,7 @@ function extForMime(mime: string): string {
  * Загружает файл в Supabase Storage (bucket из env) и возвращает публичный URL.
  */
 export async function uploadProfileAvatar(userId: string, buffer: Buffer, mimeType: string): Promise<string> {
-  const client = getStorageAdmin();
+  const client = getSupabaseStorageAdmin();
   if (!client) {
     throw ApiError.serviceUnavailable(
       'Avatar upload is not configured (set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the server)',

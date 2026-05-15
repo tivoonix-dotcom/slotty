@@ -28,6 +28,11 @@ import {
   syncPortfolioItems,
   updateMyBookingRules,
 } from '../../../features/admin/api/adminProfileApi';
+import {
+  uploadMasterCertificateImageFile,
+  uploadMasterHeroPhotoFromDataUrl,
+  uploadMasterPortfolioImageFile,
+} from '../../../features/admin/api/masterCabinetApi';
 import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
 import {
   SheetAddress,
@@ -145,11 +150,11 @@ function normalizeCareerItems(draft: MasterDraft): MasterCareerItem[] {
 function AddressDetailGrid({ rows }: { rows: Array<{ label: string; value: string }> }) {
   if (!rows.length) return null;
   return (
-    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5">
+    <dl className="mt-3 flex flex-col gap-4">
       {rows.map((row) => (
         <div key={row.label} className="min-w-0">
           <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">{row.label}</dt>
-          <dd className="mt-0.5 text-[15px] font-semibold leading-snug text-neutral-950">{row.value}</dd>
+          <dd className="mt-1 text-[15px] font-semibold leading-relaxed text-neutral-950">{row.value}</dd>
         </div>
       ))}
     </dl>
@@ -166,7 +171,7 @@ function AddressPreviewPanel({
   wayfinding,
 }: {
   title: string;
-  hint: string;
+  hint?: string;
   visitLabel: string;
   mode?: 'short' | 'detailed';
   mainLine?: string;
@@ -176,7 +181,7 @@ function AddressPreviewPanel({
   return (
     <div className="rounded-[26px] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(17,17,17,0.035)]">
       <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">{title}</p>
-      <p className="mt-1 text-[12px] leading-snug text-neutral-500">{hint}</p>
+      {hint ? <p className="mt-1 text-[12px] leading-snug text-neutral-500">{hint}</p> : null}
       <div className="mt-3">
         <span className="inline-flex rounded-full bg-[#F1EFEF] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-700">
           {visitLabel}
@@ -561,7 +566,7 @@ function MainSection({
 
     <div className="rounded-[36px] bg-[#F1EFEF] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)]">
       <div className="rounded-[30px] bg-white p-5 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">Расписание записи</p>
+        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">График работы</p>
         <p className="mt-2 text-[14px] font-medium leading-relaxed text-neutral-700">
           {formatScheduleClientPreview(draft.schedule)}
         </p>
@@ -570,7 +575,7 @@ function MainSection({
           onClick={onEditSchedule}
           className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
         >
-          Изменить расписание
+          Изменить график работы
         </button>
       </div>
     </div>
@@ -605,7 +610,6 @@ function AddressSection({
     >
       <AddressPreviewPanel
         title="На карточке"
-        hint="Так адрес видят в каталоге до записи"
         visitLabel={visitLabel}
         mainLine={catalogMain}
       />
@@ -960,10 +964,6 @@ function TrustSection({
 
   return (
     <div className="space-y-4">
-      <p className="px-0.5 text-[13px] leading-relaxed text-neutral-500">
-        Фото работ — главное в профиле. Сертификаты и опыт дополняют доверие клиента.
-      </p>
-
       <section className="rounded-[22px] bg-white p-4 shadow-[0_12px_36px_rgba(17,17,17,0.07)] ring-1 ring-[#F1EFEF]">
         <TrustBlockHeader
           title="Работы"
@@ -1336,6 +1336,7 @@ function sheetTitle(sheet: ProfileSheet): string | undefined {
   if (sheet == null) return undefined;
   if (sheet === 'main') return 'Основная информация';
   if (sheet === 'address') return 'Адрес';
+  if (sheet === 'schedule') return 'График работы';
   if (sheet === 'rules') return 'Правила записи';
   if (typeof sheet === 'object' && sheet.k === 'career') return sheet.id ? 'Опыт и образование' : 'Новая запись';
   if (typeof sheet === 'object' && sheet.k === 'portfolio') return sheet.id ? 'Работа' : 'Новая работа';
@@ -1347,7 +1348,14 @@ function sheetTitle(sheet: ProfileSheet): string | undefined {
 }
 
 export function AdminProfileSection() {
-  const { draft, persistDraft, flushDraftToBackend, patchProfileToBackend, refreshDraft } = useAdminMasterDraft();
+  const {
+    draft,
+    persistDraft,
+    flushDraftToBackend,
+    flushScheduleToBackend,
+    patchProfileToBackend,
+    refreshDraft,
+  } = useAdminMasterDraft();
   const { useCabinetApi } = useAdminMasterCabinet();
   const [sheet, setSheet] = useState<ProfileSheet>(null);
   const [sheetApiError, setSheetApiError] = useState<string | null>(null);
@@ -1458,14 +1466,14 @@ export function AdminProfileSection() {
         return;
       }
       try {
-        await flushDraftToBackend(next);
+        await flushScheduleToBackend(next);
         closeSheet();
         showSaved();
       } catch (e) {
         setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
       }
     },
-    [closeSheet, draft, flushDraftToBackend, persistDraft, showSaved, useCabinetApi],
+    [closeSheet, draft, flushScheduleToBackend, persistDraft, showSaved, useCabinetApi],
   );
 
   const saveRules = useCallback(
@@ -1686,7 +1694,14 @@ export function AdminProfileSection() {
 
   const sheetBody = useMemo(() => {
     if (sheet === 'main') {
-      return <SheetMainInfo draft={draft} onSave={saveMain} onCancel={closeSheet} />;
+      return (
+        <SheetMainInfo
+          draft={draft}
+          onSave={saveMain}
+          onCancel={closeSheet}
+          uploadHeroPhoto={useCabinetApi ? uploadMasterHeroPhotoFromDataUrl : undefined}
+        />
+      );
     }
 
     if (sheet === 'address') {
@@ -1720,6 +1735,7 @@ export function AdminProfileSection() {
           certificateId={sheet.id ?? null}
           onSave={saveCertificates}
           onCancel={closeSheet}
+          uploadImage={useCabinetApi ? uploadMasterCertificateImageFile : undefined}
         />
       );
     }
@@ -1731,6 +1747,7 @@ export function AdminProfileSection() {
           itemId={sheet.id ?? null}
           onSave={savePortfolio}
           onCancel={closeSheet}
+          uploadImage={useCabinetApi ? uploadMasterPortfolioImageFile : undefined}
         />
       );
     }
@@ -1780,6 +1797,7 @@ export function AdminProfileSection() {
     saveRules,
     saveSchedule,
     sheet,
+    useCabinetApi,
   ]);
 
   return (

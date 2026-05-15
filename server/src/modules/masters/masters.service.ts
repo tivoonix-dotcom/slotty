@@ -556,6 +556,8 @@ type PrimaryLocationRow = {
   street: string;
   building: string;
   building_detail: string | null;
+  salon_name: string | null;
+  district: string | null;
   entrance: string | null;
   floor: string | null;
   room: string | null;
@@ -593,7 +595,7 @@ export async function getMyMasterCabinet(masterId: string) {
   ] = await Promise.all([
     categoryPromise,
     query<PrimaryLocationRow>(
-      `select id, visit_type::text, city, street, building, building_detail, entrance, floor, room,
+      `select id, visit_type::text, city, street, building, building_detail, salon_name, district, entrance, floor, room,
               intercom, landmark, directions, client_note, public_address, is_primary, lat, lng,
               show_exact_address_after_booking
          from public.master_locations
@@ -673,6 +675,8 @@ export async function getMyMasterCabinet(masterId: string) {
           street: loc.street,
           building: loc.building,
           buildingDetail: loc.building_detail,
+          salonName: loc.salon_name,
+          district: loc.district,
           entrance: loc.entrance,
           floor: loc.floor,
           room: loc.room,

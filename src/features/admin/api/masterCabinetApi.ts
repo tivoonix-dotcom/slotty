@@ -31,6 +31,8 @@ export type MasterCabinetLocationDto = {
   street: string;
   building: string;
   buildingDetail: string | null;
+  salonName?: string | null;
+  district?: string | null;
   entrance: string | null;
   floor: string | null;
   room: string | null;
@@ -126,6 +128,41 @@ export async function patchMasterMe(body: {
 }): Promise<void> {
   const res = await apiFetch('/api/masters/me', { method: 'PATCH', body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readApiError(res));
+}
+
+export async function uploadMasterPortfolioImageFile(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await apiFetch('/api/masters/me/portfolio/upload', { method: 'POST', body: fd });
+  if (!res.ok) throw new Error(await readApiError(res));
+  const j = (await res.json()) as { imageUrl: string };
+  return j.imageUrl;
+}
+
+export async function uploadMasterCertificateImageFile(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await apiFetch('/api/masters/me/certificates/upload', { method: 'POST', body: fd });
+  if (!res.ok) throw new Error(await readApiError(res));
+  const j = (await res.json()) as { imageUrl: string };
+  return j.imageUrl;
+}
+
+export async function uploadMasterHeroPhotoFile(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await apiFetch('/api/masters/me/photo', { method: 'POST', body: fd });
+  if (!res.ok) throw new Error(await readApiError(res));
+  const j = (await res.json()) as { imageUrl: string };
+  return j.imageUrl;
+}
+
+/** После обрезки кадра в SheetMainInfo: JPEG/PNG/WebP blob → multipart на сервер. */
+export async function uploadMasterHeroPhotoFromDataUrl(dataUrl: string): Promise<string> {
+  const blob = await (await fetch(dataUrl)).blob();
+  const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
+  const file = new File([blob], `hero.${ext}`, { type: blob.type || 'image/jpeg' });
+  return uploadMasterHeroPhotoFile(file);
 }
 
 export async function putMasterPrimaryLocation(body: PrimaryLocationBody): Promise<void> {

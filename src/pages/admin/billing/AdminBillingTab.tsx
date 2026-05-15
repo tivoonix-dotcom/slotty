@@ -50,7 +50,7 @@ const PLAN_UI: Record<
       'Профиль мастера',
       'До 3 услуг',
       'До 20 записей в месяц',
-      'Расписание на 30 дней',
+      'График работы на 30 дней',
       'Базовая сводка',
       'Заявки клиентов',
       'Ручное управление записями',
@@ -68,7 +68,7 @@ const PLAN_UI: Record<
     includes: [
       'Всё из Free',
       'Безлимит услуг и записей',
-      'Расписание на 365 дней',
+      'График работы на 365 дней',
       'Расширенная сводка',
       'История клиентов',
       'Напоминания клиентам',
@@ -285,7 +285,7 @@ export function AdminBillingTab() {
                   style={{ width: `${Math.min(100, (monthlyCount / maxAppt) * 100)}%` }}
                 />
               </div>
-              <UsageRow label="Расписание" value={`${limits.scheduleHorizonDays} дней`} />
+              <UsageRow label="График работы" value={`${limits.scheduleHorizonDays} дней`} />
             </>
           ) : null}
 
@@ -293,7 +293,7 @@ export function AdminBillingTab() {
             <>
               <UsageRow label="Услуги" value="безлимит" />
               <UsageRow label="Записи" value="безлимит" />
-              <UsageRow label="Расписание" value={`${limits.scheduleHorizonDays} дней`} />
+              <UsageRow label="График работы" value={`${limits.scheduleHorizonDays} дней`} />
             </>
           ) : null}
         </div>

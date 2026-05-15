@@ -7,6 +7,7 @@ import type {
 import { SlottySelect } from '../../../shared/ui/SlottySelect';
 import { NothingFoundCard } from '../../../shared/ui/NothingFoundCard';
 import { AdminMasterRealSlotsPanel } from './AdminMasterRealSlotsPanel';
+import { SCHEDULE_TIME_SELECT_OPTIONS } from './scheduleTimeSelectOptions';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { useAdminMasterDraft } from '../useAdminMasterData';
 
@@ -121,24 +122,6 @@ function newId(prefix = 'id'): string {
 function pad2(value: number): string {
   return value < 10 ? `0${value}` : String(value);
 }
-
-function buildTimeOptions(): string[] {
-  const out: string[] = [];
-
-  for (let h = 6; h <= 23; h += 1) {
-    for (const m of [0, 15, 30, 45]) {
-      if (h === 23 && m > 0) break;
-      out.push(`${pad2(h)}:${pad2(m)}`);
-    }
-  }
-
-  return out;
-}
-
-const TIME_SELECT_OPTIONS = buildTimeOptions().map((time) => ({
-  value: time,
-  label: time,
-}));
 
 function timeToMinutes(time: string): number {
   const [hoursRaw, minutesRaw] = time.split(':');
@@ -390,7 +373,7 @@ function StatCard({
 
 export function AdminScheduleTab({ draft, onPersist }: Props) {
   const { useCabinetApi } = useAdminMasterCabinet();
-  const { flushDraftToBackend } = useAdminMasterDraft();
+  const { flushScheduleToBackend } = useAdminMasterDraft();
   const services = draft.services;
   const visibleServices = getVisibleServices(services);
 
@@ -537,7 +520,7 @@ export function AdminScheduleTab({ draft, onPersist }: Props) {
 
     setError(null);
     try {
-      await flushDraftToBackend(nextDraft);
+      await flushScheduleToBackend(nextDraft);
       setRule(nextRule);
       showToast(preparedWindows.length > 0 ? 'Окошки сохранены' : 'День закрыт');
     } catch (e) {
@@ -545,7 +528,7 @@ export function AdminScheduleTab({ draft, onPersist }: Props) {
     }
   }, [
     draft,
-    flushDraftToBackend,
+    flushScheduleToBackend,
     onPersist,
     rule,
     selectedDate,
@@ -571,7 +554,7 @@ export function AdminScheduleTab({ draft, onPersist }: Props) {
       <section className="rounded-[36px] bg-[#F1EFEF] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)]">
         <div className="rounded-[30px] bg-white p-5 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
-            Расписание
+            График работы
           </p>
 
           <h2 className="mt-2 text-[34px] font-semibold leading-none tracking-[-0.065em] text-neutral-950">
@@ -776,7 +759,7 @@ export function AdminScheduleTab({ draft, onPersist }: Props) {
                         className="mt-1 w-full"
                         value={window.startTime}
                         onChange={(value) => updateWindow(window.id, { startTime: value })}
-                        options={TIME_SELECT_OPTIONS}
+                        options={SCHEDULE_TIME_SELECT_OPTIONS}
                       />
                     </label>
 
@@ -789,7 +772,7 @@ export function AdminScheduleTab({ draft, onPersist }: Props) {
                         className="mt-1 w-full"
                         value={window.endTime}
                         onChange={(value) => updateWindow(window.id, { endTime: value })}
-                        options={TIME_SELECT_OPTIONS}
+                        options={SCHEDULE_TIME_SELECT_OPTIONS}
                       />
                     </label>
                   </div>

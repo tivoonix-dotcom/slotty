@@ -6,9 +6,22 @@ export {
 import { useAdminMasterCabinet } from './AdminMasterCabinetContext';
 
 export function useAdminMasterDraft() {
-  const { draft, persistDraft, flushDraftToBackend, patchProfileToBackend, refreshDraft } =
-    useAdminMasterCabinet();
-  return { draft, persistDraft, flushDraftToBackend, patchProfileToBackend, refreshDraft };
+  const {
+    draft,
+    persistDraft,
+    flushDraftToBackend,
+    flushScheduleToBackend,
+    patchProfileToBackend,
+    refreshDraft,
+  } = useAdminMasterCabinet();
+  return {
+    draft,
+    persistDraft,
+    flushDraftToBackend,
+    flushScheduleToBackend,
+    patchProfileToBackend,
+    refreshDraft,
+  };
 }
 
 export function useAdminAppointments() {

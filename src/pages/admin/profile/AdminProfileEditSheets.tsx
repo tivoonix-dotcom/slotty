@@ -17,6 +17,7 @@ import {
   validateWeeklySchedule,
   WEEKDAY_LABELS_SHORT,
 } from '../../../features/master/model/masterDraftStorage';
+import { mergeScheduleTimeSelectOptions } from '../schedule/scheduleTimeSelectOptions';
 import type { MasterVisitType } from '../../../features/profile/model/masterLocation';
 import { masterVisitTypeLabel } from '../../../features/profile/model/masterLocation';
 import { defaultMasterAvatarUrl } from '../../../features/master/model/masterDraftStorage';
@@ -72,11 +73,13 @@ function SheetFooter({
   onCancel,
   onSave,
   saveLabel = 'Сохранить',
+  savingLabel = 'Сохранение…',
   saving = false,
 }: {
   onCancel: () => void;
   onSave: () => SheetSaveResult;
   saveLabel?: string;
+  savingLabel?: string;
   saving?: boolean;
 }) {
   return (
@@ -97,7 +100,7 @@ function SheetFooter({
         }}
         className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#E29595] px-4 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98] disabled:opacity-60"
       >
-        {saving ? 'Сохранение…' : saveLabel}
+        {saving ? savingLabel : saveLabel}
       </button>
     </div>
   );
@@ -107,15 +110,18 @@ function hasAtLeastOneValidMessengerContact(rows: MasterContactRow[]): boolean {
   return rows.some((r) => r.value.trim() && validateContactValue(r.type, r.value) === null);
 }
 
-/** Основная информация + фото профиля (демо: data URL; TODO: Supabase Storage). */
+/** Основная информация + фото профиля (с API: обложка грузится на сервер после кадрирования). */
 export function SheetMainInfo({
   draft,
   onSave,
   onCancel,
+  uploadHeroPhoto,
 }: {
   draft: MasterDraft;
   onSave: (patch: Partial<MasterDraft>) => SheetSaveResult;
   onCancel: () => void;
+  /** Если задано — после «Применить кадр» JPEG уходит на сервер, в профиль попадает https URL. */
+  uploadHeroPhoto?: (croppedDataUrl: string) => Promise<string>;
 }) {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const photoOriginalRef = useRef<string | null>(null);
@@ -130,6 +136,7 @@ export function SheetMainInfo({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [frameUploadErr, setFrameUploadErr] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -170,6 +177,7 @@ export function SheetMainInfo({
     setDescription(draft.description);
     setFieldErrors({});
     setSubmitAttempted(false);
+    setFrameUploadErr(null);
   }, [draft, catalogCategories, resolveCategoryId]);
 
   const categoryOptions = useMemo(() => {
@@ -280,12 +288,28 @@ export function SheetMainInfo({
           <div className="mt-3">
             <ProfilePhotoAdjust
               src={photoAdjustSrc}
-              onApply={(cropped) => {
-                setPhotoUrl(cropped);
+              onApply={async (cropped) => {
+                setFrameUploadErr(null);
+                try {
+                  if (uploadHeroPhoto) {
+                    const url = await uploadHeroPhoto(cropped);
+                    setPhotoUrl(url);
+                  } else {
+                    setPhotoUrl(cropped);
+                  }
+                  setPhotoAdjustSrc(null);
+                } catch (e) {
+                  setFrameUploadErr(e instanceof Error ? e.message : 'Не удалось загрузить фото');
+                }
+              }}
+              onCancel={() => {
+                setFrameUploadErr(null);
                 setPhotoAdjustSrc(null);
               }}
-              onCancel={() => setPhotoAdjustSrc(null)}
             />
+            {frameUploadErr ? (
+              <p className="mt-2 text-center text-[12px] font-medium text-red-600">{frameUploadErr}</p>
+            ) : null}
           </div>
         ) : (
           <>
@@ -322,6 +346,7 @@ export function SheetMainInfo({
             </div>
             <p className="mt-2 text-center text-[12px] leading-snug text-neutral-500">
               Кадр как на карточке профиля. Нажмите «Настроить кадр», если обрезало лицо или голову.
+              {uploadHeroPhoto ? ' После применения кадра фото отправляется на сервер.' : ''}
             </p>
           </>
         )}
@@ -477,10 +502,41 @@ export function SheetAddress({
   onCancel: () => void;
 }) {
   const loc = draft.location;
+
+  /** Не синхронизировать форму при каждом новом объекте draft — иначе сбрасывается смена «На дому» ↔ «Салон». */
+  const locationSyncFingerprint = useMemo(() => {
+    const l = draft.location;
+    return [
+      l.visitType,
+      l.city ?? '',
+      l.street,
+      l.building,
+      l.buildingDetail ?? '',
+      l.salonName ?? '',
+      l.district ?? '',
+      l.entrance ?? '',
+      l.floor ?? '',
+      l.room ?? '',
+      l.intercom ?? '',
+      l.landmark ?? '',
+      l.directions ?? '',
+      l.clientNote ?? '',
+      l.lat ?? '',
+      l.lng ?? '',
+      l.showExactAddressAfterBooking === true ? '1' : '0',
+    ].join('\x1e');
+  }, [draft.location]);
+
   const [visitType, setVisitType] = useState<MasterVisitType>(loc.visitType);
   const [city, setCity] = useState(loc.city?.trim() ?? '');
   const [street, setStreet] = useState(loc.street);
   const [building, setBuilding] = useState(loc.building);
+  const [salonName, setSalonName] = useState(loc.salonName?.trim() ?? '');
+  const [buildingDetail, setBuildingDetail] = useState(loc.buildingDetail?.trim() ?? '');
+  const [district, setDistrict] = useState(loc.district?.trim() ?? '');
+  const [showExactAddressAfterBooking, setShowExactAddressAfterBooking] = useState(
+    loc.showExactAddressAfterBooking === true,
+  );
   const [entrance, setEntrance] = useState(loc.entrance ?? '');
   const [floor, setFloor] = useState(loc.floor ?? '');
   const [room, setRoom] = useState(loc.room ?? '');
@@ -496,7 +552,7 @@ export function SheetAddress({
     if (!s) return '';
     const b = building.trim();
     const withBuilding = b && b !== 'б/н' ? `${s}, ${b}` : s;
-    const c = (city.trim() || 'Минск');
+    const c = city.trim() || 'Минск';
     const lower = withBuilding.toLowerCase();
     if (c && !lower.includes(c.toLowerCase())) return `${c}, ${withBuilding}`;
     return withBuilding;
@@ -508,6 +564,10 @@ export function SheetAddress({
     setCity(l.city?.trim() ?? '');
     setStreet(l.street);
     setBuilding(l.building);
+    setSalonName(l.salonName?.trim() ?? '');
+    setBuildingDetail(l.buildingDetail?.trim() ?? '');
+    setDistrict(l.district?.trim() ?? '');
+    setShowExactAddressAfterBooking(l.showExactAddressAfterBooking === true);
     setEntrance(l.entrance ?? '');
     setFloor(l.floor ?? '');
     setRoom(l.room ?? '');
@@ -517,15 +577,20 @@ export function SheetAddress({
     setClientNote(l.clientNote ?? '');
     setLat(l.lat);
     setLng(l.lng);
-  }, [draft]);
+  }, [locationSyncFingerprint]);
 
   const save = () => {
+    const isHome = visitType === 'at_home';
     onSave({
       ...draft.location,
       visitType,
       city: city.trim() || undefined,
       street: street.trim(),
       building: building.trim(),
+      salonName: !isHome ? salonName.trim() || undefined : undefined,
+      buildingDetail: isHome ? buildingDetail.trim() || undefined : undefined,
+      district: isHome ? district.trim() || undefined : undefined,
+      showExactAddressAfterBooking: isHome ? showExactAddressAfterBooking : undefined,
       entrance: entrance.trim() || undefined,
       floor: floor.trim() || undefined,
       room: room.trim() || undefined,
@@ -541,6 +606,8 @@ export function SheetAddress({
         : { lat: undefined, lng: undefined }),
     });
   };
+
+  const roomLabel = visitType === 'at_home' ? 'Квартира / офис' : 'Кабинет';
 
   return (
     <div className="space-y-4">
@@ -560,15 +627,38 @@ export function SheetAddress({
         ))}
       </div>
 
+      <p className="text-[12px] leading-snug text-neutral-500">
+        {visitType === 'at_home'
+          ? 'Выезд к клиенту: ниже — адрес приёма и как показывать его в каталоге до записи.'
+          : 'Приём в салоне или студии: укажите название точки и адрес для клиентов.'}
+      </p>
+
       <label className="block">
         <span className="text-[13px] font-semibold text-neutral-500">Город</span>
         <input value={city} onChange={(e) => setCity(e.target.value)} className={fieldClass()} placeholder="Минск" />
       </label>
 
+      {visitType === 'studio' ? (
+        <label className="block">
+          <span className="text-[13px] font-semibold text-neutral-500">Название салона или студии</span>
+          <input
+            value={salonName}
+            onChange={(e) => setSalonName(e.target.value)}
+            className={fieldClass()}
+            placeholder="Например, Nail Studio"
+          />
+        </label>
+      ) : null}
+
       <div className="space-y-2">
         <p className="text-[13px] font-semibold text-neutral-500">Карта</p>
+        <p className="text-[12px] leading-snug text-neutral-500">
+          {visitType === 'at_home'
+            ? 'Поставьте метку по адресу выезда. Клиент откроет точку в картах после записи.'
+            : 'Поставьте метку у входа в салон — так проще найти вас на месте.'}
+        </p>
         <OnboardingAddressMap
-          key={`${visitType}-${draft.masterId ?? 'local'}`}
+          key={`${visitType}-${draft.masterId ?? 'local'}-${locationSyncFingerprint}`}
           city={city.trim() || 'Минск'}
           visitType={visitType}
           addressLine={mapAddressLine}
@@ -585,14 +675,79 @@ export function SheetAddress({
       </div>
 
       <label className="block">
-        <span className="text-[13px] font-semibold text-neutral-500">Адрес (улица / место)</span>
+        <span className="text-[13px] font-semibold text-neutral-500">
+          {visitType === 'at_home' ? 'Адрес приёма (улица / как в подъезде)' : 'Улица'}
+        </span>
         <input value={street} onChange={(e) => setStreet(e.target.value)} className={fieldClass()} />
       </label>
 
       <label className="block">
-        <span className="text-[13px] font-semibold text-neutral-500">Уточнение (дом, корпус)</span>
+        <span className="text-[13px] font-semibold text-neutral-500">
+          {visitType === 'at_home' ? 'Дом, корпус' : 'Дом, корпус (если не в строке выше)'}
+        </span>
         <input value={building} onChange={(e) => setBuilding(e.target.value)} className={fieldClass()} />
       </label>
+
+      {visitType === 'at_home' ? (
+        <>
+          <label className="block">
+            <span className="text-[13px] font-semibold text-neutral-500">Корпус / строение</span>
+            <input
+              value={buildingDetail}
+              onChange={(e) => setBuildingDetail(e.target.value)}
+              className={fieldClass()}
+              placeholder="При необходимости"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[13px] font-semibold text-neutral-500">Район или ориентир для каталога</span>
+            <input
+              value={district}
+              onChange={(e) => setDistrict(e.target.value)}
+              className={fieldClass()}
+              placeholder="Например, Московский район"
+            />
+          </label>
+          <div className="rounded-[26px] bg-[#F1EFEF] p-4">
+            <p className="text-[13px] font-semibold text-neutral-500">Адрес в каталоге до записи</p>
+            <p className="mt-1 text-[12px] leading-snug text-neutral-500">
+              Улица из поля выше видна всем. Подъезд, этаж и квартира — только в деталях ниже.
+            </p>
+            <div
+              className="mt-3 grid grid-cols-1 gap-2 rounded-[22px] bg-white/80 p-1.5 sm:grid-cols-2"
+              role="radiogroup"
+              aria-label="Когда показывать полный адрес"
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!showExactAddressAfterBooking}
+                onClick={() => setShowExactAddressAfterBooking(false)}
+                className={`min-h-11 rounded-full px-3 text-[14px] font-semibold leading-snug transition active:scale-[0.98] ${
+                  !showExactAddressAfterBooking
+                    ? 'bg-[#E29595] text-white shadow-[0_8px_20px_rgba(226,149,149,0.22)]'
+                    : 'text-neutral-600'
+                }`}
+              >
+                Видно сразу
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={showExactAddressAfterBooking}
+                onClick={() => setShowExactAddressAfterBooking(true)}
+                className={`min-h-11 rounded-full px-3 text-[14px] font-semibold leading-snug transition active:scale-[0.98] ${
+                  showExactAddressAfterBooking
+                    ? 'bg-[#E29595] text-white shadow-[0_8px_20px_rgba(226,149,149,0.22)]'
+                    : 'text-neutral-600'
+                }`}
+              >
+                Только после записи
+              </button>
+            </div>
+          </div>
+        </>
+      ) : null}
 
       <label className="block">
         <span className="text-[13px] font-semibold text-neutral-500">Вход / подъезд</span>
@@ -605,7 +760,7 @@ export function SheetAddress({
       </label>
 
       <label className="block">
-        <span className="text-[13px] font-semibold text-neutral-500">Кабинет</span>
+        <span className="text-[13px] font-semibold text-neutral-500">{roomLabel}</span>
         <input value={room} onChange={(e) => setRoom(e.target.value)} className={fieldClass()} />
       </label>
 
@@ -727,6 +882,11 @@ export function SheetSchedule({
   const [endTime, setEndTime] = useState(draft.schedule.endTime);
   const [error, setError] = useState<string | null>(null);
 
+  const timeSelectOptions = useMemo(
+    () => mergeScheduleTimeSelectOptions(startTime, endTime),
+    [startTime, endTime],
+  );
+
   useEffect(() => {
     setWorkDays([...draft.schedule.workDays]);
     setStartTime(draft.schedule.startTime);
@@ -753,7 +913,7 @@ export function SheetSchedule({
   return (
     <div className="space-y-4">
       <p className="text-[14px] leading-relaxed text-neutral-500">
-        Укажите дни и часы, когда клиенты могут записаться онлайн. Детальные окошки по дням настраиваются в разделе «Расписание».
+        Базовый график: дни и часы. Детальные окошки по дням настраиваются во вкладке «График работы».
       </p>
 
       <div>
@@ -782,26 +942,28 @@ export function SheetSchedule({
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className="text-[13px] font-semibold text-neutral-500">С</span>
-          <input
-            type="time"
+          <SlottySelect
+            className="mt-1.5 w-full"
             value={startTime}
-            onChange={(e) => {
-              setStartTime(e.target.value);
+            onChange={(value) => {
+              setStartTime(value);
               setError(null);
             }}
-            className={fieldClass()}
+            options={timeSelectOptions}
+            aria-label="Время начала"
           />
         </label>
         <label className="block">
           <span className="text-[13px] font-semibold text-neutral-500">До</span>
-          <input
-            type="time"
+          <SlottySelect
+            className="mt-1.5 w-full"
             value={endTime}
-            onChange={(e) => {
-              setEndTime(e.target.value);
+            onChange={(value) => {
+              setEndTime(value);
               setError(null);
             }}
-            className={fieldClass()}
+            options={timeSelectOptions}
+            aria-label="Время окончания"
           />
         </label>
       </div>
@@ -820,11 +982,13 @@ export function SheetCertificate({
   certificateId,
   onSave,
   onCancel,
+  uploadImage,
 }: {
   draft: MasterDraft;
   certificateId: string | null;
   onSave: (list: MasterCertificate[]) => SheetSaveResult;
   onCancel: () => void;
+  uploadImage?: (file: File) => Promise<string>;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const list = draft.certificates ?? [];
@@ -834,6 +998,8 @@ export function SheetCertificate({
   const [year, setYear] = useState(existing?.year ?? '');
   const [description, setDescription] = useState(existing?.description ?? '');
   const [imageUrl, setImageUrl] = useState(existing?.imageUrl ?? '');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
 
   useEffect(() => {
     const ex = certificateId ? (draft.certificates ?? []).find((c) => c.id === certificateId) : undefined;
@@ -842,12 +1008,35 @@ export function SheetCertificate({
     setYear(ex?.year ?? '');
     setDescription(ex?.description ?? '');
     setImageUrl(ex?.imageUrl ?? '');
+    setUploadErr(null);
   }, [certificateId, draft]);
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !file.type.startsWith('image/')) return;
+    setUploadErr(null);
+
+    if (uploadImage) {
+      const preview = URL.createObjectURL(file);
+      const rollbackUrl =
+        (certificateId ? (draft.certificates ?? []).find((c) => c.id === certificateId) : undefined)?.imageUrl ?? '';
+      setImageUrl(preview);
+      setUploadingImage(true);
+      void uploadImage(file)
+        .then((url) => {
+          URL.revokeObjectURL(preview);
+          setImageUrl(url);
+        })
+        .catch((err: unknown) => {
+          URL.revokeObjectURL(preview);
+          setImageUrl(rollbackUrl);
+          setUploadErr(err instanceof Error ? err.message : 'Не удалось загрузить фото');
+        })
+        .finally(() => setUploadingImage(false));
+      return;
+    }
+
     const preview = URL.createObjectURL(file);
     setImageUrl(preview);
     const reader = new FileReader();
@@ -862,7 +1051,7 @@ export function SheetCertificate({
   const save = () => {
     const trimmedTitle = title.trim();
     const trimmedIssuer = issuer.trim();
-    if (!trimmedTitle || !trimmedIssuer) return;
+    if (!trimmedTitle || !trimmedIssuer || uploadingImage) return;
     const id = certificateId ?? newEntityId();
     const nextItem: MasterCertificate = {
       id,
@@ -899,7 +1088,7 @@ export function SheetCertificate({
 
       <div className="rounded-[26px] bg-[#F1EFEF] p-4">
         <p className="text-[13px] font-semibold text-neutral-500">Фото сертификата</p>
-        <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" onChange={onFile} />
+        <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" onChange={onFile} disabled={uploadingImage} />
         {imageUrl ? (
           <div className="mt-3 overflow-hidden rounded-[22px] bg-white">
             <img src={imageUrl} alt="" className="max-h-48 w-full object-contain" decoding="async" />
@@ -908,17 +1097,23 @@ export function SheetCertificate({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="mt-3 w-full rounded-full bg-white py-3 text-[14px] font-semibold text-neutral-900 shadow-sm transition active:scale-[0.99]"
+          disabled={uploadingImage}
+          className="mt-3 w-full rounded-full bg-white py-3 text-[14px] font-semibold text-neutral-900 shadow-sm transition active:scale-[0.99] disabled:opacity-60"
         >
           {imageUrl ? 'Заменить фото' : 'Загрузить фото'}
         </button>
+        {uploadErr ? <p className="mt-2 text-center text-[12px] font-medium text-red-600">{uploadErr}</p> : null}
         <p className="mt-2 text-center text-[11px] text-neutral-500">
-          {/* TODO: Supabase Storage. Демо: краткий preview через URL.createObjectURL, в черновике — data URL. */}
-          Демо: после выбора файла изображение сохраняется в черновике как data URL.
+          {uploadImage ? 'Фото загружается на сервер и сохраняется как ссылка.' : 'Локально: изображение в черновике как data URL.'}
         </p>
       </div>
 
-      <SheetFooter onCancel={onCancel} onSave={save} />
+      <SheetFooter
+        onCancel={onCancel}
+        onSave={save}
+        saving={uploadingImage}
+        savingLabel="Загрузка фото…"
+      />
     </div>
   );
 }
@@ -928,11 +1123,13 @@ export function SheetPortfolio({
   itemId,
   onSave,
   onCancel,
+  uploadImage,
 }: {
   draft: MasterDraft;
   itemId: string | null;
   onSave: (list: MasterPortfolioItem[]) => SheetSaveResult;
   onCancel: () => void;
+  uploadImage?: (file: File) => Promise<string>;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const list = draft.portfolio ?? [];
@@ -940,18 +1137,42 @@ export function SheetPortfolio({
   const [title, setTitle] = useState(existing?.title ?? '');
   const [description, setDescription] = useState(existing?.description ?? '');
   const [imageUrl, setImageUrl] = useState(existing?.imageUrl ?? '');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
 
   useEffect(() => {
     const ex = itemId ? (draft.portfolio ?? []).find((p) => p.id === itemId) : undefined;
     setTitle(ex?.title ?? '');
     setDescription(ex?.description ?? '');
     setImageUrl(ex?.imageUrl ?? '');
+    setUploadErr(null);
   }, [draft, itemId]);
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !file.type.startsWith('image/')) return;
+    setUploadErr(null);
+
+    if (uploadImage) {
+      const preview = URL.createObjectURL(file);
+      setImageUrl(preview);
+      setUploadingImage(true);
+      const prevHttps = (itemId ? (draft.portfolio ?? []).find((p) => p.id === itemId) : undefined)?.imageUrl ?? '';
+      void uploadImage(file)
+        .then((url) => {
+          URL.revokeObjectURL(preview);
+          setImageUrl(url);
+        })
+        .catch((err: unknown) => {
+          URL.revokeObjectURL(preview);
+          setImageUrl(prevHttps);
+          setUploadErr(err instanceof Error ? err.message : 'Не удалось загрузить фото');
+        })
+        .finally(() => setUploadingImage(false));
+      return;
+    }
+
     const preview = URL.createObjectURL(file);
     setImageUrl(preview);
     const reader = new FileReader();
@@ -964,7 +1185,7 @@ export function SheetPortfolio({
   };
 
   const save = () => {
-    if (!imageUrl.trim()) return;
+    if (!imageUrl.trim() || uploadingImage) return;
     const id = itemId ?? newEntityId();
     const nextItem: MasterPortfolioItem = {
       id,
@@ -980,7 +1201,7 @@ export function SheetPortfolio({
     <div className="space-y-4">
       <div className="rounded-[26px] bg-[#F1EFEF] p-4">
         <p className="text-[13px] font-semibold text-neutral-500">Фото работы *</p>
-        <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" onChange={onFile} />
+        <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" onChange={onFile} disabled={uploadingImage} />
         {imageUrl ? (
           <div className="mt-3 overflow-hidden rounded-[22px] bg-white">
             <img src={imageUrl} alt="" className="aspect-square w-full object-cover" decoding="async" />
@@ -989,13 +1210,14 @@ export function SheetPortfolio({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="mt-3 w-full rounded-full bg-white py-3 text-[14px] font-semibold text-neutral-900 shadow-sm transition active:scale-[0.99]"
+          disabled={uploadingImage}
+          className="mt-3 w-full rounded-full bg-white py-3 text-[14px] font-semibold text-neutral-900 shadow-sm transition active:scale-[0.99] disabled:opacity-60"
         >
           {imageUrl ? 'Заменить фото' : 'Загрузить фото'}
         </button>
+        {uploadErr ? <p className="mt-2 text-center text-[12px] font-medium text-red-600">{uploadErr}</p> : null}
         <p className="mt-2 text-center text-[11px] text-neutral-500">
-          {/* TODO: Supabase Storage */}
-          Демо: data URL в черновике.
+          {uploadImage ? 'Фото загружается на сервер; в профиль сохраняется https-ссылка.' : 'Локально: data URL в черновике.'}
         </p>
       </div>
 
@@ -1009,7 +1231,12 @@ export function SheetPortfolio({
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={fieldClass()} />
       </label>
 
-      <SheetFooter onCancel={onCancel} onSave={save} />
+      <SheetFooter
+        onCancel={onCancel}
+        onSave={save}
+        saving={uploadingImage}
+        savingLabel="Загрузка фото…"
+      />
     </div>
   );
 }

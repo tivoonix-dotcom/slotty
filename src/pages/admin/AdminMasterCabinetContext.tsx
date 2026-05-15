@@ -58,6 +58,8 @@ type Ctx = {
   persistDraft: (next: MasterDraft) => void;
   /** В API-режиме: сохранить черновик на сервер и дождаться ответа (без debounce). При ошибке — откат draft с сервера, проброс исключения. */
   flushDraftToBackend: (next: MasterDraft) => Promise<void>;
+  /** Только недельные правила (`PUT .../schedule-rules`), без профиля и адреса — чтобы сохранение расписания не зависело от первичной локации. */
+  flushScheduleToBackend: (next: MasterDraft) => Promise<void>;
   /** Только поля профиля (без адреса, расписания и услуг) — быстрее, чем полный flush. */
   patchProfileToBackend: (patch: MasterProfilePatch) => Promise<void>;
   refreshDraft: () => void;
@@ -278,6 +280,39 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
     [useCabinetApi, pushDraftToBackend, reloadCabinetFromApiSilent],
   );
 
+  const flushScheduleToBackend = useCallback(
+    async (next: MasterDraft) => {
+      if (!useCabinetApi) {
+        persistMasterDraft(next);
+        setDraft(getMasterDraft());
+        return;
+      }
+      if (syncTimer.current) {
+        clearTimeout(syncTimer.current);
+        syncTimer.current = null;
+      }
+      setDraft(next);
+      try {
+        const rules = draftScheduleToApiRules(next.schedule);
+        if (!rules.length) {
+          throw new Error('Добавьте хотя бы одно окно расписания');
+        }
+        await putMasterScheduleRules(rules);
+        const prevSnap = lastSyncedSnapshotRef.current;
+        lastSyncedSnapshotRef.current = cloneDraft(
+          prevSnap ? { ...prevSnap, schedule: next.schedule } : next,
+        );
+        setCabinetError(null);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Ошибка сохранения';
+        setCabinetError(msg);
+        await reloadCabinetFromApiSilent();
+        throw e;
+      }
+    },
+    [useCabinetApi, reloadCabinetFromApiSilent],
+  );
+
   const patchProfileToBackend = useCallback(
     async (patch: MasterProfilePatch) => {
       const contacts = patch.contacts;
@@ -434,6 +469,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       draft,
       persistDraft,
       flushDraftToBackend,
+      flushScheduleToBackend,
       patchProfileToBackend,
       refreshDraft,
       appointments,
@@ -446,6 +482,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       draft,
       persistDraft,
       flushDraftToBackend,
+      flushScheduleToBackend,
       patchProfileToBackend,
       refreshDraft,
       appointments,

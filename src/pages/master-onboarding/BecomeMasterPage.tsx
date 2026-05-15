@@ -2987,10 +2987,10 @@ export function BecomeMasterPage() {
                       </div>
 
                       <div className="rounded-[18px] bg-[#F1EFEF] px-3 py-3">
-                        <p className="text-[13px] font-semibold text-neutral-950">Расписание</p>
+                        <p className="text-[13px] font-semibold text-neutral-950">График работы</p>
                         <p className="mt-1 text-[14px] font-medium text-neutral-700">Пн–Пт, 9:00–18:00</p>
                         <p className="mt-1.5 text-[12px] leading-snug text-neutral-500">
-                          Изменить расписание можно в кабинете мастера
+                          Изменить график работы можно в кабинете мастера
                         </p>
                       </div>
                     </div>

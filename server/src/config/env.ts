@@ -36,6 +36,11 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   /** Имя публичного bucket для аватаров клиентов (по умолчанию `profile`). */
   SUPABASE_PROFILE_BUCKET: z.string().min(1).default('profile'),
+  /** Bucket для фото мастера (портфолио, сертификаты, обложка). Пусто — тот же, что SUPABASE_PROFILE_BUCKET. */
+  SUPABASE_MASTER_MEDIA_BUCKET: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    z.string().min(1).optional(),
+  ),
 });
 
 const parsed = envSchema.safeParse(process.env);

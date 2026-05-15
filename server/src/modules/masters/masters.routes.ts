@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { z } from 'zod';
 import { asyncHandler } from '../../utils/asyncHandler.js';
+import { ApiError } from '../../utils/ApiError.js';
 import { authMiddleware } from '../../middlewares/auth.js';
 import { requireMasterDbAccess } from '../../middlewares/requireMasterAccess.js';
 import {
@@ -31,6 +33,11 @@ import {
   replaceScheduleRules,
   upsertPrimaryLocation,
 } from './masterOnboarding.service.js';
+import {
+  uploadMasterCertificateImage,
+  uploadMasterHeroPhoto,
+  uploadMasterPortfolioImage,
+} from './masters.storage.js';
 import { completeMyMasterOnboarding } from './masterOnboardingComplete.service.js';
 import { masterDisplayNamePassesQuality } from '../../lib/masterDisplayNamePolicy.js';
 import { masterServicesRouter } from '../services/services.routes.js';
@@ -40,6 +47,11 @@ import { getMasterSubscriptionWithUsage, switchMasterSubscriptionMock } from '..
 import { normalizeBelarusPhone, isOptionalBelarusPhoneValid } from '../../utils/belarusPhone.js';
 
 export const mastersRouter = Router();
+
+const masterImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 const optionalBelarusMobile = z
   .union([z.string(), z.null()])
@@ -216,7 +228,7 @@ const primaryLocationBody = z
     buildingDetail: z.string().max(120).nullable().optional(),
     salonName: z.string().max(120).nullable().optional(),
     district: z.string().max(120).nullable().optional(),
-    showExactAddressAfterBooking: z.boolean().optional(),
+    showExactAddressAfterBooking: z.boolean().nullable().optional(),
     entrance: z.string().max(120).nullable().optional(),
     floor: z.string().max(40).nullable().optional(),
     room: z.string().max(80).nullable().optional(),
@@ -374,7 +386,7 @@ const onboardingLocationSchema = z
     buildingDetail: z.string().max(120).nullable().optional(),
     salonName: z.string().max(120).nullable().optional(),
     district: z.string().max(120).nullable().optional(),
-    showExactAddressAfterBooking: z.boolean().optional(),
+    showExactAddressAfterBooking: z.boolean().nullable().optional(),
     entrance: z.string().max(120).nullable().optional(),
     floor: z.string().max(40).nullable().optional(),
     room: z.string().max(80).nullable().optional(),
@@ -602,6 +614,21 @@ mastersRouter.patch(
   }),
 );
 
+mastersRouter.post(
+  '/me/photo',
+  authMiddleware,
+  requireMasterDbAccess,
+  masterImageUpload.single('file'),
+  asyncHandler(async (req, res) => {
+    const file = req.file;
+    if (!file?.buffer?.length) {
+      throw ApiError.badRequest('Missing image file (multipart field: file)', 'MISSING_FILE');
+    }
+    const imageUrl = await uploadMasterHeroPhoto(req.user!.id, file.buffer, file.mimetype);
+    res.json({ imageUrl });
+  }),
+);
+
 mastersRouter.get(
   '/me',
   authMiddleware,
@@ -745,6 +772,21 @@ mastersRouter.get(
 );
 
 mastersRouter.post(
+  '/me/certificates/upload',
+  authMiddleware,
+  requireMasterDbAccess,
+  masterImageUpload.single('file'),
+  asyncHandler(async (req, res) => {
+    const file = req.file;
+    if (!file?.buffer?.length) {
+      throw ApiError.badRequest('Missing image file (multipart field: file)', 'MISSING_FILE');
+    }
+    const imageUrl = await uploadMasterCertificateImage(req.user!.id, file.buffer, file.mimetype);
+    res.json({ imageUrl });
+  }),
+);
+
+mastersRouter.post(
   '/me/certificates',
   authMiddleware,
   requireMasterDbAccess,
@@ -817,6 +859,21 @@ mastersRouter.get(
   asyncHandler(async (req, res) => {
     const portfolio = await listMyPortfolio(req.user!.id);
     res.json({ portfolio });
+  }),
+);
+
+mastersRouter.post(
+  '/me/portfolio/upload',
+  authMiddleware,
+  requireMasterDbAccess,
+  masterImageUpload.single('file'),
+  asyncHandler(async (req, res) => {
+    const file = req.file;
+    if (!file?.buffer?.length) {
+      throw ApiError.badRequest('Missing image file (multipart field: file)', 'MISSING_FILE');
+    }
+    const imageUrl = await uploadMasterPortfolioImage(req.user!.id, file.buffer, file.mimetype);
+    res.json({ imageUrl });
   }),
 );
 

@@ -7,7 +7,7 @@ type Props = {
   src: string;
   aspect?: number;
   initialFocus?: PhotoFrameFocus;
-  onApply: (croppedDataUrl: string) => void;
+  onApply: (croppedDataUrl: string) => void | Promise<void>;
   onCancel: () => void;
 };
 
@@ -69,7 +69,7 @@ export function ProfilePhotoAdjust({
     setError(null);
     try {
       const out = await cropImageToAspect(src, aspect, focus);
-      onApply(out);
+      await onApply(out);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось обработать фото');
     } finally {

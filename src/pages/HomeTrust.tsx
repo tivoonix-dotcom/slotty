@@ -275,7 +275,7 @@ export const HomeTrust: FC<HomeTrustProps> = ({ onJoinFree }) => {
             </div>
 
             <p className="mx-auto mt-5 max-w-[16rem] text-[14px] leading-relaxed text-neutral-500">
-              Мастера, услуги, расписание и напоминания собраны в одном понятном интерфейсе.
+              Мастера, услуги, график работы и напоминания собраны в одном понятном интерфейсе.
             </p>
 
             <div className="mt-8 flex flex-col gap-3">
