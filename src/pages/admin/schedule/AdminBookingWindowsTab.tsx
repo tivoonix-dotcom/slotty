@@ -27,6 +27,14 @@ type Props = {
   onPersist: (next: MasterDraft) => void;
 };
 
+type PageTab = 'new' | 'active';
+
+/** Сообщение, когда все варианты пересекаются с уже существующими окнами. */
+const MSG_SLOTS_ALL_BUSY = 'Не удалось создать окна: выбранное время уже занято';
+
+const errorBoxClass =
+  'rounded-[20px] bg-[#FFF0F0] px-4 py-3 text-left text-[14px] font-semibold leading-snug text-[#9B2C2C] break-words [overflow-wrap:anywhere] min-w-0';
+
 function pad2(value: number): string {
   return value < 10 ? `0${value}` : String(value);
 }
@@ -89,6 +97,16 @@ function startOfLocalDay(d: Date): Date {
   return x;
 }
 
+function isLocalDateIsoBeforeToday(dateIso: string): boolean {
+  const d = startOfLocalDay(parseIsoDate(dateIso));
+  const t = startOfLocalDay(new Date());
+  return d.getTime() < t.getTime();
+}
+
+/**
+ * Пересечение интервалов [start, end] по времени в мс.
+ * Стык без перекрытия не считается: 10:00–11:00 и 11:00–12:00 → false (строгие неравенства).
+ */
 function rangesOverlapMs(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
   return aStart < bEnd && aEnd > bStart;
 }
@@ -236,8 +254,10 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [bulkWorking, setBulkWorking] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [pageTab, setPageTab] = useState<PageTab>('new');
 
   const [dateIso, setDateIso] = useState(() => {
     const d = new Date();
@@ -280,12 +300,12 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
     let cancelled = false;
     void (async () => {
       setLoading(true);
-      setFormError(null);
+      setListError(null);
       try {
         const list = await getMySlots();
         if (!cancelled) setRows(list);
       } catch (e) {
-        if (!cancelled) setFormError(e instanceof Error ? e.message : 'Не удалось загрузить окна');
+        if (!cancelled) setListError(e instanceof Error ? e.message : 'Не удалось загрузить окна');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -387,6 +407,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
 
   const validatePlannedBase = useCallback((): string | null => {
     if (!dateIso.trim()) return 'Укажите дату.';
+    if (isLocalDateIsoBeforeToday(dateIso)) return 'Нельзя выбрать дату в прошлом.';
     if (!startTime.trim() || !endTime.trim()) return 'Укажите время начала и окончания.';
     if (timeToMinutes(endTime) <= timeToMinutes(startTime)) {
       return 'Время окончания должно быть позже времени начала.';
@@ -401,15 +422,15 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
   }, [dateIso, endTime, serviceId, startTime, validateService]);
 
   const onAddWindows = useCallback(async () => {
-    setFormError(null);
+    setCreateError(null);
     const baseErr = validatePlannedBase();
     if (baseErr) {
-      setFormError(baseErr);
+      setCreateError(baseErr);
       return;
     }
 
     if (plannedSlots.length === 0) {
-      setFormError('Выберите хотя бы один день недели.');
+      setCreateError('Выберите хотя бы один день недели.');
       return;
     }
 
@@ -423,7 +444,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       if (startMs <= now) continue;
       const se = validateService(p.serviceId);
       if (se) {
-        setFormError(se);
+        setCreateError(se);
         return;
       }
       built.push({
@@ -434,7 +455,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
     }
 
     if (built.length === 0) {
-      setFormError('Нельзя создать окно в прошлом.');
+      setCreateError('Нельзя создать окно в прошлом.');
       return;
     }
 
@@ -455,11 +476,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       }
       setRows(existing);
       if (created === 0 && skipped > 0) {
-        setFormError(
-          built.length === 1
-            ? 'Это время пересекается с другим окном'
-            : 'Не удалось создать окна: выбранное время уже занято',
-        );
+        setCreateError(built.length === 1 ? 'Это время пересекается с другим окном' : MSG_SLOTS_ALL_BUSY);
         return;
       }
       if (skipped > 0) {
@@ -499,21 +516,22 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       }
       await reloadSlots();
       if (created === 0 && skipped > 0 && failed === 0) {
-        setFormError(
-          built.length === 1
-            ? 'Это время пересекается с другим окном'
-            : 'Не удалось создать окна: выбранное время уже занято',
-        );
+        setCreateError(built.length === 1 ? 'Это время пересекается с другим окном' : MSG_SLOTS_ALL_BUSY);
         return;
       }
       if (failed > 0 && created === 0) {
-        setFormError('Не удалось создать окно');
+        setCreateError('Не удалось создать окно');
         return;
       }
       if (skipped > 0 || failed > 0) {
-        const parts = [`Создано ${windowsCountRu(created)}`];
-        if (skipped > 0) parts.push(`${skipped} пропущено из-за пересечения`);
-        if (failed > 0) parts.push(`${failed} не удалось сохранить`);
+        const parts: string[] = [];
+        if (skipped > 0 && failed === 0) {
+          parts.push(`Создано ${windowsCountRu(created)}, ${skipped} пропущено из-за пересечения`);
+        } else {
+          parts.push(`Создано ${windowsCountRu(created)}`);
+          if (skipped > 0) parts.push(`${skipped} пропущено из-за пересечения`);
+          if (failed > 0) parts.push(`${failed} не удалось сохранить`);
+        }
         showToast(parts.join(', '));
       } else if (created === 1) {
         showToast('Окно добавлено');
@@ -521,7 +539,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         showToast('Окна добавлены');
       }
     } catch (e) {
-      setFormError(e instanceof Error ? e.message : 'Не удалось создать окно');
+      setCreateError(e instanceof Error ? e.message : 'Не удалось создать окно');
     } finally {
       setSaving(false);
     }
@@ -579,6 +597,10 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
     setDupError(null);
     if (!dupDateIso.trim()) {
       setDupError('Укажите дату.');
+      return;
+    }
+    if (isLocalDateIsoBeforeToday(dupDateIso)) {
+      setDupError('Нельзя выбрать дату в прошлом.');
       return;
     }
     if (!dupStart.trim() || !dupEnd.trim()) {
@@ -647,7 +669,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
 
   const onNextWeek = useCallback(
     async (s: MySlotDto) => {
-      setFormError(null);
+      setListError(null);
       const a = new Date(s.startsAt);
       const b = new Date(s.endsAt);
       const nextA = addDays(a, 7);
@@ -655,11 +677,11 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       const startsAt = nextA.toISOString();
       const endsAt = nextB.toISOString();
       if (new Date(startsAt).getTime() <= Date.now()) {
-        setFormError('Нельзя создать окно в прошлом.');
+        setListError('Нельзя создать окно в прошлом.');
         return;
       }
       if (onSingleOverlapCheck(startsAt, endsAt)) {
-        setFormError('На следующей неделе это время уже занято');
+        setListError('На следующей неделе это время уже занято');
         return;
       }
       if (!useCabinetApi) {
@@ -680,7 +702,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         await reloadSlots();
         showToast('Окно создано на следующую неделю');
       } catch (e) {
-        setFormError(e instanceof Error ? e.message : 'Не удалось создать окно');
+        setListError(e instanceof Error ? e.message : 'Не удалось создать окно');
       } finally {
         setSaving(false);
       }
@@ -690,7 +712,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
 
   const performDelete = useCallback(
     async (id: string) => {
-      setFormError(null);
+      setListError(null);
       if (!useCabinetApi) {
         setRows((prev) => prev.filter((x) => x.id !== id));
         showToast('Окно удалено');
@@ -702,7 +724,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         await reloadSlots();
         showToast('Окно удалено');
       } catch (e) {
-        setFormError(e instanceof Error ? e.message : 'Не удалось удалить');
+        setListError(e instanceof Error ? e.message : 'Не удалось удалить');
       } finally {
         setDeleteConfirmId(null);
       }
@@ -722,7 +744,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
   );
 
   const onCopyLastWeek = useCallback(async () => {
-    setFormError(null);
+    setListError(null);
     const now = Date.now();
     const fromMs = now - 7 * 24 * 60 * 60 * 1000;
     const source = rows.filter((r) => {
@@ -762,7 +784,15 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         created += 1;
       }
       setRows(existing);
-      showToast(created > 0 ? `Создано ${windowsCountRu(created)}${skipped ? `, ${skipped} пропущено` : ''}` : 'Не удалось создать окна');
+      if (created > 0) {
+        if (skipped > 0) {
+          showToast(`Создано ${windowsCountRu(created)}, ${skipped} пропущено из-за пересечения`);
+        } else {
+          showToast(`Создано ${windowsCountRu(created)}`);
+        }
+      } else {
+        setListError(MSG_SLOTS_ALL_BUSY);
+      }
       return;
     }
 
@@ -795,9 +825,17 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         }
       }
       await reloadSlots();
-      showToast(created > 0 ? `Создано ${windowsCountRu(created)}${skipped ? `, ${skipped} пропущено` : ''}` : 'Не удалось создать окна');
+      if (created > 0) {
+        if (skipped > 0) {
+          showToast(`Создано ${windowsCountRu(created)}, ${skipped} пропущено из-за пересечения`);
+        } else {
+          showToast(`Создано ${windowsCountRu(created)}`);
+        }
+      } else {
+        setListError(MSG_SLOTS_ALL_BUSY);
+      }
     } catch (e) {
-      setFormError(e instanceof Error ? e.message : 'Не удалось выполнить действие');
+      setListError(e instanceof Error ? e.message : 'Не удалось выполнить действие');
     } finally {
       setBulkWorking(false);
     }
@@ -805,7 +843,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
 
   const onDeletePast = useCallback(async () => {
     if (pastRows.length === 0) return;
-    setFormError(null);
+    setListError(null);
     if (!useCabinetApi) {
       setRows((prev) => prev.filter((r) => new Date(r.endsAt).getTime() > Date.now()));
       showToast('Прошедшие окна удалены');
@@ -823,7 +861,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       await reloadSlots();
       showToast('Прошедшие окна удалены');
     } catch (e) {
-      setFormError(e instanceof Error ? e.message : 'Не удалось удалить');
+      setListError(e instanceof Error ? e.message : 'Не удалось удалить');
     } finally {
       setBulkWorking(false);
     }
@@ -839,7 +877,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       setClearFutureStep(0);
       return;
     }
-    setFormError(null);
+    setListError(null);
     if (!useCabinetApi) {
       setRows((prev) => prev.filter((r) => new Date(r.endsAt).getTime() <= Date.now()));
       setClearFutureStep(0);
@@ -859,7 +897,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       setClearFutureStep(0);
       showToast('Будущие окна удалены');
     } catch (e) {
-      setFormError(e instanceof Error ? e.message : 'Не удалось удалить');
+      setListError(e instanceof Error ? e.message : 'Не удалось удалить');
     } finally {
       setBulkWorking(false);
     }
@@ -879,6 +917,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
   }, [rows]);
 
   const todayStart = useMemo(() => startOfLocalDay(new Date()), []);
+  const minDateIso = useMemo(() => toIsoDate(new Date()), []);
 
   const weekdayShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] as const;
 
@@ -908,24 +947,55 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         </div>
       ) : null}
 
+      <div className="rounded-[24px] bg-[#F1EFEF] p-1.5">
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              setPageTab('new');
+              setListError(null);
+            }}
+            className={`min-h-[3rem] rounded-[20px] text-[15px] font-semibold transition active:scale-[0.98] ${
+              pageTab === 'new' ? 'bg-[#E29595] text-white shadow-md' : 'bg-transparent text-neutral-600'
+            }`}
+          >
+            Новое окно
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPageTab('active');
+              setCreateError(null);
+            }}
+            className={`min-h-[3rem] rounded-[20px] text-[15px] font-semibold transition active:scale-[0.98] ${
+              pageTab === 'active' ? 'bg-[#E29595] text-white shadow-md' : 'bg-transparent text-neutral-600'
+            }`}
+          >
+            Активные окна
+          </button>
+        </div>
+      </div>
+
+      {toast ? (
+        <div className="rounded-[20px] bg-[#EAFBF2] px-4 py-3 text-center text-[14px] font-semibold leading-snug text-[#2F8A5B] [overflow-wrap:anywhere]">
+          {toast}
+        </div>
+      ) : null}
+
+      {listError && pageTab === 'new' ? <p className={errorBoxClass}>{listError}</p> : null}
+
+      {pageTab === 'new' ? (
       <div className="rounded-[28px] border border-neutral-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(17,17,17,0.04)]">
-        <h2 className="text-[20px] font-semibold tracking-[-0.04em] text-neutral-950">Новое окно</h2>
-
-        {toast ? (
-          <p className="mt-4 rounded-[20px] bg-[#EAFBF2] px-4 py-3 text-center text-[14px] font-semibold text-[#2F8A5B]">
-            {toast}
-          </p>
-        ) : null}
-
-        <div className="mt-5 space-y-4 rounded-[24px] bg-[#F8F6F6] p-4">
+        <div className="space-y-4 rounded-[24px] bg-[#F8F6F6] p-4">
           <label className="block">
             <span className="text-[13px] font-semibold text-neutral-500">Дата</span>
             <input
               type="date"
+              min={minDateIso}
               value={dateIso}
               onChange={(e) => {
                 setDateIso(e.target.value);
-                setFormError(null);
+                setCreateError(null);
               }}
               className="mt-1.5 w-full min-h-[3rem] rounded-[18px] border border-neutral-200/60 bg-white px-4 py-3 text-[16px] font-semibold text-neutral-900 outline-none focus:border-[#E29595]"
             />
@@ -938,7 +1008,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
                 value={startTime}
                 onChange={(v) => {
                   setStartTime(v);
-                  setFormError(null);
+                  setCreateError(null);
                 }}
                 options={timeOptions}
               />
@@ -950,7 +1020,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
                 value={endTime}
                 onChange={(v) => {
                   setEndTime(v);
-                  setFormError(null);
+                  setCreateError(null);
                 }}
                 options={timeOptions}
               />
@@ -964,7 +1034,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
               disabled={visibleServices.length === 0}
               onChange={(v) => {
                 setServiceId(v);
-                setFormError(null);
+                setCreateError(null);
               }}
               options={serviceOptions}
             />
@@ -977,7 +1047,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
               value={repeatKind}
               onChange={(v) => {
                 setRepeatKind(v as RepeatKind);
-                setFormError(null);
+                setCreateError(null);
               }}
               options={repeatKindOptions}
             />
@@ -1081,20 +1151,23 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
             </p>
           ) : null}
 
-          {formError ? (
-            <p className="rounded-[20px] bg-[#FFF0F0] px-4 py-3 text-[14px] font-semibold text-[#9B2C2C]">{formError}</p>
-          ) : null}
+          {createError ? <p className={errorBoxClass}>{createError}</p> : null}
 
           <button
             type="button"
             disabled={saving || bulkWorking}
             onClick={() => void onAddWindows()}
-            className="flex min-h-[3.25rem] w-full items-center justify-center rounded-full bg-[#E29595] text-[16px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98] disabled:opacity-50"
+            className="flex min-h-[3.25rem] w-full items-center justify-center whitespace-normal rounded-full bg-[#E29595] px-3 text-center text-[16px] font-semibold leading-snug text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98] disabled:opacity-50"
           >
             {saving ? 'Сохранение…' : addButtonLabel}
           </button>
         </div>
       </div>
+      ) : null}
+
+      {pageTab === 'active' ? (
+      <div className="space-y-5">
+      {listError ? <p className={errorBoxClass}>{listError}</p> : null}
 
       {futureRows.length > 0 || pastRows.length > 0 || hasSlotsLastWeek ? (
         <div className="rounded-[24px] border border-neutral-200/80 bg-white p-4 shadow-sm">
@@ -1137,8 +1210,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       ) : null}
 
       <div className="rounded-[28px] border border-neutral-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(17,17,17,0.04)]">
-        <h3 className="text-[18px] font-semibold tracking-[-0.04em] text-neutral-950">Активные окна</h3>
-        <p className="mt-1 text-[14px] leading-relaxed text-neutral-500">Эти времена видят клиенты при записи.</p>
+        <p className="text-[14px] leading-relaxed text-neutral-500">Эти времена видят клиенты при записи.</p>
 
         {loading ? (
           <p className="mt-4 text-[15px] text-neutral-500">Загрузка…</p>
@@ -1146,7 +1218,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
           <div className="mt-6 rounded-[22px] border border-dashed border-neutral-200 bg-[#FAFAFA] px-4 py-8 text-center">
             <p className="text-[16px] font-semibold text-neutral-800">Пока нет свободных окон</p>
             <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
-              Добавьте первое окно выше, чтобы клиенты могли выбрать время.
+              Добавьте первое окно на вкладке «Новое окно», чтобы клиенты могли выбрать время.
             </p>
           </div>
         ) : (
@@ -1164,18 +1236,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
                       >
                         <p className="text-[16px] font-semibold text-neutral-950">{formatSlotTimeRange(s)}</p>
                         <p className="mt-1 text-[14px] text-neutral-600">{serviceTitleById(visibleServices, s.serviceId)}</p>
-                        {s.status === 'available' ? (
-                          <p className="mt-1 text-[12px] font-medium text-[#2F8A5B]">Свободно</p>
-                        ) : null}
                         <div className="mt-3 flex flex-col gap-2">
-                          <button
-                            type="button"
-                            disabled={saving || bulkWorking}
-                            onClick={() => openDuplicate(s)}
-                            className="min-h-11 rounded-full border border-neutral-200 bg-white text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98] disabled:opacity-50"
-                          >
-                            Дублировать
-                          </button>
                           <button
                             type="button"
                             disabled={saving || bulkWorking}
@@ -1183,6 +1244,14 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
                             className="min-h-11 rounded-full border border-neutral-200 bg-white text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98] disabled:opacity-50"
                           >
                             На следующую неделю
+                          </button>
+                          <button
+                            type="button"
+                            disabled={saving || bulkWorking}
+                            onClick={() => openDuplicate(s)}
+                            className="min-h-11 rounded-full border border-neutral-200 bg-white text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98] disabled:opacity-50"
+                          >
+                            Дублировать
                           </button>
                           <button
                             type="button"
@@ -1221,6 +1290,9 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         )}
       </div>
 
+      </div>
+      ) : null}
+
       {duplicateSlot ? (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
@@ -1239,6 +1311,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
                 <span className="text-[13px] font-semibold text-neutral-500">Дата</span>
                 <input
                   type="date"
+                  min={minDateIso}
                   value={dupDateIso}
                   onChange={(e) => {
                     setDupDateIso(e.target.value);
@@ -1268,7 +1341,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
                 />
               </label>
             </div>
-            {dupError ? <p className="mt-3 text-[14px] font-semibold text-[#9B2C2C]">{dupError}</p> : null}
+            {dupError ? <p className={`mt-3 ${errorBoxClass}`}>{dupError}</p> : null}
             <div className="mt-5 flex flex-col gap-2">
               <button
                 type="button"
