@@ -214,7 +214,7 @@ export function SectionTabs({
   ];
 
   return (
-    <nav className="flex bg-white px-1 pb-0.5 pt-0 leading-none" aria-label="Разделы профиля">
+    <nav className="flex bg-white px-1 pb-1 pt-2 leading-none" aria-label="Разделы профиля">
       {tabs.map((tab) => {
         const selected = active === tab.id;
         return (
