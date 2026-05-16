@@ -1,15 +1,14 @@
-/** Равномерное затемнение под градиентом — светлые фото не «пробивают» текст. */
-export const adminIntroScrimClass = 'bg-black/45';
+/** Лёгкое затемнение — фото видно, текст остаётся читаемым. */
+export const adminIntroScrimClass = 'bg-black/28';
 
 /**
- * Тёмный градиент слева направо (без прозрачного края).
- * Лёгкий тёплый оттенок, приоритет — контраст для белого текста.
+ * Мягкий градиент слева направо (без прозрачного края).
  */
 export const adminIntroOverlayClass =
-  'bg-gradient-to-r from-[#12060c]/95 via-[#1a0b12]/88 via-[45%] to-[#0a0508]/72';
+  'bg-gradient-to-r from-[#2a121c]/72 via-[#1f0f16]/55 via-[45%] to-[#12080e]/40';
 
-/** Карточки акций: затемняем всё фото, текст всегда белый. */
-export const promotionCardScrimClass = 'bg-black/50';
+/** Карточки акций — розовое затемнение под белый текст */
+export const promotionCardScrimClass = 'bg-[#E29595]/18';
 
 export const promotionCardOverlayClass =
-  'bg-gradient-to-t from-black/88 via-black/62 to-black/40';
+  'bg-gradient-to-t from-[#5a2840]/78 via-[#8a4a5c]/48 via-55% to-[#E29595]/22';
