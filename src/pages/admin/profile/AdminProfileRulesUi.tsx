@@ -330,7 +330,7 @@ export function SheetRules({
         </label>
       </section>
 
-      <SheetFooter onCancel={onCancel} onSave={save} saveLabel="Сохранить правила" />
+      <SheetFooter onCancel={onCancel} onSave={save} saveLabel="Сохранить" />
     </div>
   );
 }

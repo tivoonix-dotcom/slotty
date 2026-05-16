@@ -153,12 +153,10 @@ export function AdminLayout() {
             className="mx-auto max-w-lg"
             style={{ '--slotty-admin-header-h': '4.5rem' } as CSSProperties}
           >
-            <div ref={stickyShellRef} className={`sticky top-0 z-40 flex flex-col gap-0 overflow-hidden bg-white ${
-                isProfileHome ? 'border-b-2 border-[#F47C8C]' : ''
-              }`}>
+            <div ref={stickyShellRef} className="sticky top-0 z-40 flex flex-col gap-0 overflow-hidden bg-white">
               <div
                 className={`relative z-40 flex shrink-0 items-center justify-between gap-3 overflow-hidden bg-white px-4 pb-0 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] ${
-                  isProfileHome ? 'min-h-11' : 'min-h-[3.25rem] border-b-2 border-[#F47C8C]'
+                  isProfileHome ? 'min-h-11 border-b-2 border-[#F47C8C]' : 'min-h-[3.25rem] border-b-2 border-[#F47C8C]'
                 }`}
               >
                 <Link
@@ -185,7 +183,7 @@ export function AdminLayout() {
                 </button>
               </div>
               {isProfileHome ? (
-                <div className="relative z-40 -mt-px shrink-0 bg-white">
+                <div className="relative z-40 shrink-0 bg-white">
                   <ProfileSectionTabsBar />
                 </div>
               ) : null}
