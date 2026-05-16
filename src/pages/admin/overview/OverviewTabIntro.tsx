@@ -1,37 +1,37 @@
+import { AdminTabIntroBanner } from '../AdminTabIntroBanner';
 import type { OverviewAnalyticsTab } from './overviewAnalytics';
 import { overviewSvodkaPhotoSrc } from './adminOverviewTheme';
 
+export const OVERVIEW_TAB_INTRO_IMAGES = [
+  overviewSvodkaPhotoSrc('обзор.webp'),
+  overviewSvodkaPhotoSrc('доход.webp'),
+  overviewSvodkaPhotoSrc('клиенты.webp'),
+  overviewSvodkaPhotoSrc('репутация.webp'),
+] as const;
+
 const OVERVIEW_TAB_INTRO: Record<
   OverviewAnalyticsTab,
-  { title: string; description: string; imageSrc: string; overlayClass: string }
+  { title: string; description: string; imageSrc: string }
 > = {
   summary: {
     title: 'Обзор',
     description: 'Ключевые показатели, ближайшая запись и динамика записей за выбранный период.',
     imageSrc: overviewSvodkaPhotoSrc('обзор.webp'),
-    overlayClass:
-      'bg-gradient-to-r from-[#7a3d52]/72 via-[#c4617f]/38 via-55% to-transparent',
   },
   revenue: {
     title: 'Доход',
     description: 'Сумма заработка, график по дням, средний чек и оплаченные записи.',
     imageSrc: overviewSvodkaPhotoSrc('доход.webp'),
-    overlayClass:
-      'bg-gradient-to-r from-[#6b3d4a]/70 via-[#b86a7a]/36 via-55% to-transparent',
   },
   clients: {
     title: 'Клиенты',
     description: 'Новые и повторные визиты, динамика аудитории и доля постоянных клиентов.',
     imageSrc: overviewSvodkaPhotoSrc('клиенты.webp'),
-    overlayClass:
-      'bg-gradient-to-r from-[#6e3550]/72 via-[#c4617f]/40 via-55% to-transparent',
   },
   reputation: {
     title: 'Репутация',
     description: 'Средний рейтинг, отзывы клиентов и ответы — всё, что влияет на доверие.',
     imageSrc: overviewSvodkaPhotoSrc('репутация.webp'),
-    overlayClass:
-      'bg-gradient-to-r from-[#6f3a42]/70 via-[#c96b72]/38 via-55% to-transparent',
   },
 };
 
@@ -40,30 +40,14 @@ type Props = {
 };
 
 export function OverviewTabIntro({ tab }: Props) {
-  const { title, description, imageSrc, overlayClass } = OVERVIEW_TAB_INTRO[tab];
+  const { title, description, imageSrc } = OVERVIEW_TAB_INTRO[tab];
 
   return (
-    <div
-      className="relative min-h-[7.75rem] overflow-hidden rounded-[22px]"
-      role="region"
-      aria-label={title}
-    >
-      <img
-        src={imageSrc}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover object-center"
-        decoding="async"
-      />
-      <div className={`absolute inset-0 ${overlayClass}`} aria-hidden />
-      <div className="relative flex min-h-[7.75rem] flex-col justify-end p-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-white/75">Раздел</p>
-        <h2 className="mt-1 text-[18px] font-bold tracking-[-0.04em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
-          {title}
-        </h2>
-        <p className="mt-1.5 max-w-[20rem] text-[13px] leading-relaxed text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.4)]">
-          {description}
-        </p>
-      </div>
-    </div>
+    <AdminTabIntroBanner
+      title={title}
+      description={description}
+      imageSrc={imageSrc}
+      wrapperClassName="pb-4"
+    />
   );
 }

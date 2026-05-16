@@ -1,4 +1,5 @@
 import { HiCalendarDays, HiEllipsisHorizontal } from 'react-icons/hi2';
+import { adminIntroOverlayClass } from '../adminIntroOverlay';
 import { promotionStatusLabel } from './servicesFormat';
 import type { ServicePromotion, ServicePromotionStatus } from './servicesTypes';
 
@@ -49,95 +50,50 @@ export function PromotionBannerCard({ promo, onMenu, className = '' }: Props) {
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
         />
-        {draft ? (
-          <div
-            className="absolute inset-0 bg-gradient-to-r from-[#fff5f8]/96 via-[#ffe8ee]/72 via-55% to-transparent"
-            aria-hidden
-          />
-        ) : (
-          <>
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-[#6e3550]/78 via-[#c4617f]/42 via-55% to-transparent"
-              aria-hidden
-            />
-            <div
-              className="absolute inset-0 bg-gradient-to-t from-[#5a2840]/55 via-transparent to-[#5a2840]/25"
-              aria-hidden
-            />
-          </>
-        )}
+        <div className={`absolute inset-0 ${adminIntroOverlayClass}`} aria-hidden />
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-[#5a2840]/50 via-transparent to-transparent"
+          aria-hidden
+        />
 
-        <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 p-4">
+        <div className="absolute left-4 top-4 z-20">
           <span
             className={`rounded-full px-2.5 py-1 text-[11px] font-bold backdrop-blur-sm ${statusBadgeClass(promo.status)}`}
           >
             {promotionStatusLabel(promo.status)}
           </span>
-          {onMenu ? (
-            <button
-              type="button"
-              onClick={onMenu}
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-[0.96] ${
-                draft ? 'bg-white/95 text-[#6B7280] shadow-sm' : 'bg-white/22 text-white backdrop-blur-sm'
-              }`}
-              aria-label="Меню акции"
-            >
-              <HiEllipsisHorizontal className="h-5 w-5" aria-hidden />
-            </button>
-          ) : (
-            <span className="h-9 w-9 shrink-0" aria-hidden />
-          )}
         </div>
 
-        <div className="absolute right-4 top-1/2 z-10 -translate-y-1/2">
-          <span
-            className={`flex h-[72px] w-[72px] items-center justify-center rounded-full text-center text-[13px] font-bold leading-tight ${
-              draft
-                ? 'bg-white text-[#F47C8C] shadow-[0_8px_24px_rgba(244,124,140,0.18)] ring-2 ring-[#FDE8ED]'
-                : 'bg-white text-[#F47C8C] shadow-[0_8px_24px_rgba(0,0,0,0.18)]'
-            }`}
+        {onMenu ? (
+          <button
+            type="button"
+            onClick={onMenu}
+            className="absolute right-4 top-4 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-[#6B7280] shadow-[0_4px_14px_rgba(17,24,39,0.12)] transition active:scale-[0.96]"
+            aria-label="Меню акции"
           >
+            <HiEllipsisHorizontal className="h-5 w-5" aria-hidden />
+          </button>
+        ) : null}
+
+        <div className="absolute bottom-4 right-4 z-10">
+          <span className="flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full bg-white text-center text-[12px] font-bold leading-tight text-[#F47C8C] shadow-[0_8px_24px_rgba(0,0,0,0.2)] ring-2 ring-white/80">
             {promo.discountLabel}
           </span>
         </div>
 
-        <div
-          className={`relative z-10 flex min-h-[168px] flex-col justify-end p-4 pr-[5.75rem] pt-14 ${
-            draft ? 'text-[#111827]' : 'text-white'
-          }`}
-        >
-          <h3
-            className={`text-[17px] font-bold leading-snug tracking-[-0.03em] ${
-              draft
-                ? 'text-[#111827]'
-                : 'text-white drop-shadow-[0_2px_8px_rgba(90,40,55,0.55)]'
-            }`}
-          >
+        <div className="relative z-10 flex min-h-[168px] flex-col justify-end p-4 pr-[5.5rem] pt-12 pb-[5.25rem]">
+          <h3 className="text-[17px] font-bold leading-snug tracking-[-0.03em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
             {promo.title}
           </h3>
           {promo.serviceTitle ? (
-            <p
-              className={`mt-1 truncate text-[13px] font-semibold ${
-                draft ? 'text-[#F47C8C]' : 'text-white drop-shadow-[0_1px_6px_rgba(90,40,55,0.5)]'
-              }`}
-            >
+            <p className="mt-1 truncate text-[13px] font-semibold text-[#FFE4EA] drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
               {promo.serviceTitle}
             </p>
           ) : null}
-          <p
-            className={`mt-1 line-clamp-2 text-[12px] font-medium leading-snug ${
-              draft
-                ? 'text-[#6B7280]'
-                : 'text-white/95 drop-shadow-[0_1px_5px_rgba(90,40,55,0.45)]'
-            }`}
-          >
+          <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-white/92 drop-shadow-[0_1px_5px_rgba(0,0,0,0.4)]">
             {promo.description}
           </p>
-          <p
-            className={`mt-2 flex items-center gap-1 text-[11px] font-semibold ${
-              draft ? 'text-[#9CA3AF]' : 'text-white/90 drop-shadow-[0_1px_4px_rgba(90,40,55,0.45)]'
-            }`}
-          >
+          <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-white/88 drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
             <HiCalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {formatDdMmRu(promo.startsAt)} — {formatDdMmRu(promo.endsAt)}
           </p>

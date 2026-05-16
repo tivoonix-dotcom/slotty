@@ -130,20 +130,6 @@ export function ServicesBundlesTab({ draft, services, onToast }: Props) {
         </ul>
       )}
 
-      <div className={`${servicesCard} flex gap-3.5 border-[#FDE8ED] bg-gradient-to-br from-[#FFF9FB] to-white p-4`}>
-        <span className={`${servicesIconCircle} h-11 w-11 shrink-0 rounded-[14px]`}>
-          <HiGift className="h-5 w-5" aria-hidden />
-        </span>
-        <div className="min-w-0">
-          <p className="text-[15px] font-bold leading-snug text-[#111827]">
-            Создавайте наборы и увеличивайте средний чек
-          </p>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-[#6B7280]">
-            Клиенты любят выгодные комбо из нескольких услуг
-          </p>
-        </div>
-      </div>
-
       <ServicesBundleFormSheet
         open={formOpen}
         draft={draft}

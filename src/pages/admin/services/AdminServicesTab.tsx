@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { preloadTabIntroImages } from '../useTabIntroImage';
 import { useSingleFlight } from '../shared/useSingleFlight';
 import { useNavigate } from 'react-router-dom';
 import type {
@@ -19,6 +20,7 @@ import { SERVICES_PAGE_BG, SERVICES_TAB_BAR_SCROLL_PAD } from './adminServicesTh
 import { ServicesBundlesTab } from './ServicesBundlesTab';
 import { ServicesCatalogTab } from './ServicesCatalogTab';
 import { ServicesPageHeader } from './ServicesPageHeader';
+import { SERVICES_TAB_INTRO_IMAGES } from './ServicesTabIntro';
 import { ServicesPriceTab } from './ServicesPriceTab';
 import { ServicesPromotionFormSheet } from './ServicesPromotionFormSheet';
 import { ServicesPromotionsTab } from './ServicesPromotionsTab';
@@ -94,6 +96,10 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
   const [promotions, setPromotions] = useState<ServicePromotion[]>(() => loadServicePromotions());
   const [promoFormOpen, setPromoFormOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState<ServicePromotion | null>(null);
+
+  useEffect(() => {
+    preloadTabIntroImages(SERVICES_TAB_INTRO_IMAGES);
+  }, []);
 
   const [title, setTitle] = useState('');
   const [dur, setDur] = useState('');
