@@ -8,22 +8,10 @@ export const SCHEDULE_TAB_INTRO_IMAGES = [
   scheduleTabPhotoSrc('333.webp'),
 ] as const;
 
-const TAB_INTRO: Record<SchedulePageTab, { title: string; description: string; imageSrc: string }> = {
-  create: {
-    title: 'Создать',
-    description: 'Шаблоны для быстрого добавления окон и создание слотов вручную.',
-    imageSrc: scheduleTabPhotoSrc('111.webp'),
-  },
-  calendar: {
-    title: 'Календарь',
-    description: 'Смотрите график по дням: свободные окна и записи клиентов.',
-    imageSrc: scheduleTabPhotoSrc('222.webp'),
-  },
-  list: {
-    title: 'Окна',
-    description: 'Все слоты в одном списке — поиск по услуге, клиенту и фильтры по статусу.',
-    imageSrc: scheduleTabPhotoSrc('333.webp'),
-  },
+const TAB_INTRO: Record<SchedulePageTab, { title: string; imageSrc: string }> = {
+  create: { title: 'Создать', imageSrc: scheduleTabPhotoSrc('111.webp') },
+  calendar: { title: 'Календарь', imageSrc: scheduleTabPhotoSrc('222.webp') },
+  list: { title: 'Окна', imageSrc: scheduleTabPhotoSrc('333.webp') },
 };
 
 type Props = {
@@ -31,14 +19,7 @@ type Props = {
 };
 
 export function ScheduleTabIntro({ tab }: Props) {
-  const { title, description, imageSrc } = TAB_INTRO[tab];
+  const { title, imageSrc } = TAB_INTRO[tab];
 
-  return (
-    <AdminTabIntroBanner
-      title={title}
-      description={description}
-      imageSrc={imageSrc}
-      wrapperClassName="pb-4"
-    />
-  );
+  return <AdminTabIntroBanner title={title} imageSrc={imageSrc} wrapperClassName="pb-4" />;
 }

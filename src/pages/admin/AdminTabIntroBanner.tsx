@@ -5,7 +5,6 @@ export const ADMIN_TAB_INTRO_HEIGHT_CLASS = 'h-[8.5rem]';
 
 type Props = {
   title: string;
-  description: string;
   imageSrc: string;
   wrapper?: 'header' | 'div';
   wrapperClassName?: string;
@@ -13,7 +12,6 @@ type Props = {
 
 export function AdminTabIntroBanner({
   title,
-  description,
   imageSrc,
   wrapper = 'div',
   wrapperClassName = '',
@@ -31,14 +29,11 @@ export function AdminTabIntroBanner({
       <div className={`absolute inset-0 ${adminIntroScrimClass}`} aria-hidden />
       <div className={`absolute inset-0 ${adminIntroOverlayClass}`} aria-hidden />
       <div
-        className={`relative flex ${ADMIN_TAB_INTRO_HEIGHT_CLASS} flex-col justify-center p-4`}
+        className={`relative flex ${ADMIN_TAB_INTRO_HEIGHT_CLASS} items-center justify-center px-4`}
       >
-        <h2 className="text-[18px] font-bold leading-snug tracking-[-0.04em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
+        <h2 className="text-center text-[22px] font-bold leading-tight tracking-[-0.04em] text-neutral-950">
           {title}
         </h2>
-        <p className="mt-1.5 line-clamp-2 max-w-[20rem] text-[13px] leading-relaxed text-white/95 drop-shadow-[0_1px_8px_rgba(0,0,0,0.55)]">
-          {description}
-        </p>
       </div>
     </div>
   );

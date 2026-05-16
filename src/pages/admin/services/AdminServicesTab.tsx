@@ -16,6 +16,7 @@ import {
 import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
+import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
 import { SERVICES_PAGE_BG, SERVICES_TAB_BAR_SCROLL_PAD } from './adminServicesTheme';
 import { ServicesBundlesTab } from './ServicesBundlesTab';
 import { ServicesCatalogTab } from './ServicesCatalogTab';
@@ -563,7 +564,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
         </div>
       ) : null}
 
-      <div key={activeTab}>
+      <AdminTabContentTransition activeKey={activeTab}>
         {activeTab === 'catalog' ? (
           <ServicesCatalogTab
             services={services}
@@ -594,7 +595,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
             onDelete={deletePromo}
           />
         ) : null}
-      </div>
+      </AdminTabContentTransition>
       </div>
 
       <ServicesTabBar active={activeTab} onChange={setActiveTab} />

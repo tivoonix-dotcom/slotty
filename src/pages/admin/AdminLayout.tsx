@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { HEADER_LOGO_SRC } from '../../app/headerLogo';
 import {
   ADMIN_APPOINTMENTS_PATH,
@@ -16,9 +16,12 @@ import { AdminMasterCabinetProvider, useAdminMasterCabinet } from './AdminMaster
 import { ProfileSectionTabsBar, ProfileTabProvider, PROFILE_TAB_BAR_HEIGHT } from './profile/profileTabContext';
 import { ADMIN_CABINET_SHELL_MAX, OVERVIEW_TAB_BAR_HEIGHT } from './overview/adminOverviewTheme';
 import { SERVICES_PAGE_BG, SERVICES_TAB_BAR_HEIGHT } from './services/adminServicesTheme';
+import { APPOINTMENTS_TAB_BAR_HEIGHT } from './appointments/adminAppointmentsTheme';
 import { SCHEDULE_TAB_BAR_HEIGHT } from './schedule/adminScheduleTheme';
 import { AdminBottomSheet } from './shared/AdminBottomSheet';
+import { AdminRouteTransitionOutlet } from './shared/AdminRouteTransitionOutlet';
 import { LoadingVideo } from '../../shared/ui/LoadingVideo';
+import { LOADING_VIDEO_SRC } from '../../shared/ui/loadingVideoSrc';
 
 const iconStroke = { strokeWidth: 1.75, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
@@ -137,6 +140,7 @@ export function AdminLayout() {
   const isOverview = pathname === ADMIN_OVERVIEW_PATH;
   const isServices = pathname === ADMIN_SERVICES_PATH;
   const isSchedule = pathname === ADMIN_SCHEDULE_PATH;
+  const isAppointments = pathname === ADMIN_APPOINTMENTS_PATH;
 
   useLayoutEffect(() => {
     const el = stickyShellRef.current;
@@ -152,6 +156,14 @@ export function AdminLayout() {
     return () => ro.disconnect();
   }, [isProfileHome, isOverview]);
 
+  useLayoutEffect(() => {
+    const v = document.createElement('video');
+    v.preload = 'auto';
+    v.muted = true;
+    v.src = LOADING_VIDEO_SRC;
+    v.load();
+  }, []);
+
   const shellPadBottom = isProfileHome
     ? 'pb-[calc(var(--slotty-profile-tab-bar-h)+env(safe-area-inset-bottom,0px)+1rem)]'
     : isOverview
@@ -160,9 +172,12 @@ export function AdminLayout() {
         ? `pb-[calc(${SERVICES_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1.25rem)]`
         : isSchedule
           ? `pb-[calc(${SCHEDULE_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1.25rem)]`
-          : '';
+          : isAppointments
+            ? `pb-[calc(${APPOINTMENTS_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1.25rem)]`
+            : '';
 
-  const pageShellBg = isOverview || isServices || isSchedule ? SERVICES_PAGE_BG : 'bg-white';
+  const pageShellBg =
+    isOverview || isServices || isSchedule || isAppointments ? SERVICES_PAGE_BG : 'bg-white';
 
   return (
     <div
@@ -213,7 +228,7 @@ export function AdminLayout() {
 
           <div className={`mx-auto w-full min-w-0 ${ADMIN_CABINET_SHELL_MAX} ${shellPadBottom}`}>
             <div className="w-full min-w-0 px-4 pt-4">
-              <Outlet />
+              <AdminRouteTransitionOutlet />
             </div>
             <ProfileSectionTabsBar />
           </div>

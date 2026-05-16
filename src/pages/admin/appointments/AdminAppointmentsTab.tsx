@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { HiInbox } from 'react-icons/hi2';
 import { ADMIN_BILLING_PATH } from '../../../app/paths';
 import {
   canCreateMoreAppointments,
@@ -9,66 +10,53 @@ import {
   isFreeAppointmentLimitAlmostReached,
   planBadgeLabel,
 } from '../../../features/billing/model/masterPlans';
-import {
-  appointmentStatusLabel,
-  type DemoMasterAppointment,
-  type DemoAppointmentStatus,
+import type {
+  DemoAppointmentStatus,
+  DemoMasterAppointment,
 } from '../../../features/master/model/demoMasterAppointments';
-import { NothingFoundCard } from '../../../shared/ui/NothingFoundCard';
-import { AdminBottomSheet } from '../shared/AdminBottomSheet';
-
-type SubTab = 'new' | 'confirmed' | 'history';
+import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
+import {
+  APPOINTMENTS_PAGE_BG,
+  APPOINTMENTS_TAB_BAR_SCROLL_PAD,
+  apptPinkBtn,
+} from './adminAppointmentsTheme';
+import {
+  AppointmentsActionSheet,
+  type AppointmentActionConfig,
+} from './AppointmentsActionSheet';
+import { AppointmentsBottomTabBar } from './AppointmentsBottomTabBar';
+import { AppointmentsEmptyState } from './AppointmentsEmptyState';
+import { AppointmentsFilterPills } from './AppointmentsFilterPills';
+import { AppointmentsHistoryRow } from './AppointmentsHistoryRow';
+import { AppointmentsHistorySummary } from './AppointmentsHistorySummary';
+import { AppointmentsNearestCard } from './AppointmentsNearestCard';
+import { AppointmentsPageHeader } from './AppointmentsPageHeader';
+import { AppointmentsRequestCard } from './AppointmentsRequestCard';
+import { AppointmentsStatsCard } from './AppointmentsStatsCard';
+import { AppointmentsUpcomingRow } from './AppointmentsUpcomingRow';
+import {
+  compareAppointmentsByDateAsc,
+  compareAppointmentsByDateDesc,
+  filterHistoryByPeriod,
+  groupAppointmentsByDay,
+  groupAppointmentsByMonth,
+  isUpcomingConfirmed,
+  pickNearestUpcoming,
+  uniqueServiceTitles,
+} from './appointmentsFormat';
+import type {
+  AppointmentsTabId,
+  HistoryPeriodFilter,
+  HistoryStatusFilter,
+  RequestsSort,
+  UpcomingSort,
+} from './appointmentsTypes';
 
 type Props = {
   appointments: DemoMasterAppointment[];
   onChangeAppointments: (rows: DemoMasterAppointment[]) => void | Promise<void>;
   onOpenDetail: (appointment: DemoMasterAppointment) => void;
 };
-
-type ActionState =
-  | { open: false }
-  | {
-      open: true;
-      title: string;
-      text: string;
-      buttonLabel: string;
-      nextStatus: DemoAppointmentStatus;
-      appointment: DemoMasterAppointment;
-    };
-
-function IconEye({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function IconCheck({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" aria-hidden>
-      <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconClose({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" aria-hidden>
-      <path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconDone({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M9 12.5 11.2 15 16 9" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="9" />
-    </svg>
-  );
-}
 
 function updateStatus(
   rows: DemoMasterAppointment[],
@@ -78,537 +66,405 @@ function updateStatus(
   return rows.map((row) => (row.id === id ? { ...row, status } : row));
 }
 
-function statusClassName(status: DemoAppointmentStatus): string {
-  switch (status) {
-    case 'pending':
-      return 'bg-[#FFF4E8] text-[#B66A24]';
-    case 'confirmed':
-      return 'bg-[#EAFBF2] text-[#2F8A5B]';
-    case 'completed':
-      return 'bg-[#EEF2FF] text-[#5B63B7]';
-    case 'cancelled':
-      return 'bg-[#F3F1F1] text-neutral-500';
-    default:
-      return 'bg-[#F3F1F1] text-neutral-500';
-  }
-}
-
-function formatMoney(value: number): string {
-  return `${value} BYN`;
-}
-
-function tabEmptyText(tab: SubTab): { title: string; text: string; hint?: string } {
-  if (tab === 'new') {
-    return {
-      title: 'Новых заявок пока нет',
-      text: 'Когда клиент отправит заявку на запись, она появится здесь.',
-      hint: 'Заявки можно будет подтвердить или отклонить.',
-    };
-  }
-
-  if (tab === 'confirmed') {
-    return {
-      title: 'Подтвержденных записей нет',
-      text: 'Подтверждайте новые заявки, чтобы видеть ближайшие визиты.',
-    };
-  }
-
-  return {
-    title: 'История пока пустая',
-    text: 'Завершенные и отмененные записи будут храниться здесь.',
-  };
-}
-
-function StatCard({
-  value,
-  label,
-}: {
-  value: number;
-  label: string;
-}) {
-  return (
-    <div className="flex min-h-[4.25rem] flex-col items-center justify-center rounded-[18px] bg-[#FAFAFA] px-2 py-2.5 text-center">
-      <p className="text-[20px] font-semibold tabular-nums leading-none tracking-[-0.04em] text-[#E29595]">
-        {value}
-      </p>
-      <p className="mt-1.5 text-center text-[12px] font-medium leading-tight text-neutral-600">{label}</p>
-    </div>
-  );
-}
-
-function IconActionButton({
-  label,
-  icon,
-  onClick,
-  variant = 'neutral',
-}: {
-  label: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-  variant?: 'primary' | 'neutral' | 'muted';
-}) {
-  const className =
-    variant === 'primary'
-      ? 'bg-[#E29595] text-white shadow-[0_10px_26px_rgba(226,149,149,0.24)]'
-      : variant === 'muted'
-        ? 'bg-white text-neutral-400 shadow-[inset_0_0_0_1px_rgba(17,17,17,0.05)]'
-        : 'bg-[#F1EFEF] text-neutral-800';
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={label}
-      aria-label={label}
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition active:scale-[0.96] ${className}`}
-    >
-      {icon}
-    </button>
-  );
-}
-
-function AppointmentCard({
-  appointment,
-  onOpenDetail,
-  onConfirm,
-  onReject,
-  onComplete,
-  onCancel,
-}: {
-  appointment: DemoMasterAppointment;
-  onOpenDetail: (appointment: DemoMasterAppointment) => void;
-  onConfirm: (appointment: DemoMasterAppointment) => void;
-  onReject: (appointment: DemoMasterAppointment) => void;
-  onComplete: (appointment: DemoMasterAppointment) => void;
-  onCancel: (appointment: DemoMasterAppointment) => void;
-}) {
-  return (
-    <article className="rounded-[30px] bg-white p-4 shadow-[0_12px_34px_rgba(17,17,17,0.045)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-[19px] font-semibold tracking-[-0.045em] text-neutral-950">
-            {appointment.clientName}
-          </p>
-
-          <p className="mt-1 text-[15px] font-medium leading-snug text-neutral-600">
-            {appointment.serviceTitle}
-          </p>
-        </div>
-
-        <span
-          className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold ${statusClassName(
-            appointment.status,
-          )}`}
-        >
-          {appointmentStatusLabel(appointment.status)}
-        </span>
-      </div>
-
-      <div className="mt-4 grid grid-cols-[1fr_auto] items-end gap-4">
-        <div>
-          <p className="text-[15px] font-semibold text-neutral-900">
-            {appointment.date} · {appointment.time}
-          </p>
-
-          {appointment.contact ? (
-            <p className="mt-1 truncate text-[14px] leading-snug text-neutral-400">
-              {appointment.contact}
-            </p>
-          ) : (
-            <p className="mt-1 text-[14px] leading-snug text-neutral-400">
-              Контакт не указан
-            </p>
-          )}
-        </div>
-
-        <p className="text-right text-[18px] font-semibold tabular-nums tracking-[-0.04em] text-neutral-950">
-          {formatMoney(appointment.priceByn)}
-        </p>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between rounded-[26px] bg-[#F1EFEF] p-2">
-        <div className="flex gap-2">
-          <IconActionButton
-            label="Подробнее"
-            icon={<IconEye />}
-            onClick={() => onOpenDetail(appointment)}
-          />
-
-          {appointment.status === 'pending' ? (
-            <>
-              <IconActionButton
-                label="Принять заявку"
-                icon={<IconCheck />}
-                onClick={() => onConfirm(appointment)}
-                variant="primary"
-              />
-
-              <IconActionButton
-                label="Отклонить заявку"
-                icon={<IconClose />}
-                onClick={() => onReject(appointment)}
-                variant="muted"
-              />
-            </>
-          ) : null}
-
-          {appointment.status === 'confirmed' ? (
-            <>
-              <IconActionButton
-                label="Завершить запись"
-                icon={<IconDone />}
-                onClick={() => onComplete(appointment)}
-                variant="primary"
-              />
-
-              <IconActionButton
-                label="Отменить запись"
-                icon={<IconClose />}
-                onClick={() => onCancel(appointment)}
-                variant="muted"
-              />
-            </>
-          ) : null}
-        </div>
-
-        <p className="pr-2 text-[12px] font-medium text-neutral-400">
-          {appointment.status === 'pending'
-            ? 'ожидает'
-            : appointment.status === 'confirmed'
-              ? 'активна'
-              : 'архив'}
-        </p>
-      </div>
-    </article>
-  );
-}
-
 export function AdminAppointmentsTab({
   appointments,
   onChangeAppointments,
   onOpenDetail,
 }: Props) {
-  const [subTab, setSubTab] = useState<SubTab>('new');
-  const [actionState, setActionState] = useState<ActionState>({ open: false });
+  const [tab, setTab] = useState<AppointmentsTabId>('requests');
+  const [actionConfig, setActionConfig] = useState<AppointmentActionConfig | null>(null);
   const [actionApiError, setActionApiError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const stats = useMemo(() => {
-    const pending = appointments.filter((appointment) => appointment.status === 'pending').length;
-    const confirmed = appointments.filter((appointment) => appointment.status === 'confirmed').length;
-    const completed = appointments.filter((appointment) => appointment.status === 'completed').length;
-    const cancelled = appointments.filter((appointment) => appointment.status === 'cancelled').length;
+  const [requestsService, setRequestsService] = useState('all');
+  const [requestsSort, setRequestsSort] = useState<RequestsSort>('newest');
+  const [upcomingService, setUpcomingService] = useState('all');
+  const [upcomingSort, setUpcomingSort] = useState<UpcomingSort>('date');
+  const [historyStatus, setHistoryStatus] = useState<HistoryStatusFilter>('all');
+  const [historyPeriod, setHistoryPeriod] = useState<HistoryPeriodFilter>('all');
 
-    return {
-      pending,
-      confirmed,
-      history: completed + cancelled,
-    };
+  const stats = useMemo(() => {
+    const requests = appointments.filter((a) => a.status === 'pending').length;
+    const upcoming = appointments.filter((a) => isUpcomingConfirmed(a)).length;
+    const history = appointments.filter(
+      (a) => a.status === 'completed' || a.status === 'cancelled',
+    ).length;
+    return { requests, upcoming, history };
   }, [appointments]);
+
+  const pendingRows = useMemo(
+    () => appointments.filter((a) => a.status === 'pending'),
+    [appointments],
+  );
+  const upcomingRows = useMemo(
+    () => appointments.filter((a) => isUpcomingConfirmed(a)),
+    [appointments],
+  );
+  const historyRows = useMemo(
+    () => appointments.filter((a) => a.status === 'completed' || a.status === 'cancelled'),
+    [appointments],
+  );
+
+  const requestsFiltered = useMemo(() => {
+    let rows = pendingRows;
+    if (requestsService !== 'all') {
+      rows = rows.filter((a) => a.serviceTitle === requestsService);
+    }
+    return [...rows].sort(
+      requestsSort === 'newest' ? compareAppointmentsByDateDesc : compareAppointmentsByDateAsc,
+    );
+  }, [pendingRows, requestsService, requestsSort]);
+
+  const upcomingFiltered = useMemo(() => {
+    let rows = upcomingRows;
+    if (upcomingService !== 'all') {
+      rows = rows.filter((a) => a.serviceTitle === upcomingService);
+    }
+    return [...rows].sort(
+      upcomingSort === 'date' ? compareAppointmentsByDateAsc : compareAppointmentsByDateDesc,
+    );
+  }, [upcomingRows, upcomingService, upcomingSort]);
+
+  const nearest = useMemo(() => pickNearestUpcoming(upcomingFiltered), [upcomingFiltered]);
+
+  const upcomingRest = useMemo(() => {
+    if (!nearest) return upcomingFiltered;
+    return upcomingFiltered.filter((a) => a.id !== nearest.id);
+  }, [upcomingFiltered, nearest]);
+
+  const upcomingGroups = useMemo(
+    () => groupAppointmentsByDay(upcomingRest),
+    [upcomingRest],
+  );
+
+  const historyFiltered = useMemo(() => {
+    let rows = historyRows;
+    if (historyStatus === 'completed') rows = rows.filter((a) => a.status === 'completed');
+    if (historyStatus === 'cancelled') rows = rows.filter((a) => a.status === 'cancelled');
+    rows = filterHistoryByPeriod(rows, historyPeriod);
+    return rows;
+  }, [historyRows, historyStatus, historyPeriod]);
+
+  const historyGroups = useMemo(
+    () => groupAppointmentsByMonth(historyFiltered),
+    [historyFiltered],
+  );
+
+  const historySummary = useMemo(() => {
+    const completed = historyRows.filter((a) => a.status === 'completed');
+    const cancelled = historyRows.filter((a) => a.status === 'cancelled');
+    const earned = completed.reduce((s, a) => s + (Number.isFinite(a.priceByn) ? a.priceByn : 0), 0);
+    return {
+      completedCount: completed.length,
+      cancelledCount: cancelled.length,
+      earnedTotal: earned,
+    };
+  }, [historyRows]);
 
   const billingPlan = getCurrentMasterPlan();
   const monthlyApptCount = useMemo(() => countAppointmentsInCurrentMonth(appointments), [appointments]);
   const freeApptCap = getPlanLimits('free').maxMonthlyAppointments ?? 20;
-  const atFreeApptLimit = billingPlan.plan === 'free' && !canCreateMoreAppointments('free', monthlyApptCount);
-  const almostFreeAppt = billingPlan.plan === 'free' && isFreeAppointmentLimitAlmostReached(monthlyApptCount);
-
-  const filtered = useMemo(() => {
-    if (subTab === 'new') {
-      return appointments.filter((appointment) => appointment.status === 'pending');
-    }
-
-    if (subTab === 'confirmed') {
-      return appointments.filter((appointment) => appointment.status === 'confirmed');
-    }
-
-    return appointments.filter(
-      (appointment) => appointment.status === 'completed' || appointment.status === 'cancelled',
-    );
-  }, [appointments, subTab]);
-
-  const sortedFiltered = useMemo(
-    () =>
-      [...filtered].sort((a, b) => {
-        const left = `${a.date} ${a.time}`;
-        const right = `${b.date} ${b.time}`;
-        return left.localeCompare(right, 'ru');
-      }),
-    [filtered],
-  );
+  const atFreeApptLimit =
+    billingPlan.plan === 'free' && !canCreateMoreAppointments('free', monthlyApptCount);
+  const almostFreeAppt =
+    billingPlan.plan === 'free' && isFreeAppointmentLimitAlmostReached(monthlyApptCount);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
-    window.setTimeout(() => setToast(null), 1800);
+    window.setTimeout(() => setToast(null), 2200);
   }, []);
 
-  const openAction = useCallback(
-    ({
-      appointment,
-      title,
-      text,
-      buttonLabel,
-      nextStatus,
-    }: {
-      appointment: DemoMasterAppointment;
-      title: string;
-      text: string;
-      buttonLabel: string;
-      nextStatus: DemoAppointmentStatus;
-    }) => {
-      setActionApiError(null);
-      setActionState({
-        open: true,
-        appointment,
-        title,
-        text,
-        buttonLabel,
-        nextStatus,
-      });
-    },
-    [],
-  );
+  const openAction = useCallback((config: AppointmentActionConfig) => {
+    setActionApiError(null);
+    setActionConfig(config);
+  }, []);
 
   const closeAction = useCallback(() => {
     setActionApiError(null);
-    setActionState({ open: false });
+    setActionConfig(null);
   }, []);
 
-  const applyAction = useCallback(async () => {
-    if (!actionState.open) return;
-
-    const { appointment, nextStatus } = actionState;
-    const nextRows = updateStatus(appointments, appointment.id, nextStatus);
-
-    setActionApiError(null);
-    try {
-      await Promise.resolve(onChangeAppointments(nextRows));
-
-      if (nextStatus === 'confirmed') {
-        showToast('Запись подтверждена');
-        setSubTab('confirmed');
+  const applyAction = useCallback(
+    async (rejectReason?: string) => {
+      if (!actionConfig) return;
+      const { appointment, nextStatus } = actionConfig;
+      const nextRows = updateStatus(appointments, appointment.id, nextStatus);
+      setActionApiError(null);
+      try {
+        await Promise.resolve(onChangeAppointments(nextRows));
+        if (nextStatus === 'confirmed') {
+          showToast('Запись подтверждена');
+          setTab('upcoming');
+        } else if (nextStatus === 'completed') {
+          showToast('Запись завершена');
+          setTab('history');
+        } else if (nextStatus === 'cancelled') {
+          const suffix = rejectReason ? `: ${rejectReason}` : '';
+          showToast(
+            actionConfig.kind === 'reject' ? `Заявка отклонена${suffix}` : `Запись отменена${suffix}`,
+          );
+          setTab('history');
+        }
+        setActionConfig(null);
+      } catch (e) {
+        setActionApiError(e instanceof Error ? e.message : 'Не удалось обновить запись');
       }
+    },
+    [actionConfig, appointments, onChangeAppointments, showToast],
+  );
 
-      if (nextStatus === 'completed') {
-        showToast('Запись завершена');
-        setSubTab('history');
-      }
-
-      if (nextStatus === 'cancelled') {
-        showToast('Запись отменена');
-        setSubTab('history');
-      }
-
-      setActionState({ open: false });
-    } catch (e) {
-      setActionApiError(e instanceof Error ? e.message : 'Не удалось обновить запись');
-    }
-  }, [actionState, appointments, onChangeAppointments, showToast]);
-
-  const tabs: Array<{ id: SubTab; label: string; count: number }> = [
-    { id: 'new', label: 'Новые', count: stats.pending },
-    { id: 'confirmed', label: 'Активные', count: stats.confirmed },
-    { id: 'history', label: 'История', count: stats.history },
+  const servicePills = (rows: DemoMasterAppointment[]) => [
+    { id: 'all', label: 'Все услуги' },
+    ...uniqueServiceTitles(rows).map((title) => ({ id: title, label: title })),
   ];
 
-  const empty = tabEmptyText(subTab);
+  const renderRequests = () => {
+    if (!requestsFiltered.length) {
+      return (
+        <AppointmentsEmptyState
+          title="Новых заявок пока нет"
+          text="Когда клиент отправит заявку на запись, она появится здесь"
+          hint="Заявку можно будет подтвердить или отклонить"
+          icon={
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FFF1F4] text-[#F47C8C]">
+              <HiInbox className="h-8 w-8" aria-hidden />
+            </span>
+          }
+        />
+      );
+    }
+    return (
+      <ul className="flex flex-col gap-3">
+        {requestsFiltered.map((a) => (
+          <li key={a.id}>
+            <AppointmentsRequestCard
+              appointment={a}
+              onConfirm={() =>
+                openAction({
+                  kind: 'confirm',
+                  title: 'Подтвердить заявку?',
+                  text: `Клиент ${a.clientName} увидит, что запись подтверждена.`,
+                  buttonLabel: 'Подтвердить',
+                  nextStatus: 'confirmed',
+                  appointment: a,
+                })
+              }
+              onReject={() =>
+                openAction({
+                  kind: 'reject',
+                  title: 'Отклонить заявку?',
+                  text: `Заявка клиента ${a.clientName} будет перенесена в историю.`,
+                  buttonLabel: 'Отклонить',
+                  nextStatus: 'cancelled',
+                  appointment: a,
+                })
+              }
+            />
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  const renderUpcoming = () => {
+    if (!upcomingFiltered.length) {
+      return (
+        <AppointmentsEmptyState
+          title="Предстоящих записей нет"
+          text="Подтверждённые записи появятся здесь"
+          action={
+            stats.requests > 0 ? (
+              <button type="button" onClick={() => setTab('requests')} className={apptPinkBtn}>
+                Перейти к заявкам ({stats.requests})
+              </button>
+            ) : undefined
+          }
+        />
+      );
+    }
+    return (
+      <div className="space-y-4">
+        {nearest ? <AppointmentsNearestCard appointment={nearest} onOpen={() => onOpenDetail(nearest)} /> : null}
+        {upcomingGroups.map((group) => (
+          <section key={group.dayIso}>
+            <h3 className="mb-2 px-0.5 text-[13px] font-bold uppercase tracking-wide text-[#9CA3AF]">
+              {group.label}
+            </h3>
+            <ul className="flex flex-col gap-3">
+              {group.items.map((a) => (
+                <li key={a.id}>
+                  <AppointmentsUpcomingRow appointment={a} onOpen={() => onOpenDetail(a)} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    );
+  };
+
+  const renderHistory = () => {
+    if (!historyRows.length) {
+      return (
+        <AppointmentsEmptyState
+          title="Истории записей пока нет"
+          text="Завершённые и отменённые записи появятся здесь"
+        />
+      );
+    }
+    if (!historyFiltered.length) {
+      return (
+        <AppointmentsEmptyState
+          title="Ничего не найдено"
+          text="Попробуйте изменить фильтры статуса или периода"
+        />
+      );
+    }
+    return (
+      <div className="space-y-4">
+        <AppointmentsHistorySummary
+          completedCount={historySummary.completedCount}
+          earnedTotal={historySummary.earnedTotal}
+          cancelledCount={historySummary.cancelledCount}
+        />
+        {historyGroups.map((group) => (
+          <section key={group.monthKey}>
+            <h3 className="mb-2 px-0.5 text-[15px] font-bold text-[#111827]">{group.label}</h3>
+            <ul className="flex flex-col gap-3">
+              {group.items.map((a) => (
+                <li key={a.id}>
+                  <AppointmentsHistoryRow appointment={a} onOpen={() => onOpenDetail(a)} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-3">
-      <section className="rounded-[24px] border border-neutral-100/90 bg-white p-4 shadow-[0_8px_28px_rgba(17,17,17,0.04)]">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">Клиенты</p>
-        <h2 className="mt-1 text-[22px] font-semibold leading-tight tracking-[-0.045em] text-neutral-950">Записи</h2>
-        <div className="mt-3.5 grid grid-cols-3 gap-2">
-          <StatCard value={stats.pending} label="новые" />
-          <StatCard value={stats.confirmed} label="активные" />
-          <StatCard value={stats.history} label="история" />
-        </div>
-      </section>
-
-      {toast ? (
-        <div className="rounded-full bg-[#EAFBF2] px-5 py-3 text-center text-[14px] font-semibold text-[#2F8A5B] shadow-[0_10px_28px_rgba(17,17,17,0.04)]">
-          {toast}
-        </div>
-      ) : null}
-
-      {billingPlan.plan === 'free' ? (
-        <section
-          className={`rounded-[24px] border bg-white px-3.5 py-3 shadow-[0_6px_20px_rgba(17,17,17,0.035)] ${
-            atFreeApptLimit
-              ? 'border-amber-200/90'
-              : almostFreeAppt
-                ? 'border-amber-100/80'
-                : 'border-neutral-100/90'
-          }`}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2 gap-y-1">
-            <p className="min-w-0 flex-1 text-[14px] font-medium leading-snug text-neutral-700">
-              {planBadgeLabel(billingPlan.plan)} · {monthlyApptCount} / {freeApptCap} записей в этом месяце
-            </p>
-            <Link
-              to={ADMIN_BILLING_PATH}
-              className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#E29595] px-3 py-1.5 text-[12px] font-semibold text-white shadow-[0_6px_16px_rgba(226,149,149,0.28)] transition active:scale-[0.97] hover:opacity-95"
-            >
-              Мой тариф
-            </Link>
-          </div>
-          {atFreeApptLimit || almostFreeAppt ? (
-            <p
-              className={`mt-1.5 text-[11px] font-medium leading-snug ${
-                atFreeApptLimit ? 'text-amber-800/90' : 'text-amber-800/75'
-              }`}
-            >
-              {atFreeApptLimit
-                ? 'Лимит Free исчерпан — откройте Pro в тарифах.'
-                : 'Почти достигнут лимит Free на этот месяц.'}
-            </p>
-          ) : null}
-          <p className="mt-1.5 text-[10px] leading-snug text-neutral-400">
-            В демо-режиме лимит считается на этом устройстве.
-          </p>
-        </section>
-      ) : null}
-
-      <section className="rounded-[24px] border border-neutral-100/80 bg-[#FAFAFA] p-1">
-        <div className="grid grid-cols-3 gap-1">
-          {tabs.map((tab) => {
-            const active = subTab === tab.id;
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setSubTab(tab.id)}
-                className={`flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-[20px] px-1.5 py-2 text-[13px] font-semibold transition active:scale-[0.98] ${
-                  active
-                    ? 'bg-[#E29595] text-white shadow-[0_8px_20px_rgba(226,149,149,0.28)] ring-1 ring-[#E29595]/40'
-                    : 'text-neutral-600 hover:bg-white/70'
-                }`}
-              >
-                <span className="truncate">{tab.label}</span>
-                <span
-                  className={`flex h-[1.375rem] min-w-[1.375rem] shrink-0 items-center justify-center rounded-full px-1 text-[11px] font-semibold tabular-nums ${
-                    active ? 'bg-white/30 text-white' : 'bg-neutral-200/80 text-neutral-700'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {sortedFiltered.length === 0 ? (
-        <NothingFoundCard
-          title={empty.title}
-          text={empty.text}
-          hint={empty.hint}
-          className="rounded-[28px] border border-neutral-100/90 bg-white py-8 shadow-[0_8px_28px_rgba(17,17,17,0.04)] [&_img]:mb-4 [&_img]:max-w-[14rem]"
-        />
-      ) : (
-        <ul className="flex flex-col gap-2.5 rounded-[28px] bg-[#F1EFEF] p-2.5 shadow-[0_10px_28px_rgba(17,17,17,0.04)]">
-          {sortedFiltered.map((appointment) => (
-            <li key={appointment.id}>
-              <AppointmentCard
-                appointment={appointment}
-                onOpenDetail={onOpenDetail}
-                onConfirm={(item) =>
-                  openAction({
-                    appointment: item,
-                    title: 'Принять заявку?',
-                    text: `Клиент ${item.clientName} увидит, что запись подтверждена.`,
-                    buttonLabel: 'Принять',
-                    nextStatus: 'confirmed',
-                  })
-                }
-                onReject={(item) =>
-                  openAction({
-                    appointment: item,
-                    title: 'Отклонить заявку?',
-                    text: `Заявка клиента ${item.clientName} будет перенесена в историю как отмененная.`,
-                    buttonLabel: 'Отклонить',
-                    nextStatus: 'cancelled',
-                  })
-                }
-                onComplete={(item) =>
-                  openAction({
-                    appointment: item,
-                    title: 'Завершить визит?',
-                    text: `Запись клиента ${item.clientName} будет отмечена как завершенная.`,
-                    buttonLabel: 'Завершить',
-                    nextStatus: 'completed',
-                  })
-                }
-                onCancel={(item) =>
-                  openAction({
-                    appointment: item,
-                    title: 'Отменить запись?',
-                    text: `Клиент ${item.clientName} увидит, что визит отменен.`,
-                    buttonLabel: 'Отменить',
-                    nextStatus: 'cancelled',
-                  })
-                }
-              />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <AdminBottomSheet
-        open={actionState.open}
-        onClose={closeAction}
-        title={actionState.open ? actionState.title : ''}
+    <>
+      <div
+        className={`-mx-4 min-w-0 space-y-4 overflow-x-hidden px-4 ${APPOINTMENTS_PAGE_BG}`}
+        style={{ paddingBottom: APPOINTMENTS_TAB_BAR_SCROLL_PAD }}
       >
-        {actionState.open ? (
-          <>
-            <div className="rounded-[28px] bg-[#F1EFEF] px-4 py-4">
-              <p className="text-[17px] font-semibold tracking-[-0.04em] text-neutral-950">
-                {actionState.appointment.clientName}
-              </p>
+        <AppointmentsPageHeader onCalendarClick={() => setTab('upcoming')} />
 
-              <p className="mt-1 text-[14px] leading-relaxed text-neutral-600">
-                {actionState.appointment.serviceTitle}
-              </p>
+        <AppointmentsStatsCard
+          requests={stats.requests}
+          upcoming={stats.upcoming}
+          history={stats.history}
+        />
 
-              <p className="mt-3 text-[14px] font-semibold text-neutral-900">
-                {actionState.appointment.date} · {actionState.appointment.time}
-              </p>
+        {toast ? (
+          <div className="rounded-full bg-[#ECFDF5] px-5 py-3 text-center text-[14px] font-semibold text-[#16A34A] shadow-[0_8px_24px_rgba(17,24,39,0.06)]">
+            {toast}
+          </div>
+        ) : null}
 
-              <p className="mt-1 text-[14px] font-semibold text-neutral-900">
-                {formatMoney(actionState.appointment.priceByn)}
+        {billingPlan.plan === 'free' ? (
+          <section
+            className={`rounded-[22px] border bg-white px-4 py-3 shadow-[0_8px_28px_rgba(17,24,39,0.05)] ${
+              atFreeApptLimit ? 'border-amber-200' : almostFreeAppt ? 'border-amber-100' : 'border-[#EAECEF]'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="min-w-0 flex-1 text-[14px] font-medium text-[#374151]">
+                {planBadgeLabel(billingPlan.plan)} · {monthlyApptCount} / {freeApptCap} записей в месяце
               </p>
+              <Link
+                to={ADMIN_BILLING_PATH}
+                className="inline-flex shrink-0 rounded-full bg-gradient-to-r from-[#F47C8C] to-[#F26D83] px-3 py-1.5 text-[12px] font-bold text-white shadow-[0_6px_16px_rgba(244,124,140,0.28)]"
+              >
+                Мой тариф
+              </Link>
             </div>
-
-            <p className="mt-4 text-[15px] leading-relaxed text-neutral-600">
-              {actionState.text}
-            </p>
-
-            {actionApiError ? (
-              <p className="mt-4 rounded-[20px] bg-[#FFF0F0] px-4 py-3 text-[14px] font-semibold text-[#9B2C2C]">
-                {actionApiError}
+            {atFreeApptLimit || almostFreeAppt ? (
+              <p className="mt-1.5 text-[12px] font-medium text-amber-800/85">
+                {atFreeApptLimit
+                  ? 'Лимит Free исчерпан — откройте Pro в тарифах.'
+                  : 'Почти достигнут лимит Free на этот месяц.'}
               </p>
             ) : null}
-
-            <div className="mt-6 flex gap-2">
-              <button
-                type="button"
-                onClick={closeAction}
-                className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#F1EFEF] text-[15px] font-semibold text-neutral-900 transition active:scale-[0.98]"
-              >
-                Назад
-              </button>
-
-              <button
-                type="button"
-                onClick={() => void applyAction()}
-                className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
-              >
-                {actionState.buttonLabel}
-              </button>
-            </div>
-          </>
+          </section>
         ) : null}
-      </AdminBottomSheet>
-    </div>
+
+        {tab === 'requests' ? (
+          <AppointmentsFilterPills
+            serviceOptions={servicePills(pendingRows)}
+            serviceFilter={requestsService}
+            onServiceFilter={setRequestsService}
+            sortLabel={requestsSort === 'newest' ? 'По новизне' : 'Сначала старые'}
+            onSortClick={() => setRequestsSort((s) => (s === 'newest' ? 'oldest' : 'newest'))}
+          />
+        ) : null}
+
+        {tab === 'upcoming' ? (
+          <AppointmentsFilterPills
+            serviceOptions={servicePills(upcomingRows)}
+            serviceFilter={upcomingService}
+            onServiceFilter={setUpcomingService}
+            sortLabel={upcomingSort === 'date' ? 'По дате' : 'По новизне'}
+            onSortClick={() => setUpcomingSort((s) => (s === 'date' ? 'newest' : 'date'))}
+          />
+        ) : null}
+
+        {tab === 'history' ? (
+          <AppointmentsFilterPills
+            serviceOptions={[{ id: 'all', label: 'Все статусы' }]}
+            serviceFilter="all"
+            onServiceFilter={() => {}}
+            sortLabel={
+              historyPeriod === 'all'
+                ? 'Период: всё'
+                : historyPeriod === 'month'
+                  ? 'Период: месяц'
+                  : 'Период: 3 мес.'
+            }
+            onSortClick={() =>
+              setHistoryPeriod((p) =>
+                p === 'all' ? 'month' : p === 'month' ? 'quarter' : 'all',
+              )
+            }
+            extraPills={[
+              {
+                id: 'all',
+                label: 'Все',
+                active: historyStatus === 'all',
+                onClick: () => setHistoryStatus('all'),
+              },
+              {
+                id: 'completed',
+                label: 'Завершено',
+                active: historyStatus === 'completed',
+                onClick: () => setHistoryStatus('completed'),
+              },
+              {
+                id: 'cancelled',
+                label: 'Отменено',
+                active: historyStatus === 'cancelled',
+                onClick: () => setHistoryStatus('cancelled'),
+              },
+            ]}
+          />
+        ) : null}
+
+        <AdminTabContentTransition activeKey={tab} className="min-w-0">
+          {tab === 'requests' ? renderRequests() : null}
+          {tab === 'upcoming' ? renderUpcoming() : null}
+          {tab === 'history' ? renderHistory() : null}
+        </AdminTabContentTransition>
+      </div>
+
+      <AppointmentsBottomTabBar active={tab} onChange={setTab} />
+
+      <AppointmentsActionSheet
+        config={actionConfig}
+        apiError={actionApiError}
+        onClose={closeAction}
+        onConfirm={(reason) => void applyAction(reason)}
+      />
+    </>
   );
 }

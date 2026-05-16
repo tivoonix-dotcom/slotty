@@ -4,6 +4,7 @@ import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { preloadTabIntroImages } from '../useTabIntroImage';
 import { useAdminAppointments } from '../useAdminMasterData';
+import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
 import { AddWindowSheet } from './AddWindowSheet';
 import { CreateTemplateModal } from './CreateTemplateModal';
 import { EditWindowModal } from './EditWindowModal';
@@ -346,6 +347,7 @@ export function AdminScheduleTab({ draft }: Props) {
       >
         <ScheduleTabIntro tab={pageTab} />
 
+        <AdminTabContentTransition activeKey={pageTab}>
         {pageTab === 'create' ? (
           <ScheduleCreateTab
             templates={templates}
@@ -375,6 +377,7 @@ export function AdminScheduleTab({ draft }: Props) {
             onWindowClick={(w) => setEditWindow(w)}
           />
         ) : null}
+        </AdminTabContentTransition>
       </div>
 
       <ScheduleBottomTabBar active={pageTab} onChange={setPageTab} />

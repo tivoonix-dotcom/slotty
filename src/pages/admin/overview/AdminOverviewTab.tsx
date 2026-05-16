@@ -15,6 +15,7 @@ import {
   OverviewSummaryPanel,
 } from './OverviewTabPanels';
 import { useOverviewTabData } from './useOverviewTabData';
+import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
 import { LoadingPanel } from '../../../shared/ui/LoadingVideo';
 
 type Props = {
@@ -130,12 +131,12 @@ export function AdminOverviewTab({
 
         {!error ? <OverviewTabIntro tab={activeTab} /> : null}
 
-        <div
-          key={`${activeTab}-${periodPreset}-${useCabinetApi ? 'api' : 'local'}`}
-          className="min-w-0 space-y-4 animate-[overviewPanelIn_0.22s_ease-out]"
+        <AdminTabContentTransition
+          activeKey={`${activeTab}-${periodPreset}-${useCabinetApi ? 'api' : 'local'}`}
+          className="min-w-0 space-y-4"
         >
           {panel}
-        </div>
+        </AdminTabContentTransition>
       </section>
 
       <OverviewAnalyticsTabBar active={activeTab} onChange={setActiveTab} />
