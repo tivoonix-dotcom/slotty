@@ -1,11 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  HiArrowTopRightOnSquare,
-  HiCheck,
-  HiClipboardDocument,
-  HiLink,
-  HiShare,
-} from 'react-icons/hi2';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import { readPublicAppOrigin, resolveMasterBookingLink } from '../../../shared/lib/masterBookingLink';
 import { openTelegramOrBrowserUrl, openTelegramShareUrlPicker } from '../../../shared/lib/telegramWebApp';
@@ -16,16 +9,84 @@ type Props = {
   useCabinetApi?: boolean;
 };
 
+const stroke = {
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+};
+
+function SvgIcon({ children, size = 20 }: { children: ReactNode; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      shapeRendering="geometricPrecision"
+      className="block shrink-0"
+    >
+      {children}
+    </svg>
+  );
+}
+
+function IconLink({ size = 16 }: { size?: number }) {
+  return (
+    <SvgIcon size={size}>
+      <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93" {...stroke} />
+      <path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 1 0 7.07 7.07L13 19.07" {...stroke} />
+    </SvgIcon>
+  );
+}
+
+function IconCopy() {
+  return (
+    <SvgIcon>
+      <rect x="9" y="9" width="11" height="11" rx="2" {...stroke} />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" {...stroke} />
+    </SvgIcon>
+  );
+}
+
+function IconCheck() {
+  return (
+    <SvgIcon>
+      <path d="M5 12.5 9.5 16.5 19 7" {...stroke} />
+    </SvgIcon>
+  );
+}
+
+function IconShare() {
+  return (
+    <SvgIcon>
+      <path d="M8.5 10.5 15.5 6.5M15.5 17.5 8.5 13.5" {...stroke} />
+      <circle cx="6" cy="12" r="2.25" {...stroke} />
+      <circle cx="18" cy="7" r="2.25" {...stroke} />
+      <circle cx="18" cy="17" r="2.25" {...stroke} />
+    </SvgIcon>
+  );
+}
+
+function IconExternal() {
+  return (
+    <SvgIcon>
+      <path d="M14 5h5v5M10 14 19 9M5 19h5a2 2 0 0 0 2-2V9" {...stroke} />
+    </SvgIcon>
+  );
+}
+
 const iconBtn =
-  'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition active:scale-[0.96] disabled:opacity-40';
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition active:opacity-85 disabled:opacity-40';
 
 function LinkFieldSkeleton() {
   return (
     <div className="mt-2 flex animate-pulse items-center gap-1.5">
-      <div className="h-8 min-w-0 flex-1 rounded-xl bg-[#F7F7F8]" />
-      <div className="h-8 w-8 rounded-xl bg-[#F3F4F6]" />
-      <div className="h-8 w-8 rounded-xl bg-[#F3F4F6]" />
-      <div className="h-8 w-8 rounded-xl bg-[#F3F4F6]" />
+      <div className="h-9 min-w-0 flex-1 rounded-xl bg-[#F7F7F8]" />
+      <div className="h-9 w-9 rounded-[10px] bg-[#F3F4F6]" />
+      <div className="h-9 w-9 rounded-[10px] bg-[#F3F4F6]" />
+      <div className="h-9 w-9 rounded-[10px] bg-[#F3F4F6]" />
     </div>
   );
 }
@@ -107,10 +168,10 @@ export function MasterBookingLinkCard({ draft, cabinetLoading, useCabinetApi }: 
     <section className="rounded-[18px] bg-white px-3 py-2.5 shadow-[0_4px_20px_rgba(17,24,39,0.05)]">
       <div className="flex items-center gap-2">
         <span
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FFF1F4] text-[#F47C8C]"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FFF1F4] text-[#F47C8C]"
           aria-hidden
         >
-          <HiLink className="h-3 w-3 shrink-0" strokeWidth={2.25} />
+          <IconLink size={16} />
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-[14px] font-semibold leading-tight tracking-[-0.02em] text-[#111827]">
@@ -128,7 +189,7 @@ export function MasterBookingLinkCard({ draft, cabinetLoading, useCabinetApi }: 
         <>
           <div className="mt-2 flex items-center gap-1.5">
             <div
-              className="flex h-8 min-w-0 flex-1 items-center rounded-xl bg-[#F7F7F8] px-2.5 ring-1 ring-[#EAECEF]"
+              className="flex h-9 min-w-0 flex-1 items-center rounded-xl bg-[#F7F7F8] px-2.5 ring-1 ring-[#EAECEF]"
               title={resolved.href}
             >
               <p className="truncate text-[12px] font-medium leading-none text-[#111827]">{resolved.href}</p>
@@ -143,11 +204,7 @@ export function MasterBookingLinkCard({ draft, cabinetLoading, useCabinetApi }: 
                   : 'bg-[#F47C8C] text-white shadow-[0_4px_12px_rgba(244,124,140,0.28)] hover:bg-[#F26D83]'
               }`}
             >
-              {copied ? (
-                <HiCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
-              ) : (
-                <HiClipboardDocument className="h-3.5 w-3.5" strokeWidth={2} />
-              )}
+              {copied ? <IconCheck /> : <IconCopy />}
             </button>
             <button
               type="button"
@@ -155,7 +212,7 @@ export function MasterBookingLinkCard({ draft, cabinetLoading, useCabinetApi }: 
               aria-label="Поделиться ссылкой"
               className={`${iconBtn} bg-[#F7F7F8] text-[#111827] hover:bg-[#F3F4F6]`}
             >
-              <HiShare className="h-3.5 w-3.5" strokeWidth={2} />
+              <IconShare />
             </button>
             <button
               type="button"
@@ -163,7 +220,7 @@ export function MasterBookingLinkCard({ draft, cabinetLoading, useCabinetApi }: 
               aria-label="Открыть ссылку"
               className={`${iconBtn} bg-[#F7F7F8] text-[#6B7280] hover:bg-[#F3F4F6]`}
             >
-              <HiArrowTopRightOnSquare className="h-3.5 w-3.5" strokeWidth={2} />
+              <IconExternal />
             </button>
           </div>
 

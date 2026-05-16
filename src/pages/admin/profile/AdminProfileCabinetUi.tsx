@@ -4,7 +4,6 @@ import {
   HiChatBubbleLeft,
   HiCheck,
   HiChevronRight,
-  HiClock,
   HiFaceSmile,
   HiMapPin,
   HiPaperAirplane,
@@ -32,6 +31,47 @@ import { cabinetCard, cabinetCardPad, cabinetIconCircle, cabinetPinkBtn } from '
 
 const PROFILE_COMPLETE_IMAGE_SRC = '/photos/SUCCE.webp';
 
+const svgStroke = {
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+};
+
+function SvgIcon({ children, size = 20 }: { children: ReactNode; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      shapeRendering="geometricPrecision"
+      className="block shrink-0"
+    >
+      {children}
+    </svg>
+  );
+}
+
+function IconClock({ size = 20 }: { size?: number }) {
+  return (
+    <SvgIcon size={size}>
+      <circle cx="12" cy="12" r="9" {...svgStroke} />
+      <path d="M12 7v5l3 2" {...svgStroke} />
+    </SvgIcon>
+  );
+}
+
+/** Иконка секции: мягкий квадрат без «кольца», чёткий SVG внутри. */
+function CabinetSectionIcon({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C]">
+      {children}
+    </span>
+  );
+}
+
 function CompletionStatusIcon({ done }: { done: boolean }) {
   if (done) {
     return (
@@ -54,41 +94,91 @@ export function CabinetPageShell({ children }: { children: ReactNode }) {
   );
 }
 
-type ProfileStats = {
-  ratingLabel: string;
-  bookingsLabel: string;
-  happyLabel: string;
+export type StatMiniDisplay = {
+  value: string;
+  label: string;
+  empty: boolean;
 };
 
-function formatRating(): string {
-  return '—';
+export type ProfileStats = {
+  rating: StatMiniDisplay;
+  bookings: StatMiniDisplay;
+  happy: StatMiniDisplay;
+};
+
+export type ProfileStatsRatingMeta = {
+  rating?: number | null;
+  reviewsCount?: number | null;
+};
+
+function buildRatingStat(meta?: ProfileStatsRatingMeta): StatMiniDisplay {
+  const reviews = meta?.reviewsCount ?? 0;
+  const rating = meta?.rating ?? 0;
+  const hasRating = reviews > 0 && Number.isFinite(rating) && rating > 0;
+  if (!hasRating) {
+    return { value: 'Новый', label: 'Рейтинг', empty: true };
+  }
+  return { value: rating.toFixed(1), label: 'Рейтинг', empty: false };
 }
 
-export function buildProfileStats(appointments: DemoMasterAppointment[]): ProfileStats {
-  const completed = appointments.filter((a) => a.status === 'completed').length;
+function buildBookingsStat(appointments: DemoMasterAppointment[]): StatMiniDisplay {
+  const count = appointments.length;
   return {
-    ratingLabel: formatRating(),
-    bookingsLabel: appointments.length > 0 ? String(appointments.length) : '—',
-    happyLabel: completed > 0 ? String(completed) : '—',
+    value: String(count),
+    label: 'Записи',
+    empty: count <= 0,
   };
 }
 
-function StatMiniCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
+/** Доля завершённых среди завершённых и отменённых — только для отображения в кабинете. */
+function computeHappyClientsPercent(appointments: DemoMasterAppointment[]): number | null {
+  const completed = appointments.filter((a) => a.status === 'completed').length;
+  if (completed <= 0) return null;
+  const cancelled = appointments.filter((a) => a.status === 'cancelled').length;
+  const finished = completed + cancelled;
+  if (finished <= 0) return null;
+  return Math.round((completed / finished) * 100);
+}
+
+function buildHappyStat(appointments: DemoMasterAppointment[]): StatMiniDisplay {
+  const percent = computeHappyClientsPercent(appointments);
+  if (percent == null) {
+    return { value: 'Пока нет', label: 'Клиенты', empty: true };
+  }
+  return { value: `${percent}%`, label: 'Довольные клиенты', empty: false };
+}
+
+export function buildProfileStats(
+  appointments: DemoMasterAppointment[],
+  ratingMeta?: ProfileStatsRatingMeta,
+): ProfileStats {
+  return {
+    rating: buildRatingStat(ratingMeta),
+    bookings: buildBookingsStat(appointments),
+    happy: buildHappyStat(appointments),
+  };
+}
+
+function StatMiniCard({ icon, label, value, empty }: StatMiniDisplay & { icon: ReactNode }) {
+  const compactValue = empty && value.length > 5;
+  const compactLabel = label.length > 11;
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center rounded-[20px] bg-[#F7F7F8] px-2 py-3.5 shadow-[0_4px_16px_rgba(17,24,39,0.04)]">
+    <div className="flex min-h-[108px] min-w-0 flex-1 flex-col items-center rounded-[20px] bg-[#F7F7F8] px-1.5 py-3.5 shadow-[0_4px_16px_rgba(17,24,39,0.04)]">
       <span className={`${cabinetIconCircle} h-9 w-9`}>{icon}</span>
-      <p className="mt-2 text-[18px] font-semibold tabular-nums leading-none tracking-[-0.03em] text-[#111827]">
+      <p
+        className={`mt-2 flex min-h-[22px] max-w-full items-center justify-center px-0.5 text-center font-semibold tabular-nums leading-tight tracking-[-0.03em] ${
+          empty ? 'text-[#9CA3AF]' : 'text-[#111827]'
+        } ${compactValue ? 'text-[12px]' : empty ? 'text-[15px]' : 'text-[18px] leading-none'}`}
+      >
         {value}
       </p>
-      <p className="mt-1 text-center text-[11px] font-medium leading-tight text-[#6B7280]">{label}</p>
+      <p
+        className={`mt-1 flex min-h-[26px] max-w-full items-start justify-center px-0.5 text-center font-medium leading-tight text-[#6B7280] ${
+          compactLabel ? 'text-[10px]' : 'text-[11px]'
+        }`}
+      >
+        {label}
+      </p>
     </div>
   );
 }
@@ -138,17 +228,9 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
         </div>
 
         <div className="mt-4 flex gap-2">
-          <StatMiniCard icon={<HiStar className="h-[18px] w-[18px]" />} label="Рейтинг" value={stats.ratingLabel} />
-          <StatMiniCard
-            icon={<HiCalendar className="h-[18px] w-[18px]" />}
-            label="Записи"
-            value={stats.bookingsLabel}
-          />
-          <StatMiniCard
-            icon={<HiFaceSmile className="h-[18px] w-[18px]" />}
-            label="Довольные клиенты"
-            value={stats.happyLabel}
-          />
+          <StatMiniCard icon={<HiStar className="h-[18px] w-[18px]" />} {...stats.rating} />
+          <StatMiniCard icon={<HiCalendar className="h-[18px] w-[18px]" />} {...stats.bookings} />
+          <StatMiniCard icon={<HiFaceSmile className="h-[18px] w-[18px]" />} {...stats.happy} />
         </div>
       </div>
     </section>
@@ -157,8 +239,12 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
 
 export type ProfileSectionId = 'main' | 'address' | 'portfolio' | 'rules';
 
-/** Смещение sticky-табов — сразу под шапкой кабинета (розовая линия на шапке). */
-export const CABINET_HEADER_STICKY_TOP = 'calc(3.25rem + env(safe-area-inset-top, 0px))';
+/**
+ * Нижний край шапки: pt + min-h + pb + border-b-2 (см. AdminLayout).
+ * Должен совпадать точно, иначе при sticky табы «прыгают» вверх.
+ */
+export const CABINET_HEADER_STICKY_TOP =
+  'calc(0.5rem + 3.25rem + 0.5rem + 2px + env(safe-area-inset-top, 0px))';
 
 export function SectionTabs({
   active,
@@ -175,7 +261,7 @@ export function SectionTabs({
   ];
 
   return (
-    <nav className="flex bg-white" aria-label="Разделы профиля">
+    <nav className="flex bg-white px-1 pt-2.5 pb-1" aria-label="Разделы профиля">
       {tabs.map((tab) => {
         const selected = active === tab.id;
         return (
@@ -183,7 +269,7 @@ export function SectionTabs({
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition active:scale-[0.98] ${
+            className={`relative flex min-h-10 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 transition active:scale-[0.98] ${
               selected ? 'text-[#F47C8C]' : 'text-[#6B7280] hover:text-[#111827]'
             }`}
           >
@@ -316,20 +402,20 @@ export function ScheduleWorkCard({
 
   return (
     <section className={`${cabinetCard} ${cabinetCardPad}`}>
-      <div className="flex items-start gap-3">
-        <span className={cabinetIconCircle}>
-          <HiClock className="h-5 w-5" strokeWidth={2} />
-        </span>
+      <div className="flex items-center gap-3">
+        <CabinetSectionIcon>
+          <IconClock size={18} />
+        </CabinetSectionIcon>
         <div className="min-w-0 flex-1">
           <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">График работы</h2>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-[#6B7280]">
+          <p className="mt-0.5 text-[13px] leading-snug text-[#6B7280]">
             Клиенты смогут записываться {preview || '—'}
           </p>
         </div>
       </div>
 
       <div
-        className="mt-3 grid grid-cols-7 gap-0.5 rounded-xl bg-[#F3F4F6] p-0.5"
+        className="mt-3 grid grid-cols-7 gap-1 rounded-xl bg-[#F7F7F8] p-1"
         role="list"
         aria-label="Рабочие дни недели"
       >
@@ -339,21 +425,13 @@ export function ScheduleWorkCard({
             <div
               key={label}
               role="listitem"
-              className={`flex flex-col items-center justify-center rounded-[10px] py-2 ${
-                active ? 'bg-white shadow-[0_1px_4px_rgba(17,24,39,0.06)]' : 'bg-transparent'
+              className={`flex h-8 items-center justify-center rounded-lg text-[11px] font-semibold ${
+                active
+                  ? 'bg-white text-[#111827] shadow-[0_1px_3px_rgba(17,24,39,0.05)]'
+                  : 'text-[#9CA3AF]'
               }`}
             >
-              <span
-                className={`text-[11px] font-semibold leading-none ${
-                  active ? 'text-[#111827]' : 'text-[#9CA3AF]'
-                }`}
-              >
-                {label}
-              </span>
-              <span
-                className={`mt-1.5 h-0.5 w-3 rounded-full ${active ? 'bg-[#F47C8C]' : 'bg-transparent'}`}
-                aria-hidden
-              />
+              {label}
             </div>
           );
         })}
