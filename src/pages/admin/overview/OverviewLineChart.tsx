@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { HiCloud } from 'react-icons/hi2';
 import type { OverviewDayStat } from '../../../features/master/model/demoMasterAppointments';
-import { formatBynRu, formatDdMm, formatDdMmYyyy } from './overviewFormat';
+import { formatBynRu, formatDdMm, formatDdMmYyyy, formatReviewDayMonthRu } from './overviewFormat';
 
 type ChartPoint = { x: number; y: number; v: number; date: string };
 
@@ -220,12 +220,21 @@ export function OverviewLineChart({
                 className="pointer-events-none absolute top-2 z-10 -translate-x-1/2 rounded-[14px] border border-[#FDE8ED] bg-white/95 px-3 py-2 text-center shadow-[0_10px_28px_rgba(244,124,140,0.22)] backdrop-blur-sm"
                 style={{ left: tooltipLeft }}
               >
-                <p className="text-[15px] font-bold tabular-nums tracking-[-0.03em] text-[#F47C8C]">
-                  {formatChartValue(active.v, mode)}
-                </p>
-                <p className="mt-0.5 text-[11px] font-semibold text-[#6B7280]">
-                  {formatDdMmYyyy(activeStat.date)}
-                </p>
+                {mode === 'revenue' ? (
+                  <p className="text-[13px] font-bold tabular-nums text-[#111827]">
+                    <span className="text-[#6B7280]">{formatReviewDayMonthRu(activeStat.date)}</span>{' '}
+                    <span className="text-[#F47C8C]">{formatBynRu(active.v)}</span>
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-[15px] font-bold tabular-nums tracking-[-0.03em] text-[#F47C8C]">
+                      {formatChartValue(active.v, mode)}
+                    </p>
+                    <p className="mt-0.5 text-[11px] font-semibold text-[#6B7280]">
+                      {formatDdMmYyyy(activeStat.date)}
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               <p className="pointer-events-none absolute inset-x-0 top-3 text-center text-[11px] font-medium text-[#9CA3AF]">

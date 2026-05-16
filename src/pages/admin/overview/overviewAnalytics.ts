@@ -10,6 +10,7 @@ import {
   type DemoMasterAppointment,
   type OverviewDayStat,
 } from '../../../features/master/model/demoMasterAppointments';
+import { previousOverviewReportPeriod } from './overviewFormat';
 
 function overviewAppointmentBounds(appointments: DemoMasterAppointment[]): { start: string; end: string } {
   const end = isoDateLocal(new Date());
@@ -49,6 +50,16 @@ function normalizeClient(name: string): string {
   return name.trim().toLowerCase();
 }
 
+/** Завершённые и подтверждённые визиты для клиентской аналитики. */
+function isClientVisitRow(r: DemoMasterAppointment): boolean {
+  return r.status === 'completed' || r.status === 'confirmed';
+}
+
+function percentDelta(current: number, previous: number): number | null {
+  if (previous <= 0) return current > 0 ? 100 : null;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
 export type RevenueAnalytics = {
   totalRevenue: number;
   completedCount: number;
@@ -60,6 +71,10 @@ export type RevenueAnalytics = {
   dayStats: OverviewDayStat[];
   chartIsTruncated: boolean;
   hasRevenue: boolean;
+  revenueTrendPercent: number | null;
+  avgCheckTrendPercent: number | null;
+  paidSharePercent: number;
+  unpaidSharePercent: number;
 };
 
 export function computeRevenueAnalytics(
@@ -73,8 +88,30 @@ export function computeRevenueAnalytics(
 
   const totalRevenue = sumCompletedRevenueBetween(appointments, start, end);
   const completedCount = completed.length;
-  const avgCheck = completedCount > 0 ? totalRevenue / completedCount : 0;
+  const avgCheck = completedCount > 0 ? Math.round(totalRevenue / completedCount) : 0;
   const unpaidAmount = unpaidRows.reduce((s, r) => s + (Number.isFinite(r.priceByn) ? r.priceByn : 0), 0);
+  const paidAmount = totalRevenue;
+
+  const prev = previousOverviewReportPeriod(start, end);
+  const prevRevenue = prev ? sumCompletedRevenueBetween(appointments, prev.start, prev.end) : 0;
+  const revenueTrendPercent = percentDelta(totalRevenue, prevRevenue);
+
+  let avgCheckTrendPercent: number | null = null;
+  if (prev) {
+    const prevCompleted = appointments.filter(
+      (r) => r.status === 'completed' && r.date >= prev.start && r.date <= prev.end,
+    );
+    const prevAvg =
+      prevCompleted.length > 0
+        ? Math.round(prevRevenue / prevCompleted.length)
+        : 0;
+    avgCheckTrendPercent = percentDelta(avgCheck, prevAvg);
+  }
+
+  const moneyTotal = paidAmount + unpaidAmount;
+  const paidSharePercent =
+    moneyTotal > 0 ? Math.round((paidAmount / moneyTotal) * 100) : paidAmount > 0 ? 100 : 0;
+  const unpaidSharePercent = moneyTotal > 0 ? 100 - paidSharePercent : 0;
 
   const chartRange = overviewChartWindow(start, end, OVERVIEW_MAX_RANGE_DAYS);
   const dayStats = aggregateOverviewByDay(appointments, chartRange.chartStart, chartRange.chartEnd);
@@ -83,13 +120,17 @@ export function computeRevenueAnalytics(
     totalRevenue,
     completedCount,
     avgCheck,
-    paidAmount: totalRevenue,
+    paidAmount,
     paidCount: completedCount,
     unpaidAmount,
     unpaidCount: unpaidRows.length,
     dayStats,
     chartIsTruncated: chartRange.chartStart > start,
-    hasRevenue: totalRevenue > 0,
+    hasRevenue: totalRevenue > 0 || unpaidAmount > 0,
+    revenueTrendPercent,
+    avgCheckTrendPercent,
+    paidSharePercent,
+    unpaidSharePercent,
   };
 }
 
@@ -104,17 +145,17 @@ function aggregateClientsPerDay(
   chartStart: string,
   chartEnd: string,
 ): ClientDayStat[] {
-  const completed = appointments.filter((r) => r.status === 'completed');
+  const visits = appointments.filter(isClientVisitRow);
   const firstCompletedByClient = new Map<string, string>();
 
-  for (const row of completed) {
+  for (const row of visits) {
     const key = normalizeClient(row.clientName);
     const cur = firstCompletedByClient.get(key);
     if (!cur || row.date < cur) firstCompletedByClient.set(key, row.date);
   }
 
   return listIsoDatesInclusive(chartStart, chartEnd).map((date) => {
-    const dayRows = completed.filter((r) => r.date === date);
+    const dayRows = visits.filter((r) => r.date === date);
     const seen = new Set<string>();
     let newClients = 0;
     let repeatClients = 0;
@@ -147,11 +188,11 @@ export function computeClientAnalytics(
   end: string,
 ): ClientAnalytics {
   const completedInRange = appointments.filter(
-    (r) => r.status === 'completed' && r.date >= start && r.date <= end,
+    (r) => isClientVisitRow(r) && r.date >= start && r.date <= end,
   );
   const hadBefore = new Set(
     appointments
-      .filter((r) => r.status === 'completed' && r.date < start)
+      .filter((r) => isClientVisitRow(r) && r.date < start)
       .map((r) => normalizeClient(r.clientName)),
   );
 
@@ -183,7 +224,9 @@ export function computeClientAnalytics(
     visitsPerDay,
     clientsPerDay,
     chartIsTruncated: chartRange.chartStart > start,
-    hasData: byClient.size > 0,
+    hasData:
+      byClient.size > 0 ||
+      clientsPerDay.some((d) => d.newClients > 0 || d.repeatClients > 0),
   };
 }
 

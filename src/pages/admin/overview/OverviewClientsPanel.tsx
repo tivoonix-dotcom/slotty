@@ -40,6 +40,30 @@ function ClientsGrowthBanner() {
   );
 }
 
+function ClientsDynamicsSection({
+  clientsPerDay,
+  chartIsTruncated,
+}: {
+  clientsPerDay: ClientAnalytics['clientsPerDay'];
+  chartIsTruncated: boolean;
+}) {
+  return (
+    <OverviewSectionCard
+      title="Динамика клиентов"
+      subtitle="Новые и повторные по дням — наведите на график"
+      icon={<HiCalendar className="h-5 w-5" aria-hidden />}
+    >
+      <OverviewClientsDynamicsChart stats={clientsPerDay} />
+
+      {chartIsTruncated ? (
+        <p className="mt-3 text-[11px] leading-snug text-[#9CA3AF]">
+          График показывает последние 90 дней, итоги — за весь выбранный период.
+        </p>
+      ) : null}
+    </OverviewSectionCard>
+  );
+}
+
 function ClientsTypeBreakdown({
   newClients,
   repeatClients,
@@ -114,6 +138,11 @@ export function OverviewClientsPanel({ data }: { data: ClientAnalytics }) {
           </div>
         </OverviewSectionCard>
 
+        <ClientsDynamicsSection
+          clientsPerDay={data.clientsPerDay}
+          chartIsTruncated={data.chartIsTruncated}
+        />
+
         <ClientsGrowthBanner />
       </div>
     );
@@ -166,19 +195,10 @@ export function OverviewClientsPanel({ data }: { data: ClientAnalytics }) {
         />
       </div>
 
-      <OverviewSectionCard
-        title="Динамика клиентов"
-        subtitle="Новые и повторные по дням — наведите на график"
-        icon={<HiCalendar className="h-5 w-5" aria-hidden />}
-      >
-        <OverviewClientsDynamicsChart stats={data.clientsPerDay} />
-
-        {data.chartIsTruncated ? (
-          <p className="mt-3 text-[11px] leading-snug text-[#9CA3AF]">
-            График показывает последние 90 дней, итоги — за весь выбранный период.
-          </p>
-        ) : null}
-      </OverviewSectionCard>
+      <ClientsDynamicsSection
+        clientsPerDay={data.clientsPerDay}
+        chartIsTruncated={data.chartIsTruncated}
+      />
 
       <OverviewSectionCard
         title="Тип клиентов"

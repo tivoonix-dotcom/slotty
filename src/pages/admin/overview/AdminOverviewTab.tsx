@@ -31,13 +31,6 @@ type Props = {
 
 const isLoading = false;
 
-const PERIOD_LABEL: Record<OverviewPeriodPreset, string> = {
-  today: 'Сегодня',
-  week: 'Неделя',
-  month: 'Месяц',
-  all: 'Всё время',
-};
-
 export function AdminOverviewTab({
   draft,
   appointments,
@@ -74,7 +67,7 @@ export function AdminOverviewTab({
 
     switch (activeTab) {
       case 'revenue':
-        return <OverviewRevenuePanel data={revenue} />;
+        return <OverviewRevenuePanel data={revenue} periodPreset={periodPreset} />;
 
       case 'clients':
         return <OverviewClientsPanel data={clients} />;
@@ -107,6 +100,7 @@ export function AdminOverviewTab({
     onOpenAppointment,
     reportRange.end,
     reportRange.start,
+    periodPreset,
     revenue,
     serviceCount,
     summary,
@@ -118,19 +112,6 @@ export function AdminOverviewTab({
         className={`mx-auto w-full min-w-0 max-w-full overflow-x-hidden ${ADMIN_CABINET_SHELL_MAX} space-y-4`}
         style={{ paddingBottom: `calc(${OVERVIEW_TAB_BAR_HEIGHT} + 1.25rem)` }}
       >
-        <div className="flex items-start justify-between gap-3 px-0.5 pt-1">
-          <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#F47C8C]">
-              Кабинет мастера
-            </p>
-          </div>
-
-          <div className="rounded-full border border-[#FDE8ED] bg-white px-4 py-2 text-right shadow-[0_8px_24px_rgba(17,24,39,0.05)]">
-            <p className="text-[11px] font-medium text-[#9CA3AF]">Период</p>
-            <p className="text-[13px] font-bold text-[#111827]">{PERIOD_LABEL[periodPreset]}</p>
-          </div>
-        </div>
-
         <OverviewPeriodFilter value={periodPreset} onChange={setPeriodPreset} />
 
         <div

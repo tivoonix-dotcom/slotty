@@ -15,15 +15,12 @@ import {
   overviewIconCircle,
   overviewPinkBtn,
 } from './adminOverviewTheme';
-import type { RevenueAnalytics } from './overviewAnalytics';
 import { formatAppointmentWhenRu, formatBynRu } from './overviewFormat';
 import {
-  OverviewEmptyState,
   OverviewHeroEmpty,
   OverviewLineChart,
   OverviewCompactMetricCard,
   OverviewSectionCard,
-  OverviewStatRow,
   OverviewWideMetricCard,
 } from './OverviewSharedUi';
 
@@ -158,120 +155,7 @@ export function OverviewSummaryPanel({
   );
 }
 
-export function OverviewRevenuePanel({ data }: { data: RevenueAnalytics }) {
-  if (!data.hasRevenue && data.unpaidCount === 0) {
-    return (
-      <div className="space-y-4">
-        <OverviewEmptyState
-          icon={<HiWallet className="h-7 w-7" aria-hidden />}
-          title="Дохода пока нет"
-          text="Когда появятся оплаченные записи, здесь будет график дохода и финансовая аналитика."
-        />
-
-        <OverviewSectionCard
-          title="Что будет здесь"
-          subtitle="После первых оплат появится вся финансовая картина"
-          icon={<HiBanknotes className="h-5 w-5" aria-hidden />}
-        >
-          <div className="divide-y divide-[#EAECEF]">
-            <OverviewStatRow label="Доход по дням" value="0 BYN" />
-            <OverviewStatRow label="Средний чек" value="0 BYN" />
-            <OverviewStatRow label="Оплачено" value="0 BYN" />
-          </div>
-        </OverviewSectionCard>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-w-0 space-y-4 overflow-x-hidden">
-      <OverviewWideMetricCard
-        icon={<HiBanknotes className="h-7 w-7" aria-hidden />}
-        label="Доход за период"
-        value={formatBynRu(data.totalRevenue)}
-        sub="Сумма завершённых и оплаченных записей"
-        badge={
-          data.completedCount > 0 ? (
-            <span className="inline-flex rounded-full bg-[#ECFDF3] px-3 py-1 text-[12px] font-bold text-[#22C55E]">
-              {data.completedCount} завершённых
-            </span>
-          ) : data.unpaidCount > 0 ? (
-            <span className="inline-flex rounded-full bg-[#FFF1F4] px-3 py-1 text-[12px] font-bold text-[#F47C8C]">
-              {data.unpaidCount} ожидают оплаты
-            </span>
-          ) : null
-        }
-      />
-
-      <OverviewSectionCard
-        title="Детализированный график дохода"
-        subtitle="Динамика по дням — наведите или проведите по графику"
-        icon={<HiWallet className="h-5 w-5" aria-hidden />}
-      >
-        <OverviewLineChart
-          stats={data.dayStats}
-          mode="revenue"
-          size="large"
-          emptyHint="Дохода за период нет"
-        />
-
-        {data.chartIsTruncated ? (
-          <p className="mt-3 text-[11px] leading-snug text-[#9CA3AF]">
-            График показывает последние 90 дней, суммы считаются за весь выбранный период.
-          </p>
-        ) : null}
-      </OverviewSectionCard>
-
-      <div className="grid min-w-0 grid-cols-3 gap-2">
-        <OverviewCompactMetricCard
-          icon={<HiBanknotes className="h-[18px] w-[18px]" aria-hidden />}
-          label="Средний"
-          value={data.completedCount > 0 ? formatBynRu(data.avgCheck) : '0 BYN'}
-          sub="чек"
-        />
-        <OverviewCompactMetricCard
-          icon={<HiWallet className="h-[18px] w-[18px]" aria-hidden />}
-          label="Оплачено"
-          value={formatBynRu(data.paidAmount)}
-          sub={`${data.paidCount} зап.`}
-        />
-        <OverviewCompactMetricCard
-          icon={<HiCalendar className="h-[18px] w-[18px]" aria-hidden />}
-          label="Ожидают"
-          value={formatBynRu(data.unpaidAmount)}
-          sub={`${data.unpaidCount} зап.`}
-          valueClassName={data.unpaidAmount > 0 ? 'text-[#F47C8C]' : undefined}
-        />
-      </div>
-
-      <OverviewSectionCard
-        title="Детализация"
-        subtitle="Разделение дохода по статусам"
-        icon={<HiBanknotes className="h-5 w-5" aria-hidden />}
-      >
-        <div className="divide-y divide-[#EAECEF]">
-          <OverviewStatRow
-            label="Средний чек"
-            value={data.completedCount > 0 ? formatBynRu(data.avgCheck) : '0 BYN'}
-            hint="оценка по завершённым записям"
-          />
-
-          <OverviewStatRow
-            label="Оплачено"
-            value={formatBynRu(data.paidAmount)}
-            hint={`${data.paidCount} завершённых`}
-          />
-
-          <OverviewStatRow
-            label="Не оплачено"
-            value={formatBynRu(data.unpaidAmount)}
-            hint={`${data.unpaidCount} ожидают визита`}
-          />
-        </div>
-      </OverviewSectionCard>
-    </div>
-  );
-}
+export { OverviewRevenuePanel } from './OverviewRevenuePanel';
 
 export { OverviewClientsPanel } from './OverviewClientsPanel';
 
