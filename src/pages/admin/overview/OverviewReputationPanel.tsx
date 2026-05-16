@@ -3,9 +3,10 @@ import {
   HiArrowTrendingUp,
   HiChatBubbleLeftRight,
   HiChevronRight,
+  HiSparkles,
   HiStar,
 } from 'react-icons/hi2';
-import { overviewPinkBtn } from './adminOverviewTheme';
+import { overviewCard, overviewCardPad, overviewIconCircle, overviewPinkBtn } from './adminOverviewTheme';
 import { OverviewRatingChart } from './OverviewRatingChart';
 import {
   computeReputationFromReviews,
@@ -15,11 +16,27 @@ import {
 import { formatReviewDayMonthRu } from './overviewFormat';
 import {
   OverviewCompactMetricCard,
-  OverviewEmptyState,
-  OverviewMetricCard,
   OverviewSectionCard,
   OverviewWideMetricCard,
 } from './OverviewSharedUi';
+
+function ReputationEmptyMetric({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+}) {
+  return (
+    <div className={`${overviewCard} border border-[#F3F4F6] bg-[#FAFAFA] p-4 shadow-none`}>
+      <p className="text-[12px] font-semibold text-[#6B7280]">{label}</p>
+      <p className="mt-1 text-[22px] font-bold tracking-[-0.04em] text-[#111827]">{value}</p>
+      <p className="mt-0.5 text-[11px] font-medium text-[#9CA3AF]">{sub}</p>
+    </div>
+  );
+}
 
 function reviewsCountLabel(n: number): string {
   const mod10 = n % 10;
@@ -198,33 +215,30 @@ export function OverviewReputationPanel({
 
   if (!data.hasReviews) {
     return (
-      <div className="min-w-0 space-y-4 overflow-x-hidden">
-        <OverviewEmptyState
-          icon={<HiStar className="h-7 w-7" aria-hidden />}
-          title="Отзывов пока нет"
-          text="После первых отзывов здесь появится рейтинг мастера и аналитика репутации."
-        />
-
-        <OverviewSectionCard
-          title="Репутация"
-          subtitle="Здесь будут рейтинг, новые отзывы и отзывы без ответа"
-          icon={<HiStar className="h-5 w-5" aria-hidden />}
-        >
-          <div className="grid min-w-0 grid-cols-2 gap-2.5">
-            <OverviewMetricCard
-              icon={<HiStar className="h-5 w-5" aria-hidden />}
-              label="Рейтинг"
-              value="Новый"
-              sub="пока нет оценок"
-            />
-            <OverviewMetricCard
-              icon={<HiStar className="h-5 w-5" aria-hidden />}
-              label="Отзывы"
-              value="0"
-              sub="за всё время"
-            />
+      <div className="min-w-0 overflow-x-hidden">
+        <section className={`${overviewCard} ${overviewCardPad}`}>
+          <div className="flex items-start gap-3">
+            <span className={`${overviewIconCircle} h-12 w-12 rounded-[18px]`}>
+              <HiChatBubbleLeftRight className="h-6 w-6" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[17px] font-bold tracking-[-0.04em] text-[#111827]">Репутация</h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-[#6B7280]">
+                Отзывов пока нет. После первых оценок здесь появятся рейтинг, динамика и ответы клиентам.
+              </p>
+            </div>
           </div>
-        </OverviewSectionCard>
+
+          <div className="mt-5 grid min-w-0 grid-cols-2 gap-2.5">
+            <ReputationEmptyMetric label="Рейтинг" value="—" sub="пока нет оценок" />
+            <ReputationEmptyMetric label="Отзывы" value="0" sub="за всё время" />
+          </div>
+
+          <p className="mt-4 flex items-center gap-1.5 text-[12px] font-medium text-[#9CA3AF]">
+            <HiSparkles className="h-4 w-4 shrink-0 text-[#F9A8B4]" aria-hidden />
+            Рейтинг считается по опубликованным отзывам клиентов
+          </p>
+        </section>
       </div>
     );
   }
@@ -240,11 +254,10 @@ export function OverviewReputationPanel({
   return (
     <div className="min-w-0 space-y-4 overflow-x-hidden">
       <OverviewWideMetricCard
-        icon={<HiStar className="h-7 w-7" aria-hidden />}
+        icon={<HiStar className="h-7 w-7 text-[#FBBF24]" aria-hidden />}
         label="Средний рейтинг"
-        value={average.toFixed(1)}
+        value={`${average.toFixed(1)} из 5`}
         sub={`На основе ${reviewsCountLabel(data.reviewsCount)}`}
-        badge={<RatingStars value={average} />}
       />
 
       <div className="grid min-w-0 grid-cols-2 gap-2.5">
@@ -291,7 +304,7 @@ export function OverviewReputationPanel({
             ? `${data.ratingDelta >= 0 ? '+' : ''}${data.ratingDelta.toFixed(1)} к прошлому периоду`
             : 'Средний рейтинг по дням'
         }
-        icon={<HiStar className="h-5 w-5" aria-hidden />}
+        icon={<HiArrowTrendingUp className="h-5 w-5" aria-hidden />}
         action={trendBadge}
       >
         <OverviewRatingChart stats={data.ratingByDay} />

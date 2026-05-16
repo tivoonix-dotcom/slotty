@@ -153,17 +153,17 @@ export function AdminLayout() {
       ? `pb-[calc(${OVERVIEW_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1rem)]`
       : '';
 
-  const overviewShellBg = isOverview ? overviewPageBg : 'bg-white';
+  const pageShellBg = isOverview ? overviewPageBg : 'bg-white';
 
   return (
     <div
-      className={`min-h-dvh pb-[calc(2rem+env(safe-area-inset-bottom,0px))] text-[#111827] ${overviewShellBg}`}
+      className={`min-h-dvh pb-[calc(2rem+env(safe-area-inset-bottom,0px))] text-[#111827] ${pageShellBg}`}
     >
       <AdminMasterCabinetProvider>
         <ProfileTabProvider>
           <div
             ref={stickyShellRef}
-            className={`sticky top-0 z-40 w-full min-w-0 ${overviewShellBg}`}
+            className="sticky top-0 z-40 w-full min-w-0 bg-white"
             style={
               {
                 '--slotty-admin-header-h': '4.5rem',
@@ -172,43 +172,38 @@ export function AdminLayout() {
             }
           >
             <div
-              className={`mx-auto flex w-full min-w-0 ${ADMIN_CABINET_SHELL_MAX} items-center justify-between gap-3 px-4 pb-0.5 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] ${
-                isProfileHome ? 'min-h-11 border-b-2 border-[#F47C8C]' : 'min-h-[3.25rem] border-b-2 border-[#F47C8C]'
-              }`}
+              className={`mx-auto flex w-full min-w-0 ${ADMIN_CABINET_SHELL_MAX} items-center justify-between gap-3 px-4 pb-3 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] min-h-[3.5rem]`}
             >
                 <Link
                   to={HUB_PATH}
                   aria-label="SLOTTY — на главную"
-                  className="inline-flex h-10 max-h-11 min-h-11 shrink-0 items-center overflow-hidden py-1 outline-none ring-0 transition hover:opacity-60 active:scale-[0.99]"
+                  className="inline-flex h-12 min-h-12 shrink-0 items-center overflow-hidden outline-none ring-0 transition hover:opacity-60 active:scale-[0.99]"
                 >
                   <img
                     src={HEADER_LOGO_SRC}
                     alt=""
                     decoding="async"
                     fetchPriority="low"
-                    className="h-8 w-auto max-w-[min(7.5rem,40vw)] object-contain object-left sm:h-9 sm:max-w-[7.5rem]"
+                    className="h-10 w-auto max-w-[min(10rem,52vw)] object-contain object-left sm:h-11 sm:max-w-[11rem]"
                   />
                 </Link>
                 <button
                   type="button"
                   onClick={() => setMenuOpen(true)}
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[#111827] transition active:scale-[0.97] ${
-                    isOverview
-                      ? 'bg-white shadow-[0_4px_14px_rgba(17,24,39,0.06)] hover:bg-white'
-                      : 'bg-[#F7F7F8] hover:bg-[#F3F4F6]'
-                  }`}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F3F4F6] text-[#111827] transition hover:bg-[#E4E7EC] active:scale-[0.97]"
                   aria-label="Меню разделов"
                   aria-expanded={menuOpen}
                 >
                   <IconBurger className="text-neutral-800" />
                 </button>
               </div>
+            <div className="w-full border-b-2 border-[#F47C8C]" aria-hidden />
           </div>
 
           {!isProfileHome ? <AdminCabinetStatusBanner /> : null}
 
           <div className={`mx-auto w-full min-w-0 ${ADMIN_CABINET_SHELL_MAX} ${shellPadBottom}`}>
-            <div className={isOverview ? 'w-full min-w-0 px-4 pt-1' : 'w-full min-w-0'}>
+            <div className="w-full min-w-0 px-4 pt-4">
               <Outlet />
             </div>
             <ProfileSectionTabsBar />
