@@ -647,7 +647,6 @@ export function SheetAddress({
       ) : null}
 
       <div className="space-y-2 overflow-visible">
-        <p className="text-[13px] font-semibold text-neutral-500">Карта</p>
         {visitType === 'studio' ? (
           <p className="text-[12px] leading-snug text-neutral-500">
             Поставьте метку у входа в салон — так проще найти вас на месте.

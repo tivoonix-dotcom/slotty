@@ -7,8 +7,8 @@ export function AdminScheduleSection() {
 
   return (
     <AdminSectionLayout
-      title="Окна для записи"
-      subtitle="Добавьте свободное время, на которое клиенты смогут записаться."
+      title="Расписание"
+      subtitle="Добавляйте свободные окна для записи клиентов и управляйте графиком в календаре."
     >
       <AdminScheduleTab draft={draft} onPersist={persistDraft} />
     </AdminSectionLayout>

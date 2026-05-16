@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { MasterDraft, MasterOnboardingService } from '../../../features/profile/lib/demoMasterStorage';
+import { getMySubscription } from '../../../features/admin/api/adminBillingApi';
 import {
   createMySlot,
   deleteMySlot,
@@ -9,6 +10,7 @@ import {
 } from '../../../features/admin/api/adminSlotsApi';
 import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
+import { SlottyDatePicker } from '../../../shared/ui/SlottyDatePicker';
 import { SlottySelect } from '../../../shared/ui/SlottySelect';
 import { mergeScheduleTimeSelectOptions } from './scheduleTimeSelectOptions';
 import { ADMIN_SERVICES_PATH } from '../../../app/paths';
@@ -101,6 +103,33 @@ function isLocalDateIsoBeforeToday(dateIso: string): boolean {
   const d = startOfLocalDay(parseIsoDate(dateIso));
   const t = startOfLocalDay(new Date());
   return d.getTime() < t.getTime();
+}
+
+type PlannedSlotRejectReason = 'invalid_time' | 'short' | 'past' | 'horizon';
+
+function isStartWithinScheduleHorizon(startMs: number, horizonDays: number | null): boolean {
+  if (horizonDays == null || horizonDays <= 0) return true;
+  return startMs <= Date.now() + horizonDays * 24 * 60 * 60 * 1000;
+}
+
+function evaluatePlannedSlot(
+  p: PlannedSlot,
+  now: number,
+  horizonDays: number | null,
+): { ok: true } | { ok: false; reason: PlannedSlotRejectReason } {
+  if (timeToMinutes(p.endTime) <= timeToMinutes(p.startTime)) {
+    return { ok: false, reason: 'invalid_time' };
+  }
+  const startMs = new Date(localDateTimeToUtcIso(p.dateIso, p.startTime)).getTime();
+  const endMs = new Date(localDateTimeToUtcIso(p.dateIso, p.endTime)).getTime();
+  if (endMs - startMs < 10 * 60 * 1000) return { ok: false, reason: 'short' };
+  if (startMs <= now) return { ok: false, reason: 'past' };
+  if (!isStartWithinScheduleHorizon(startMs, horizonDays)) return { ok: false, reason: 'horizon' };
+  return { ok: true };
+}
+
+function isHorizonLimitErrorMessage(message: string): boolean {
+  return /горизонт|тариф/i.test(message);
 }
 
 /**
@@ -284,6 +313,8 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [clearFutureStep, setClearFutureStep] = useState<0 | 1>(0);
+  /** null — лимит неизвестен; 0 — без ограничения (редко). */
+  const [scheduleHorizonDays, setScheduleHorizonDays] = useState<number | null>(null);
 
   const reloadSlots = useCallback(async (): Promise<MySlotDto[]> => {
     const list = await getMySlots();
@@ -310,6 +341,24 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
+  }, [useCabinetApi]);
+
+  useEffect(() => {
+    if (!useCabinetApi) {
+      setScheduleHorizonDays(90);
+      return;
+    }
+    let cancelled = false;
+    void getMySubscription()
+      .then((sub) => {
+        if (!cancelled) setScheduleHorizonDays(sub.plan.maxScheduleDaysAhead);
+      })
+      .catch(() => {
+        if (!cancelled) setScheduleHorizonDays(14);
+      });
     return () => {
       cancelled = true;
     };
@@ -381,19 +430,22 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
     weeklyRepeatWeeks,
   ]);
 
-  const plannedCreatableCount = useMemo(() => {
+  const plannedSlotStats = useMemo(() => {
     const now = Date.now();
-    let n = 0;
+    let creatable = 0;
+    let beyondHorizon = 0;
     for (const p of plannedSlots) {
-      const startMs = new Date(localDateTimeToUtcIso(p.dateIso, p.startTime)).getTime();
-      const endMs = new Date(localDateTimeToUtcIso(p.dateIso, p.endTime)).getTime();
-      if (timeToMinutes(p.endTime) <= timeToMinutes(p.startTime)) return 0;
-      if (endMs - startMs < 10 * 60 * 1000) continue;
-      if (startMs <= now) continue;
-      n += 1;
+      const ev = evaluatePlannedSlot(p, now, scheduleHorizonDays);
+      if (ev.ok) {
+        creatable += 1;
+      } else if (ev.reason === 'horizon') {
+        beyondHorizon += 1;
+      }
     }
-    return n;
-  }, [plannedSlots]);
+    return { creatable, beyondHorizon };
+  }, [plannedSlots, scheduleHorizonDays]);
+
+  const plannedCreatableCount = plannedSlotStats.creatable;
 
   const validateService = useCallback(
     (sid: string | null): string | null => {
@@ -412,14 +464,29 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
     if (timeToMinutes(endTime) <= timeToMinutes(startTime)) {
       return 'Время окончания должно быть позже времени начала.';
     }
-    const startMs = new Date(localDateTimeToUtcIso(dateIso, startTime)).getTime();
     const endMs = new Date(localDateTimeToUtcIso(dateIso, endTime)).getTime();
+    const startMs = new Date(localDateTimeToUtcIso(dateIso, startTime)).getTime();
     if (endMs - startMs < 10 * 60 * 1000) {
       return 'Минимальная длительность окна — 10 минут.';
     }
-    if (startMs <= Date.now()) return 'Нельзя создать окно в прошлом.';
+    const now = Date.now();
+    const anyCreatable = plannedSlots.some((p) => evaluatePlannedSlot(p, now, scheduleHorizonDays).ok);
+    if (!anyCreatable) {
+      if (
+        scheduleHorizonDays != null &&
+        scheduleHorizonDays > 0 &&
+        plannedSlots.length > 0 &&
+        plannedSlots.every((p) => {
+          const ev = evaluatePlannedSlot(p, now, scheduleHorizonDays);
+          return !ev.ok && ev.reason === 'horizon';
+        })
+      ) {
+        return `По тарифу запись доступна не дальше чем на ${scheduleHorizonDays} дней вперёд.`;
+      }
+      return 'Нельзя создать окно в прошлом.';
+    }
     return validateService(serviceId.trim() ? serviceId.trim() : null);
-  }, [dateIso, endTime, serviceId, startTime, validateService]);
+  }, [dateIso, endTime, plannedSlots, scheduleHorizonDays, serviceId, startTime, validateService]);
 
   const onAddWindows = useCallback(async () => {
     setCreateError(null);
@@ -437,11 +504,8 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
     const now = Date.now();
     const built: { startsAt: string; endsAt: string; serviceId: string | null }[] = [];
     for (const p of plannedSlots) {
-      const startMs = new Date(localDateTimeToUtcIso(p.dateIso, p.startTime)).getTime();
-      const endMs = new Date(localDateTimeToUtcIso(p.dateIso, p.endTime)).getTime();
-      if (timeToMinutes(p.endTime) <= timeToMinutes(p.startTime)) continue;
-      if (endMs - startMs < 10 * 60 * 1000) continue;
-      if (startMs <= now) continue;
+      const ev = evaluatePlannedSlot(p, now, scheduleHorizonDays);
+      if (!ev.ok) continue;
       const se = validateService(p.serviceId);
       if (se) {
         setCreateError(se);
@@ -455,6 +519,10 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
     }
 
     if (built.length === 0) {
+      if (plannedSlotStats.beyondHorizon > 0 && scheduleHorizonDays != null && scheduleHorizonDays > 0) {
+        setCreateError(`По тарифу запись доступна не дальше чем на ${scheduleHorizonDays} дней вперёд.`);
+        return;
+      }
       setCreateError('Нельзя создать окно в прошлом.');
       return;
     }
@@ -495,6 +563,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       let created = 0;
       let skipped = 0;
       let failed = 0;
+      let horizonFailed = 0;
       for (const b of built) {
         const sm = new Date(b.startsAt).getTime();
         const em = new Date(b.endsAt).getTime();
@@ -510,8 +579,9 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
           });
           existing.push(createdSlot);
           created += 1;
-        } catch {
+        } catch (e) {
           failed += 1;
+          if (e instanceof Error && isHorizonLimitErrorMessage(e.message)) horizonFailed += 1;
         }
       }
       await reloadSlots();
@@ -530,7 +600,13 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         } else {
           parts.push(`Создано ${windowsCountRu(created)}`);
           if (skipped > 0) parts.push(`${skipped} пропущено из-за пересечения`);
-          if (failed > 0) parts.push(`${failed} не удалось сохранить`);
+          if (horizonFailed > 0 && scheduleHorizonDays != null && scheduleHorizonDays > 0) {
+            parts.push(
+              `${horizonFailed} не создано: по тарифу не дальше ${scheduleHorizonDays} дн.`,
+            );
+          } else if (failed > 0) {
+            parts.push(`${failed} не удалось сохранить`);
+          }
         }
         showToast(parts.join(', '));
       } else if (created === 1) {
@@ -543,7 +619,17 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
     } finally {
       setSaving(false);
     }
-  }, [plannedSlots, reloadSlots, rows, showToast, useCabinetApi, validatePlannedBase, validateService]);
+  }, [
+    plannedSlotStats.beyondHorizon,
+    plannedSlots,
+    reloadSlots,
+    rows,
+    scheduleHorizonDays,
+    showToast,
+    useCabinetApi,
+    validatePlannedBase,
+    validateService,
+  ]);
 
   const onSingleOverlapCheck = useCallback(
     (startsAt: string, endsAt: string): boolean => {
@@ -989,15 +1075,15 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         <div className="space-y-4 rounded-[24px] bg-[#F8F6F6] p-4">
           <label className="block">
             <span className="text-[13px] font-semibold text-neutral-500">Дата</span>
-            <input
-              type="date"
-              min={minDateIso}
+            <SlottyDatePicker
+              className="mt-1.5 w-full"
               value={dateIso}
-              onChange={(e) => {
-                setDateIso(e.target.value);
+              min={minDateIso}
+              onChange={(v) => {
+                setDateIso(v);
                 setCreateError(null);
               }}
-              className="mt-1.5 w-full min-h-[3rem] rounded-[18px] border border-neutral-200/60 bg-white px-4 py-3 text-[16px] font-semibold text-neutral-900 outline-none focus:border-[#E29595]"
+              aria-label="Дата окна"
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -1145,9 +1231,10 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
           <p className="text-center text-[15px] font-semibold text-neutral-800">
             Будет создано: {windowsCountRu(plannedCreatableCount)}
           </p>
-          {plannedCreatableCount < plannedSlots.length && plannedSlots.length > 0 ? (
-            <p className="text-center text-[12px] text-neutral-500">
-              Часть дат в прошлом или короче 10 минут — они не будут созданы.
+          {plannedSlotStats.beyondHorizon > 0 && scheduleHorizonDays != null && scheduleHorizonDays > 0 ? (
+            <p className="text-center text-[12px] leading-snug text-neutral-500">
+              По тарифу запись открыта на {scheduleHorizonDays} дней вперёд —{' '}
+              {windowsCountRu(plannedSlotStats.beyondHorizon)} из повтора не войдут.
             </p>
           ) : null}
 
@@ -1309,15 +1396,15 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
             <div className="mt-4 space-y-3">
               <label className="block">
                 <span className="text-[13px] font-semibold text-neutral-500">Дата</span>
-                <input
-                  type="date"
-                  min={minDateIso}
+                <SlottyDatePicker
+                  className="mt-1.5 w-full"
                   value={dupDateIso}
-                  onChange={(e) => {
-                    setDupDateIso(e.target.value);
+                  min={minDateIso}
+                  onChange={(v) => {
+                    setDupDateIso(v);
                     setDupError(null);
                   }}
-                  className="mt-1.5 w-full min-h-[3rem] rounded-[18px] border border-neutral-200/60 bg-white px-4 py-3 text-[16px] font-semibold outline-none focus:border-[#E29595]"
+                  aria-label="Дата копии окна"
                 />
               </label>
               <div className="grid grid-cols-2 gap-2">
