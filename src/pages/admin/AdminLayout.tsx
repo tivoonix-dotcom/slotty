@@ -128,10 +128,10 @@ export function AdminLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-dvh bg-[#F1EFEF] pb-[calc(2rem+env(safe-area-inset-bottom,0px))] text-neutral-900">
+    <div className="min-h-dvh bg-white pb-[calc(2rem+env(safe-area-inset-bottom,0px))] text-[#111827]">
       <AdminMasterCabinetProvider>
         <div className="mx-auto max-w-lg">
-          <div className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-[#F1EFEF] px-4 pb-3 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
+          <div className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-white/95 px-4 pb-3 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] backdrop-blur-md">
             <Link
               to={HUB_PATH}
               aria-label="SLOTTY — на главную"
@@ -148,7 +148,7 @@ export function AdminLayout() {
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-neutral-900 shadow-[0_8px_24px_rgba(17,17,17,0.06)] transition active:scale-[0.97]"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F7F7F8] text-[#111827] transition hover:bg-[#F3F4F6] active:scale-[0.97]"
               aria-label="Меню разделов"
               aria-expanded={menuOpen}
             >

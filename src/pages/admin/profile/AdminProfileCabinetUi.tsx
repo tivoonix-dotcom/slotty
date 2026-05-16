@@ -1,25 +1,23 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  HiArrowLeft,
   HiCalendar,
   HiChatBubbleLeft,
   HiCheckCircle,
   HiChevronRight,
   HiClock,
-  HiCog6Tooth,
   HiFaceSmile,
   HiMapPin,
   HiPaperAirplane,
   HiPencil,
   HiPhone,
-  HiRectangleStack,
+  HiPhoto,
+  HiTag,
   HiStar,
   HiUser,
   HiDocumentText,
 } from 'react-icons/hi2';
 import { BY } from 'country-flag-icons/react/1x1';
-import { HUB_PATH, ADMIN_SERVICES_PATH } from '../../../app/paths';
+import { ADMIN_SERVICES_PATH } from '../../../app/paths';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import {
   defaultMasterAvatarUrl,
@@ -37,31 +35,6 @@ export function CabinetPageShell({ children }: { children: ReactNode }) {
     <div className="mx-auto w-full max-w-[460px] bg-white pb-[calc(2rem+env(safe-area-inset-bottom,0px))] text-[#111827]">
       {children}
     </div>
-  );
-}
-
-export function CabinetPageHeader({ onSettings }: { onSettings: () => void }) {
-  return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-white/95 px-4 pb-3 pt-[calc(0.35rem+env(safe-area-inset-top,0px))] backdrop-blur-md">
-      <Link
-        to={HUB_PATH}
-        aria-label="Назад"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F7F7F8] text-[#111827] transition hover:bg-[#F3F4F6] active:scale-[0.97]"
-      >
-        <HiArrowLeft className="h-5 w-5" strokeWidth={2} />
-      </Link>
-      <h1 className="flex-1 text-center text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">
-        Кабинет мастера
-      </h1>
-      <button
-        type="button"
-        onClick={onSettings}
-        aria-label="Редактировать профиль"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F7F7F8] text-[#111827] transition hover:bg-[#F3F4F6] active:scale-[0.97]"
-      >
-        <HiCog6Tooth className="h-5 w-5" strokeWidth={2} />
-      </button>
-    </header>
   );
 }
 
@@ -177,7 +150,7 @@ export function SectionTabs({
 }) {
   const tabs: Array<{ id: ProfileSectionId; label: string; icon: ReactNode }> = [
     { id: 'main', label: 'Профиль', icon: <HiUser className="h-[18px] w-[18px]" strokeWidth={2} /> },
-    { id: 'portfolio', label: 'Портфолио', icon: <HiRectangleStack className="h-[18px] w-[18px]" strokeWidth={2} /> },
+    { id: 'portfolio', label: 'Портфолио', icon: <HiPhoto className="h-[18px] w-[18px]" strokeWidth={2} /> },
     { id: 'address', label: 'Адрес', icon: <HiMapPin className="h-[18px] w-[18px]" strokeWidth={2} /> },
     { id: 'rules', label: 'Правила', icon: <HiDocumentText className="h-[18px] w-[18px]" strokeWidth={2} /> },
   ];
@@ -264,7 +237,7 @@ export function MainInfoCard({ draft, onEdit }: { draft: MasterDraft; onEdit: ()
         <InfoGridCell
           label="Категория"
           value={valueOrDash(draft.category)}
-          icon={<HiRectangleStack className="h-[18px] w-[18px]" strokeWidth={2} />}
+          icon={<HiTag className="h-[18px] w-[18px]" strokeWidth={2} />}
         />
         <InfoGridCell
           label="Телефон"

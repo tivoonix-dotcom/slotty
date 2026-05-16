@@ -16,13 +16,16 @@ type Props = {
   useCabinetApi?: boolean;
 };
 
+const iconSm = 'h-3.5 w-3.5 shrink-0';
+const iconXs = 'h-3 w-3 shrink-0';
+
 function LinkFieldSkeleton() {
   return (
-    <div className="mt-4 space-y-3 animate-pulse">
-      <div className="h-12 w-full rounded-2xl bg-[#F7F7F8]" />
-      <div className="flex gap-2.5">
-        <div className="h-12 min-h-[48px] flex-1 rounded-2xl bg-[#F3F4F6]" />
-        <div className="h-12 min-h-[48px] flex-1 rounded-2xl bg-[#F3F4F6]" />
+    <div className="mt-2.5 space-y-2 animate-pulse">
+      <div className="h-8 w-full rounded-xl bg-[#F7F7F8]" />
+      <div className="flex gap-2">
+        <div className="h-8 flex-1 rounded-xl bg-[#F3F4F6]" />
+        <div className="h-8 flex-1 rounded-xl bg-[#F3F4F6]" />
       </div>
     </div>
   );
@@ -103,17 +106,19 @@ export function MasterBookingLinkCard({ draft, cabinetLoading, useCabinetApi }: 
   const statusLine = copied ? 'Скопировано' : shareHint;
 
   return (
-    <section className="rounded-[22px] bg-white p-[18px] shadow-[0_8px_32px_rgba(17,24,39,0.06)]">
-      <div className="flex items-start gap-3.5">
+    <section className="rounded-[18px] bg-white px-3 py-2.5 shadow-[0_4px_20px_rgba(17,24,39,0.05)]">
+      <div className="flex items-center gap-2">
         <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#FFF1F4] text-[#F47C8C]"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FFF1F4] text-[#F47C8C]"
           aria-hidden
         >
-          <HiLink className="h-5 w-5" strokeWidth={2} />
+          <HiLink className={iconXs} strokeWidth={2.25} />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Ссылка для записи</h2>
-          <p className="mt-0.5 text-[13px] leading-snug text-[#6B7280]">
+          <h2 className="text-[14px] font-semibold leading-tight tracking-[-0.02em] text-[#111827]">
+            Ссылка для записи
+          </h2>
+          <p className="mt-px text-[11px] leading-snug text-[#6B7280] line-clamp-1">
             Отправьте клиентам для записи на услуги
           </p>
         </div>
@@ -123,58 +128,58 @@ export function MasterBookingLinkCard({ draft, cabinetLoading, useCabinetApi }: 
         <LinkFieldSkeleton />
       ) : resolved ? (
         <>
-          <div className="mt-4 rounded-2xl bg-[#F7F7F8] px-3.5 py-3 ring-1 ring-[#EAECEF]">
-            <p className="truncate text-[14px] font-medium text-[#111827]" title={resolved.href}>
+          <div className="mt-2 rounded-xl bg-[#F7F7F8] px-2.5 py-1.5 ring-1 ring-[#EAECEF]">
+            <p className="truncate text-[12px] font-medium leading-tight text-[#111827]" title={resolved.href}>
               {resolved.href}
             </p>
           </div>
 
-          <div className="mt-3 flex gap-2.5">
+          <div className="mt-2 flex gap-1.5">
             <button
               type="button"
               onClick={onCopy}
-              className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-[15px] font-semibold transition active:scale-[0.98] ${
+              className={`flex h-8 min-h-0 flex-1 items-center justify-center gap-1 rounded-xl px-2 text-[12px] font-semibold transition active:scale-[0.98] ${
                 copied
                   ? 'bg-emerald-50 text-emerald-700'
-                  : 'bg-[#F47C8C] text-white shadow-[0_8px_24px_rgba(244,124,140,0.35)] hover:bg-[#F26D83]'
+                  : 'bg-[#F47C8C] text-white shadow-[0_4px_14px_rgba(244,124,140,0.28)] hover:bg-[#F26D83]'
               }`}
             >
               {copied ? (
-                <HiCheck className="h-5 w-5" strokeWidth={2.25} />
+                <HiCheck className={iconSm} strokeWidth={2.5} />
               ) : (
-                <HiClipboardDocument className="h-5 w-5" strokeWidth={2} />
+                <HiClipboardDocument className={iconSm} strokeWidth={2} />
               )}
-              {copied ? 'Скопировано' : 'Копировать'}
+              <span className="truncate">{copied ? 'Скопировано' : 'Копировать'}</span>
             </button>
             <button
               type="button"
               onClick={() => void onShare()}
-              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#F7F7F8] text-[15px] font-semibold text-[#111827] transition hover:bg-[#F3F4F6] active:scale-[0.98]"
+              className="flex h-8 min-h-0 flex-1 items-center justify-center gap-1 rounded-xl bg-[#F7F7F8] px-2 text-[12px] font-semibold text-[#111827] transition hover:bg-[#F3F4F6] active:scale-[0.98]"
             >
-              <HiShare className="h-5 w-5" strokeWidth={2} />
-              Поделиться
+              <HiShare className={iconSm} strokeWidth={2} />
+              <span className="truncate">Поделиться</span>
             </button>
           </div>
 
           <button
             type="button"
             onClick={onOpen}
-            className="mt-2.5 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl text-[14px] font-semibold text-[#6B7280] transition hover:bg-[#F7F7F8] active:scale-[0.98]"
+            className="mt-1.5 flex h-7 w-full items-center justify-center gap-1 rounded-lg text-[11px] font-medium text-[#6B7280] transition hover:bg-[#F7F7F8] active:scale-[0.98]"
           >
-            <HiArrowTopRightOnSquare className="h-4 w-4" strokeWidth={2} />
+            <HiArrowTopRightOnSquare className={iconXs} strokeWidth={2} />
             Открыть ссылку
           </button>
 
           {statusLine && statusLine !== 'Скопировано' ? (
-            <p className="mt-2 text-center text-[12px] font-medium text-[#6B7280]" role="status">
+            <p className="mt-1 text-center text-[10px] font-medium text-[#6B7280]" role="status">
               {statusLine}
             </p>
           ) : null}
         </>
       ) : (
-        <p className="mt-4 text-[13px] leading-relaxed text-[#6B7280]">
+        <p className="mt-2 text-[11px] leading-snug text-[#6B7280]">
           Не удалось сформировать ссылку: укажите{' '}
-          <code className="rounded-lg bg-[#F7F7F8] px-1.5 py-0.5 text-[12px] text-[#111827]">VITE_TELEGRAM_BOT_USERNAME</code>{' '}
+          <code className="rounded bg-[#F7F7F8] px-1 py-px text-[10px] text-[#111827]">VITE_TELEGRAM_BOT_USERNAME</code>{' '}
           в окружении или откройте приложение по HTTPS с сохранённым профилем мастера.
         </p>
       )}

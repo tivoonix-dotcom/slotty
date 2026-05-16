@@ -41,7 +41,6 @@ import {
   AboutCard,
   AdminProfileHero as CabinetProfileHero,
   buildProfileStats,
-  CabinetPageHeader,
   CabinetPageShell,
   MainInfoCard,
   ProfileCompletionCard,
@@ -1176,7 +1175,7 @@ function AdminProfileReadView({
   return (
     <div className="space-y-4">
       <CabinetProfileHero draft={draft} stats={stats} />
-      <div className="sticky top-[calc(3.25rem+env(safe-area-inset-top,0px))] z-20 -mx-1 bg-white/90 px-1 pb-1 pt-0.5 backdrop-blur-md">
+      <div className="sticky top-[calc(4.5rem+env(safe-area-inset-top,0px))] z-20 -mx-1 bg-white/90 px-1 pb-1 pt-0.5 backdrop-blur-md">
         <CabinetSectionTabs active={activeSection} onChange={setActiveSection} />
       </div>
       {section}
@@ -1655,9 +1654,7 @@ export function AdminProfileSection() {
 
   return (
     <CabinetPageShell>
-      <CabinetPageHeader onSettings={() => setSheet('main')} />
-
-      <section className="relative px-4 pb-10">
+      <section className="relative px-4 pb-10 pt-1">
         <AdminProfileReadView
           draft={draft}
           appointments={appointments}
