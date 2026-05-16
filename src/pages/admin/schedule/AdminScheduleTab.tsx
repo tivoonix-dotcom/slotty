@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
+import { preloadTabIntroImages } from '../useTabIntroImage';
 import { useAdminAppointments } from '../useAdminMasterData';
 import { AddWindowSheet } from './AddWindowSheet';
 import { CreateTemplateModal } from './CreateTemplateModal';
@@ -10,7 +11,8 @@ import { ScheduleBottomTabBar } from './ScheduleBottomTabBar';
 import { ScheduleCalendar } from './ScheduleCalendar';
 import { ScheduleCreateTab } from './ScheduleCreateTab';
 import { ScheduleSlotsListTab } from './ScheduleSlotsListTab';
-import { SCHEDULE_TAB_BAR_SCROLL_PAD } from './adminScheduleTheme';
+import { SCHEDULE_PAGE_BG, SCHEDULE_TAB_BAR_SCROLL_PAD } from './adminScheduleTheme';
+import { SCHEDULE_TAB_INTRO_IMAGES, ScheduleTabIntro } from './ScheduleTabIntro';
 import type { PlannedSlot, RepeatKind, SchedulePageTab, ScheduleWindowView } from './scheduleTypes';
 import { MSG_SLOTS_ALL_BUSY } from './scheduleTypes';
 import {
@@ -69,6 +71,10 @@ export function AdminScheduleTab({ draft }: Props) {
   } = useScheduleData(masterId, visibleServices, useCabinetApi, appointments);
 
   const [pageTab, setPageTab] = useState<SchedulePageTab>('create');
+
+  useEffect(() => {
+    preloadTabIntroImages(SCHEDULE_TAB_INTRO_IMAGES);
+  }, []);
   const [toast, setToast] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -334,7 +340,12 @@ export function AdminScheduleTab({ draft }: Props) {
 
   return (
     <>
-      <div className="space-y-4" style={{ paddingBottom: SCHEDULE_TAB_BAR_SCROLL_PAD }}>
+      <div
+        className={`-mx-4 min-w-0 space-y-4 overflow-x-hidden px-4 ${SCHEDULE_PAGE_BG}`}
+        style={{ paddingBottom: SCHEDULE_TAB_BAR_SCROLL_PAD }}
+      >
+        <ScheduleTabIntro tab={pageTab} />
+
         {pageTab === 'create' ? (
           <ScheduleCreateTab
             templates={templates}

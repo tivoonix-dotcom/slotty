@@ -1,4 +1,4 @@
-import { adminIntroOverlayClass } from './adminIntroOverlay';
+import { adminIntroOverlayClass, adminIntroScrimClass } from './adminIntroOverlay';
 import { useTabIntroImage } from './useTabIntroImage';
 
 export const ADMIN_TAB_INTRO_HEIGHT_CLASS = 'h-[8.5rem]';
@@ -28,6 +28,7 @@ export function AdminTabIntroBanner({
         className="absolute inset-0 h-full w-full object-cover object-center"
         decoding="async"
       />
+      <div className={`absolute inset-0 ${adminIntroScrimClass}`} aria-hidden />
       <div className={`absolute inset-0 ${adminIntroOverlayClass}`} aria-hidden />
       <div
         className={`relative flex ${ADMIN_TAB_INTRO_HEIGHT_CLASS} flex-col justify-center p-4`}
@@ -35,7 +36,7 @@ export function AdminTabIntroBanner({
         <h2 className="text-[18px] font-bold leading-snug tracking-[-0.04em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
           {title}
         </h2>
-        <p className="mt-1.5 line-clamp-2 max-w-[20rem] text-[13px] leading-relaxed text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.4)]">
+        <p className="mt-1.5 line-clamp-2 max-w-[20rem] text-[13px] leading-relaxed text-white/95 drop-shadow-[0_1px_8px_rgba(0,0,0,0.55)]">
           {description}
         </p>
       </div>

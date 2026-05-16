@@ -65,11 +65,7 @@ export function WindowTemplateList({ templates, selectedId, onSelect, onCreate }
 
       {templates.length > 0 ? (
         <div className="space-y-2.5">
-          <div
-            className="max-h-[min(16.5rem,44vh)] overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]"
-            role="list"
-            aria-label="Шаблоны окон"
-          >
+          <div role="list" aria-label="Шаблоны окон">
             {filtered.length === 0 ? (
               <p className="rounded-[20px] bg-[#F1EFEF] px-4 py-3 text-[13px] font-medium text-neutral-600">
                 Ничего не найдено. Попробуйте другой запрос.

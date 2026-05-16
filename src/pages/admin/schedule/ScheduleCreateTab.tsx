@@ -38,10 +38,6 @@ export function ScheduleCreateTab({
         <button type="button" className={secondaryBtnClass} onClick={onOpenWithoutTemplate}>
           Без шаблона — указать время вручную
         </button>
-        <p className="px-1 text-center text-[12px] leading-snug text-neutral-500">
-          Шаблон подставит услугу и длительность. Без шаблона можно выбрать любую услугу или оставить «Любая
-          услуга».
-        </p>
       </div>
     </div>
   );

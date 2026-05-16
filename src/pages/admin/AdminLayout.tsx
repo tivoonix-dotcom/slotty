@@ -162,7 +162,7 @@ export function AdminLayout() {
           ? `pb-[calc(${SCHEDULE_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1.25rem)]`
           : '';
 
-  const pageShellBg = isOverview || isServices ? SERVICES_PAGE_BG : 'bg-white';
+  const pageShellBg = isOverview || isServices || isSchedule ? SERVICES_PAGE_BG : 'bg-white';
 
   return (
     <div

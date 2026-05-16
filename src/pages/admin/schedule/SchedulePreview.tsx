@@ -80,7 +80,7 @@ export function SchedulePreview({
       <p className="mt-0.5 text-[12px] text-neutral-500">Проверь окна перед добавлением</p>
 
       <ul
-        className={`mt-3 space-y-2 ${expanded && needsCollapse ? 'max-h-[min(14rem,40vh)] overflow-y-auto overscroll-contain pr-0.5' : ''}`}
+        className={`mt-3 space-y-2 ${expanded && needsCollapse ? 'max-h-[min(14rem,40vh)] overflow-y-auto overscroll-y-auto pr-0.5' : ''}`}
       >
         {visibleSlots.map((s, index) => {
           const prev = index > 0 ? visibleSlots[index - 1] : null;

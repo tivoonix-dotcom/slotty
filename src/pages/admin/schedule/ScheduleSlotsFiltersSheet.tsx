@@ -1,7 +1,13 @@
+import { HiCheck } from 'react-icons/hi2';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import { SlottyDatePicker } from '../../../shared/ui/SlottyDatePicker';
 import type { ScheduleSlotsStatusFilter } from './scheduleTypes';
-import { labelClass, primaryBtnClass } from './scheduleUi';
+import {
+  labelClass,
+  primaryBtnClass,
+  scheduleChipActive,
+  secondaryBtnClass,
+} from './scheduleUi';
 
 export type ScheduleSlotsFilters = {
   status: ScheduleSlotsStatusFilter;
@@ -23,11 +29,15 @@ type Props = {
   onReset: () => void;
 };
 
-const STATUS_OPTIONS: { value: ScheduleSlotsStatusFilter; label: string }[] = [
-  { value: 'all', label: 'Все' },
-  { value: 'free', label: 'Свободные' },
-  { value: 'booked', label: 'С записью' },
-  { value: 'blocked', label: 'Недоступные' },
+const STATUS_OPTIONS: Array<{
+  value: ScheduleSlotsStatusFilter;
+  label: string;
+  hint: string;
+}> = [
+  { value: 'all', label: 'Все окна', hint: 'Любой статус' },
+  { value: 'free', label: 'Свободные', hint: 'Можно записать клиента' },
+  { value: 'booked', label: 'С записью', hint: 'Уже занято' },
+  { value: 'blocked', label: 'Недоступные', hint: 'Закрыто для записи' },
 ];
 
 function todayIso(): string {
@@ -41,25 +51,38 @@ export function ScheduleSlotsFiltersSheet({ open, onClose, filters, onChange, on
     filters.status !== 'all' || filters.dayIso.trim() !== '' || filters.onlyUpcoming;
 
   return (
-    <AdminBottomSheet open={open} onClose={onClose} title="Фильтры">
+    <AdminBottomSheet open={open} onClose={onClose} title="Фильтр окон">
       <div className="space-y-5">
         <div>
           <p className={labelClass}>Статус</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-2 space-y-2">
             {STATUS_OPTIONS.map((opt) => {
-              const active = filters.status === opt.value;
+              const selected = filters.status === opt.value;
               return (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => onChange({ ...filters, status: opt.value })}
-                  className={`rounded-full px-3.5 py-2 text-[13px] font-semibold transition active:scale-[0.98] ${
-                    active
-                      ? 'bg-[#E29595] text-white shadow-[0_6px_18px_rgba(226,149,149,0.22)]'
-                      : 'bg-[#F1EFEF] text-neutral-700'
+                  className={`flex w-full items-center gap-3 rounded-[18px] border px-4 py-3.5 text-left transition active:scale-[0.98] ${
+                    selected
+                      ? scheduleChipActive
+                      : 'border-[#EAECEF] bg-white hover:border-[#FDE8ED] hover:bg-[#FAFAFA]'
                   }`}
                 >
-                  {opt.label}
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-bold text-[#111827]">{opt.label}</span>
+                    <span className="mt-0.5 block text-[12px] font-medium text-[#9CA3AF]">{opt.hint}</span>
+                  </span>
+                  {selected ? (
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E29595] text-white">
+                      <HiCheck className="h-5 w-5" aria-hidden />
+                    </span>
+                  ) : (
+                    <span
+                      className="h-8 w-8 shrink-0 rounded-full border border-[#EAECEF] bg-[#FAFAFA]"
+                      aria-hidden
+                    />
+                  )}
                 </button>
               );
             })}
@@ -67,26 +90,26 @@ export function ScheduleSlotsFiltersSheet({ open, onClose, filters, onChange, on
         </div>
 
         <div>
-          <p className={labelClass}>Конкретный день</p>
+          <p className={labelClass}>День</p>
           {filters.dayIso ? (
-            <>
+            <div className="mt-2 space-y-2">
               <SlottyDatePicker
-                className="mt-2 w-full"
+                className="w-full"
                 value={filters.dayIso}
                 onChange={(v) => onChange({ ...filters, dayIso: v })}
               />
               <button
                 type="button"
-                className="mt-2 text-[13px] font-semibold text-[#C97B7B]"
+                className="text-[13px] font-semibold text-[#C97B7B]"
                 onClick={() => onChange({ ...filters, dayIso: '' })}
               >
                 Показать все дни
               </button>
-            </>
+            </div>
           ) : (
             <button
               type="button"
-              className="mt-2 w-full rounded-[18px] border border-dashed border-[#E29595]/40 bg-[#FFF5F5] px-4 py-3 text-[14px] font-semibold text-[#C97B7B]"
+              className={`${secondaryBtnClass} mt-2`}
               onClick={() => onChange({ ...filters, dayIso: todayIso() })}
             >
               Выбрать день
@@ -94,19 +117,33 @@ export function ScheduleSlotsFiltersSheet({ open, onClose, filters, onChange, on
           )}
         </div>
 
-        <label className="flex cursor-pointer items-center gap-3 rounded-[20px] bg-[#F1EFEF] px-4 py-3">
-          <input
-            type="checkbox"
-            checked={filters.onlyUpcoming}
-            onChange={(e) => onChange({ ...filters, onlyUpcoming: e.target.checked })}
-            className="h-5 w-5 shrink-0 rounded border-neutral-300 text-[#E29595] focus:ring-[#E29595]"
-          />
-          <span className="text-[14px] font-semibold text-neutral-800">Только предстоящие</span>
-        </label>
+        <button
+          type="button"
+          onClick={() => onChange({ ...filters, onlyUpcoming: !filters.onlyUpcoming })}
+          className={`flex w-full items-center gap-3 rounded-[18px] border px-4 py-3.5 text-left transition active:scale-[0.98] ${
+            filters.onlyUpcoming
+              ? scheduleChipActive
+              : 'border-[#EAECEF] bg-white hover:border-[#FDE8ED] hover:bg-[#FAFAFA]'
+          }`}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-bold text-[#111827]">Только предстоящие</span>
+            <span className="mt-0.5 block text-[12px] font-medium text-[#9CA3AF]">
+              Скрыть прошедшие окна
+            </span>
+          </span>
+          {filters.onlyUpcoming ? (
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E29595] text-white">
+              <HiCheck className="h-5 w-5" aria-hidden />
+            </span>
+          ) : (
+            <span className="h-8 w-8 shrink-0 rounded-full border border-[#EAECEF] bg-[#FAFAFA]" aria-hidden />
+          )}
+        </button>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 border-t border-[#F3F4F6] pt-4">
           <button type="button" className={primaryBtnClass} onClick={onClose}>
-            Применить
+            Готово
           </button>
           {hasActive ? (
             <button

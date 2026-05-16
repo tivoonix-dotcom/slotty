@@ -1,5 +1,5 @@
 import { HiCalendarDays, HiEllipsisHorizontal } from 'react-icons/hi2';
-import { adminIntroOverlayClass } from '../adminIntroOverlay';
+import { promotionCardOverlayClass, promotionCardScrimClass } from '../adminIntroOverlay';
 import { promotionStatusLabel } from './servicesFormat';
 import type { ServicePromotion, ServicePromotionStatus } from './servicesTypes';
 
@@ -39,22 +39,19 @@ export function PromotionBannerCard({ promo, onMenu, className = '' }: Props) {
 
   return (
     <article
-      className={`relative overflow-hidden rounded-[24px] shadow-[0_12px_36px_rgba(17,24,39,0.10)] ${
+      className={`relative overflow-hidden rounded-[24px] text-white shadow-[0_12px_36px_rgba(17,24,39,0.10)] ${
         muted ? 'opacity-[0.72]' : ''
       } ${draft ? 'ring-1 ring-[#FDE8ED]' : ''} ${className}`}
     >
-      <div className="relative min-h-[168px]">
+      <div className="relative isolate min-h-[168px]">
         <img
           src={bg}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 z-0 h-full w-full object-cover"
           loading="lazy"
         />
-        <div className={`absolute inset-0 ${adminIntroOverlayClass}`} aria-hidden />
-        <div
-          className="absolute inset-0 bg-gradient-to-t from-[#5a2840]/50 via-transparent to-transparent"
-          aria-hidden
-        />
+        <div className={`absolute inset-0 z-[1] ${promotionCardScrimClass}`} aria-hidden />
+        <div className={`absolute inset-0 z-[1] ${promotionCardOverlayClass}`} aria-hidden />
 
         <div className="absolute left-4 top-4 z-20">
           <span
@@ -75,26 +72,26 @@ export function PromotionBannerCard({ promo, onMenu, className = '' }: Props) {
           </button>
         ) : null}
 
-        <div className="absolute bottom-4 right-4 z-10">
+        <div className="absolute bottom-4 right-4 z-20">
           <span className="flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full bg-white text-center text-[12px] font-bold leading-tight text-[#F47C8C] shadow-[0_8px_24px_rgba(0,0,0,0.2)] ring-2 ring-white/80">
             {promo.discountLabel}
           </span>
         </div>
 
         <div className="relative z-10 flex min-h-[168px] flex-col justify-end p-4 pr-[5.5rem] pt-12 pb-[5.25rem]">
-          <h3 className="text-[17px] font-bold leading-snug tracking-[-0.03em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
+          <h3 className="text-[17px] font-bold leading-snug tracking-[-0.03em] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)]">
             {promo.title}
           </h3>
           {promo.serviceTitle ? (
-            <p className="mt-1 truncate text-[13px] font-semibold text-[#FFE4EA] drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]">
+            <p className="mt-1 truncate text-[13px] font-semibold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]">
               {promo.serviceTitle}
             </p>
           ) : null}
-          <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-white/92 drop-shadow-[0_1px_5px_rgba(0,0,0,0.4)]">
+          <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]">
             {promo.description}
           </p>
-          <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-white/88 drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)]">
-            <HiCalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]">
+            <HiCalendarDays className="h-3.5 w-3.5 shrink-0 text-white" aria-hidden />
             {formatDdMmRu(promo.startsAt)} — {formatDdMmRu(promo.endsAt)}
           </p>
         </div>
