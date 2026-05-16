@@ -93,11 +93,50 @@ export function computeRevenueAnalytics(
   };
 }
 
+export type ClientDayStat = {
+  date: string;
+  newClients: number;
+  repeatClients: number;
+};
+
+function aggregateClientsPerDay(
+  appointments: DemoMasterAppointment[],
+  chartStart: string,
+  chartEnd: string,
+): ClientDayStat[] {
+  const completed = appointments.filter((r) => r.status === 'completed');
+  const firstCompletedByClient = new Map<string, string>();
+
+  for (const row of completed) {
+    const key = normalizeClient(row.clientName);
+    const cur = firstCompletedByClient.get(key);
+    if (!cur || row.date < cur) firstCompletedByClient.set(key, row.date);
+  }
+
+  return listIsoDatesInclusive(chartStart, chartEnd).map((date) => {
+    const dayRows = completed.filter((r) => r.date === date);
+    const seen = new Set<string>();
+    let newClients = 0;
+    let repeatClients = 0;
+
+    for (const row of dayRows) {
+      const key = normalizeClient(row.clientName);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (firstCompletedByClient.get(key) === date) newClients += 1;
+      else repeatClients += 1;
+    }
+
+    return { date, newClients, repeatClients };
+  });
+}
+
 export type ClientAnalytics = {
   newClients: number;
   repeatClients: number;
   totalClients: number;
   visitsPerDay: OverviewDayStat[];
+  clientsPerDay: ClientDayStat[];
   chartIsTruncated: boolean;
   hasData: boolean;
 };
@@ -131,37 +170,29 @@ export function computeClientAnalytics(
 
   const chartRange = overviewChartWindow(start, end, OVERVIEW_MAX_RANGE_DAYS);
   const visitsPerDay = aggregateOverviewByDay(appointments, chartRange.chartStart, chartRange.chartEnd);
+  const clientsPerDay = aggregateClientsPerDay(
+    appointments,
+    chartRange.chartStart,
+    chartRange.chartEnd,
+  );
 
   return {
     newClients,
     repeatClients,
     totalClients: byClient.size,
     visitsPerDay,
+    clientsPerDay,
     chartIsTruncated: chartRange.chartStart > start,
     hasData: byClient.size > 0,
   };
 }
 
-/** Пока нет сущности отзывов в демо — только UI-заглушка для экрана репутации. */
-export type ReputationAnalytics = {
-  hasReviews: boolean;
-  averageRating: number | null;
-  reviewsCount: number;
-  newReviewsInPeriod: number;
-  unansweredReviews: number;
-  ratingTrend: 'up' | 'down' | 'flat' | null;
-};
-
-export function computeReputationAnalytics(): ReputationAnalytics {
-  return {
-    hasReviews: false,
-    averageRating: null,
-    reviewsCount: 0,
-    newReviewsInPeriod: 0,
-    unansweredReviews: 0,
-    ratingTrend: null,
-  };
-}
+export type {
+  MasterOverviewReview,
+  RatingDayStat,
+  ReputationAnalyticsPayload as ReputationAnalytics,
+} from './overviewReputationDemo';
+export { computeReputationFromReviews as computeReputationAnalytics } from './overviewReputationDemo';
 
 export function overviewSummaryMetrics(
   appointments: DemoMasterAppointment[],

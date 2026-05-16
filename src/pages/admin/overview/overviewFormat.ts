@@ -14,6 +14,13 @@ export function formatDdMmYyyy(iso: string): string {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+/** «26 мая» для карточки отзыва */
+export function formatReviewDayMonthRu(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+}
+
 /** ДД.ММ для оси графика */
 export function formatDdMm(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);

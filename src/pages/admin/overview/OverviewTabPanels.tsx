@@ -4,7 +4,6 @@ import {
   HiBell,
   HiCalendar,
   HiClock,
-  HiStar,
   HiUsers,
   HiWallet,
 } from 'react-icons/hi2';
@@ -16,14 +15,13 @@ import {
   overviewIconCircle,
   overviewPinkBtn,
 } from './adminOverviewTheme';
-import type { ClientAnalytics, ReputationAnalytics, RevenueAnalytics } from './overviewAnalytics';
+import type { RevenueAnalytics } from './overviewAnalytics';
 import { formatAppointmentWhenRu, formatBynRu } from './overviewFormat';
 import {
-  OverviewBarChart,
   OverviewEmptyState,
   OverviewHeroEmpty,
   OverviewLineChart,
-  OverviewMetricCard,
+  OverviewCompactMetricCard,
   OverviewSectionCard,
   OverviewStatRow,
   OverviewWideMetricCard,
@@ -54,7 +52,7 @@ export function OverviewSummaryPanel({
   const avgCheck = totalVisits > 0 ? Math.round(totalRevenue / totalVisits) : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4 overflow-x-hidden">
       {!hasAny ? <OverviewHeroEmpty /> : null}
 
       <OverviewWideMetricCard
@@ -64,26 +62,25 @@ export function OverviewSummaryPanel({
         sub={hasAny ? 'Общая сумма активных и завершённых записей' : 'Пока данных за период нет'}
       />
 
-      <div className="grid grid-cols-3 gap-2.5">
-        <OverviewMetricCard
-          icon={<HiCalendar className="h-5 w-5" aria-hidden />}
+      <div className="grid min-w-0 grid-cols-3 gap-2">
+        <OverviewCompactMetricCard
+          icon={<HiCalendar className="h-[18px] w-[18px]" aria-hidden />}
           label="Записей"
           value={String(totalVisits)}
           sub="за период"
         />
 
-        <OverviewMetricCard
-          icon={<HiUsers className="h-5 w-5" aria-hidden />}
+        <OverviewCompactMetricCard
+          icon={<HiUsers className="h-[18px] w-[18px]" aria-hidden />}
           label="Услуг"
           value={String(serviceCount)}
           sub="в каталоге"
         />
 
-        <OverviewMetricCard
-          icon={<HiBanknotes className="h-5 w-5" aria-hidden />}
-          label="Средний"
+        <OverviewCompactMetricCard
+          icon={<HiBanknotes className="h-[18px] w-[18px]" aria-hidden />}
+          label="Ср. чек"
           value={avgCheck > 0 ? formatBynRu(avgCheck) : '0 BYN'}
-          sub="чек"
         />
       </div>
 
@@ -187,7 +184,7 @@ export function OverviewRevenuePanel({ data }: { data: RevenueAnalytics }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4 overflow-x-hidden">
       <OverviewWideMetricCard
         icon={<HiBanknotes className="h-7 w-7" aria-hidden />}
         label="Доход за период"
@@ -198,18 +195,23 @@ export function OverviewRevenuePanel({ data }: { data: RevenueAnalytics }) {
             <span className="inline-flex rounded-full bg-[#ECFDF3] px-3 py-1 text-[12px] font-bold text-[#22C55E]">
               {data.completedCount} завершённых
             </span>
+          ) : data.unpaidCount > 0 ? (
+            <span className="inline-flex rounded-full bg-[#FFF1F4] px-3 py-1 text-[12px] font-bold text-[#F47C8C]">
+              {data.unpaidCount} ожидают оплаты
+            </span>
           ) : null
         }
       />
 
       <OverviewSectionCard
-        title="График дохода"
-        subtitle="Динамика дохода по дням"
+        title="Детализированный график дохода"
+        subtitle="Динамика по дням — наведите или проведите по графику"
         icon={<HiWallet className="h-5 w-5" aria-hidden />}
       >
         <OverviewLineChart
           stats={data.dayStats}
           mode="revenue"
+          size="large"
           emptyHint="Дохода за период нет"
         />
 
@@ -220,19 +222,25 @@ export function OverviewRevenuePanel({ data }: { data: RevenueAnalytics }) {
         ) : null}
       </OverviewSectionCard>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        <OverviewMetricCard
-          icon={<HiBanknotes className="h-5 w-5" aria-hidden />}
-          label="Средний чек"
+      <div className="grid min-w-0 grid-cols-3 gap-2">
+        <OverviewCompactMetricCard
+          icon={<HiBanknotes className="h-[18px] w-[18px]" aria-hidden />}
+          label="Средний"
           value={data.completedCount > 0 ? formatBynRu(data.avgCheck) : '0 BYN'}
-          sub="за запись"
+          sub="чек"
         />
-
-        <OverviewMetricCard
-          icon={<HiWallet className="h-5 w-5" aria-hidden />}
+        <OverviewCompactMetricCard
+          icon={<HiWallet className="h-[18px] w-[18px]" aria-hidden />}
           label="Оплачено"
           value={formatBynRu(data.paidAmount)}
-          sub={`${data.paidCount} записей`}
+          sub={`${data.paidCount} зап.`}
+        />
+        <OverviewCompactMetricCard
+          icon={<HiCalendar className="h-[18px] w-[18px]" aria-hidden />}
+          label="Ожидают"
+          value={formatBynRu(data.unpaidAmount)}
+          sub={`${data.unpaidCount} зап.`}
+          valueClassName={data.unpaidAmount > 0 ? 'text-[#F47C8C]' : undefined}
         />
       </div>
 
@@ -261,275 +269,11 @@ export function OverviewRevenuePanel({ data }: { data: RevenueAnalytics }) {
           />
         </div>
       </OverviewSectionCard>
-
-      <OverviewSectionCard
-        title="Доход по дням"
-        subtitle="Столбчатая детализация выбранного периода"
-        icon={<HiCalendar className="h-5 w-5" aria-hidden />}
-      >
-        <OverviewBarChart stats={data.dayStats} mode="revenue" emptyHint="Дохода за период нет" />
-      </OverviewSectionCard>
     </div>
   );
 }
 
-export function OverviewClientsPanel({ data }: { data: ClientAnalytics }) {
-  if (!data.hasData) {
-    return (
-      <div className="space-y-4">
-        <OverviewEmptyState
-          icon={<HiUsers className="h-7 w-7" aria-hidden />}
-          title="Клиентов пока нет"
-          text="Новые клиенты появятся здесь после первых записей."
-        />
+export { OverviewClientsPanel } from './OverviewClientsPanel';
 
-        <OverviewSectionCard
-          title="Клиентская аналитика"
-          subtitle="Здесь будут новые, повторные и постоянные клиенты"
-          icon={<HiUsers className="h-5 w-5" aria-hidden />}
-        >
-          <div className="grid grid-cols-2 gap-2.5">
-            <OverviewMetricCard
-              icon={<HiUsers className="h-5 w-5" aria-hidden />}
-              label="Новые"
-              value="0"
-              sub="за период"
-            />
+export { OverviewReputationPanel } from './OverviewReputationPanel';
 
-            <OverviewMetricCard
-              icon={<HiUsers className="h-5 w-5" aria-hidden />}
-              label="Повторные"
-              value="0"
-              sub="за период"
-            />
-          </div>
-        </OverviewSectionCard>
-      </div>
-    );
-  }
-
-  const totalShown = Math.max(data.newClients + data.repeatClients, 1);
-  const newPercent = Math.round((data.newClients / totalShown) * 100);
-  const repeatPercent = 100 - newPercent;
-
-  return (
-    <div className="space-y-4">
-      <OverviewWideMetricCard
-        icon={<HiUsers className="h-7 w-7" aria-hidden />}
-        label="Всего клиентов"
-        value={String(data.totalClients)}
-        sub="Уникальные клиенты за выбранный период"
-      />
-
-      <div className="grid grid-cols-2 gap-2.5">
-        <OverviewMetricCard
-          icon={<HiUsers className="h-5 w-5" aria-hidden />}
-          label="Новые"
-          value={String(data.newClients)}
-          sub="первый визит"
-        />
-
-        <OverviewMetricCard
-          icon={<HiUsers className="h-5 w-5" aria-hidden />}
-          label="Повторные"
-          value={String(data.repeatClients)}
-          sub="возвращаются"
-        />
-      </div>
-
-      <OverviewSectionCard
-        title="Динамика клиентов"
-        subtitle="Активность записей по дням"
-        icon={<HiCalendar className="h-5 w-5" aria-hidden />}
-      >
-        <OverviewLineChart
-          stats={data.visitsPerDay}
-          mode="visits"
-          emptyHint="Клиентов за период нет"
-        />
-      </OverviewSectionCard>
-
-      <OverviewSectionCard
-        title="Тип клиентов"
-        subtitle="Соотношение новых и повторных клиентов"
-        icon={<HiUsers className="h-5 w-5" aria-hidden />}
-      >
-        <div className="space-y-4">
-          <div>
-            <div className="mb-2 flex items-center justify-between text-[13px] font-bold text-[#111827]">
-              <span>Новые</span>
-              <span>{newPercent}%</span>
-            </div>
-
-            <div className="h-3 overflow-hidden rounded-full bg-[#F3F4F6]">
-              <div
-                className="h-full rounded-full bg-[#F47C8C]"
-                style={{ width: `${newPercent}%` }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center justify-between text-[13px] font-bold text-[#111827]">
-              <span>Повторные</span>
-              <span>{repeatPercent}%</span>
-            </div>
-
-            <div className="h-3 overflow-hidden rounded-full bg-[#F3F4F6]">
-              <div
-                className="h-full rounded-full bg-[#A78BFA]"
-                style={{ width: `${repeatPercent}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="rounded-[18px] bg-[#FFF1F4] p-4">
-            <p className="text-[14px] font-bold text-[#111827]">Клиенты — основа роста</p>
-            <p className="mt-1 text-[12px] leading-relaxed text-[#6B7280]">
-              Чем больше повторных клиентов, тем стабильнее доход мастера.
-            </p>
-          </div>
-        </div>
-      </OverviewSectionCard>
-    </div>
-  );
-}
-
-type ReputationExtra = Partial<{
-  totalReviews: number;
-  newReviews: number;
-  unansweredReviews: number;
-}>;
-
-function RatingStars({ value }: { value: number }) {
-  const rounded = Math.round(value);
-
-  return (
-    <div className="flex items-center gap-0.5 text-[#FBBF24]">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <HiStar
-          key={i}
-          className={`h-5 w-5 ${i <= rounded ? 'opacity-100' : 'opacity-25'}`}
-          aria-hidden
-        />
-      ))}
-    </div>
-  );
-}
-
-export function OverviewReputationPanel({ data }: { data: ReputationAnalytics }) {
-  const extra = data as ReputationAnalytics & ReputationExtra;
-
-  if (!data.hasReviews) {
-    return (
-      <div className="space-y-4">
-        <OverviewEmptyState
-          icon={<HiStar className="h-7 w-7" aria-hidden />}
-          title="Отзывов пока нет"
-          text="После первых отзывов здесь появится рейтинг мастера и аналитика репутации."
-        />
-
-        <OverviewSectionCard
-          title="Репутация"
-          subtitle="Здесь будут рейтинг, новые отзывы и отзывы без ответа"
-          icon={<HiStar className="h-5 w-5" aria-hidden />}
-        >
-          <div className="grid grid-cols-2 gap-2.5">
-            <OverviewMetricCard
-              icon={<HiStar className="h-5 w-5" aria-hidden />}
-              label="Рейтинг"
-              value="Новый"
-              sub="пока нет оценок"
-            />
-
-            <OverviewMetricCard
-              icon={<HiStar className="h-5 w-5" aria-hidden />}
-              label="Отзывы"
-              value="0"
-              sub="за всё время"
-            />
-          </div>
-        </OverviewSectionCard>
-      </div>
-    );
-  }
-
-  const average = data.averageRating ?? 0;
-  const totalReviews =
-    typeof extra.totalReviews === 'number' ? String(extra.totalReviews) : 'Есть';
-  const newReviews = typeof extra.newReviews === 'number' ? String(extra.newReviews) : '0';
-  const unanswered = typeof extra.unansweredReviews === 'number' ? String(extra.unansweredReviews) : '0';
-
-  return (
-    <div className="space-y-4">
-      <OverviewWideMetricCard
-        icon={<HiStar className="h-7 w-7" aria-hidden />}
-        label="Средний рейтинг"
-        value={average > 0 ? average.toFixed(1) : 'Новый'}
-        sub="На основе отзывов клиентов"
-        badge={average > 0 ? <RatingStars value={average} /> : null}
-      />
-
-      <div className="grid grid-cols-2 gap-2.5">
-        <OverviewMetricCard
-          icon={<HiStar className="h-5 w-5" aria-hidden />}
-          label="Всего отзывов"
-          value={totalReviews}
-          sub="за всё время"
-        />
-
-        <OverviewMetricCard
-          icon={<HiStar className="h-5 w-5" aria-hidden />}
-          label="Новые"
-          value={newReviews}
-          sub="за период"
-        />
-      </div>
-
-      <OverviewSectionCard
-        title="Отзывы без ответа"
-        subtitle="Ответы помогают повышать доверие клиентов"
-        icon={<HiBell className="h-5 w-5" aria-hidden />}
-      >
-        <div className="flex items-center justify-between gap-3 rounded-[20px] bg-[#FAFAFA] p-4">
-          <div>
-            <p className="text-[28px] font-bold tracking-[-0.06em] text-[#111827]">
-              {unanswered}
-            </p>
-            <p className="mt-1 text-[13px] text-[#6B7280]">ожидают ответа</p>
-          </div>
-
-          <span className="rounded-full bg-[#FFF1F4] px-3 py-1 text-[12px] font-bold text-[#F47C8C]">
-            Репутация
-          </span>
-        </div>
-      </OverviewSectionCard>
-
-      <OverviewSectionCard
-        title="Динамика рейтинга"
-        subtitle="Как меняется доверие клиентов"
-        icon={<HiStar className="h-5 w-5" aria-hidden />}
-      >
-        <div className="rounded-[20px] bg-[#FAFAFA] p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-[14px] font-bold text-[#111827]">Текущий рейтинг</p>
-            <p className="text-[18px] font-bold text-[#F47C8C]">
-              {average > 0 ? average.toFixed(1) : 'Новый'}
-            </p>
-          </div>
-
-          <div className="h-3 overflow-hidden rounded-full bg-[#E5E7EB]">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[#F9A8B4] to-[#F47C8C]"
-              style={{ width: `${Math.min(100, Math.max(0, (average / 5) * 100))}%` }}
-            />
-          </div>
-
-          <p className="mt-3 text-[12px] leading-relaxed text-[#6B7280]">
-            Чем выше рейтинг и быстрее ответы на отзывы, тем больше доверия у новых клиентов.
-          </p>
-        </div>
-      </OverviewSectionCard>
-    </div>
-  );
-}

@@ -23,4 +23,7 @@ export const overviewPinkOutline =
 export const overviewMutedSurface =
   'rounded-[20px] border border-[#F3F4F6] bg-[#FAFAFA]';
 
-export const overviewEmptyIllustrationSrc = '/photos/svodka.webp';
+export const overviewEmptyIllustrationSrc =
+  '/photos/' + encodeURIComponent('ничего не нашли.webp');
+
+export const overviewClientsBannerSrc = '/photos/KLIENT.webp';

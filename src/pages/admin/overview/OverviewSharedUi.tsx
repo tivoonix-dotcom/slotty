@@ -1,4 +1,4 @@
-import { type ReactNode, useId } from 'react';
+import { type ReactNode } from 'react';
 import {
   HiArrowTrendingUp,
   HiCalendarDays,
@@ -18,6 +18,9 @@ import {
 } from './adminOverviewTheme';
 import { formatDdMm } from './overviewFormat';
 
+export { OverviewLineChart } from './OverviewLineChart';
+export { OverviewClientsDynamicsChart } from './OverviewClientsDynamicsChart';
+
 export const OVERVIEW_ANALYTICS_TAB_BAR_HEIGHT = '5.75rem';
 
 export function chartAxisIndices(n: number): number[] {
@@ -29,6 +32,36 @@ export function chartAxisIndices(n: number): number[] {
 
 function chartValues(stats: OverviewDayStat[], mode: 'revenue' | 'visits') {
   return stats.map((s) => (mode === 'revenue' ? s.completedRevenue : s.activeVisits));
+}
+
+/** Компактная KPI-карточка для узкой сетки 3×1 (экран «Обзор»). */
+export function OverviewCompactMetricCard({
+  icon,
+  label,
+  value,
+  sub,
+  valueClassName = 'text-[#111827]',
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  sub?: ReactNode;
+  valueClassName?: string;
+}) {
+  return (
+    <div className={`${overviewCard} flex min-w-0 flex-col gap-2 p-3`}>
+      <span className={`${overviewIconCircle} h-9 w-9 shrink-0`}>{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold leading-snug text-[#6B7280]">{label}</p>
+        <p
+          className={`mt-0.5 break-words text-[15px] font-bold tabular-nums leading-tight tracking-[-0.03em] ${valueClassName}`}
+        >
+          {value}
+        </p>
+        {sub ? <p className="mt-0.5 text-[10px] font-medium leading-snug text-[#9CA3AF]">{sub}</p> : null}
+      </div>
+    </div>
+  );
 }
 
 export function OverviewMetricCard({
@@ -81,7 +114,7 @@ export function OverviewWideMetricCard({
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[13px] font-semibold text-[#6B7280]">{label}</p>
-          <p className="mt-1 text-[32px] font-bold tabular-nums tracking-[-0.07em] text-[#111827]">
+          <p className="mt-1 break-words text-[26px] font-bold tabular-nums tracking-[-0.06em] text-[#111827] sm:text-[32px] sm:tracking-[-0.07em]">
             {value}
           </p>
           {sub ? <p className="mt-1 text-[12px] font-medium text-[#6B7280]">{sub}</p> : null}
@@ -270,108 +303,6 @@ export function OverviewBarChart({
   );
 }
 
-export function OverviewLineChart({
-  stats,
-  mode,
-  emptyHint,
-}: {
-  stats: OverviewDayStat[];
-  mode: 'revenue' | 'visits';
-  emptyHint: string;
-}) {
-  const gradientId = useId();
-  const values = chartValues(stats, mode);
-  const hasAny = values.some((v) => v > 0);
-  const max = Math.max(1, ...values);
-  const axisIdx = chartAxisIndices(stats.length);
-
-  const width = 320;
-  const height = 150;
-  const padX = 12;
-  const padY = 16;
-
-  const points = values.map((v, i) => {
-    const x =
-      values.length <= 1
-        ? width / 2
-        : padX + (i / (values.length - 1)) * (width - padX * 2);
-
-    const y = height - padY - (v / max) * (height - padY * 2);
-
-    return { x, y, v };
-  });
-
-  const path = points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`)
-    .join(' ');
-
-  const area =
-    points.length > 0
-      ? `${path} L ${points[points.length - 1].x.toFixed(2)} ${height - padY} L ${points[0].x.toFixed(
-          2,
-        )} ${height - padY} Z`
-      : '';
-
-  return (
-    <div>
-      <div className={`relative h-[12rem] overflow-hidden ${overviewMutedSurface} p-3`}>
-        <div className="pointer-events-none absolute inset-x-3 bottom-3 top-3 flex flex-col justify-between">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="border-t border-dashed border-[#E5E7EB]" />
-          ))}
-        </div>
-
-        {!hasAny ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
-            <HiCloud className="h-10 w-10 text-[#D1D5DB]" aria-hidden />
-            <p className="text-[13px] font-semibold text-[#6B7280]">{emptyHint}</p>
-          </div>
-        ) : (
-          <svg
-            viewBox={`0 0 ${width} ${height}`}
-            preserveAspectRatio="none"
-            className="relative h-full w-full overflow-visible"
-            aria-hidden
-          >
-            <defs>
-              <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#F47C8C" stopOpacity="0.28" />
-                <stop offset="100%" stopColor="#F47C8C" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-
-            <path d={area} fill={`url(#${gradientId})`} />
-            <path
-              d={path}
-              fill="none"
-              stroke="#F47C8C"
-              strokeWidth="3.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-
-            {points.map((p, i) =>
-              p.v > 0 ? (
-                <circle key={i} cx={p.x} cy={p.y} r="3.8" fill="#F47C8C" />
-              ) : null,
-            )}
-          </svg>
-        )}
-      </div>
-
-      {stats.length > 0 ? (
-        <div className="mt-3 flex justify-between px-1 text-[11px] font-semibold text-[#9CA3AF]">
-          {axisIdx.map((i) => (
-            <span key={`${stats[i].date}-${mode}`} className="tabular-nums">
-              {formatDdMm(stats[i].date)}
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 export const overviewTabIcons = {
   summary: HiChartBarSquare,

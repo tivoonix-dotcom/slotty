@@ -9,7 +9,6 @@ import { OverviewAnalyticsTabBar } from './OverviewAnalyticsTabBar';
 import { OverviewPeriodFilter } from './OverviewPeriodFilter';
 import {
   computeClientAnalytics,
-  computeReputationAnalytics,
   computeRevenueAnalytics,
   overviewPeriodRange,
   overviewSummaryMetrics,
@@ -68,8 +67,6 @@ export function AdminOverviewTab({
     [appointments, reportRange.end, reportRange.start],
   );
 
-  const reputation = useMemo(() => computeReputationAnalytics(), []);
-
   const serviceCount = draft.services?.length ?? 0;
 
   const panel = useMemo(() => {
@@ -83,7 +80,12 @@ export function AdminOverviewTab({
         return <OverviewClientsPanel data={clients} />;
 
       case 'reputation':
-        return <OverviewReputationPanel data={reputation} />;
+        return (
+          <OverviewReputationPanel
+            periodStart={reportRange.start}
+            periodEnd={reportRange.end}
+          />
+        );
 
       default:
         return (
@@ -103,7 +105,8 @@ export function AdminOverviewTab({
     appointmentsPath,
     clients,
     onOpenAppointment,
-    reputation,
+    reportRange.end,
+    reportRange.start,
     revenue,
     serviceCount,
     summary,
@@ -112,7 +115,7 @@ export function AdminOverviewTab({
   return (
     <>
       <section
-        className={`mx-auto w-full ${ADMIN_CABINET_SHELL_MAX} space-y-4`}
+        className={`mx-auto w-full min-w-0 max-w-full overflow-x-hidden ${ADMIN_CABINET_SHELL_MAX} space-y-4`}
         style={{ paddingBottom: `calc(${OVERVIEW_TAB_BAR_HEIGHT} + 1.25rem)` }}
       >
         <div className="flex items-start justify-between gap-3 px-0.5 pt-1">
@@ -120,9 +123,6 @@ export function AdminOverviewTab({
             <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#F47C8C]">
               Кабинет мастера
             </p>
-            <h1 className="mt-1 text-[30px] font-bold tracking-[-0.06em] text-[#111827]">
-              Сводка
-            </h1>
           </div>
 
           <div className="rounded-full border border-[#FDE8ED] bg-white px-4 py-2 text-right shadow-[0_8px_24px_rgba(17,24,39,0.05)]">
@@ -135,7 +135,7 @@ export function AdminOverviewTab({
 
         <div
           key={`${activeTab}-${periodPreset}`}
-          className="animate-[overviewPanelIn_0.22s_ease-out]"
+          className="min-w-0 animate-[overviewPanelIn_0.22s_ease-out]"
         >
           {panel}
         </div>
