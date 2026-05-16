@@ -19,15 +19,16 @@ export function OverviewPeriodFilter({ value, onChange }: Props) {
       <div className="flex gap-1" role="group" aria-label="Период данных">
         {PRESETS.map((preset) => {
           const selected = value === preset.id;
+
           return (
             <button
               key={preset.id}
               type="button"
               onClick={() => onChange(preset.id)}
-              className={`min-h-10 flex-1 rounded-[16px] px-2 text-[13px] font-semibold transition duration-200 active:scale-[0.97] ${
+              className={`min-h-11 flex-1 rounded-[18px] px-1.5 text-[12px] font-bold transition duration-200 active:scale-[0.97] sm:text-[13px] ${
                 selected
-                  ? 'bg-[#F47C8C] text-white shadow-[0_4px_14px_rgba(244,124,140,0.28)]'
-                  : 'bg-transparent text-[#6B7280] hover:bg-[#FFF1F4] hover:text-[#F47C8C]'
+                  ? 'bg-[#FFF1F4] text-[#F47C8C] shadow-[inset_0_0_0_1px_rgba(244,124,140,0.10)]'
+                  : 'bg-transparent text-[#6B7280] hover:bg-[#FAFAFA] hover:text-[#111827]'
               }`}
             >
               {preset.label}

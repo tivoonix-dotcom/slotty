@@ -14,6 +14,7 @@ import {
 import { getCurrentMasterPlan, planBadgeLabel } from '../../features/billing/model/masterPlans';
 import { AdminMasterCabinetProvider, useAdminMasterCabinet } from './AdminMasterCabinetContext';
 import { ProfileSectionTabsBar, ProfileTabProvider, PROFILE_TAB_BAR_HEIGHT } from './profile/profileTabContext';
+import { ADMIN_CABINET_SHELL_MAX, overviewPageBg, OVERVIEW_TAB_BAR_HEIGHT } from './overview/adminOverviewTheme';
 import { AdminBottomSheet } from './shared/AdminBottomSheet';
 
 const iconStroke = { strokeWidth: 1.75, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -130,6 +131,7 @@ export function AdminLayout() {
   const stickyShellRef = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
   const isProfileHome = pathname === ADMIN_PATH;
+  const isOverview = pathname === ADMIN_OVERVIEW_PATH;
 
   useLayoutEffect(() => {
     const el = stickyShellRef.current;
@@ -143,14 +145,22 @@ export function AdminLayout() {
     const ro = new ResizeObserver(syncHeaderHeight);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [isProfileHome]);
+  }, [isProfileHome, isOverview]);
+
+  const shellPadBottom = isProfileHome
+    ? 'pb-[calc(var(--slotty-profile-tab-bar-h)+env(safe-area-inset-bottom,0px)+1rem)]'
+    : isOverview
+      ? `pb-[calc(${OVERVIEW_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1rem)]`
+      : '';
 
   return (
-    <div className="min-h-dvh bg-white pb-[calc(2rem+env(safe-area-inset-bottom,0px))] text-[#111827]">
+    <div
+      className={`min-h-dvh pb-[calc(2rem+env(safe-area-inset-bottom,0px))] text-[#111827] ${isOverview ? overviewPageBg : 'bg-white'}`}
+    >
       <AdminMasterCabinetProvider>
         <ProfileTabProvider>
           <div
-            className={`mx-auto max-w-lg ${isProfileHome ? 'pb-[calc(var(--slotty-profile-tab-bar-h)+env(safe-area-inset-bottom,0px))]' : ''}`}
+            className={`mx-auto w-full ${ADMIN_CABINET_SHELL_MAX} ${shellPadBottom}`}
             style={
               {
                 '--slotty-admin-header-h': '4.5rem',
@@ -160,21 +170,21 @@ export function AdminLayout() {
           >
             <div ref={stickyShellRef} className="sticky top-0 z-40 flex flex-col gap-0 overflow-hidden bg-white">
               <div
-                className={`relative z-40 flex shrink-0 items-center justify-between gap-3 overflow-hidden bg-white px-4 pb-0.5 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] ${
+                className={`relative z-40 flex w-full shrink-0 items-center justify-between gap-3 overflow-hidden bg-white px-4 pb-0.5 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] ${
                   isProfileHome ? 'min-h-11 border-b-2 border-[#F47C8C]' : 'min-h-[3.25rem] border-b-2 border-[#F47C8C]'
                 }`}
               >
                 <Link
                   to={HUB_PATH}
                   aria-label="SLOTTY — на главную"
-                  className="inline-flex h-9 min-h-11 shrink-0 items-center overflow-visible py-1 outline-none ring-0 transition hover:opacity-60 active:scale-[0.99] sm:h-10"
+                  className="inline-flex h-10 max-h-11 min-h-11 shrink-0 items-center overflow-hidden py-1 outline-none ring-0 transition hover:opacity-60 active:scale-[0.99]"
                 >
                   <img
                     src={HEADER_LOGO_SRC}
                     alt=""
                     decoding="async"
                     fetchPriority="low"
-                    className="h-9 w-auto origin-center object-contain [transform:translateY(0.25rem)_scale(1.56)] sm:h-10 sm:[transform:translateY(0.35rem)_scale(1.5)]"
+                    className="h-8 w-auto max-w-[7.5rem] object-contain object-left sm:h-9"
                   />
                 </Link>
                 <button
@@ -190,7 +200,9 @@ export function AdminLayout() {
             </div>
 
             {!isProfileHome ? <AdminCabinetStatusBanner /> : null}
-            <Outlet />
+            <div className={isOverview ? 'px-4 pt-1' : ''}>
+              <Outlet />
+            </div>
             <ProfileSectionTabsBar />
           </div>
         </ProfileTabProvider>

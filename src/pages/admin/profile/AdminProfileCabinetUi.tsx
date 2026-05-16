@@ -207,14 +207,17 @@ export function SectionTabs({
   onChange: (section: ProfileSectionId) => void;
 }) {
   const tabs: Array<{ id: ProfileSectionId; label: string; icon: ReactNode }> = [
-    { id: 'main', label: 'Профиль', icon: <CabinetIcon name="user" size={18} /> },
-    { id: 'portfolio', label: 'Портфолио', icon: <CabinetIcon name="photo" size={18} /> },
-    { id: 'address', label: 'Адрес', icon: <CabinetIcon name="map-pin" size={18} /> },
-    { id: 'rules', label: 'Правила', icon: <CabinetIcon name="rules" size={18} /> },
+    { id: 'main', label: 'Профиль', icon: <CabinetIcon name="user" size={22} /> },
+    { id: 'portfolio', label: 'Портфолио', icon: <CabinetIcon name="photo" size={22} /> },
+    { id: 'address', label: 'Адрес', icon: <CabinetIcon name="map-pin" size={22} /> },
+    { id: 'rules', label: 'Правила', icon: <CabinetIcon name="rules" size={22} /> },
   ];
 
   return (
-    <nav className="flex bg-white px-1 pb-2 pt-2.5 leading-none" aria-label="Разделы профиля">
+    <nav
+      className="flex h-[68px] w-full items-stretch gap-0.5 rounded-[24px] border border-[#EAECEF]/80 bg-white px-1.5 py-1.5 shadow-[0_12px_40px_rgba(17,24,39,0.12)]"
+      aria-label="Разделы профиля"
+    >
       {tabs.map((tab) => {
         const selected = active === tab.id;
         return (
@@ -222,20 +225,20 @@ export function SectionTabs({
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 pb-1 pt-0 transition active:scale-[0.98] ${
-              selected ? 'text-[#F47C8C]' : 'text-[#6B7280] hover:text-[#111827]'
+            className={`relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[18px] px-1 py-1.5 transition duration-200 active:scale-[0.96] ${
+              selected
+                ? 'bg-[#FFF1F4] text-[#F47C8C]'
+                : 'text-[#9CA3AF] hover:bg-[#FFF1F4]/60'
             }`}
           >
             {tab.icon}
-            <span className="max-w-full truncate text-[10px] font-semibold leading-none sm:text-[11px]">
+            <span
+              className={`max-w-full truncate text-[10px] font-semibold leading-none sm:text-[11px] ${
+                selected ? 'text-[#F47C8C]' : ''
+              }`}
+            >
               {tab.label}
             </span>
-            {selected ? (
-              <span
-                className="absolute bottom-0 left-1/2 h-0.5 w-7 -translate-x-1/2 rounded-full bg-[#F47C8C]"
-                aria-hidden
-              />
-            ) : null}
           </button>
         );
       })}

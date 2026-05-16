@@ -4,7 +4,7 @@ import { ADMIN_PATH } from '../../../app/paths';
 import { SectionTabs, type ProfileSectionId } from './AdminProfileCabinetUi';
 
 /** Высота нижней панели вкладок (для отступа контента). */
-export const PROFILE_TAB_BAR_HEIGHT = '4.25rem';
+export const PROFILE_TAB_BAR_HEIGHT = '5.75rem';
 
 type ProfileTabContextValue = {
   activeSection: ProfileSectionId;
@@ -41,8 +41,8 @@ export function ProfileSectionTabsBar() {
   const { activeSection, setActiveSection } = useProfileTabs();
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center">
-      <div className="pointer-events-auto w-full max-w-lg border-t border-[#EAECEF] bg-white pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_32px_rgba(17,24,39,0.08)]">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-[max(12px,env(safe-area-inset-bottom,0px))]">
+      <div className="pointer-events-auto w-full max-w-[460px]">
         <SectionTabs active={activeSection} onChange={setActiveSection} />
       </div>
     </div>

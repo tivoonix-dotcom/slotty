@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
-import { HiCalendar } from 'react-icons/hi2';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
+import {
+  ADMIN_CABINET_SHELL_MAX,
+  OVERVIEW_TAB_BAR_HEIGHT,
+} from './adminOverviewTheme';
 import { OverviewAnalyticsTabBar } from './OverviewAnalyticsTabBar';
 import { OverviewPeriodFilter } from './OverviewPeriodFilter';
 import {
@@ -29,7 +32,19 @@ type Props = {
 
 const isLoading = false;
 
-export function AdminOverviewTab({ draft, appointments, appointmentsPath, onOpenAppointment }: Props) {
+const PERIOD_LABEL: Record<OverviewPeriodPreset, string> = {
+  today: 'Сегодня',
+  week: 'Неделя',
+  month: 'Месяц',
+  all: 'Всё время',
+};
+
+export function AdminOverviewTab({
+  draft,
+  appointments,
+  appointmentsPath,
+  onOpenAppointment,
+}: Props) {
   const [activeTab, setActiveTab] = useState<OverviewAnalyticsTab>('summary');
   const [periodPreset, setPeriodPreset] = useState<OverviewPeriodPreset>('month');
 
@@ -57,28 +72,26 @@ export function AdminOverviewTab({ draft, appointments, appointmentsPath, onOpen
 
   const serviceCount = draft.services?.length ?? 0;
 
-  const cyclePeriod = () => {
-    const order: OverviewPeriodPreset[] = ['today', 'week', 'month', 'all'];
-    const idx = order.indexOf(periodPreset);
-    setPeriodPreset(order[(idx + 1) % order.length]!);
-  };
-
   const panel = useMemo(() => {
     if (isLoading) return null;
 
     switch (activeTab) {
       case 'revenue':
         return <OverviewRevenuePanel data={revenue} />;
+
       case 'clients':
         return <OverviewClientsPanel data={clients} />;
+
       case 'reputation':
         return <OverviewReputationPanel data={reputation} />;
+
       default:
         return (
           <OverviewSummaryPanel
             metrics={summary}
             serviceCount={serviceCount}
             appointmentsPath={appointmentsPath}
+            dayStats={revenue.dayStats}
             onOpenNearest={() => {
               if (summary.nearest) onOpenAppointment(summary.nearest);
             }}
@@ -98,28 +111,35 @@ export function AdminOverviewTab({ draft, appointments, appointmentsPath, onOpen
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-2 pb-0.5">
-          <div className="w-11 shrink-0" aria-hidden />
-          <h1 className="flex-1 text-center text-[18px] font-semibold tracking-[-0.03em] text-[#111827]">
-            Сводка
-          </h1>
-          <button
-            type="button"
-            onClick={cyclePeriod}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#111827] shadow-[0_4px_16px_rgba(17,24,39,0.06)] transition hover:bg-[#F7F7F8] active:scale-[0.97]"
-            aria-label="Сменить период"
-          >
-            <HiCalendar className="h-5 w-5" aria-hidden />
-          </button>
+      <section
+        className={`mx-auto w-full ${ADMIN_CABINET_SHELL_MAX} space-y-4`}
+        style={{ paddingBottom: `calc(${OVERVIEW_TAB_BAR_HEIGHT} + 1.25rem)` }}
+      >
+        <div className="flex items-start justify-between gap-3 px-0.5 pt-1">
+          <div>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#F47C8C]">
+              Кабинет мастера
+            </p>
+            <h1 className="mt-1 text-[30px] font-bold tracking-[-0.06em] text-[#111827]">
+              Сводка
+            </h1>
+          </div>
+
+          <div className="rounded-full border border-[#FDE8ED] bg-white px-4 py-2 text-right shadow-[0_8px_24px_rgba(17,24,39,0.05)]">
+            <p className="text-[11px] font-medium text-[#9CA3AF]">Период</p>
+            <p className="text-[13px] font-bold text-[#111827]">{PERIOD_LABEL[periodPreset]}</p>
+          </div>
         </div>
 
         <OverviewPeriodFilter value={periodPreset} onChange={setPeriodPreset} />
 
-        <div key={`${activeTab}-${periodPreset}`} className="pb-2 transition-opacity duration-200">
+        <div
+          key={`${activeTab}-${periodPreset}`}
+          className="animate-[overviewPanelIn_0.22s_ease-out]"
+        >
           {panel}
         </div>
-      </div>
+      </section>
 
       <OverviewAnalyticsTabBar active={activeTab} onChange={setActiveTab} />
     </>
