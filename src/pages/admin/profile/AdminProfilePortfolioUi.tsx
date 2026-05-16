@@ -1,14 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import {
-  HiAcademicCap,
-  HiBriefcase,
-  HiCamera,
-  HiDocumentText,
-  HiEllipsisHorizontal,
-  HiPhoto,
-  HiPlus,
-} from 'react-icons/hi2';
+import { useState, type ReactNode } from 'react';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
+import { AdminBottomSheet } from '../shared/AdminBottomSheet';
+import { CabinetIcon } from './cabinetIcons';
 import { normalizeMasterCareerItemType } from '../../../features/profile/lib/demoMasterStorage';
 import type { MasterCareerItemType } from '../../../features/profile/lib/demoMasterStorage';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
@@ -109,42 +102,32 @@ type OverflowMenuItem = {
   disabled?: boolean;
 };
 
-function CardOverflowMenu({ items, ariaLabel }: { items: OverflowMenuItem[]; ariaLabel: string }) {
+function CardOverflowMenu({
+  items,
+  ariaLabel,
+  sheetTitle = 'Действия',
+}: {
+  items: OverflowMenuItem[];
+  ariaLabel: string;
+  sheetTitle?: string;
+}) {
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onPointer = (event: MouseEvent | TouchEvent) => {
-      const target = event.target;
-      if (target instanceof Node && rootRef.current && !rootRef.current.contains(target)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('touchstart', onPointer);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('touchstart', onPointer);
-    };
-  }, [open]);
+  const close = () => setOpen(false);
 
   return (
-    <div ref={rootRef} className="relative shrink-0">
+    <>
       <button
         type="button"
         aria-label={ariaLabel}
+        aria-haspopup="dialog"
         aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => setOpen(true)}
         className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#111827] shadow-[0_4px_14px_rgba(17,24,39,0.12)] transition active:scale-[0.95]"
       >
-        <HiEllipsisHorizontal className="h-5 w-5" aria-hidden />
+        <CabinetIcon name="more" size={20} />
       </button>
-      {open ? (
-        <div
-          role="menu"
-          className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-[11.5rem] overflow-hidden rounded-[16px] bg-white py-1 shadow-[0_16px_40px_rgba(17,24,39,0.12)] ring-1 ring-[#EAECEF]"
-        >
+      <AdminBottomSheet open={open} onClose={close} title={sheetTitle}>
+        <div className="flex flex-col gap-2 pb-1" role="menu" aria-label={sheetTitle}>
           {items.map((item) => (
             <button
               key={item.id}
@@ -153,19 +136,21 @@ function CardOverflowMenu({ items, ariaLabel }: { items: OverflowMenuItem[]; ari
               disabled={item.disabled}
               onClick={() => {
                 if (item.disabled) return;
-                setOpen(false);
+                close();
                 item.onClick();
               }}
-              className={`flex min-h-11 w-full items-center px-4 text-left text-[14px] font-semibold transition active:bg-[#F7F7F8] disabled:opacity-40 ${
-                item.tone === 'danger' ? 'text-red-600' : 'text-[#111827]'
+              className={`flex min-h-12 w-full items-center justify-center rounded-[17px] px-4 text-[15px] font-semibold transition active:scale-[0.99] disabled:opacity-45 ${
+                item.tone === 'danger'
+                  ? 'bg-[#FFF1F4] text-red-600 active:bg-[#FFE4EA]'
+                  : 'bg-[#F7F7F8] text-[#111827] active:bg-[#F3F4F6] disabled:text-[#9CA3AF]'
               }`}
             >
               {item.label}
             </button>
           ))}
         </div>
-      ) : null}
-    </div>
+      </AdminBottomSheet>
+    </>
   );
 }
 
@@ -201,12 +186,14 @@ function TrustEmptyState({
   subtitle,
   actionLabel,
   onAction,
+  disabled = false,
 }: {
   icon: ReactNode;
   title: string;
   subtitle: string;
   actionLabel: string;
   onAction: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="mt-4 flex flex-col items-center rounded-[20px] bg-[#FAFAFA] px-4 py-8 text-center">
@@ -215,29 +202,41 @@ function TrustEmptyState({
       </span>
       <p className="mt-4 text-[16px] font-semibold tracking-[-0.02em] text-[#111827]">{title}</p>
       <p className="mx-auto mt-1.5 max-w-[17rem] text-[13px] leading-relaxed text-[#6B7280]">{subtitle}</p>
-      <button type="button" onClick={onAction} className={`${trustAddBtn} mt-5 max-w-full`}>
-        <HiPlus className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onAction}
+        className={`${trustAddBtn} mt-5 max-w-full disabled:opacity-45`}
+      >
+        <CabinetIcon name="plus" size={20} className="shrink-0" />
         {actionLabel.replace(/^\+ /, '')}
       </button>
     </div>
   );
 }
 
-function TrustAddButton({ label, onClick }: { label: string; onClick: () => void }) {
+function TrustAddButton({
+  label,
+  onClick,
+  disabled = false,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <button type="button" onClick={onClick} className={trustAddBtn}>
-      <HiPlus className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
+    <button type="button" disabled={disabled} onClick={onClick} className={`${trustAddBtn} disabled:opacity-45`}>
+      <CabinetIcon name="plus" size={20} className="shrink-0" />
       {label.replace(/^\+ /, '')}
     </button>
   );
 }
 
 function CareerTimelineIcon({ type }: { type: CareerItemType }) {
-  const className = 'h-[18px] w-[18px]';
   if (type === 'education' || type === 'course') {
-    return <HiAcademicCap className={className} strokeWidth={2} aria-hidden />;
+    return <CabinetIcon name="graduation" size={18} />;
   }
-  return <HiBriefcase className={className} strokeWidth={2} aria-hidden />;
+  return <CabinetIcon name="briefcase" size={18} />;
 }
 
 function formatCareerPeriod(startYear?: string, endYear?: string): string | null {
@@ -259,6 +258,7 @@ export function TrustSection({
   onEditPortfolio,
   onDeletePortfolio,
   onSetPortfolioCover,
+  actionsDisabled = false,
 }: {
   draft: MasterDraft;
   onAddCareer: () => void;
@@ -271,6 +271,7 @@ export function TrustSection({
   onEditPortfolio: (id: string) => void;
   onDeletePortfolio: (id: string) => void;
   onSetPortfolioCover: (imageUrl: string) => void;
+  actionsDisabled?: boolean;
 }) {
   const careerItems = normalizeCareerItems(draft);
   const certificates = draft.certificates ?? [];
@@ -279,7 +280,7 @@ export function TrustSection({
   const categoryHint = draft.category?.trim() ?? '';
 
   return (
-    <div className="-mx-4 space-y-4 bg-[#F7F7F8] px-4 pb-2 pt-1">
+    <div className="space-y-4">
       {/* Работы */}
       <section className={trustSectionCard}>
         <TrustBlockHeader
@@ -306,6 +307,7 @@ export function TrustSection({
                       <div className="absolute right-2 top-2 z-20">
                         <CardOverflowMenu
                           ariaLabel="Действия с работой"
+                          sheetTitle="Работа"
                           items={[
                             {
                               id: 'cover',
@@ -342,7 +344,7 @@ export function TrustSection({
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-[#9CA3AF]">
-                          <HiPhoto className="h-10 w-10" strokeWidth={1.5} aria-hidden />
+                          <CabinetIcon name="photo" size={40} />
                         </div>
                       )}
                     </div>
@@ -356,15 +358,16 @@ export function TrustSection({
                 );
               })}
             </div>
-            <TrustAddButton label="Добавить работу" onClick={onAddPortfolio} />
+            <TrustAddButton label="Добавить работу" onClick={onAddPortfolio} disabled={actionsDisabled} />
           </>
         ) : (
           <TrustEmptyState
-            icon={<HiCamera className="h-7 w-7" strokeWidth={1.8} aria-hidden />}
+            icon={<CabinetIcon name="camera" size={28} />}
             title="Пока нет работ"
             subtitle="Добавьте первые фото, чтобы клиенты увидели ваш стиль"
             actionLabel="Добавить работу"
             onAction={onAddPortfolio}
+            disabled={actionsDisabled}
           />
         )}
       </section>
@@ -393,6 +396,7 @@ export function TrustSection({
                     <div className="absolute right-2 top-2 z-10">
                       <CardOverflowMenu
                         ariaLabel="Действия с сертификатом"
+                        sheetTitle="Сертификат"
                         items={[
                           { id: 'edit', label: 'Редактировать', onClick: () => onEditCert(certificate.id) },
                           {
@@ -414,7 +418,7 @@ export function TrustSection({
                         />
                       ) : (
                         <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-[#9CA3AF]">
-                          <HiDocumentText className="h-9 w-9" strokeWidth={1.5} aria-hidden />
+                          <CabinetIcon name="certificate" size={36} />
                           <span className="text-[10px] font-medium text-[#9CA3AF]">Документ</span>
                         </div>
                       )}
@@ -429,15 +433,16 @@ export function TrustSection({
                 );
               })}
             </div>
-            <TrustAddButton label="Добавить сертификат" onClick={onAddCert} />
+            <TrustAddButton label="Добавить сертификат" onClick={onAddCert} disabled={actionsDisabled} />
           </>
         ) : (
           <TrustEmptyState
-            icon={<HiDocumentText className="h-7 w-7" strokeWidth={1.8} aria-hidden />}
+            icon={<CabinetIcon name="certificate" size={28} />}
             title="Сертификаты не добавлены"
             subtitle="Добавьте документы, чтобы повысить доверие клиентов"
             actionLabel="Добавить сертификат"
             onAction={onAddCert}
+            disabled={actionsDisabled}
           />
         )}
       </section>
@@ -492,6 +497,7 @@ export function TrustSection({
                         {!isLegacy ? (
                           <CardOverflowMenu
                             ariaLabel="Действия с записью"
+                            sheetTitle="Запись опыта"
                             items={[
                               { id: 'edit', label: 'Редактировать', onClick: () => onEditCareer(item.id) },
                               {
@@ -509,15 +515,16 @@ export function TrustSection({
                 );
               })}
             </ul>
-            <TrustAddButton label="Добавить опыт" onClick={onAddCareer} />
+            <TrustAddButton label="Добавить опыт" onClick={onAddCareer} disabled={actionsDisabled} />
           </>
         ) : (
           <TrustEmptyState
-            icon={<HiAcademicCap className="h-7 w-7" strokeWidth={1.8} aria-hidden />}
+            icon={<CabinetIcon name="graduation" size={28} />}
             title="Опыт пока не добавлен"
             subtitle="Расскажите клиентам о вашем образовании и практике"
             actionLabel="Добавить опыт"
             onAction={onAddCareer}
+            disabled={actionsDisabled}
           />
         )}
       </section>

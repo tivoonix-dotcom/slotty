@@ -6,7 +6,6 @@ import {
   useState,
   type ChangeEvent,
 } from 'react';
-import { HiBuildingOffice2, HiHome, HiMapPin } from 'react-icons/hi2';
 import type {
   MasterCertificate,
   MasterDraft,
@@ -47,7 +46,6 @@ import {
 } from '../../master-onboarding/OnboardingAddressMap';
 import {
   sheetCancelBtnClass,
-  sheetChipClass,
   sheetDayClass,
   sheetFieldClass,
   sheetHintClass,
@@ -59,7 +57,8 @@ import {
   sheetSectionTitleClass,
   sheetSegmentClass,
 } from './adminProfileCabinetTheme';
-import { AddressFieldLabel, addressDetailIcon } from './AdminProfileAddressUi';
+import { AddressFieldLabel } from './AdminProfileAddressUi';
+import { addressDetailIconName, CabinetIcon, type CabinetIconName } from './cabinetIcons';
 
 const FALLBACK_CATEGORIES = [
   'Маникюр',
@@ -71,8 +70,6 @@ const FALLBACK_CATEGORIES = [
 ] as const;
 
 const VISIT_TYPES: MasterVisitType[] = ['studio', 'at_home'];
-
-const PAYMENT_OPTIONS = ['Наличные', 'Карта', 'Перевод', 'Онлайн позже'] as const;
 
 function newEntityId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -112,7 +109,7 @@ function validatePortfolioFields(
   return errs;
 }
 
-function SheetFooter({
+export function SheetFooter({
   onCancel,
   onSave,
   saveLabel = 'Сохранить',
@@ -125,20 +122,37 @@ function SheetFooter({
   savingLabel?: string;
   saving?: boolean;
 }) {
+  const submitLockRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
+  const isSaving = saving || submitting;
+
+  const handleSave = () => {
+    if (isSaving || submitLockRef.current) return;
+
+    const result = onSave();
+    if (result != null && typeof (result as Promise<void>).then === 'function') {
+      submitLockRef.current = true;
+      setSubmitting(true);
+      void (result as Promise<void>).finally(() => {
+        submitLockRef.current = false;
+        setSubmitting(false);
+      });
+      return;
+    }
+
+    submitLockRef.current = true;
+    window.setTimeout(() => {
+      submitLockRef.current = false;
+    }, 400);
+  };
+
   return (
     <div className="mt-8 flex gap-3 pb-1">
-      <button type="button" onClick={onCancel} disabled={saving} className={sheetCancelBtnClass}>
+      <button type="button" onClick={onCancel} disabled={isSaving} className={sheetCancelBtnClass}>
         Отмена
       </button>
-      <button
-        type="button"
-        disabled={saving}
-        onClick={() => {
-          void Promise.resolve(onSave());
-        }}
-        className={sheetPrimaryBtnClass}
-      >
-        {saving ? savingLabel : saveLabel}
+      <button type="button" disabled={isSaving} onClick={handleSave} className={sheetPrimaryBtnClass}>
+        {isSaving ? savingLabel : saveLabel}
       </button>
     </div>
   );
@@ -611,17 +625,12 @@ export function SheetAddress({
   };
 
   const roomLabel = visitType === 'at_home' ? 'Квартира / офис' : 'Кабинет';
-  const visitTypeIcon = (vt: MasterVisitType) =>
-    vt === 'at_home' ? (
-      <HiHome className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden />
-    ) : (
-      <HiBuildingOffice2 className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden />
-    );
+  const visitTypeIconName = (vt: MasterVisitType): CabinetIconName => (vt === 'at_home' ? 'home' : 'building');
 
   return (
     <div className="space-y-4">
       <div className={sheetSectionClass}>
-        <AddressFieldLabel icon={visitTypeIcon(visitType)}>Тип приёма</AddressFieldLabel>
+        <AddressFieldLabel iconName={visitTypeIconName(visitType)}>Тип приёма</AddressFieldLabel>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {VISIT_TYPES.map((vt) => (
             <button
@@ -630,7 +639,9 @@ export function SheetAddress({
               onClick={() => setVisitType(vt)}
               className={`flex min-h-11 items-center justify-center gap-1.5 ${sheetSegmentClass(visitType === vt)}`}
             >
-              <span className={visitType === vt ? 'text-white' : 'text-[#F47C8C]'}>{visitTypeIcon(vt)}</span>
+              <span className={visitType === vt ? 'text-white' : 'text-[#F47C8C]'}>
+                <CabinetIcon name={visitTypeIconName(vt)} size={16} />
+              </span>
               <span>{masterVisitTypeLabel(vt)}</span>
             </button>
           ))}
@@ -644,7 +655,7 @@ export function SheetAddress({
 
       <div className={`${sheetSectionClass} flex items-center gap-3`}>
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C]">
-          <HiMapPin className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
+          <CabinetIcon name="map-pin" size={18} />
         </span>
         <div className="min-w-0">
           <p className={sheetSectionTitleClass}>Город</p>
@@ -654,9 +665,7 @@ export function SheetAddress({
 
       {visitType === 'studio' ? (
         <label className="block">
-          <AddressFieldLabel icon={<HiBuildingOffice2 className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden />}>
-            Название салона или студии
-          </AddressFieldLabel>
+          <AddressFieldLabel iconName="building">Название салона или студии</AddressFieldLabel>
           <input
             value={salonName}
             onChange={(e) => setSalonName(e.target.value)}
@@ -667,9 +676,7 @@ export function SheetAddress({
       ) : null}
 
       <div className={`${sheetSectionClass} space-y-2 overflow-visible`}>
-        <AddressFieldLabel icon={<HiMapPin className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden />}>
-          Адрес на карте
-        </AddressFieldLabel>
+        <AddressFieldLabel iconName="map-pin">Адрес на карте</AddressFieldLabel>
         {visitType === 'studio' ? (
           <p className={sheetHintClass}>Метка у входа в салон — так проще найти вас на месте.</p>
         ) : null}
@@ -696,9 +703,7 @@ export function SheetAddress({
 
       {visitType === 'at_home' ? (
         <div className={sheetSectionClass}>
-          <AddressFieldLabel icon={<HiMapPin className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden />}>
-            Адрес в каталоге до записи
-          </AddressFieldLabel>
+          <AddressFieldLabel iconName="map-pin">Адрес в каталоге до записи</AddressFieldLabel>
           <p className={sheetHintClass}>
             Улица из поля выше видна всем. Корпус, подъезд, этаж и квартира — только в деталях ниже.
           </p>
@@ -735,7 +740,9 @@ export function SheetAddress({
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {visitType === 'at_home' ? (
             <label className="block sm:col-span-2">
-              <AddressFieldLabel icon={addressDetailIcon('корпус', visitType)}>Корпус / строение</AddressFieldLabel>
+              <AddressFieldLabel iconName={addressDetailIconName('корпус', visitType)}>
+                Корпус / строение
+              </AddressFieldLabel>
               <input
                 value={buildingDetail}
                 onChange={(e) => setBuildingDetail(e.target.value)}
@@ -746,118 +753,45 @@ export function SheetAddress({
           ) : null}
 
           <label className="block">
-            <AddressFieldLabel icon={addressDetailIcon('подъезд', visitType)}>Вход / подъезд</AddressFieldLabel>
+            <AddressFieldLabel iconName={addressDetailIconName('подъезд', visitType)}>Вход / подъезд</AddressFieldLabel>
             <input value={entrance} onChange={(e) => setEntrance(e.target.value)} className={sheetFieldClass} />
           </label>
 
           <label className="block">
-            <AddressFieldLabel icon={addressDetailIcon('этаж', visitType)}>Этаж</AddressFieldLabel>
+            <AddressFieldLabel iconName={addressDetailIconName('этаж', visitType)}>Этаж</AddressFieldLabel>
             <input value={floor} onChange={(e) => setFloor(e.target.value)} className={sheetFieldClass} />
           </label>
 
           <label className="block">
-            <AddressFieldLabel icon={addressDetailIcon(roomLabel, visitType)}>{roomLabel}</AddressFieldLabel>
+            <AddressFieldLabel iconName={addressDetailIconName(roomLabel, visitType)}>{roomLabel}</AddressFieldLabel>
             <input value={room} onChange={(e) => setRoom(e.target.value)} className={sheetFieldClass} />
           </label>
 
           <label className="block">
-            <AddressFieldLabel icon={addressDetailIcon('домофон', visitType)}>Домофон / ресепшен</AddressFieldLabel>
+            <AddressFieldLabel iconName={addressDetailIconName('домофон', visitType)}>
+              Домофон / ресепшен
+            </AddressFieldLabel>
             <input value={intercom} onChange={(e) => setIntercom(e.target.value)} className={sheetFieldClass} />
           </label>
 
           <label className="block sm:col-span-2">
-            <AddressFieldLabel icon={addressDetailIcon('ориентир', visitType)}>Ориентир</AddressFieldLabel>
+            <AddressFieldLabel iconName={addressDetailIconName('ориентир', visitType)}>Ориентир</AddressFieldLabel>
             <input value={landmark} onChange={(e) => setLandmark(e.target.value)} className={sheetFieldClass} />
           </label>
 
           <label className="block sm:col-span-2">
-            <AddressFieldLabel icon={addressDetailIcon('как пройти', visitType)}>Как пройти</AddressFieldLabel>
+            <AddressFieldLabel iconName={addressDetailIconName('как пройти', visitType)}>Как пройти</AddressFieldLabel>
             <textarea value={directions} onChange={(e) => setDirections(e.target.value)} rows={3} className={sheetFieldClass} />
           </label>
 
           <label className="block sm:col-span-2">
-            <AddressFieldLabel icon={addressDetailIcon('комментарий', visitType)}>Комментарий для клиента</AddressFieldLabel>
+            <AddressFieldLabel iconName={addressDetailIconName('комментарий', visitType)}>
+              Комментарий для клиента
+            </AddressFieldLabel>
             <textarea value={clientNote} onChange={(e) => setClientNote(e.target.value)} rows={2} className={sheetFieldClass} />
           </label>
         </div>
       </div>
-
-      <SheetFooter onCancel={onCancel} onSave={save} />
-    </div>
-  );
-}
-
-export function SheetRules({
-  draft,
-  onSave,
-  onCancel,
-}: {
-  draft: MasterDraft;
-  onSave: (patch: Pick<MasterDraft, 'bookingRules' | 'cancellationPolicy' | 'paymentMethods' | 'paymentNote'>) => SheetSaveResult;
-  onCancel: () => void;
-}) {
-  const [bookingRules, setBookingRules] = useState(draft.bookingRules ?? '');
-  const [cancellationPolicy, setCancellationPolicy] = useState(draft.cancellationPolicy ?? '');
-  const [paymentMethods, setPaymentMethods] = useState<string[]>(draft.paymentMethods ?? []);
-  const [paymentNote, setPaymentNote] = useState(draft.paymentNote ?? '');
-
-  useEffect(() => {
-    setBookingRules(draft.bookingRules ?? '');
-    setCancellationPolicy(draft.cancellationPolicy ?? '');
-    setPaymentMethods(draft.paymentMethods ?? []);
-    setPaymentNote(draft.paymentNote ?? '');
-  }, [draft]);
-
-  const togglePayment = (label: string) => {
-    setPaymentMethods((prev) =>
-      prev.includes(label) ? prev.filter((x) => x !== label) : [...prev, label],
-    );
-  };
-
-  const save = () => {
-    onSave({
-      bookingRules: bookingRules.trim() || undefined,
-      cancellationPolicy: cancellationPolicy.trim() || undefined,
-      paymentMethods,
-      paymentNote: paymentNote.trim() || undefined,
-    });
-  };
-
-  return (
-    <div className="space-y-4">
-      <label className="block">
-        <span className={sheetLabelClass}>Правила записи</span>
-        <textarea value={bookingRules} onChange={(e) => setBookingRules(e.target.value)} rows={4} className={sheetFieldClass} />
-      </label>
-
-      <label className="block">
-        <span className={sheetLabelClass}>Правила отмены</span>
-        <textarea value={cancellationPolicy} onChange={(e) => setCancellationPolicy(e.target.value)} rows={4} className={sheetFieldClass} />
-      </label>
-
-      <div>
-        <p className={sheetLabelClass}>Способы оплаты</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {PAYMENT_OPTIONS.map((opt) => {
-            const on = paymentMethods.includes(opt);
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => togglePayment(opt)}
-                className={sheetChipClass(on)}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <label className="block">
-        <span className={sheetLabelClass}>Комментарий по оплате</span>
-        <textarea value={paymentNote} onChange={(e) => setPaymentNote(e.target.value)} rows={2} className={sheetFieldClass} />
-      </label>
 
       <SheetFooter onCancel={onCancel} onSave={save} />
     </div>
@@ -1052,7 +986,7 @@ export function SheetCertificate({
     const nextList = certificateId
       ? list.map((c) => (c.id === certificateId ? nextItem : c))
       : [...list, nextItem];
-    onSave(nextList);
+    return onSave(nextList);
   };
 
   return (
@@ -1176,7 +1110,7 @@ export function SheetPortfolio({
     reader.readAsDataURL(file);
   };
 
-  const save = () => {
+  const save = (): SheetSaveResult => {
     const errs = validatePortfolioFields(imageUrl, title, description, uploadingImage);
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
@@ -1191,7 +1125,7 @@ export function SheetPortfolio({
       imageUrl: imageUrl.trim(),
     };
     const nextList = itemId ? list.map((p) => (p.id === itemId ? nextItem : p)) : [...list, nextItem];
-    onSave(nextList);
+    return onSave(nextList);
   };
 
   return (
@@ -1286,21 +1220,41 @@ export function SheetDeleteConfirm({
   onDelete: () => SheetSaveResult;
   deleteLabel?: string;
 }) {
+  const submitLockRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleDelete = () => {
+    if (submitting || submitLockRef.current) return;
+    const result = onDelete();
+    if (result != null && typeof (result as Promise<void>).then === 'function') {
+      submitLockRef.current = true;
+      setSubmitting(true);
+      void (result as Promise<void>).finally(() => {
+        submitLockRef.current = false;
+        setSubmitting(false);
+      });
+      return;
+    }
+    submitLockRef.current = true;
+    window.setTimeout(() => {
+      submitLockRef.current = false;
+    }, 400);
+  };
+
   return (
     <div className="space-y-4 pb-1">
       <p className="text-[15px] leading-relaxed text-[#6B7280]">{text}</p>
       <div className="flex gap-3">
-        <button type="button" onClick={onBack} className={sheetCancelBtnClass}>
+        <button type="button" onClick={onBack} disabled={submitting} className={sheetCancelBtnClass}>
           Назад
         </button>
         <button
           type="button"
-          onClick={() => {
-            void Promise.resolve(onDelete());
-          }}
-          className="flex min-h-12 flex-1 items-center justify-center rounded-[17px] bg-red-500 px-4 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(239,68,68,0.28)] transition hover:bg-red-600 active:scale-[0.99]"
+          disabled={submitting}
+          onClick={handleDelete}
+          className="flex min-h-12 flex-1 items-center justify-center rounded-[17px] bg-red-500 px-4 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(239,68,68,0.28)] transition hover:bg-red-600 active:scale-[0.99] disabled:opacity-50"
         >
-          {deleteLabel}
+          {submitting ? 'Удаление…' : deleteLabel}
         </button>
       </div>
     </div>

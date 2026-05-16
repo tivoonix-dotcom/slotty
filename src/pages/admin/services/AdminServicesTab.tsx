@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useSingleFlight } from '../shared/useSingleFlight';
 import { useNavigate } from 'react-router-dom';
 import type {
   MasterDraft,
@@ -160,6 +161,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
   const [isActive, setIsActive] = useState(true);
   const [desc, setDesc] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const { busy: serviceActionBusy, run: runServiceAction } = useSingleFlight();
 
   const services = useMemo(
     () =>
@@ -258,6 +260,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
       return;
     }
 
+    await runServiceAction(async () => {
     const nextService: ManagedService = {
       id: editingId ?? newServiceId(),
       title: preparedTitle,
@@ -320,6 +323,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     } catch (e) {
       setFormError(e instanceof Error ? e.message : 'Не удалось сохранить');
     }
+    });
   }, [
     closeSheet,
     desc,
@@ -331,6 +335,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     price,
     priceType,
     refreshDraft,
+    runServiceAction,
     services,
     showSuccessToast,
     title,
@@ -462,6 +467,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
   const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
 
+    await runServiceAction(async () => {
     if (!useCabinetApi) {
       persistServices(
         services.filter((service) => service.id !== deleteTarget.id),
@@ -490,7 +496,8 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     } catch (e) {
       setDeleteError(e instanceof Error ? e.message : 'Не удалось удалить');
     }
-  }, [commitDraftBaseline, deleteTarget, draft, persistServices, refreshDraft, services, showSuccessToast, useCabinetApi]);
+    });
+  }, [commitDraftBaseline, deleteTarget, draft, persistServices, refreshDraft, runServiceAction, services, showSuccessToast, useCabinetApi]);
 
   return (
     <div className="space-y-4">
@@ -837,10 +844,11 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
 
           <button
             type="button"
+            disabled={serviceActionBusy}
             onClick={() => void saveService()}
-            className="flex min-h-12 w-full items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
+            className="flex min-h-12 w-full items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98] disabled:opacity-50"
           >
-            Сохранить
+            {serviceActionBusy ? 'Сохранение…' : 'Сохранить'}
           </button>
         </div>
       </AdminBottomSheet>
@@ -935,10 +943,11 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
 
           <button
             type="button"
+            disabled={serviceActionBusy}
             onClick={() => void confirmDelete()}
-            className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
+            className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98] disabled:opacity-50"
           >
-            Удалить
+            {serviceActionBusy ? 'Удаление…' : 'Удалить'}
           </button>
         </div>
       </AdminBottomSheet>

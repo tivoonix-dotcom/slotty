@@ -1,15 +1,4 @@
 import type { ReactNode } from 'react';
-import {
-  HiArrowRightOnRectangle,
-  HiBuildingOffice2,
-  HiChatBubbleLeft,
-  HiHome,
-  HiKey,
-  HiMapPin,
-  HiPencil,
-  HiPhone,
-  HiSquares2X2,
-} from 'react-icons/hi2';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import {
   buildLocationDisplayParts,
@@ -18,47 +7,17 @@ import {
   type MasterVisitType,
 } from '../../../features/profile/model/masterLocation';
 import { cabinetCard, cabinetCardPad, cabinetIconCircle } from './adminProfileCabinetTheme';
+import {
+  addressDetailIconName,
+  AddressDetailIcon,
+  CabinetIcon,
+  type CabinetIconName,
+} from './cabinetIcons';
 
-function addressDetailIcon(label: string, visitType: MasterVisitType): ReactNode {
-  const className = 'h-[16px] w-[16px]';
-  const lower = label.toLowerCase();
+export { addressDetailIconName };
 
-  if (lower.includes('салон')) {
-    return <HiBuildingOffice2 className={className} strokeWidth={2} aria-hidden />;
-  }
-  if (lower.includes('подъезд') || lower.includes('вход')) {
-    return <HiArrowRightOnRectangle className={className} strokeWidth={2} aria-hidden />;
-  }
-  if (lower.includes('этаж')) {
-    return <HiSquares2X2 className={className} strokeWidth={2} aria-hidden />;
-  }
-  if (lower.includes('кабинет') || lower.includes('квартир')) {
-    return <HiKey className={className} strokeWidth={2} aria-hidden />;
-  }
-  if (lower.includes('домофон') || lower.includes('ресепшен')) {
-    return <HiPhone className={className} strokeWidth={2} aria-hidden />;
-  }
-  if (lower.includes('ориентир') || lower.includes('метро') || lower.includes('район')) {
-    return <HiMapPin className={className} strokeWidth={2} aria-hidden />;
-  }
-  if (lower.includes('как пройти')) {
-    return <HiMapPin className={className} strokeWidth={2} aria-hidden />;
-  }
-  if (lower.includes('комментар')) {
-    return <HiChatBubbleLeft className={className} strokeWidth={2} aria-hidden />;
-  }
-  if (lower.includes('дом') || lower.includes('корпус')) {
-    return <HiHome className={className} strokeWidth={2} aria-hidden />;
-  }
-  if (lower.includes('адрес')) {
-    return <HiMapPin className={className} strokeWidth={2} aria-hidden />;
-  }
-
-  return visitType === 'at_home' ? (
-    <HiHome className={className} strokeWidth={2} aria-hidden />
-  ) : (
-    <HiBuildingOffice2 className={className} strokeWidth={2} aria-hidden />
-  );
+export function addressDetailIcon(label: string, visitType: MasterVisitType) {
+  return <AddressDetailIcon label={label} visitType={visitType} size={16} />;
 }
 
 function VisitTypeBadge({ visitType }: { visitType: MasterVisitType }) {
@@ -66,11 +25,7 @@ function VisitTypeBadge({ visitType }: { visitType: MasterVisitType }) {
   return (
     <div className="flex items-center gap-3 rounded-[18px] bg-[#F7F7F8] p-3">
       <span className={`${cabinetIconCircle} h-9 w-9`}>
-        {isHome ? (
-          <HiHome className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-        ) : (
-          <HiBuildingOffice2 className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-        )}
+        <CabinetIcon name={isHome ? 'home' : 'building'} size={18} />
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[12px] font-medium text-[#6B7280]">Формат приёма</p>
@@ -84,11 +39,11 @@ function VisitTypeBadge({ visitType }: { visitType: MasterVisitType }) {
 }
 
 function AddressInfoRow({
-  icon,
+  iconName,
   label,
   value,
 }: {
-  icon: ReactNode;
+  iconName: CabinetIconName;
   label: string;
   value: string;
 }) {
@@ -98,7 +53,7 @@ function AddressInfoRow({
   return (
     <div className="flex items-start gap-2.5 rounded-[16px] bg-[#F7F7F8] px-3 py-2.5">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C]">
-        {icon}
+        <CabinetIcon name={iconName} size={16} />
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-medium leading-tight text-[#9CA3AF]">{label}</p>
@@ -120,18 +75,22 @@ function AddressBlockTitle({ children, hint }: { children: ReactNode; hint?: str
 }
 
 /** Подпись поля в форме редактирования адреса. */
-export function AddressFieldLabel({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+export function AddressFieldLabel({
+  iconName,
+  children,
+}: {
+  iconName: CabinetIconName;
+  children: ReactNode;
+}) {
   return (
     <span className="mb-1 flex items-center gap-2 text-[13px] font-medium text-[#6B7280]">
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFF1F4] text-[#F47C8C]">
-        {icon}
+        <CabinetIcon name={iconName} size={16} />
       </span>
       <span className="min-w-0">{children}</span>
     </span>
   );
 }
-
-export { addressDetailIcon };
 
 export function AddressSection({
   draft,
@@ -162,8 +121,7 @@ export function AddressSection({
   const hasAfterBooking = detailRows.length > 0;
 
   return (
-    <div className="-mx-4 space-y-4 bg-[#F7F7F8] px-4 pb-2 pt-1">
-      <section className={`${cabinetCard} ${cabinetCardPad}`}>
+    <section className={`${cabinetCard} ${cabinetCardPad}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Адрес</h2>
@@ -176,7 +134,7 @@ export function AddressSection({
             onClick={onEditAddress}
             className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#FFF1F4] px-3.5 text-[13px] font-semibold text-[#F47C8C] transition hover:bg-[#FFE4EA] active:scale-[0.98]"
           >
-            <HiPencil className="h-4 w-4" strokeWidth={2} aria-hidden />
+            <CabinetIcon name="pencil" size={16} />
             Изменить
           </button>
         </div>
@@ -191,11 +149,7 @@ export function AddressSection({
                 Адрес не указан — нажмите «Изменить»
               </p>
             ) : (
-              <AddressInfoRow
-                icon={<HiMapPin className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden />}
-                label="Адрес для всех"
-                value={catalogMain}
-              />
+              <AddressInfoRow iconName="map-pin" label="Адрес для всех" value={catalogMain} />
             )}
           </div>
 
@@ -208,7 +162,7 @@ export function AddressSection({
                 {detailRows.map((row) => (
                   <AddressInfoRow
                     key={`${row.label}-${row.value}`}
-                    icon={addressDetailIcon(row.label, visitType)}
+                    iconName={addressDetailIconName(row.label, visitType)}
                     label={row.label}
                     value={row.value}
                   />
@@ -221,7 +175,6 @@ export function AddressSection({
             </p>
           )}
         </div>
-      </section>
-    </div>
+    </section>
   );
 }

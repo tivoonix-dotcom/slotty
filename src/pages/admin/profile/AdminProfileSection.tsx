@@ -1,4 +1,4 @@
-﻿import { useCallback, useMemo, useState, type ReactNode } from 'react';
+﻿import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ADMIN_SERVICES_PATH } from '../../../app/paths';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
@@ -26,20 +26,20 @@ import {
   SheetAddress,
   SheetCertificate,
   SheetDeleteConfirm,
+  SheetFooter,
   SheetMainInfo,
   SheetPortfolio,
-  SheetRules,
   SheetSchedule,
 } from './AdminProfileEditSheets';
+import { RulesSection, SheetRules } from './AdminProfileRulesUi';
+import { useSingleFlight } from '../shared/useSingleFlight';
 import { AddressSection } from './AdminProfileAddressUi';
 import { MasterBookingLinkCard } from './MasterBookingLinkCard';
 import { TrustSection } from './AdminProfilePortfolioUi';
 import {
-  sheetCancelBtnClass,
   sheetChipClass,
   sheetFieldClass,
   sheetLabelClass,
-  sheetPrimaryBtnClass,
 } from './adminProfileCabinetTheme';
 import {
   AboutCard,
@@ -124,15 +124,6 @@ function normalizeCareerItems(draft: MasterDraft): MasterCareerItem[] {
   return [];
 }
 
-function hasRulesContent(d: MasterDraft): boolean {
-  return Boolean(
-    d.bookingRules?.trim() ||
-      d.cancellationPolicy?.trim() ||
-      (d.paymentMethods?.length ?? 0) > 0 ||
-      d.paymentNote?.trim(),
-  );
-}
-
 function certificatesNonHttpsError(certificates: { imageUrl?: string }[]): string | null {
   for (const c of certificates) {
     const u = c.imageUrl?.trim();
@@ -152,103 +143,6 @@ function portfolioHttpsError(portfolio: { imageUrl?: string }[]): string | null 
     }
   }
   return null;
-}
-
-function valueOrDash(value?: string | null): string {
-  const trimmed = value?.trim() ?? '';
-  return trimmed || '—';
-}
-
-function InfoBlock({
-  label,
-  value,
-  large,
-  leading,
-}: {
-  label: string;
-  value?: string | null;
-  large?: boolean;
-  leading?: ReactNode;
-}) {
-  const text = valueOrDash(value);
-  return (
-    <div className="rounded-[26px] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(17,17,17,0.035)]">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">{label}</p>
-      {leading ? (
-        <div className="mt-2 flex items-center gap-2.5">
-          {leading}
-          <p
-            className={`min-w-0 flex-1 whitespace-pre-wrap leading-relaxed text-neutral-950 ${
-              large ? 'text-[16px] font-semibold' : 'text-[15px] font-medium'
-            }`}
-          >
-            {text}
-          </p>
-        </div>
-      ) : (
-        <p
-          className={`mt-2 whitespace-pre-wrap leading-relaxed text-neutral-950 ${
-            large ? 'text-[16px] font-semibold' : 'text-[15px] font-medium'
-          }`}
-        >
-          {text}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function EmptyBlock({
-  title,
-  text,
-  actionLabel,
-  onAction,
-}: {
-  title: string;
-  text: string;
-  actionLabel: string;
-  onAction: () => void;
-}) {
-  return (
-    <div className="rounded-[28px] bg-white px-5 py-6 text-center shadow-[0_8px_24px_rgba(17,17,17,0.035)]">
-      <p className="text-[18px] font-semibold tracking-[-0.045em] text-neutral-950">{title}</p>
-      <p className="mx-auto mt-2 max-w-[20rem] text-[14px] leading-relaxed text-neutral-500">{text}</p>
-      <button
-        type="button"
-        onClick={onAction}
-        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[#F7F7F8] px-6 text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98]"
-      >
-        {actionLabel}
-      </button>
-    </div>
-  );
-}
-
-function SectionCard({
-  title,
-  text,
-  headerAction,
-  children,
-}: {
-  title: string;
-  text?: string;
-  headerAction?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-[34px] bg-[#F7F7F8] p-3 shadow-[0_14px_42px_rgba(17,17,17,0.045)]">
-      <div className="rounded-[30px] bg-white px-5 py-5 shadow-[0_8px_24px_rgba(17,17,17,0.035)]">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[24px] font-semibold leading-tight tracking-[-0.055em] text-neutral-950">{title}</h2>
-            {text ? <p className="mt-2 text-[14px] leading-relaxed text-neutral-500">{text}</p> : null}
-          </div>
-          {headerAction ? <div className="shrink-0 pt-0.5">{headerAction}</div> : null}
-        </div>
-      </div>
-      <div className="mt-3 space-y-3">{children}</div>
-    </section>
-  );
 }
 
 function MainSection({
@@ -336,7 +230,7 @@ function CareerSheet({
       ? careerItems.map((item) => (item.id === editing.id ? row : item))
       : [...careerItems, row];
 
-    onSave(next);
+    return onSave(next);
   }, [careerItems, description, editing, endYear, onSave, place, startYear, title, type]);
 
   return (
@@ -418,71 +312,8 @@ function CareerSheet({
         </p>
       ) : null}
 
-      <div className="mt-8 flex gap-3 pb-1 pt-2">
-        <button type="button" onClick={onCancel} className={sheetCancelBtnClass}>
-          Отмена
-        </button>
-        <button type="button" onClick={save} className={sheetPrimaryBtnClass}>
-          Сохранить
-        </button>
-      </div>
+      <SheetFooter onCancel={onCancel} onSave={save} />
     </div>
-  );
-}
-
-function RulesSection({
-  draft,
-  onEditRules,
-}: {
-  draft: MasterDraft;
-  onEditRules: () => void;
-}) {
-  const paymentMethods = draft.paymentMethods ?? [];
-  const filled = hasRulesContent(draft);
-
-  return (
-    <SectionCard title="Правила записи" text="Условия записи, отмены и оплаты лучше показать заранее.">
-      {filled ? (
-        <>
-          <InfoBlock label="Правила записи" value={draft.bookingRules} large />
-          <InfoBlock label="Правила отмены" value={draft.cancellationPolicy} large />
-          <div className="rounded-[30px] bg-white p-4 shadow-[0_8px_24px_rgba(17,17,17,0.035)]">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">Способы оплаты</p>
-            {paymentMethods.length > 0 ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {paymentMethods.map((method) => (
-                  <span
-                    key={method}
-                    className="rounded-full bg-[#F7F7F8] px-3 py-2 text-[13px] font-semibold text-neutral-700"
-                  >
-                    {method}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-[15px] font-medium text-neutral-950">—</p>
-            )}
-            {draft.paymentNote?.trim() ? (
-              <p className="mt-3 text-[14px] leading-relaxed text-neutral-500">{draft.paymentNote}</p>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={onEditRules}
-            className="flex min-h-12 w-full items-center justify-center rounded-full bg-[#F47C8C] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(244,124,140,0.22)] transition active:scale-[0.98]"
-          >
-            Редактировать правила
-          </button>
-        </>
-      ) : (
-        <EmptyBlock
-          title="Правила не заполнены"
-          text="Добавьте условия записи, отмены и оплату — так клиенту будет спокойнее записываться."
-          actionLabel="Добавить правила"
-          onAction={onEditRules}
-        />
-      )}
-    </SectionCard>
   );
 }
 
@@ -502,6 +333,7 @@ function AdminProfileReadView({
   onEditPortfolio,
   onDeletePortfolio,
   onSetPortfolioCover,
+  actionsDisabled = false,
   cabinetLoading,
   useCabinetApi,
   appointments,
@@ -526,6 +358,7 @@ function AdminProfileReadView({
   onEditPortfolio: (id: string) => void;
   onDeletePortfolio: (id: string) => void;
   onSetPortfolioCover: (imageUrl: string) => void;
+  actionsDisabled?: boolean;
 }) {
   const [activeSection, setActiveSection] = useState<ProfileSection>('main');
   const stats = useMemo(() => buildProfileStats(appointments), [appointments]);
@@ -548,6 +381,7 @@ function AdminProfileReadView({
           onEditPortfolio={onEditPortfolio}
           onDeletePortfolio={onDeletePortfolio}
           onSetPortfolioCover={onSetPortfolioCover}
+          actionsDisabled={actionsDisabled}
         />
       );
     }
@@ -585,19 +419,22 @@ function AdminProfileReadView({
     onEditPortfolio,
     onEditRules,
     onSetPortfolioCover,
+    actionsDisabled,
   ]);
 
   return (
-    <div className="space-y-4">
+    <>
       <div
-        className="sticky z-20 -mx-4 border-b border-[#EAECEF] bg-white"
+        className="sticky z-20 border-b border-[#EAECEF] bg-white"
         style={{ top: CABINET_HEADER_STICKY_TOP }}
       >
         <CabinetSectionTabs active={activeSection} onChange={setActiveSection} />
       </div>
-      <CabinetProfileHero draft={draft} stats={stats} />
-      {section}
-    </div>
+      <div className="space-y-4 px-4">
+        <CabinetProfileHero draft={draft} stats={stats} />
+        {section}
+      </div>
+    </>
   );
 }
 
@@ -641,8 +478,23 @@ export function AdminProfileSection() {
     setSheet(null);
   }, []);
 
+  const { busy: sheetPersisting, run: runSheetPersist } = useSingleFlight();
+
+  const openSheet = useCallback(
+    (next: ProfileSheet, mode: 'add' | 'replace' = 'replace') => {
+      if (cabinetLoading || sheetPersisting) return;
+      if (mode === 'add') {
+        setSheet((current) => current ?? next);
+      } else {
+        setSheet(next);
+      }
+    },
+    [cabinetLoading, sheetPersisting],
+  );
+
   const saveMain = useCallback(
     async (patch: Partial<MasterDraft>) => {
+      await runSheetPersist(async () => {
       if (useCabinetApi) {
         const p = patch.photoUrl?.trim();
         if (p && !p.startsWith('https://') && !p.startsWith('data:image/')) {
@@ -670,111 +522,121 @@ export function AdminProfileSection() {
       } catch (e) {
         setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
       }
+      });
     },
-    [closeSheet, draft, patchProfileToBackend, refreshDraft, showSaved, useCabinetApi],
+    [closeSheet, draft, patchProfileToBackend, refreshDraft, runSheetPersist, showSaved, useCabinetApi],
   );
 
   const setPortfolioCover = useCallback(
     async (imageUrl: string) => {
       const photoUrl = imageUrl.trim();
       if (!photoUrl) return;
-      setSheetApiError(null);
-      const next: MasterDraft = { ...draft, photoUrl };
-      try {
-        if (useCabinetApi) {
-          await patchProfileToBackend({
-            name: next.name,
-            description: next.description,
-            phone: next.phone,
-            contact: next.contact,
-            contacts: next.contacts,
-            photoUrl: next.photoUrl,
-            category: next.category,
-            primaryCategoryId: next.primaryCategoryId,
-            primaryCategoryCode: next.primaryCategoryCode,
-          });
-          await refreshDraft();
-        } else {
-          persistDraft(next);
+      await runSheetPersist(async () => {
+        setSheetApiError(null);
+        const next: MasterDraft = { ...draft, photoUrl };
+        try {
+          if (useCabinetApi) {
+            await patchProfileToBackend({
+              name: next.name,
+              description: next.description,
+              phone: next.phone,
+              contact: next.contact,
+              contacts: next.contacts,
+              photoUrl: next.photoUrl,
+              category: next.category,
+              primaryCategoryId: next.primaryCategoryId,
+              primaryCategoryCode: next.primaryCategoryCode,
+            });
+            await refreshDraft();
+          } else {
+            persistDraft(next);
+          }
+          showSaved();
+        } catch (e) {
+          setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
         }
-        showSaved();
-      } catch (e) {
-        setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
-      }
+      });
     },
-    [draft, patchProfileToBackend, persistDraft, refreshDraft, showSaved, useCabinetApi],
+    [draft, patchProfileToBackend, persistDraft, refreshDraft, runSheetPersist, showSaved, useCabinetApi],
   );
 
   const saveLocation = useCallback(
     async (location: MasterDraft['location']) => {
-      setSheetApiError(null);
-      if (!useCabinetApi) {
-        persistDraft({ ...draft, location });
-        closeSheet();
-        showSaved();
-        return;
-      }
-      try {
-        await flushDraftToBackend({ ...draft, location });
-        closeSheet();
-        showSaved();
-      } catch (e) {
-        setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
-      }
+      await runSheetPersist(async () => {
+        setSheetApiError(null);
+        if (!useCabinetApi) {
+          persistDraft({ ...draft, location });
+          closeSheet();
+          showSaved();
+          return;
+        }
+        try {
+          await flushDraftToBackend({ ...draft, location });
+          closeSheet();
+          showSaved();
+        } catch (e) {
+          setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
+        }
+      });
     },
-    [closeSheet, draft, flushDraftToBackend, persistDraft, showSaved, useCabinetApi],
+    [closeSheet, draft, flushDraftToBackend, persistDraft, runSheetPersist, showSaved, useCabinetApi],
   );
 
   const saveSchedule = useCallback(
     async (schedule: MasterDraft['schedule']) => {
-      setSheetApiError(null);
-      const next = { ...draft, schedule };
-      if (!useCabinetApi) {
-        persistDraft(next);
-        closeSheet();
-        showSaved();
-        return;
-      }
-      try {
-        await flushScheduleToBackend(next);
-        closeSheet();
-        showSaved();
-      } catch (e) {
-        setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
-      }
+      await runSheetPersist(async () => {
+        setSheetApiError(null);
+        const next = { ...draft, schedule };
+        if (!useCabinetApi) {
+          persistDraft(next);
+          closeSheet();
+          showSaved();
+          return;
+        }
+        try {
+          await flushScheduleToBackend(next);
+          closeSheet();
+          showSaved();
+        } catch (e) {
+          setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
+        }
+      });
     },
-    [closeSheet, draft, flushScheduleToBackend, persistDraft, showSaved, useCabinetApi],
+    [closeSheet, draft, flushScheduleToBackend, persistDraft, runSheetPersist, showSaved, useCabinetApi],
   );
 
   const saveRules = useCallback(
     async (patch: Pick<MasterDraft, 'bookingRules' | 'cancellationPolicy' | 'paymentMethods' | 'paymentNote'>) => {
-      if (!useCabinetApi) {
+      await runSheetPersist(async () => {
+        if (!useCabinetApi) {
+          setSheetApiError(null);
+          persistDraft({ ...draft, ...patch });
+          closeSheet();
+          showSaved();
+          return;
+        }
         setSheetApiError(null);
-        persistDraft({ ...draft, ...patch });
-        closeSheet();
-        showSaved();
-        return;
-      }
-      setSheetApiError(null);
-      try {
-        await updateMyBookingRules({
-          bookingRules: patch.bookingRules ?? null,
-          cancellationPolicy: patch.cancellationPolicy ?? null,
-          paymentNote: patch.paymentNote ?? null,
-          paymentMethods: patch.paymentMethods,
-        });
-        await refreshDraft();
-        closeSheet();
-        showSaved();
-      } catch (e) {
-        setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
-      }
+        try {
+          await updateMyBookingRules({
+            bookingRules: patch.bookingRules ?? null,
+            cancellationPolicy: patch.cancellationPolicy ?? null,
+            paymentNote: patch.paymentNote ?? null,
+            paymentMethods: patch.paymentMethods,
+          });
+          await refreshDraft();
+          closeSheet();
+          showSaved();
+        } catch (e) {
+          setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
+        }
+      });
     },
-    [closeSheet, draft, persistDraft, refreshDraft, showSaved, useCabinetApi],
+    [closeSheet, draft, persistDraft, refreshDraft, runSheetPersist, showSaved, useCabinetApi],
   );
 
   const saveCareer = useCallback(
     async (careerItems: MasterCareerItem[]) => {
+      await runSheetPersist(async () => {
       if (!useCabinetApi) {
         setSheetApiError(null);
         persistDraft({
@@ -796,12 +658,14 @@ export function AdminProfileSection() {
       } catch (e) {
         setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
       }
+      });
     },
-    [closeSheet, draft, persistDraft, refreshDraft, showSaved, useCabinetApi],
+    [closeSheet, draft, persistDraft, refreshDraft, runSheetPersist, showSaved, useCabinetApi],
   );
 
   const saveCertificates = useCallback(
     async (certificates: NonNullable<MasterDraft['certificates']>) => {
+      await runSheetPersist(async () => {
       if (useCabinetApi) {
         const imgErr = certificatesNonHttpsError(certificates);
         if (imgErr) {
@@ -826,12 +690,14 @@ export function AdminProfileSection() {
       } catch (e) {
         setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
       }
+      });
     },
-    [closeSheet, draft, persistDraft, refreshDraft, showSaved, useCabinetApi],
+    [closeSheet, draft, persistDraft, refreshDraft, runSheetPersist, showSaved, useCabinetApi],
   );
 
   const savePortfolio = useCallback(
     async (portfolio: NonNullable<MasterDraft['portfolio']>) => {
+      await runSheetPersist(async () => {
       if (useCabinetApi) {
         const imgErr = portfolioHttpsError(portfolio);
         if (imgErr) {
@@ -867,13 +733,15 @@ export function AdminProfileSection() {
       } catch (e) {
         setSheetApiError(e instanceof Error ? e.message : 'Ошибка сохранения');
       }
+      });
     },
-    [closeSheet, draft, persistDraft, refreshDraft, showSaved, useCabinetApi],
+    [closeSheet, draft, persistDraft, refreshDraft, runSheetPersist, showSaved, useCabinetApi],
   );
 
   const confirmDeleteCareer = useCallback(async () => {
     if (!sheet || typeof sheet !== 'object' || sheet.k !== 'del-career') return;
 
+    await runSheetPersist(async () => {
     const id = sheet.id;
     const next = (draft.careerItems ?? []).filter((item) => item.id !== id);
 
@@ -900,10 +768,12 @@ export function AdminProfileSection() {
     } catch (e) {
       setSheetApiError(e instanceof Error ? e.message : 'Ошибка удаления');
     }
-  }, [closeSheet, draft, persistDraft, refreshDraft, sheet, showSaved, useCabinetApi]);
+    });
+  }, [closeSheet, draft, persistDraft, refreshDraft, runSheetPersist, sheet, showSaved, useCabinetApi]);
 
   const confirmDeleteCert = useCallback(async () => {
     if (!sheet || typeof sheet !== 'object' || sheet.k !== 'del-cert') return;
+    await runSheetPersist(async () => {
     const id = sheet.id;
     const next = (draft.certificates ?? []).filter((certificate) => certificate.id !== id);
 
@@ -930,10 +800,12 @@ export function AdminProfileSection() {
     } catch (e) {
       setSheetApiError(e instanceof Error ? e.message : 'Ошибка удаления');
     }
-  }, [closeSheet, draft, persistDraft, refreshDraft, sheet, showSaved, useCabinetApi]);
+    });
+  }, [closeSheet, draft, persistDraft, refreshDraft, runSheetPersist, sheet, showSaved, useCabinetApi]);
 
   const confirmDeletePortfolio = useCallback(async () => {
     if (!sheet || typeof sheet !== 'object' || sheet.k !== 'del-portfolio') return;
+    await runSheetPersist(async () => {
     const id = sheet.id;
     const next = (draft.portfolio ?? []).filter((item) => item.id !== id);
 
@@ -960,7 +832,8 @@ export function AdminProfileSection() {
     } catch (e) {
       setSheetApiError(e instanceof Error ? e.message : 'Ошибка удаления');
     }
-  }, [closeSheet, draft, persistDraft, refreshDraft, sheet, showSaved, useCabinetApi]);
+    });
+  }, [closeSheet, draft, persistDraft, refreshDraft, runSheetPersist, sheet, showSaved, useCabinetApi]);
 
   const sheetBody = useMemo(() => {
     if (sheet === 'main') {
@@ -1072,26 +945,27 @@ export function AdminProfileSection() {
 
   return (
     <CabinetPageShell>
-      <section className="relative px-4 pb-10 pt-0">
+      <section className="relative pb-10 pt-0">
         <AdminProfileReadView
           draft={draft}
           appointments={appointments}
           cabinetLoading={cabinetLoading}
           useCabinetApi={useCabinetApi}
           onGoServices={() => navigate(ADMIN_SERVICES_PATH)}
-          onEditMain={() => setSheet('main')}
-          onEditSchedule={() => setSheet('schedule')}
-          onEditAddress={() => setSheet('address')}
-          onEditRules={() => setSheet('rules')}
-          onAddCareer={() => setSheet({ k: 'career' })}
-          onEditCareer={(id) => setSheet({ k: 'career', id })}
-          onDeleteCareer={(id) => setSheet({ k: 'del-career', id })}
-          onAddCert={() => setSheet({ k: 'cert' })}
-          onEditCert={(id) => setSheet({ k: 'cert', id })}
-          onDeleteCert={(id) => setSheet({ k: 'del-cert', id })}
-          onAddPortfolio={() => setSheet({ k: 'portfolio' })}
-          onEditPortfolio={(id) => setSheet({ k: 'portfolio', id })}
-          onDeletePortfolio={(id) => setSheet({ k: 'del-portfolio', id })}
+          onEditMain={() => openSheet('main')}
+          onEditSchedule={() => openSheet('schedule')}
+          onEditAddress={() => openSheet('address')}
+          onEditRules={() => openSheet('rules')}
+          onAddCareer={() => openSheet({ k: 'career' }, 'add')}
+          onEditCareer={(id) => openSheet({ k: 'career', id })}
+          onDeleteCareer={(id) => openSheet({ k: 'del-career', id })}
+          onAddCert={() => openSheet({ k: 'cert' }, 'add')}
+          onEditCert={(id) => openSheet({ k: 'cert', id })}
+          onDeleteCert={(id) => openSheet({ k: 'del-cert', id })}
+          onAddPortfolio={() => openSheet({ k: 'portfolio' }, 'add')}
+          onEditPortfolio={(id) => openSheet({ k: 'portfolio', id })}
+          onDeletePortfolio={(id) => openSheet({ k: 'del-portfolio', id })}
+          actionsDisabled={cabinetLoading || sheetPersisting}
           onSetPortfolioCover={setPortfolioCover}
         />
 

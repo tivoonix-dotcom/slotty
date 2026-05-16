@@ -1,21 +1,6 @@
 import type { ReactNode } from 'react';
-import {
-  HiCalendar,
-  HiChatBubbleLeft,
-  HiCheck,
-  HiChevronRight,
-  HiFaceSmile,
-  HiMapPin,
-  HiPaperAirplane,
-  HiPencil,
-  HiPhone,
-  HiPhoto,
-  HiTag,
-  HiStar,
-  HiUser,
-  HiDocumentText,
-} from 'react-icons/hi2';
 import { BY } from 'country-flag-icons/react/1x1';
+import { CabinetIcon, type CabinetIconName } from './cabinetIcons';
 import { ADMIN_SERVICES_PATH } from '../../../app/paths';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import {
@@ -31,43 +16,11 @@ import { cabinetCard, cabinetCardPad, cabinetIconCircle, cabinetPinkBtn } from '
 
 const PROFILE_COMPLETE_IMAGE_SRC = '/photos/SUCCE.webp';
 
-const svgStroke = {
-  stroke: 'currentColor',
-  strokeWidth: 2,
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-};
-
-function SvgIcon({ children, size = 20 }: { children: ReactNode; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden
-      shapeRendering="geometricPrecision"
-      className="block shrink-0"
-    >
-      {children}
-    </svg>
-  );
-}
-
-function IconClock({ size = 20 }: { size?: number }) {
-  return (
-    <SvgIcon size={size}>
-      <circle cx="12" cy="12" r="9" {...svgStroke} />
-      <path d="M12 7v5l3 2" {...svgStroke} />
-    </SvgIcon>
-  );
-}
-
-/** Иконка секции: мягкий квадрат без «кольца», чёткий SVG внутри. */
-function CabinetSectionIcon({ children }: { children: ReactNode }) {
+/** Иконка секции: мягкий квадрат, единый набор SVG. */
+function CabinetSectionIcon({ name, size = 18 }: { name: CabinetIconName; size?: number }) {
   return (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C]">
-      {children}
+      <CabinetIcon name={name} size={size} />
     </span>
   );
 }
@@ -79,7 +32,7 @@ function CompletionStatusIcon({ done }: { done: boolean }) {
         className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FFF1F4] ring-1 ring-[#FDE8ED]"
         aria-hidden
       >
-        <HiCheck className="h-3 w-3 text-[#F47C8C]" strokeWidth={2.5} />
+        <CabinetIcon name="check" size={12} />
       </span>
     );
   }
@@ -228,9 +181,9 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
         </div>
 
         <div className="mt-4 flex gap-2">
-          <StatMiniCard icon={<HiStar className="h-[18px] w-[18px]" />} {...stats.rating} />
-          <StatMiniCard icon={<HiCalendar className="h-[18px] w-[18px]" />} {...stats.bookings} />
-          <StatMiniCard icon={<HiFaceSmile className="h-[18px] w-[18px]" />} {...stats.happy} />
+          <StatMiniCard icon={<CabinetIcon name="star" size={18} />} {...stats.rating} />
+          <StatMiniCard icon={<CabinetIcon name="calendar" size={18} />} {...stats.bookings} />
+          <StatMiniCard icon={<CabinetIcon name="heart" size={18} />} {...stats.happy} />
         </div>
       </div>
     </section>
@@ -244,7 +197,7 @@ export type ProfileSectionId = 'main' | 'address' | 'portfolio' | 'rules';
  * Должен совпадать точно, иначе при sticky табы «прыгают» вверх.
  */
 export const CABINET_HEADER_STICKY_TOP =
-  'calc(0.5rem + 3.25rem + 0.5rem + 2px + env(safe-area-inset-top, 0px))';
+  'var(--slotty-admin-header-h, calc(0.5rem + env(safe-area-inset-top, 0px) + 3.25rem + 0.5rem + 2px))';
 
 export function SectionTabs({
   active,
@@ -254,14 +207,14 @@ export function SectionTabs({
   onChange: (section: ProfileSectionId) => void;
 }) {
   const tabs: Array<{ id: ProfileSectionId; label: string; icon: ReactNode }> = [
-    { id: 'main', label: 'Профиль', icon: <HiUser className="h-[18px] w-[18px]" strokeWidth={2} /> },
-    { id: 'portfolio', label: 'Портфолио', icon: <HiPhoto className="h-[18px] w-[18px]" strokeWidth={2} /> },
-    { id: 'address', label: 'Адрес', icon: <HiMapPin className="h-[18px] w-[18px]" strokeWidth={2} /> },
-    { id: 'rules', label: 'Правила', icon: <HiDocumentText className="h-[18px] w-[18px]" strokeWidth={2} /> },
+    { id: 'main', label: 'Профиль', icon: <CabinetIcon name="user" size={18} /> },
+    { id: 'portfolio', label: 'Портфолио', icon: <CabinetIcon name="photo" size={18} /> },
+    { id: 'address', label: 'Адрес', icon: <CabinetIcon name="map-pin" size={18} /> },
+    { id: 'rules', label: 'Правила', icon: <CabinetIcon name="rules" size={18} /> },
   ];
 
   return (
-    <nav className="flex bg-white px-1 pb-0.5 pt-0" aria-label="Разделы профиля">
+    <nav className="flex bg-white px-1 pb-0 pt-0" aria-label="Разделы профиля">
       {tabs.map((tab) => {
         const selected = active === tab.id;
         return (
@@ -269,7 +222,7 @@ export function SectionTabs({
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`relative flex min-w-0 flex-1 flex-col items-center gap-0 px-1 pb-1 pt-0.5 transition active:scale-[0.98] ${
+            className={`relative flex min-w-0 flex-1 flex-col items-center gap-0 px-1 pb-1 pt-0 transition active:scale-[0.98] ${
               selected ? 'text-[#F47C8C]' : 'text-[#6B7280] hover:text-[#111827]'
             }`}
           >
@@ -330,7 +283,7 @@ export function MainInfoCard({ draft, onEdit }: { draft: MasterDraft; onEdit: ()
           onClick={onEdit}
           className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#FFF1F4] px-3.5 text-[13px] font-semibold text-[#F47C8C] transition hover:bg-[#FFE4EA] active:scale-[0.98]"
         >
-          <HiPencil className="h-4 w-4" strokeWidth={2} />
+          <CabinetIcon name="pencil" size={16} />
           Редактировать
         </button>
       </div>
@@ -339,12 +292,12 @@ export function MainInfoCard({ draft, onEdit }: { draft: MasterDraft; onEdit: ()
         <InfoGridCell
           label="Имя и фамилия"
           value={valueOrDash(draft.name)}
-          icon={<HiUser className="h-[18px] w-[18px]" strokeWidth={2} />}
+          icon={<CabinetIcon name="user" size={18} />}
         />
         <InfoGridCell
           label="Категория"
           value={valueOrDash(draft.category)}
-          icon={<HiTag className="h-[18px] w-[18px]" strokeWidth={2} />}
+          icon={<CabinetIcon name="tag" size={18} />}
         />
         <InfoGridCell
           label="Телефон"
@@ -353,7 +306,7 @@ export function MainInfoCard({ draft, onEdit }: { draft: MasterDraft; onEdit: ()
             draft.phone?.trim() ? (
               <BY title="Беларусь" className="h-[18px] w-[18px] rounded-full object-cover" />
             ) : (
-              <HiPhone className="h-[18px] w-[18px]" strokeWidth={2} />
+              <CabinetIcon name="phone" size={18} />
             )
           }
         />
@@ -364,7 +317,7 @@ export function MainInfoCard({ draft, onEdit }: { draft: MasterDraft; onEdit: ()
             telegramRow ? (
               <ContactChannelBrandIcon type="telegram" className="h-[18px] w-[18px]" />
             ) : (
-              <HiPaperAirplane className="h-[18px] w-[18px]" strokeWidth={2} />
+              <CabinetIcon name="send" size={18} />
             )
           }
         />
@@ -379,7 +332,7 @@ export function AboutCard({ description }: { description: string }) {
     <section className={`${cabinetCard} ${cabinetCardPad}`}>
       <div className="flex items-start gap-3">
         <span className={cabinetIconCircle}>
-          <HiChatBubbleLeft className="h-5 w-5" strokeWidth={2} />
+          <CabinetIcon name="chat" size={20} />
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">О себе</h2>
@@ -403,9 +356,7 @@ export function ScheduleWorkCard({
   return (
     <section className={`${cabinetCard} ${cabinetCardPad}`}>
       <div className="flex items-center gap-3">
-        <CabinetSectionIcon>
-          <IconClock size={18} />
-        </CabinetSectionIcon>
+        <CabinetSectionIcon name="clock" />
         <div className="min-w-0 flex-1">
           <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">График работы</h2>
           <p className="mt-0.5 text-[13px] leading-snug text-[#6B7280]">
@@ -538,7 +489,7 @@ export function ProfileCompletionCard({
                 >
                   {item.label}
                 </span>
-                <HiChevronRight className="h-4 w-4 shrink-0 text-[#9CA3AF]" strokeWidth={2} />
+                <CabinetIcon name="chevron-right" size={16} className="shrink-0 text-[#9CA3AF]" />
               </button>
             </li>
           ))}

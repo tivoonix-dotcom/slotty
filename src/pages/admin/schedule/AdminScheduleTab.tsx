@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
@@ -63,6 +63,7 @@ export function AdminScheduleTab({ draft }: Props) {
   const [toast, setToast] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const addWindowsLockRef = useRef(false);
 
   const [dateIso, setDateIso] = useState(todayIso);
   const [startTime, setStartTime] = useState('12:00');
@@ -209,6 +210,8 @@ export function AdminScheduleTab({ draft }: Props) {
       return;
     }
 
+    if (addWindowsLockRef.current) return;
+    addWindowsLockRef.current = true;
     setSaving(true);
     try {
       const { created, skipped, horizonFailed, failed } = await createSlots(built);
@@ -239,6 +242,7 @@ export function AdminScheduleTab({ draft }: Props) {
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Ошибка создания');
     } finally {
+      addWindowsLockRef.current = false;
       setSaving(false);
     }
   }, [createSlots, plannedSlots, scheduleHorizonDays, showToast, validateBase]);

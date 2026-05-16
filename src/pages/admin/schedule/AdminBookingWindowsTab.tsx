@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { MasterDraft, MasterOnboardingService } from '../../../features/profile/lib/demoMasterStorage';
 import { getMySubscription } from '../../../features/admin/api/adminBillingApi';
@@ -282,6 +282,7 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
   const [rows, setRows] = useState<MySlotDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const addWindowsLockRef = useRef(false);
   const [bulkWorking, setBulkWorking] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
@@ -527,6 +528,10 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       return;
     }
 
+    if (addWindowsLockRef.current || bulkWorking) return;
+    addWindowsLockRef.current = true;
+    setSaving(true);
+    try {
     if (!useCabinetApi) {
       const existing = [...rows];
       let created = 0;
@@ -557,8 +562,6 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
       return;
     }
 
-    setSaving(true);
-    try {
       const existing = [...rows];
       let created = 0;
       let skipped = 0;
@@ -617,9 +620,11 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Не удалось создать окно');
     } finally {
+      addWindowsLockRef.current = false;
       setSaving(false);
     }
   }, [
+    bulkWorking,
     plannedSlotStats.beyondHorizon,
     plannedSlots,
     reloadSlots,
