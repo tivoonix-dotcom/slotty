@@ -15,6 +15,7 @@ import { getCurrentMasterPlan, planBadgeLabel } from '../../features/billing/mod
 import { AdminMasterCabinetProvider, useAdminMasterCabinet } from './AdminMasterCabinetContext';
 import { ProfileSectionTabsBar, ProfileTabProvider, PROFILE_TAB_BAR_HEIGHT } from './profile/profileTabContext';
 import { ADMIN_CABINET_SHELL_MAX, overviewPageBg, OVERVIEW_TAB_BAR_HEIGHT } from './overview/adminOverviewTheme';
+import { SERVICES_PAGE_BG, SERVICES_TAB_BAR_HEIGHT } from './services/adminServicesTheme';
 import { AdminBottomSheet } from './shared/AdminBottomSheet';
 
 const iconStroke = { strokeWidth: 1.75, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -132,6 +133,7 @@ export function AdminLayout() {
   const { pathname } = useLocation();
   const isProfileHome = pathname === ADMIN_PATH;
   const isOverview = pathname === ADMIN_OVERVIEW_PATH;
+  const isServices = pathname === ADMIN_SERVICES_PATH;
 
   useLayoutEffect(() => {
     const el = stickyShellRef.current;
@@ -151,9 +153,11 @@ export function AdminLayout() {
     ? 'pb-[calc(var(--slotty-profile-tab-bar-h)+env(safe-area-inset-bottom,0px)+1rem)]'
     : isOverview
       ? `pb-[calc(${OVERVIEW_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1rem)]`
-      : '';
+      : isServices
+        ? `pb-[calc(${SERVICES_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1.25rem)]`
+        : '';
 
-  const pageShellBg = isOverview ? overviewPageBg : 'bg-white';
+  const pageShellBg = isOverview ? overviewPageBg : isServices ? SERVICES_PAGE_BG : 'bg-white';
 
   return (
     <div

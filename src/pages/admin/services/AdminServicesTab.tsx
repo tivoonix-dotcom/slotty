@@ -15,7 +15,17 @@ import {
 import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
-import { NothingFoundCard } from '../../../shared/ui/NothingFoundCard';
+import { SERVICES_PAGE_BG } from './adminServicesTheme';
+import { ServicesBundlesTab } from './ServicesBundlesTab';
+import { ServicesCatalogTab } from './ServicesCatalogTab';
+import { ServicesPageHeader } from './ServicesPageHeader';
+import { ServicesPriceTab } from './ServicesPriceTab';
+import { ServicesPromotionFormSheet } from './ServicesPromotionFormSheet';
+import { ServicesPromotionsTab } from './ServicesPromotionsTab';
+import { ServicesServiceMenuSheet } from './ServicesServiceMenuSheet';
+import { ServicesTabBar } from './ServicesTabBar';
+import { loadServicePromotions, saveServicePromotions } from './servicesStorage';
+import type { ServicePromotion, ServicesTabId } from './servicesTypes';
 
 type PriceType = 'fixed' | 'from';
 
@@ -30,79 +40,6 @@ type Props = {
   onPersist: (next: MasterDraft) => void;
 };
 
-function IconEdit({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12 20h9" strokeLinecap="round" />
-      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconEye({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function IconEyeOff({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M3 3l18 18" strokeLinecap="round" />
-      <path d="M10.6 10.6A3 3 0 0 0 13.4 13.4" strokeLinecap="round" />
-      <path d="M9.9 4.24A10.45 10.45 0 0 1 12 4c6.5 0 10 8 10 8a18.65 18.65 0 0 1-2.16 3.19" strokeLinecap="round" />
-      <path d="M6.62 6.62C3.63 8.55 2 12 2 12s3.5 8 10 8a10.95 10.95 0 0 0 4.38-.92" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-/** Карточка / экран — предпросмотр для клиента (не путать с видимостью услуги). */
-function IconClientPreview({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <rect x="3" y="5" width="18" height="14" rx="2" strokeLinejoin="round" />
-      <path d="M7 9h10M7 13h6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconCopy({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <rect x="9" y="9" width="13" height="13" rx="3" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconTrash({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M3 6h18M8 6V4h8v2M6 6l1 16h10l1-16" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10 11v6M14 11v6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconArrowUp({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-      <path d="M12 19V5M6 11l6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconArrowDown({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-      <path d="M12 5v14M18 13l-6 6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function newServiceId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
@@ -113,10 +50,6 @@ function newServiceId(): string {
 
 function fieldClass(): string {
   return 'mt-1.5 w-full rounded-[22px] bg-[#F1EFEF] px-4 py-3.5 text-[16px] font-semibold text-neutral-900 outline-none ring-0 placeholder:text-neutral-400 transition focus:bg-white focus:shadow-[0_10px_28px_rgba(17,17,17,0.05)]';
-}
-
-function iconButtonClass(): string {
-  return 'flex h-10 w-10 items-center justify-center rounded-full bg-[#F1EFEF] text-neutral-700 transition active:scale-[0.96] disabled:opacity-30';
 }
 
 function normalizeService(service: MasterOnboardingService, index: number): ManagedService {
@@ -153,6 +86,11 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
   const [toast, setToast] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ServicesTabId>('catalog');
+  const [menuTarget, setMenuTarget] = useState<ManagedService | null>(null);
+  const [promotions, setPromotions] = useState<ServicePromotion[]>(() => loadServicePromotions());
+  const [promoFormOpen, setPromoFormOpen] = useState(false);
+  const [editingPromo, setEditingPromo] = useState<ServicePromotion | null>(null);
 
   const [title, setTitle] = useState('');
   const [dur, setDur] = useState('');
@@ -170,9 +108,6 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
         .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
     [draft.services],
   );
-
-  const activeCount = services.filter((service) => service.isActive).length;
-  const hiddenCount = services.length - activeCount;
 
   const persistServices = useCallback(
     (nextServices: ManagedService[], message?: string) => {
@@ -499,219 +434,143 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     });
   }, [commitDraftBaseline, deleteTarget, draft, persistServices, refreshDraft, runServiceAction, services, showSuccessToast, useCabinetApi]);
 
+  const persistPromotions = useCallback((rows: ServicePromotion[]) => {
+    setPromotions(rows);
+    saveServicePromotions(rows);
+  }, []);
+
+  const openPromoCreate = useCallback(() => {
+    setEditingPromo(null);
+    setPromoFormOpen(true);
+  }, []);
+
+  const openPromoEdit = useCallback((promo: ServicePromotion) => {
+    setEditingPromo(promo);
+    setPromoFormOpen(true);
+  }, []);
+
+  const savePromo = useCallback(
+    (promo: ServicePromotion, publish: boolean) => {
+      const next: ServicePromotion = { ...promo, status: publish ? 'active' : 'draft' };
+      const rows = editingPromo
+        ? promotions.map((p) => (p.id === next.id ? next : p))
+        : [next, ...promotions];
+      persistPromotions(rows);
+      setPromoFormOpen(false);
+      setEditingPromo(null);
+      showSuccessToast(publish ? 'Акция опубликована' : 'Черновик сохранён');
+    },
+    [editingPromo, persistPromotions, promotions, showSuccessToast],
+  );
+
+  const deletePromo = useCallback(
+    (id: string) => {
+      persistPromotions(promotions.filter((p) => p.id !== id));
+      showSuccessToast('Акция удалена');
+    },
+    [persistPromotions, promotions, showSuccessToast],
+  );
+
+  const menuIndex = menuTarget ? services.findIndex((s) => s.id === menuTarget.id) : -1;
+
   return (
-    <div className="space-y-4">
-      <section className="rounded-[36px] bg-[#F1EFEF] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)]">
-        <div className="rounded-[30px] bg-white p-5 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
-              Каталог
-            </p>
+    <div className={`-mx-4 min-w-0 px-4 pb-2 ${SERVICES_PAGE_BG}`}>
+      <ServicesPageHeader activeTab={activeTab} />
 
-            <h2 className="mt-2 text-[34px] font-semibold leading-none tracking-[-0.065em] text-neutral-950">
-              Услуги
-            </h2>
-
-            {listError ? (
-              <p className="mt-3 rounded-[22px] bg-[#FFF4E8] px-4 py-3 text-[14px] font-semibold text-[#B66A24]">
-                {listError}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            <div className="rounded-[24px] bg-[#F1EFEF] px-4 py-3.5">
-              <p className="text-[22px] font-semibold leading-none tracking-[-0.05em] text-neutral-950">
-                {activeCount}
-              </p>
-              <p className="mt-1.5 text-[12px] font-medium text-neutral-500">
-                видно клиентам
-              </p>
-            </div>
-
-            <div className="rounded-[24px] bg-[#F1EFEF] px-4 py-3.5">
-              <p className="text-[22px] font-semibold leading-none tracking-[-0.05em] text-neutral-950">
-                {hiddenCount}
-              </p>
-              <p className="mt-1.5 text-[12px] font-medium text-neutral-500">
-                скрыто
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={openCreate}
-            className="mt-5 flex min-h-[3.25rem] w-full items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.24)] transition active:scale-[0.98]"
-          >
-            Добавить услугу
-          </button>
-        </div>
-      </section>
+      {listError ? (
+        <p className="mb-4 rounded-[16px] border border-[#FDE8ED] bg-[#FFF1F4] px-4 py-3 text-[14px] font-semibold text-[#B45309]">
+          {listError}
+        </p>
+      ) : null}
 
       {toast ? (
-        <div className="rounded-full bg-[#EAFBF2] px-5 py-3 text-center text-[14px] font-semibold text-[#2F8A5B] shadow-[0_10px_28px_rgba(17,17,17,0.04)]">
+        <div className="mb-4 rounded-full bg-[#ECFDF5] px-5 py-3 text-center text-[14px] font-semibold text-[#16A34A] shadow-sm">
           {toast}
         </div>
       ) : null}
 
-      {services.length === 0 ? (
-        <NothingFoundCard
-          title="Услуги пока не добавлены"
-          text="Добавьте первую услугу, чтобы клиенты могли выбрать её и записаться."
-          action={
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex min-h-[3.15rem] w-full max-w-xs items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.26)] transition active:scale-[0.98]"
-            >
-              Добавить услугу
-            </button>
+      <div key={activeTab}>
+        {activeTab === 'catalog' ? (
+          <ServicesCatalogTab
+            draft={draft}
+            services={services}
+            onAdd={openCreate}
+            onOpenMenu={setMenuTarget}
+          />
+        ) : null}
+        {activeTab === 'price' ? (
+          <ServicesPriceTab
+            draft={draft}
+            services={services}
+            onEdit={openEdit}
+            onOpenMenu={setMenuTarget}
+          />
+        ) : null}
+        {activeTab === 'bundles' ? <ServicesBundlesTab draft={draft} services={services} /> : null}
+        {activeTab === 'promotions' ? (
+          <ServicesPromotionsTab
+            draft={draft}
+            services={services}
+            promotions={promotions}
+            onCreate={openPromoCreate}
+            onEdit={openPromoEdit}
+            onDelete={deletePromo}
+          />
+        ) : null}
+      </div>
+
+      <ServicesTabBar active={activeTab} onChange={setActiveTab} />
+
+      <ServicesServiceMenuSheet
+        open={Boolean(menuTarget)}
+        service={menuTarget}
+        canMoveUp={menuIndex > 0}
+        canMoveDown={menuIndex >= 0 && menuIndex < services.length - 1}
+        onClose={() => setMenuTarget(null)}
+        onEdit={() => {
+          if (menuTarget) openEdit(menuTarget);
+          setMenuTarget(null);
+        }}
+        onToggleActive={() => {
+          if (menuTarget) void toggleActive(menuTarget);
+          setMenuTarget(null);
+        }}
+        onDuplicate={() => {
+          if (menuTarget) void duplicateService(menuTarget);
+          setMenuTarget(null);
+        }}
+        onPreview={() => {
+          if (menuTarget) setPreviewTarget(menuTarget);
+          setMenuTarget(null);
+        }}
+        onMoveUp={() => {
+          if (menuTarget) void moveService(menuTarget.id, -1);
+          setMenuTarget(null);
+        }}
+        onMoveDown={() => {
+          if (menuTarget) void moveService(menuTarget.id, 1);
+          setMenuTarget(null);
+        }}
+        onDelete={() => {
+          if (menuTarget) {
+            setDeleteError(null);
+            setDeleteTarget(menuTarget);
           }
-        />
-      ) : (
-        <ul className="flex flex-col gap-3 rounded-[36px] bg-[#F1EFEF] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)]">
-          {services.map((service, index) => (
-            <li
-              key={service.id}
-              className="rounded-[30px] bg-white p-4 shadow-[0_12px_34px_rgba(17,17,17,0.045)]"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="break-words text-[19px] font-semibold leading-tight tracking-[-0.045em] text-neutral-950">
-                      {service.title}
-                    </h3>
+          setMenuTarget(null);
+        }}
+      />
 
-                    <span
-                      className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
-                        service.isActive
-                          ? 'bg-[#EAFBF2] text-[#2F8A5B]'
-                          : 'bg-[#F3F1F1] text-neutral-500'
-                      }`}
-                    >
-                      {service.isActive ? 'видно' : 'скрыта'}
-                    </span>
-                  </div>
-
-                  {service.description ? (
-                    <p className="mt-2 text-[14px] leading-relaxed text-neutral-500">
-                      {service.description}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="flex shrink-0 gap-1.5">
-                  <button
-                    type="button"
-                    disabled={index === 0}
-                    onClick={() => void moveService(service.id, -1)}
-                    className={iconButtonClass()}
-                    aria-label="Поднять услугу выше"
-                    title="Выше"
-                  >
-                    <IconArrowUp />
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={index === services.length - 1}
-                    onClick={() => void moveService(service.id, 1)}
-                    className={iconButtonClass()}
-                    aria-label="Опустить услугу ниже"
-                    title="Ниже"
-                  >
-                    <IconArrowDown />
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-[24px] bg-[#F1EFEF] px-4 py-3.5">
-                  <p className="text-[12px] font-medium text-neutral-400">
-                    Цена
-                  </p>
-
-                  <p className="mt-1 text-[18px] font-semibold tracking-[-0.04em] text-neutral-950">
-                    {formatPrice(service)}
-                  </p>
-                </div>
-
-                <div className="rounded-[24px] bg-[#F1EFEF] px-4 py-3.5">
-                  <p className="text-[12px] font-medium text-neutral-400">
-                    Время
-                  </p>
-
-                  <p className="mt-1 text-[18px] font-semibold tracking-[-0.04em] text-neutral-950">
-                    {service.durationMin} мин
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between gap-2 rounded-[26px] bg-[#F1EFEF] p-2">
-                <button
-                  type="button"
-                  onClick={() => openEdit(service)}
-                  className={iconButtonClass()}
-                  aria-label="Редактировать услугу"
-                  title="Редактировать"
-                >
-                  <IconEdit />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => void toggleActive(service)}
-                  className={iconButtonClass()}
-                  aria-label={service.isActive ? 'Скрыть услугу' : 'Показать услугу'}
-                  title={service.isActive ? 'Скрыть' : 'Показать'}
-                >
-                  {service.isActive ? <IconEyeOff /> : <IconEye />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => duplicateService(service)}
-                  className={iconButtonClass()}
-                  aria-label="Дублировать услугу"
-                  title="Дублировать"
-                >
-                  <IconCopy />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPreviewTarget(service)}
-                  className={iconButtonClass()}
-                  aria-label="Как услуга выглядит для клиента"
-                  title="Предпросмотр"
-                >
-                  <IconClientPreview />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setPreviewTarget(null);
-                    setDeleteError(null);
-                    const svc = service;
-                    window.requestAnimationFrame(() => {
-                      setDeleteTarget(svc);
-                    });
-                  }}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-400 shadow-[inset_0_0_0_1px_rgba(17,17,17,0.05)] transition active:scale-[0.96]"
-                  aria-label="Удалить услугу"
-                  title="Удалить"
-                >
-                  <IconTrash />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <ServicesPromotionFormSheet
+        open={promoFormOpen}
+        draft={draft}
+        services={services}
+        initial={editingPromo}
+        onClose={() => {
+          setPromoFormOpen(false);
+          setEditingPromo(null);
+        }}
+        onSave={savePromo}
+      />
 
       <AdminBottomSheet
         open={sheetOpen}
