@@ -1,5 +1,32 @@
 import { getMasterPath } from '../../app/paths';
 
+/** Канонический публичный origin (ссылки для клиентов, соцсети). */
+export const DEFAULT_PUBLIC_APP_ORIGIN = 'https://slotty.of.by';
+
+/**
+ * Origin для публичных ссылок мастера.
+ * Приоритет: `VITE_PUBLIC_APP_URL` → localhost в dev → `slotty.of.by` в production.
+ */
+export function readPublicAppOrigin(): string {
+  const fromEnv = import.meta.env.VITE_PUBLIC_APP_URL?.trim().replace(/\/$/, '');
+  if (fromEnv) return fromEnv;
+
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin?.trim();
+    if (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
+      return origin.replace(/\/$/, '');
+    }
+  }
+
+  if (import.meta.env.PROD) return DEFAULT_PUBLIC_APP_ORIGIN;
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin.replace(/\/$/, '');
+  }
+
+  return DEFAULT_PUBLIC_APP_ORIGIN;
+}
+
 /** Имя бота без @ из Vite (для ссылок t.me/…?start=). */
 export function readViteTelegramBotUsername(): string | undefined {
   const raw = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
@@ -70,8 +97,8 @@ export function resolveMasterBookingLink(
     };
   }
 
-  if (!pageOrigin?.trim()) return null;
-  const web = buildWebMasterProfileAbsoluteUrl(pageOrigin, masterId);
+  const origin = pageOrigin?.trim() || readPublicAppOrigin();
+  const web = buildWebMasterProfileAbsoluteUrl(origin, masterId);
   if (!web) return null;
   console.warn(
     '[SLOTTY] VITE_TELEGRAM_BOT_USERNAME не задан — для «Ссылка для записи» используется веб-URL профиля мастера',

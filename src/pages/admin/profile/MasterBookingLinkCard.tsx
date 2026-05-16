@@ -1,23 +1,29 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiArrowTopRightOnSquare, HiCheck, HiClipboardDocument, HiShare } from 'react-icons/hi2';
+import {
+  HiArrowTopRightOnSquare,
+  HiCheck,
+  HiClipboardDocument,
+  HiLink,
+  HiShare,
+} from 'react-icons/hi2';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
-import { resolveMasterBookingLink } from '../../../shared/lib/masterBookingLink';
+import { readPublicAppOrigin, resolveMasterBookingLink } from '../../../shared/lib/masterBookingLink';
 import { openTelegramOrBrowserUrl, openTelegramShareUrlPicker } from '../../../shared/lib/telegramWebApp';
 
 type Props = {
   draft: MasterDraft;
-  /** Пока грузится кабинет с API — скелетон блока. */
   cabinetLoading?: boolean;
   useCabinetApi?: boolean;
 };
 
 function LinkFieldSkeleton() {
   return (
-    <div className="mt-2.5 flex animate-pulse items-center gap-2">
-      <div className="h-9 min-w-0 flex-1 rounded-2xl bg-[#F1EFEF]" />
-      <div className="h-9 w-9 shrink-0 rounded-full bg-neutral-200/80" />
-      <div className="h-9 w-9 shrink-0 rounded-full bg-neutral-200/80" />
-      <div className="h-9 w-9 shrink-0 rounded-full bg-neutral-200/80" />
+    <div className="mt-4 space-y-3 animate-pulse">
+      <div className="h-12 w-full rounded-2xl bg-[#F7F7F8]" />
+      <div className="flex gap-2.5">
+        <div className="h-12 min-h-[48px] flex-1 rounded-2xl bg-[#F3F4F6]" />
+        <div className="h-12 min-h-[48px] flex-1 rounded-2xl bg-[#F3F4F6]" />
+      </div>
     </div>
   );
 }
@@ -26,10 +32,10 @@ export function MasterBookingLinkCard({ draft, cabinetLoading, useCabinetApi }: 
   const [copied, setCopied] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
 
-  const resolved = useMemo(() => {
-    if (typeof window === 'undefined') return null;
-    return resolveMasterBookingLink(draft.profileSlug, draft.masterId, window.location.origin);
-  }, [draft.profileSlug, draft.masterId]);
+  const resolved = useMemo(
+    () => resolveMasterBookingLink(draft.profileSlug, draft.masterId, readPublicAppOrigin()),
+    [draft.profileSlug, draft.masterId],
+  );
 
   useEffect(() => {
     if (!shareHint) return undefined;
@@ -94,63 +100,84 @@ export function MasterBookingLinkCard({ draft, cabinetLoading, useCabinetApi }: 
   }, [resolved]);
 
   const showSkeleton = Boolean(useCabinetApi && cabinetLoading);
-
-  const iconBtn =
-    'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-800 transition active:scale-[0.94] disabled:opacity-40';
-
   const statusLine = copied ? 'Скопировано' : shareHint;
 
   return (
-    <div className="rounded-[22px] bg-white px-4 py-3 shadow-[0_8px_24px_rgba(17,17,17,0.04)] ring-1 ring-[#F1EFEF]">
-      <h2 className="text-[15px] font-semibold tracking-[-0.03em] text-neutral-950">Ссылка для записи</h2>
-      <p className="mt-0.5 text-[11px] leading-snug text-neutral-500 line-clamp-2">
-        Отправьте клиентам или добавьте в соцсети
-      </p>
+    <section className="rounded-[22px] bg-white p-[18px] shadow-[0_8px_32px_rgba(17,24,39,0.06)]">
+      <div className="flex items-start gap-3.5">
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#FFF1F4] text-[#F47C8C]"
+          aria-hidden
+        >
+          <HiLink className="h-5 w-5" strokeWidth={2} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Ссылка для записи</h2>
+          <p className="mt-0.5 text-[13px] leading-snug text-[#6B7280]">
+            Отправьте клиентам для записи на услуги
+          </p>
+        </div>
+      </div>
 
       {showSkeleton ? (
         <LinkFieldSkeleton />
       ) : resolved ? (
         <>
-          <div className="mt-2.5 flex items-center gap-2">
-            <div className="min-w-0 flex-1 rounded-2xl bg-[#F1EFEF] px-3 py-2 ring-1 ring-black/[0.04]">
-              <p className="truncate text-[12px] font-medium text-neutral-800" title={resolved.href}>
-                {resolved.href}
-              </p>
-            </div>
+          <div className="mt-4 rounded-2xl bg-[#F7F7F8] px-3.5 py-3 ring-1 ring-[#EAECEF]">
+            <p className="truncate text-[14px] font-medium text-[#111827]" title={resolved.href}>
+              {resolved.href}
+            </p>
+          </div>
+
+          <div className="mt-3 flex gap-2.5">
             <button
               type="button"
               onClick={onCopy}
-              aria-label={copied ? 'Скопировано' : 'Скопировать ссылку'}
-              className={`${iconBtn} ${
-                copied ? 'bg-emerald-500/15 text-emerald-700' : 'bg-[#E29595] text-white shadow-[0_6px_16px_rgba(226,149,149,0.28)]'
+              className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-[15px] font-semibold transition active:scale-[0.98] ${
+                copied
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-[#F47C8C] text-white shadow-[0_8px_24px_rgba(244,124,140,0.35)] hover:bg-[#F26D83]'
               }`}
             >
-              {copied ? <HiCheck className="h-[19px] w-[19px]" strokeWidth={2.25} /> : <HiClipboardDocument className="h-[19px] w-[19px]" />}
+              {copied ? (
+                <HiCheck className="h-5 w-5" strokeWidth={2.25} />
+              ) : (
+                <HiClipboardDocument className="h-5 w-5" strokeWidth={2} />
+              )}
+              {copied ? 'Скопировано' : 'Копировать'}
             </button>
             <button
               type="button"
               onClick={() => void onShare()}
-              aria-label="Поделиться ссылкой"
-              className={`${iconBtn} bg-[#F1EFEF]`}
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#F7F7F8] text-[15px] font-semibold text-[#111827] transition hover:bg-[#F3F4F6] active:scale-[0.98]"
             >
-              <HiShare className="h-[19px] w-[19px]" />
-            </button>
-            <button type="button" onClick={onOpen} aria-label="Открыть ссылку" className={`${iconBtn} bg-[#F1EFEF]`}>
-              <HiArrowTopRightOnSquare className="h-[19px] w-[19px]" />
+              <HiShare className="h-5 w-5" strokeWidth={2} />
+              Поделиться
             </button>
           </div>
-          {statusLine ? (
-            <p className="mt-1.5 text-center text-[11px] font-medium text-neutral-600" role="status">
+
+          <button
+            type="button"
+            onClick={onOpen}
+            className="mt-2.5 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl text-[14px] font-semibold text-[#6B7280] transition hover:bg-[#F7F7F8] active:scale-[0.98]"
+          >
+            <HiArrowTopRightOnSquare className="h-4 w-4" strokeWidth={2} />
+            Открыть ссылку
+          </button>
+
+          {statusLine && statusLine !== 'Скопировано' ? (
+            <p className="mt-2 text-center text-[12px] font-medium text-[#6B7280]" role="status">
               {statusLine}
             </p>
           ) : null}
         </>
       ) : (
-        <p className="mt-2 text-[12px] leading-snug text-neutral-500">
-          Не удалось сформировать ссылку: укажите <code className="rounded bg-[#F1EFEF] px-1">VITE_TELEGRAM_BOT_USERNAME</code> в
-          окружении или откройте приложение по HTTPS с сохранённым профилем мастера.
+        <p className="mt-4 text-[13px] leading-relaxed text-[#6B7280]">
+          Не удалось сформировать ссылку: укажите{' '}
+          <code className="rounded-lg bg-[#F7F7F8] px-1.5 py-0.5 text-[12px] text-[#111827]">VITE_TELEGRAM_BOT_USERNAME</code>{' '}
+          в окружении или откройте приложение по HTTPS с сохранённым профилем мастера.
         </p>
       )}
-    </div>
+    </section>
   );
 }

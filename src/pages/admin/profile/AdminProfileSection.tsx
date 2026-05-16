@@ -1,20 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { BY } from 'country-flag-icons/react/1x1';
-import {
-  CONTACT_CHANNEL_META,
-  contactRowsFromDraft,
-} from '../../../features/master-onboarding/model/masterContacts';
-import { ContactChannelBrandIcon } from '../../master-onboarding/MasterProfileContactsBlock';
+import { useNavigate } from 'react-router-dom';
+import { ADMIN_SERVICES_PATH } from '../../../app/paths';
+import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import type { MasterCareerItemType, MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import { normalizeMasterCareerItemType } from '../../../features/profile/lib/demoMasterStorage';
 import {
-  defaultMasterAvatarUrl,
-  formatScheduleClientPreview,
-} from '../../../features/master/model/masterDraftStorage';
-import {
   buildLocationDisplayParts,
   catalogLineWithoutVisitPrefix,
-  formatPublicAddress,
 } from '../../../features/profile/model/masterLocation';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
@@ -45,8 +37,21 @@ import {
 } from './AdminProfileEditSheets';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import { MasterBookingLinkCard } from './MasterBookingLinkCard';
+import {
+  AboutCard,
+  AdminProfileHero as CabinetProfileHero,
+  buildProfileStats,
+  CabinetPageHeader,
+  CabinetPageShell,
+  MainInfoCard,
+  ProfileCompletionCard,
+  ScheduleWorkCard,
+  SectionTabs as CabinetSectionTabs,
+  wireCompletionActions,
+  type ProfileSectionId,
+} from './AdminProfileCabinetUi';
 
-type ProfileSection = 'main' | 'address' | 'portfolio' | 'rules';
+type ProfileSection = ProfileSectionId;
 
 type CareerItemType = MasterCareerItemType;
 
@@ -93,7 +98,7 @@ function fieldClass(): string {
     mt-1.5
     w-full
     rounded-[24px]
-    bg-[#F1EFEF]
+    bg-[#F7F7F8]
     px-4
     py-3.5
     text-[16px]
@@ -191,11 +196,11 @@ function AddressPreviewPanel({
         ) : (
           <AddressDetailGrid rows={detailRows ?? []} />
         )}
-        <span className="mt-2 inline-flex rounded-full bg-[#F1EFEF] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-700">
+        <span className="mt-2 inline-flex rounded-full bg-[#F7F7F8] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-700">
           {visitLabel}
         </span>
         {wayfinding?.length ? (
-          <div className="mt-3 space-y-2 border-t border-[#F1EFEF] pt-3">
+          <div className="mt-3 space-y-2 border-t border-[#F7F7F8] pt-3">
             {wayfinding.map((row) => (
               <div key={row.label}>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">{row.label}</p>
@@ -241,35 +246,6 @@ function portfolioHttpsError(portfolio: { imageUrl?: string }[]): string | null 
   return null;
 }
 
-function IconUser({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M20 21a8 8 0 0 0-16 0" strokeLinecap="round" />
-      <circle cx="12" cy="8" r="4" />
-    </svg>
-  );
-}
-
-function IconMap({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12 21s7-5.1 7-12a7 7 0 1 0-14 0c0 6.9 7 12 7 12Z" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="9" r="2.5" />
-    </svg>
-  );
-}
-
-function IconPortfolio({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <rect x="3" y="3" width="7.5" height="7.5" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function IconImagePlaceholder({ className }: { className?: string }) {
   return (
     <svg className={className} width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -286,20 +262,6 @@ function IconMore({ className }: { className?: string }) {
       <circle cx="5" cy="12" r="1.6" />
       <circle cx="12" cy="12" r="1.6" />
       <circle cx="19" cy="12" r="1.6" />
-    </svg>
-  );
-}
-
-function IconRules({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path
-        d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <rect x="9" y="3" width="6" height="4" rx="1" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9 12h6M9 16h4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -322,10 +284,6 @@ function valueOrDash(value?: string | null): string {
   const trimmed = value?.trim() ?? '';
   return trimmed || '—';
 }
-
-const INFO_LEADING_ICON_WRAP =
-  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-[0_2px_10px_rgba(17,17,17,0.06)]';
-const INFO_LEADING_ICON_SIZE = 'h-[22px] w-[22px] shrink-0';
 
 function InfoBlock({
   label,
@@ -384,7 +342,7 @@ function EmptyBlock({
       <button
         type="button"
         onClick={onAction}
-        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[#F1EFEF] px-6 text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98]"
+        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[#F7F7F8] px-6 text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98]"
       >
         {actionLabel}
       </button>
@@ -404,7 +362,7 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[34px] bg-[#F1EFEF] p-3 shadow-[0_14px_42px_rgba(17,17,17,0.045)]">
+    <section className="rounded-[34px] bg-[#F7F7F8] p-3 shadow-[0_14px_42px_rgba(17,17,17,0.045)]">
       <div className="rounded-[30px] bg-white px-5 py-5 shadow-[0_8px_24px_rgba(17,17,17,0.035)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -419,172 +377,37 @@ function SectionCard({
   );
 }
 
-function AdminProfileHero({ draft }: { draft: MasterDraft }) {
-  const photoSrc = (draft.photoUrl && draft.photoUrl.trim()) || defaultMasterAvatarUrl(draft.name || 'Мастер');
-  const shortAddress = formatPublicAddress(draft.location);
-
-  return (
-    <section className="rounded-[38px] bg-[#F1EFEF] p-3 shadow-[0_20px_60px_rgba(17,17,17,0.05)]">
-      <div className="overflow-hidden rounded-[32px] bg-white shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
-        <div className="relative aspect-[16/10] w-full bg-[#F1EFEF]">
-          <ImageReveal
-            src={photoSrc}
-            alt=""
-            width={640}
-            height={400}
-            className="h-full w-full object-cover"
-            onError={(event) => {
-              (event.target as HTMLImageElement).src = defaultMasterAvatarUrl(draft.name || 'Мастер');
-            }}
-          />
-        </div>
-
-        <div className="px-5 py-5 text-center">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-neutral-400">Профиль мастера</p>
-          <h1 className="mt-1 px-0.5 text-[clamp(17px,4.8vw,24px)] font-semibold leading-[1.2] tracking-[-0.04em] text-balance text-neutral-950">
-            {draft.name.trim() || 'Мастер'}
-          </h1>
-          <div className="mt-3 flex justify-center">
-            <span className="rounded-full bg-[#F1EFEF] px-3 py-1.5 text-[12px] font-semibold text-neutral-700">
-              {draft.category || 'Категория'}
-            </span>
-          </div>
-        </div>
-
-        <div className="mx-4 mb-4 rounded-[26px] bg-[#F1EFEF] px-4 py-3 text-center">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">На карточке клиента</p>
-          <p className="mt-1 text-[15px] font-semibold leading-snug text-neutral-950">{shortAddress || 'Адрес не указан'}</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function SectionTabs({
-  active,
-  onChange,
-}: {
-  active: ProfileSection;
-  onChange: (section: ProfileSection) => void;
-}) {
-  const tabs: Array<{ id: ProfileSection; label: string; icon: ReactNode }> = [
-    { id: 'main', label: 'Основное', icon: <IconUser /> },
-    { id: 'address', label: 'Адрес', icon: <IconMap /> },
-    { id: 'portfolio', label: 'Портфолио', icon: <IconPortfolio /> },
-    { id: 'rules', label: 'Правила', icon: <IconRules /> },
-  ];
-
-  return (
-    <div className="flex items-center gap-1.5 rounded-[30px] bg-[#F1EFEF] p-2">
-      {tabs.map((tab) => {
-        const selected = active === tab.id;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            aria-label={tab.label}
-            title={tab.label}
-            onClick={() => onChange(tab.id)}
-            className={`flex min-h-11 flex-1 items-center justify-center rounded-full py-2 transition active:scale-[0.98] ${
-              selected
-                ? 'bg-[#E29595] text-white shadow-[0_10px_24px_rgba(226,149,149,0.24)]'
-                : 'bg-white/70 text-neutral-700'
-            }`}
-          >
-            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center [&_svg]:max-h-[22px] [&_svg]:max-w-[22px]">
-              {tab.icon}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function MainSection({
   draft,
   onEditMain,
   onEditSchedule,
+  onGoPortfolio,
+  onGoServices,
   cabinetLoading,
   useCabinetApi,
 }: {
   draft: MasterDraft;
   onEditMain: () => void;
   onEditSchedule: () => void;
+  onGoPortfolio: () => void;
+  onGoServices: () => void;
   cabinetLoading?: boolean;
   useCabinetApi?: boolean;
 }) {
-  return (
-    <div className="space-y-5">
-    <MasterBookingLinkCard draft={draft} cabinetLoading={cabinetLoading} useCabinetApi={useCabinetApi} />
-    <SectionCard
-      title="Основная информация"
-      text="Имя, описание и контакты, которые видит клиент перед записью."
-      headerAction={
-        <button
-          type="button"
-          onClick={onEditMain}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F1EFEF] text-neutral-800 transition active:scale-[0.96]"
-          aria-label="Редактировать основную информацию"
-        >
-          <IconPencil className="h-[18px] w-[18px]" />
-        </button>
-      }
-    >
-      <InfoBlock label="Имя / название" value={draft.name} large />
-      <InfoBlock label="Категория" value={draft.category} />
-      <InfoBlock
-        label="Телефон"
-        value={draft.phone}
-        leading={
-          draft.phone?.trim() ? (
-            <span
-              className={`${INFO_LEADING_ICON_WRAP} overflow-hidden border border-neutral-200 bg-white`}
-              aria-hidden
-            >
-              <BY title="Беларусь" className={`${INFO_LEADING_ICON_SIZE} rounded-full object-cover`} />
-            </span>
-          ) : undefined
-        }
-      />
-      {contactRowsFromDraft(draft)
-        .filter((row) => row.value.trim())
-        .map((row) => {
-          const label = CONTACT_CHANNEL_META.find((m) => m.type === row.type)?.label ?? 'Контакт';
-          return (
-            <InfoBlock
-              key={row.id}
-              label={label}
-              value={row.value}
-              leading={
-                <span className={`${INFO_LEADING_ICON_WRAP} bg-[#F1EFEF]`} aria-hidden>
-                  <ContactChannelBrandIcon type={row.type} className={INFO_LEADING_ICON_SIZE} />
-                </span>
-              }
-            />
-          );
-        })}
-      {contactRowsFromDraft(draft).length === 0 && draft.contact.trim() ? (
-        <InfoBlock label="Контакты" value={draft.contact} />
-      ) : null}
-      <InfoBlock label="О себе" value={draft.description} large />
-    </SectionCard>
+  const completion = wireCompletionActions(draft, {
+    onEditMain,
+    onGoPortfolio,
+    onGoServices,
+    onEditSchedule,
+  });
 
-    <div className="rounded-[36px] bg-[#F1EFEF] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)]">
-      <div className="rounded-[30px] bg-white p-5 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-neutral-400">График работы</p>
-        <p className="mt-2 text-[14px] font-medium leading-relaxed text-neutral-700">
-          {formatScheduleClientPreview(draft.schedule)}
-        </p>
-        <button
-          type="button"
-          onClick={onEditSchedule}
-          className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
-        >
-          Изменить график работы
-        </button>
-      </div>
-    </div>
+  return (
+    <div className="space-y-4">
+      <MasterBookingLinkCard draft={draft} cabinetLoading={cabinetLoading} useCabinetApi={useCabinetApi} />
+      <MainInfoCard draft={draft} onEdit={onEditMain} />
+      <AboutCard description={draft.description} />
+      <ScheduleWorkCard draft={draft} onEditSchedule={onEditSchedule} />
+      <ProfileCompletionCard percent={completion.percent} items={completion.items} />
     </div>
   );
 }
@@ -617,7 +440,7 @@ function AddressSection({
         <button
           type="button"
           onClick={onEditAddress}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F1EFEF] text-neutral-800 transition active:scale-[0.96]"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F7F7F8] text-neutral-800 transition active:scale-[0.96]"
           aria-label="Редактировать адрес"
         >
           <IconPencil className="h-[18px] w-[18px]" />
@@ -711,8 +534,8 @@ function CareerSheet({
                 onClick={() => setType(item.value)}
                 className={`rounded-full px-4 py-2.5 text-[14px] font-semibold transition active:scale-[0.98] ${
                   active
-                    ? 'bg-[#E29595] text-white shadow-[0_8px_20px_rgba(226,149,149,0.24)]'
-                    : 'bg-[#F1EFEF] text-neutral-700'
+                    ? 'bg-[#F47C8C] text-white shadow-[0_8px_20px_rgba(244,124,140,0.24)]'
+                    : 'bg-[#F7F7F8] text-neutral-700'
                 }`}
               >
                 {item.label}
@@ -786,7 +609,7 @@ function CareerSheet({
         <button
           type="button"
           onClick={onCancel}
-          className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#F1EFEF] text-[15px] font-semibold text-neutral-900 transition active:scale-[0.98]"
+          className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#F7F7F8] text-[15px] font-semibold text-neutral-900 transition active:scale-[0.98]"
         >
           Отмена
         </button>
@@ -794,7 +617,7 @@ function CareerSheet({
         <button
           type="button"
           onClick={save}
-          className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
+          className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#F47C8C] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(244,124,140,0.22)] transition active:scale-[0.98]"
         >
           Сохранить
         </button>
@@ -868,7 +691,7 @@ function CardOverflowMenu({ items, ariaLabel }: { items: OverflowMenuItem[]; ari
                 setOpen(false);
                 item.onClick();
               }}
-              className={`flex min-h-11 w-full items-center px-4 text-left text-[14px] font-semibold transition active:bg-[#F1EFEF] disabled:opacity-40 ${
+              className={`flex min-h-11 w-full items-center px-4 text-left text-[14px] font-semibold transition active:bg-[#F7F7F8] disabled:opacity-40 ${
                 item.tone === 'danger' ? 'text-red-600' : 'text-neutral-900'
               }`}
             >
@@ -896,7 +719,7 @@ function TrustBlockHeader({
         <p className="text-[17px] font-semibold tracking-[-0.04em] text-neutral-950">{title}</p>
         <p className="mt-1 text-[13px] leading-snug text-neutral-500">{description}</p>
       </div>
-      <span className="shrink-0 rounded-full bg-[#F1EFEF] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-neutral-500">
+      <span className="shrink-0 rounded-full bg-[#F7F7F8] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-neutral-500">
         {countLabel}
       </span>
     </div>
@@ -919,7 +742,7 @@ function TrustEmptyPanel({
   return (
     <>
       <div className="mt-4 rounded-[20px] border border-dashed border-[#E8E4E4] bg-[#FAFAFA] px-4 py-7 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F1EFEF] text-neutral-400">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F7F7F8] text-neutral-400">
           <IconImagePlaceholder className="h-7 w-7" />
         </div>
         <p className="mt-3 text-[15px] font-semibold text-neutral-950">{title}</p>
@@ -930,8 +753,8 @@ function TrustEmptyPanel({
         onClick={onAction}
         className={`mt-3 flex min-h-11 w-full items-center justify-center rounded-full px-4 text-[14px] font-semibold transition active:scale-[0.98] ${
           primaryAction
-            ? 'bg-[#E29595] text-white shadow-[0_10px_28px_rgba(226,149,149,0.28)]'
-            : 'bg-[#F1EFEF] text-neutral-900'
+            ? 'bg-[#F47C8C] text-white shadow-[0_10px_28px_rgba(244,124,140,0.28)]'
+            : 'bg-[#F7F7F8] text-neutral-900'
         }`}
       >
         {actionLabel}
@@ -972,7 +795,7 @@ function TrustSection({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-[22px] bg-white p-4 shadow-[0_12px_36px_rgba(17,17,17,0.07)] ring-1 ring-[#F1EFEF]">
+      <section className="rounded-[22px] bg-white p-4 shadow-[0_12px_36px_rgba(17,17,17,0.07)] ring-1 ring-[#F7F7F8]">
         <TrustBlockHeader
           title="Работы"
           description="Добавьте фото работ, которые увидят клиенты в вашем профиле."
@@ -988,7 +811,7 @@ function TrustSection({
                 return (
                   <article
                     key={item.id}
-                    className="relative rounded-[18px] bg-[#F1EFEF] ring-1 ring-[#F1EFEF]"
+                    className="relative rounded-[18px] bg-[#F7F7F8] ring-1 ring-[#F7F7F8]"
                   >
                     <div className="absolute right-1.5 top-1.5 z-20">
                       <CardOverflowMenu
@@ -1050,7 +873,7 @@ function TrustSection({
             <button
               type="button"
               onClick={onAddPortfolio}
-              className="mt-3 flex min-h-11 w-full items-center justify-center rounded-full bg-[#F1EFEF] px-4 text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98]"
+              className="mt-3 flex min-h-11 w-full items-center justify-center rounded-full bg-[#F7F7F8] px-4 text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98]"
             >
               + Добавить работу
             </button>
@@ -1077,7 +900,7 @@ function TrustSection({
             {certificates.map((certificate, i) => (
               <li
                 key={certificate.id}
-                className="flex items-start gap-3 rounded-[18px] bg-[#F1EFEF] p-2.5 pr-1"
+                className="flex items-start gap-3 rounded-[18px] bg-[#F7F7F8] p-2.5 pr-1"
               >
                 {certificate.imageUrl ? (
                   <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[14px] bg-white">
@@ -1119,7 +942,7 @@ function TrustSection({
         <button
           type="button"
           onClick={onAddCert}
-          className="mt-3 flex min-h-10 w-full items-center justify-center rounded-full bg-[#F1EFEF] px-4 text-[13px] font-semibold text-neutral-900 transition active:scale-[0.98]"
+          className="mt-3 flex min-h-10 w-full items-center justify-center rounded-full bg-[#F7F7F8] px-4 text-[13px] font-semibold text-neutral-900 transition active:scale-[0.98]"
         >
           + Добавить сертификат
         </button>
@@ -1137,7 +960,7 @@ function TrustSection({
               const isLegacy = item.id === 'legacy-experience';
 
               return (
-                <li key={item.id} className="rounded-[18px] bg-[#F1EFEF] p-3 pr-1">
+                <li key={item.id} className="rounded-[18px] bg-[#F7F7F8] p-3 pr-1">
                   <div className="flex items-start gap-2">
                     <div className="min-w-0 flex-1">
                       <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-600">
@@ -1183,7 +1006,7 @@ function TrustSection({
         <button
           type="button"
           onClick={onAddCareer}
-          className="mt-3 flex min-h-10 w-full items-center justify-center rounded-full bg-[#F1EFEF] px-4 text-[13px] font-semibold text-neutral-900 transition active:scale-[0.98]"
+          className="mt-3 flex min-h-10 w-full items-center justify-center rounded-full bg-[#F7F7F8] px-4 text-[13px] font-semibold text-neutral-900 transition active:scale-[0.98]"
         >
           + Добавить опыт
         </button>
@@ -1216,7 +1039,7 @@ function RulesSection({
                 {paymentMethods.map((method) => (
                   <span
                     key={method}
-                    className="rounded-full bg-[#F1EFEF] px-3 py-2 text-[13px] font-semibold text-neutral-700"
+                    className="rounded-full bg-[#F7F7F8] px-3 py-2 text-[13px] font-semibold text-neutral-700"
                   >
                     {method}
                   </span>
@@ -1232,7 +1055,7 @@ function RulesSection({
           <button
             type="button"
             onClick={onEditRules}
-            className="flex min-h-12 w-full items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
+            className="flex min-h-12 w-full items-center justify-center rounded-full bg-[#F47C8C] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(244,124,140,0.22)] transition active:scale-[0.98]"
           >
             Редактировать правила
           </button>
@@ -1267,10 +1090,14 @@ function AdminProfileReadView({
   onSetPortfolioCover,
   cabinetLoading,
   useCabinetApi,
+  appointments,
+  onGoServices,
 }: {
   draft: MasterDraft;
   onEditMain: () => void;
   onEditSchedule: () => void;
+  appointments: DemoMasterAppointment[];
+  onGoServices: () => void;
   cabinetLoading?: boolean;
   useCabinetApi?: boolean;
   onEditAddress: () => void;
@@ -1287,6 +1114,7 @@ function AdminProfileReadView({
   onSetPortfolioCover: (imageUrl: string) => void;
 }) {
   const [activeSection, setActiveSection] = useState<ProfileSection>('main');
+  const stats = useMemo(() => buildProfileStats(appointments), [appointments]);
 
   const section = useMemo(() => {
     if (activeSection === 'address') {
@@ -1317,6 +1145,8 @@ function AdminProfileReadView({
         draft={draft}
         onEditMain={onEditMain}
         onEditSchedule={onEditSchedule}
+        onGoPortfolio={() => setActiveSection('portfolio')}
+        onGoServices={onGoServices}
         cabinetLoading={cabinetLoading}
         useCabinetApi={useCabinetApi}
       />
@@ -1325,6 +1155,7 @@ function AdminProfileReadView({
     activeSection,
     cabinetLoading,
     draft,
+    onGoServices,
     onAddCareer,
     onAddCert,
     onAddPortfolio,
@@ -1343,9 +1174,11 @@ function AdminProfileReadView({
   ]);
 
   return (
-    <div className="space-y-5">
-      <AdminProfileHero draft={draft} />
-      <SectionTabs active={activeSection} onChange={setActiveSection} />
+    <div className="space-y-4">
+      <CabinetProfileHero draft={draft} stats={stats} />
+      <div className="sticky top-[calc(3.25rem+env(safe-area-inset-top,0px))] z-20 -mx-1 bg-white/90 px-1 pb-1 pt-0.5 backdrop-blur-md">
+        <CabinetSectionTabs active={activeSection} onChange={setActiveSection} />
+      </div>
       {section}
     </div>
   );
@@ -1375,7 +1208,8 @@ export function AdminProfileSection() {
     patchProfileToBackend,
     refreshDraft,
   } = useAdminMasterDraft();
-  const { useCabinetApi, cabinetLoading } = useAdminMasterCabinet();
+  const navigate = useNavigate();
+  const { useCabinetApi, cabinetLoading, appointments } = useAdminMasterCabinet();
   const [sheet, setSheet] = useState<ProfileSheet>(null);
   const [sheetApiError, setSheetApiError] = useState<string | null>(null);
   const [toast, setToast] = useState(false);
@@ -1820,16 +1654,16 @@ export function AdminProfileSection() {
   ]);
 
   return (
-    <div className="px-4 pb-10">
-      <header className="pt-1">
-        <h1 className="mt-2 text-[32px] font-semibold leading-tight tracking-[-0.065em] text-neutral-950">Кабинет мастера</h1>
-      </header>
+    <CabinetPageShell>
+      <CabinetPageHeader onSettings={() => setSheet('main')} />
 
-      <section className="relative mt-5">
+      <section className="relative px-4 pb-10">
         <AdminProfileReadView
           draft={draft}
+          appointments={appointments}
           cabinetLoading={cabinetLoading}
           useCabinetApi={useCabinetApi}
+          onGoServices={() => navigate(ADMIN_SERVICES_PATH)}
           onEditMain={() => setSheet('main')}
           onEditSchedule={() => setSheet('schedule')}
           onEditAddress={() => setSheet('address')}
@@ -1862,6 +1696,6 @@ export function AdminProfileSection() {
           {sheetBody}
         </AdminBottomSheet>
       </section>
-    </div>
+    </CabinetPageShell>
   );
 }

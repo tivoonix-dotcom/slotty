@@ -105,6 +105,64 @@ export function formatWeekRangeLabel(weekStart: Date): string {
   return `${a} – ${b}`;
 }
 
+export function startOfMonth(d: Date): Date {
+  const x = startOfLocalDay(d);
+  x.setDate(1);
+  return x;
+}
+
+export function addMonths(d: Date, months: number): Date {
+  const x = new Date(d);
+  x.setDate(1);
+  x.setMonth(x.getMonth() + months);
+  return x;
+}
+
+export function formatMonthYearLabel(monthStart: Date): string {
+  return new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(monthStart);
+}
+
+export function isTodayIso(dateIso: string): boolean {
+  return startOfLocalDay(parseIsoDate(dateIso)).getTime() === startOfLocalDay(new Date()).getTime();
+}
+
+export type MonthDayCell = {
+  dateIso: string;
+  inCurrentMonth: boolean;
+};
+
+/** Сетка 6×7: понедельник — первый столбец. */
+export function buildMonthGrid(monthAnchor: Date): MonthDayCell[] {
+  const monthStart = startOfMonth(monthAnchor);
+  const gridStart = startOfWeekMonday(monthStart);
+  const monthIndex = monthStart.getMonth();
+  return Array.from({ length: 42 }, (_, i) => {
+    const d = addDays(gridStart, i);
+    return {
+      dateIso: toIsoDate(d),
+      inCurrentMonth: d.getMonth() === monthIndex,
+    };
+  });
+}
+
+export type DayWindowStats = {
+  total: number;
+  booked: number;
+  free: number;
+};
+
+export function indexWindowsByDate(windows: { dateIso: string; status: string }[]): Map<string, DayWindowStats> {
+  const map = new Map<string, DayWindowStats>();
+  for (const w of windows) {
+    const cur = map.get(w.dateIso) ?? { total: 0, booked: 0, free: 0 };
+    cur.total += 1;
+    if (w.status === 'booked') cur.booked += 1;
+    else if (w.status === 'free') cur.free += 1;
+    map.set(w.dateIso, cur);
+  }
+  return map;
+}
+
 export function windowsCountRu(n: number): string {
   const mod10 = n % 10;
   const mod100 = n % 100;
