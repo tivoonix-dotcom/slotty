@@ -27,8 +27,8 @@ import {
 } from './AppointmentsActionSheet';
 import { AppointmentsBottomTabBar } from './AppointmentsBottomTabBar';
 import { AppointmentsEmptyState } from './AppointmentsEmptyState';
-import { AppointmentsFilterBar } from './AppointmentsFilterBar';
 import { AppointmentsFiltersSheet } from './AppointmentsFiltersSheet';
+import { AppointmentsQuickFilters } from './AppointmentsQuickFilters';
 import { AppointmentsHistoryRow } from './AppointmentsHistoryRow';
 import { AppointmentsHistorySummary } from './AppointmentsHistorySummary';
 import { AppointmentsNearestCard } from './AppointmentsNearestCard';
@@ -39,6 +39,8 @@ import { AppointmentsUpcomingRow } from './AppointmentsUpcomingRow';
 import {
   compareAppointmentsByDateAsc,
   compareAppointmentsByDateDesc,
+  compareAppointmentsByPriceAsc,
+  compareAppointmentsByPriceDesc,
   filterHistoryByPeriod,
   groupAppointmentsByDay,
   groupAppointmentsByMonth,
@@ -49,6 +51,7 @@ import {
 import type {
   AppointmentsTabId,
   HistoryPeriodFilter,
+  HistorySort,
   HistoryStatusFilter,
   RequestsSort,
   UpcomingSort,
@@ -90,6 +93,8 @@ export function AdminAppointmentsTab({
   const [upcomingSort, setUpcomingSort] = useState<UpcomingSort>('date');
   const [historyStatus, setHistoryStatus] = useState<HistoryStatusFilter>('all');
   const [historyPeriod, setHistoryPeriod] = useState<HistoryPeriodFilter>('all');
+  const [historySort, setHistorySort] = useState<HistorySort>('newest');
+  const [historyService, setHistoryService] = useState('all');
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
@@ -154,17 +159,33 @@ export function AdminAppointmentsTab({
     [upcomingRest],
   );
 
+  const historySortFn = useMemo(() => {
+    switch (historySort) {
+      case 'oldest':
+        return compareAppointmentsByDateAsc;
+      case 'price_high':
+        return compareAppointmentsByPriceDesc;
+      case 'price_low':
+        return compareAppointmentsByPriceAsc;
+      default:
+        return compareAppointmentsByDateDesc;
+    }
+  }, [historySort]);
+
   const historyFiltered = useMemo(() => {
     let rows = historyRows;
+    if (historyService !== 'all') {
+      rows = rows.filter((a) => a.serviceTitle === historyService);
+    }
     if (historyStatus === 'completed') rows = rows.filter((a) => a.status === 'completed');
     if (historyStatus === 'cancelled') rows = rows.filter((a) => a.status === 'cancelled');
     rows = filterHistoryByPeriod(rows, historyPeriod);
     return rows;
-  }, [historyRows, historyStatus, historyPeriod]);
+  }, [historyRows, historyService, historyStatus, historyPeriod]);
 
   const historyGroups = useMemo(
-    () => groupAppointmentsByMonth(historyFiltered),
-    [historyFiltered],
+    () => groupAppointmentsByMonth(historyFiltered, historySortFn),
+    [historyFiltered, historySortFn],
   );
 
   const historySummary = useMemo(() => {
@@ -236,39 +257,22 @@ export function AdminAppointmentsTab({
     ...uniqueServiceTitles(rows).map((title) => ({ id: title, label: title })),
   ];
 
-  const requestsFilterActive = requestsService !== 'all' || requestsSort !== 'newest';
-  const upcomingFilterActive = upcomingService !== 'all' || upcomingSort !== 'date';
-  const historyFilterActive = historyStatus !== 'all' || historyPeriod !== 'all';
-
-  const filterActive =
+  const sheetFilterActive =
     tab === 'requests'
-      ? requestsFilterActive
+      ? requestsService !== 'all'
       : tab === 'upcoming'
-        ? upcomingFilterActive
-        : historyFilterActive;
+        ? upcomingService !== 'all'
+        : historyService !== 'all';
 
-  const filterLabel = useMemo(() => {
+  const sheetAriaLabel = useMemo(() => {
     if (tab === 'requests') {
-      const parts: string[] = [];
-      if (requestsService !== 'all') parts.push(requestsService);
-      parts.push(requestsSort === 'newest' ? 'По новизне' : 'Сначала старые');
-      return parts.join(' · ');
+      return requestsService === 'all' ? 'Все услуги' : `Услуга: ${requestsService}`;
     }
     if (tab === 'upcoming') {
-      const parts: string[] = [];
-      if (upcomingService !== 'all') parts.push(upcomingService);
-      parts.push(upcomingSort === 'date' ? 'По дате' : 'По новизне');
-      return parts.join(' · ');
+      return upcomingService === 'all' ? 'Все услуги' : `Услуга: ${upcomingService}`;
     }
-    const parts: string[] = [];
-    if (historyStatus === 'completed') parts.push('Завершено');
-    else if (historyStatus === 'cancelled') parts.push('Отменено');
-    else parts.push('Все статусы');
-    if (historyPeriod === 'month') parts.push('Месяц');
-    else if (historyPeriod === 'quarter') parts.push('3 мес.');
-    else parts.push('Всё время');
-    return parts.join(' · ');
-  }, [tab, requestsService, requestsSort, upcomingService, upcomingSort, historyStatus, historyPeriod]);
+    return historyService === 'all' ? 'Все услуги и фильтры' : `Услуга: ${historyService}`;
+  }, [tab, requestsService, upcomingService, historyService]);
 
   const resetFilters = useCallback(() => {
     if (tab === 'requests') {
@@ -283,6 +287,8 @@ export function AdminAppointmentsTab({
     }
     setHistoryStatus('all');
     setHistoryPeriod('all');
+    setHistorySort('newest');
+    setHistoryService('all');
   }, [tab]);
 
   const renderRequests = () => {
@@ -416,13 +422,17 @@ export function AdminAppointmentsTab({
         className={`-mx-4 min-w-0 space-y-4 overflow-x-hidden px-4 ${APPOINTMENTS_PAGE_BG}`}
         style={{ paddingBottom: APPOINTMENTS_TAB_BAR_SCROLL_PAD }}
       >
-        <AppointmentsStatsCard
-          requests={stats.requests}
-          upcoming={stats.upcoming}
-          history={stats.history}
-        />
-
-        <AppointmentsTabIntro tab={tab} />
+        <div className="relative z-0">
+          <AppointmentsTabIntro tab={tab} />
+          <div className="relative z-10 -mt-7">
+            <AppointmentsStatsCard
+              requests={stats.requests}
+              upcoming={stats.upcoming}
+              history={stats.history}
+              className="shadow-[0_14px_40px_rgba(17,24,39,0.12)]"
+            />
+          </div>
+        </div>
 
         {toast ? (
           <div className="rounded-full bg-[#ECFDF5] px-5 py-3 text-center text-[14px] font-semibold text-[#16A34A] shadow-[0_8px_24px_rgba(17,24,39,0.06)]">
@@ -468,11 +478,22 @@ export function AdminAppointmentsTab({
           </section>
         ) : null}
 
-        <AppointmentsFilterBar
-          activeLabel={filterLabel}
-          isActive={filterActive}
-          open={filterOpen}
-          onOpen={() => setFilterOpen(true)}
+        <AppointmentsQuickFilters
+          tab={tab}
+          sheetActive={sheetFilterActive}
+          sheetOpen={filterOpen}
+          onOpenSheet={() => setFilterOpen(true)}
+          sheetAriaLabel={sheetAriaLabel}
+          requestsSort={requestsSort}
+          onRequestsSort={setRequestsSort}
+          upcomingSort={upcomingSort}
+          onUpcomingSort={setUpcomingSort}
+          historySort={historySort}
+          onHistorySort={setHistorySort}
+          historyStatus={historyStatus}
+          onHistoryStatus={setHistoryStatus}
+          historyPeriod={historyPeriod}
+          onHistoryPeriod={setHistoryPeriod}
         />
 
         {tab === 'requests' ? (
@@ -508,6 +529,11 @@ export function AdminAppointmentsTab({
             open={filterOpen}
             onClose={() => setFilterOpen(false)}
             mode="history"
+            serviceOptions={servicePills(historyRows)}
+            service={historyService}
+            onService={setHistoryService}
+            sort={historySort}
+            onSort={setHistorySort}
             status={historyStatus}
             onStatus={setHistoryStatus}
             period={historyPeriod}
@@ -516,7 +542,7 @@ export function AdminAppointmentsTab({
           />
         ) : null}
 
-        <AdminTabContentTransition activeKey={tab} className="min-w-0">
+        <AdminTabContentTransition activeKey={tab} className="min-w-0 -mt-1">
           {tab === 'requests' ? renderRequests() : null}
           {tab === 'upcoming' ? renderUpcoming() : null}
           {tab === 'history' ? renderHistory() : null}

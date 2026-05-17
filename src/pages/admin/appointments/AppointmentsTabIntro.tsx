@@ -21,5 +21,5 @@ type Props = {
 export function AppointmentsTabIntro({ tab }: Props) {
   const { title, imageSrc } = TAB_INTRO[tab];
 
-  return <AdminTabIntroBanner title={title} imageSrc={imageSrc} wrapperClassName="pb-1" />;
+  return <AdminTabIntroBanner title={title} imageSrc={imageSrc} wrapperClassName="pb-0" />;
 }

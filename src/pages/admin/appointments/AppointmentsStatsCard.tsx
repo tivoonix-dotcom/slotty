@@ -11,6 +11,7 @@ type Props = {
   requests: number;
   upcoming: number;
   history: number;
+  className?: string;
 };
 
 function StatCell({ value, label, Icon }: StatItem) {
@@ -27,7 +28,7 @@ function StatCell({ value, label, Icon }: StatItem) {
   );
 }
 
-export function AppointmentsStatsCard({ requests, upcoming, history }: Props) {
+export function AppointmentsStatsCard({ requests, upcoming, history, className = '' }: Props) {
   const items: StatItem[] = [
     { value: requests, label: 'Заявки', Icon: HiInbox },
     { value: upcoming, label: 'Предстоящие', Icon: HiCalendarDays },
@@ -35,7 +36,7 @@ export function AppointmentsStatsCard({ requests, upcoming, history }: Props) {
   ];
 
   return (
-    <section className={`${apptCard} p-4`}>
+    <section className={`${apptCard} p-4 ${className}`.trim()}>
       <div className="grid grid-cols-3 divide-x divide-[#EAECEF]">
         {items.map((item) => (
           <StatCell key={item.label} {...item} />

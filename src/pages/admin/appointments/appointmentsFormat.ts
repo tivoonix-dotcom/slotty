@@ -103,10 +103,25 @@ export function groupAppointmentsByDay(
   }));
 }
 
+export function compareAppointmentsByPriceDesc(
+  a: DemoMasterAppointment,
+  b: DemoMasterAppointment,
+): number {
+  return (b.priceByn ?? 0) - (a.priceByn ?? 0);
+}
+
+export function compareAppointmentsByPriceAsc(
+  a: DemoMasterAppointment,
+  b: DemoMasterAppointment,
+): number {
+  return (a.priceByn ?? 0) - (b.priceByn ?? 0);
+}
+
 export function groupAppointmentsByMonth(
   rows: DemoMasterAppointment[],
+  sortFn: (a: DemoMasterAppointment, b: DemoMasterAppointment) => number = compareAppointmentsByDateDesc,
 ): Array<{ monthKey: string; label: string; items: DemoMasterAppointment[] }> {
-  const sorted = [...rows].sort(compareAppointmentsByDateDesc);
+  const sorted = [...rows].sort(sortFn);
   const map = new Map<string, DemoMasterAppointment[]>();
   for (const row of sorted) {
     const key = monthKeyFromIso(row.date);

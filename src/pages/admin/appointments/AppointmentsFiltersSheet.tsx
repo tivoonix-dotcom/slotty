@@ -3,6 +3,7 @@ import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import { apptChipActive, apptPinkBtn } from './adminAppointmentsTheme';
 import type {
   HistoryPeriodFilter,
+  HistorySort,
   HistoryStatusFilter,
   RequestsSort,
   UpcomingSort,
@@ -73,6 +74,11 @@ type UpcomingProps = {
 
 type HistoryProps = {
   mode: 'history';
+  serviceOptions: ServiceOption[];
+  service: string;
+  onService: (id: string) => void;
+  sort: HistorySort;
+  onSort: (sort: HistorySort) => void;
   status: HistoryStatusFilter;
   onStatus: (status: HistoryStatusFilter) => void;
   period: HistoryPeriodFilter;
@@ -86,13 +92,13 @@ type Props = {
 } & (RequestsProps | UpcomingProps | HistoryProps);
 
 const REQUESTS_SORT: Array<{ id: RequestsSort; label: string; hint: string }> = [
-  { id: 'newest', label: 'По новизне', hint: 'Сначала последние заявки' },
+  { id: 'newest', label: 'Сначала новые', hint: 'Последние заявки сверху' },
   { id: 'oldest', label: 'Сначала старые', hint: 'От ранних к поздним' },
 ];
 
 const UPCOMING_SORT: Array<{ id: UpcomingSort; label: string; hint: string }> = [
   { id: 'date', label: 'По дате', hint: 'Ближайшие визиты сверху' },
-  { id: 'newest', label: 'По новизне', hint: 'Недавно добавленные' },
+  { id: 'newest', label: 'Сначала новые', hint: 'Недавно добавленные' },
 ];
 
 const HISTORY_STATUS: Array<{ id: HistoryStatusFilter; label: string; hint: string }> = [
@@ -107,6 +113,13 @@ const HISTORY_PERIOD: Array<{ id: HistoryPeriodFilter; label: string; hint: stri
   { id: 'quarter', label: '3 месяца', hint: '90 дней' },
 ];
 
+const HISTORY_SORT: Array<{ id: HistorySort; label: string; hint: string }> = [
+  { id: 'newest', label: 'Сначала новые', hint: 'Недавние записи сверху' },
+  { id: 'oldest', label: 'Сначала старые', hint: 'От старых к новым' },
+  { id: 'price_high', label: 'Дороже', hint: 'По убыванию суммы' },
+  { id: 'price_low', label: 'Дешевле', hint: 'По возрастанию суммы' },
+];
+
 export function AppointmentsFiltersSheet(props: Props) {
   const { open, onClose, mode } = props;
 
@@ -115,7 +128,10 @@ export function AppointmentsFiltersSheet(props: Props) {
       ? props.service !== 'all' || props.sort !== 'newest'
       : mode === 'upcoming'
         ? props.service !== 'all' || props.sort !== 'date'
-        : props.status !== 'all' || props.period !== 'all';
+        : props.service !== 'all' ||
+          props.sort !== 'newest' ||
+          props.status !== 'all' ||
+          props.period !== 'all';
 
   const title =
     mode === 'requests' ? 'Фильтр заявок' : mode === 'upcoming' ? 'Фильтр записей' : 'Фильтр истории';
@@ -125,6 +141,34 @@ export function AppointmentsFiltersSheet(props: Props) {
       <div className="space-y-5">
         {mode === 'history' ? (
           <>
+            <div>
+              <p className="text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF]">Услуга</p>
+              <div className="mt-2 space-y-2">
+                {props.serviceOptions.map((opt) => (
+                  <OptionButton
+                    key={opt.id}
+                    selected={props.service === opt.id}
+                    label={opt.label}
+                    hint={opt.id === 'all' ? 'Все услуги' : undefined}
+                    onClick={() => props.onService(opt.id)}
+                  />
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF]">Сортировка</p>
+              <div className="mt-2 space-y-2">
+                {HISTORY_SORT.map((opt) => (
+                  <OptionButton
+                    key={opt.id}
+                    selected={props.sort === opt.id}
+                    label={opt.label}
+                    hint={opt.hint}
+                    onClick={() => props.onSort(opt.id)}
+                  />
+                ))}
+              </div>
+            </div>
             <div>
               <p className="text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF]">Статус</p>
               <div className="mt-2 space-y-2">
