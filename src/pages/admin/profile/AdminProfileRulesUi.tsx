@@ -121,9 +121,6 @@ export function RulesSection({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Правила записи</h2>
-            <p className="mt-0.5 text-[13px] leading-snug text-[#6B7280]">
-              Клиент увидит условия до записи — меньше вопросов в чате
-            </p>
           </div>
           <button
             type="button"
