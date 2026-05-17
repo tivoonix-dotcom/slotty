@@ -19,6 +19,11 @@ import {
   OverviewSectionCard,
   OverviewWideMetricCard,
 } from './OverviewSharedUi';
+import {
+  ratingQualityLabel,
+  ratingToneFromValue,
+  ratingToneUi,
+} from './overviewRatingTone';
 
 function ReputationEmptyMetric({
   label,
@@ -49,8 +54,10 @@ function reviewsCountLabel(n: number): string {
 
 function RatingStars({ value }: { value: number }) {
   const rounded = Math.round(value);
+  const tone = ratingToneFromValue(value);
+  const starClass = ratingToneUi[tone].stars;
   return (
-    <div className="flex items-center gap-0.5 text-[#FBBF24]" aria-hidden>
+    <div className={`flex items-center gap-0.5 ${starClass}`} aria-hidden>
       {[1, 2, 3, 4, 5].map((i) => (
         <HiStar key={i} className={`h-5 w-5 ${i <= rounded ? 'opacity-100' : 'opacity-25'}`} />
       ))}
@@ -230,8 +237,8 @@ export function OverviewReputationPanel({
           </div>
 
           <div className="mt-5 grid min-w-0 grid-cols-2 gap-2.5">
-            <ReputationEmptyMetric label="Рейтинг" value="—" sub="пока нет оценок" />
-            <ReputationEmptyMetric label="Отзывы" value="0" sub="за всё время" />
+            <ReputationEmptyMetric label="Рейтинг" value="0.0" sub="из 5 · ждём оценки" />
+            <ReputationEmptyMetric label="Отзывы" value="0" sub="пока нет отзывов" />
           </div>
 
           <p className="mt-4 flex items-center gap-1.5 text-[12px] font-medium text-[#9CA3AF]">
@@ -244,6 +251,9 @@ export function OverviewReputationPanel({
   }
 
   const average = data.averageRating ?? 0;
+  const ratingTone = ratingToneFromValue(average);
+  const ratingUi = ratingToneUi[ratingTone];
+  const qualityLabel = ratingQualityLabel(ratingTone);
   const trendBadge =
     data.ratingTrendPercent !== null && data.ratingTrend === 'up' ? (
       <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF5] px-2.5 py-1 text-[11px] font-bold text-[#10B981]">
@@ -254,10 +264,20 @@ export function OverviewReputationPanel({
   return (
     <div className="min-w-0 space-y-4 overflow-x-hidden">
       <OverviewWideMetricCard
-        icon={<HiStar className="h-7 w-7 text-[#FBBF24]" aria-hidden />}
+        icon={<HiStar className={`h-7 w-7 ${ratingUi.stars}`} aria-hidden />}
         label="Средний рейтинг"
         value={`${average.toFixed(1)} из 5`}
+        valueClassName={ratingUi.value}
         sub={`На основе ${reviewsCountLabel(data.reviewsCount)}`}
+        badge={
+          qualityLabel ? (
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-bold ${ratingUi.badge}`}
+            >
+              {qualityLabel}
+            </span>
+          ) : null
+        }
       />
 
       <div className="grid min-w-0 grid-cols-2 gap-2.5">
@@ -307,7 +327,7 @@ export function OverviewReputationPanel({
         icon={<HiArrowTrendingUp className="h-5 w-5" aria-hidden />}
         action={trendBadge}
       >
-        <OverviewRatingChart stats={data.ratingByDay} />
+        <OverviewRatingChart stats={data.ratingByDay} tone={ratingTone} />
         {data.chartIsTruncated ? (
           <p className="mt-3 text-[11px] leading-snug text-[#9CA3AF]">
             График показывает последние 90 дней, итоги — за выбранный период.
@@ -329,7 +349,7 @@ export function OverviewReputationPanel({
         <div ref={unansweredRef}>
           <OverviewSectionCard
             title="Без ответа"
-            subtitle="Ответьте на отзывы — повторный ответ недоступен"
+            subtitle="Один ответ на отзыв, изменить его нельзя"
             icon={<HiChatBubbleLeftRight className="h-5 w-5" aria-hidden />}
           >
             <div className="space-y-3">

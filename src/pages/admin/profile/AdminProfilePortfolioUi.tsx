@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { MasterDraft, MasterPortfolioItem } from '../../../features/profile/lib/demoMasterStorage';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
-import { CabinetIcon } from './cabinetIcons';
+import { CabinetIcon, type CabinetIconName } from './cabinetIcons';
 import { normalizeMasterCareerItemType } from '../../../features/profile/lib/demoMasterStorage';
 import type { MasterCareerItemType } from '../../../features/profile/lib/demoMasterStorage';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
@@ -97,10 +97,53 @@ function normalizeCareerItems(draft: MasterDraft): MasterCareerItem[] {
 type OverflowMenuItem = {
   id: string;
   label: string;
+  icon: CabinetIconName;
   onClick: () => void;
   tone?: 'default' | 'danger';
   disabled?: boolean;
 };
+
+function SheetActionRow({
+  label,
+  icon,
+  onClick,
+  disabled = false,
+  tone = 'default',
+}: {
+  label: string;
+  icon: CabinetIconName;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: 'default' | 'danger';
+}) {
+  const isDanger = tone === 'danger';
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`flex min-h-12 w-full items-center gap-3 rounded-[17px] px-3.5 transition active:scale-[0.99] disabled:opacity-45 ${
+        isDanger ? 'bg-[#FFF1F4] active:bg-[#FFE4EA]' : 'bg-[#F7F7F8] active:bg-[#F3F4F6]'
+      }`}
+    >
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+          isDanger ? 'bg-white text-red-500' : 'bg-[#FFF1F4] text-[#F47C8C]'
+        }`}
+      >
+        <CabinetIcon name={icon} size={18} />
+      </span>
+      <span
+        className={`min-w-0 flex-1 text-left text-[15px] font-semibold ${
+          isDanger ? 'text-red-600' : 'text-[#111827]'
+        }`}
+      >
+        {label}
+      </span>
+      <CabinetIcon name="chevron-right" size={16} className="shrink-0 text-[#D1D5DB]" />
+    </button>
+  );
+}
 
 function CardOverflowMenu({
   items,
@@ -129,24 +172,18 @@ function CardOverflowMenu({
       <AdminBottomSheet open={open} onClose={close} title={sheetTitle}>
         <div className="flex flex-col gap-2 pb-1" role="menu" aria-label={sheetTitle}>
           {items.map((item) => (
-            <button
+            <SheetActionRow
               key={item.id}
-              type="button"
-              role="menuitem"
+              label={item.label}
+              icon={item.icon}
+              tone={item.tone}
               disabled={item.disabled}
               onClick={() => {
                 if (item.disabled) return;
                 close();
                 item.onClick();
               }}
-              className={`flex min-h-12 w-full items-center justify-center rounded-[17px] px-4 text-[15px] font-semibold transition active:scale-[0.99] disabled:opacity-45 ${
-                item.tone === 'danger'
-                  ? 'bg-[#FFF1F4] text-red-600 active:bg-[#FFE4EA]'
-                  : 'bg-[#F7F7F8] text-[#111827] active:bg-[#F3F4F6] disabled:text-[#9CA3AF]'
-              }`}
-            >
-              {item.label}
-            </button>
+            />
           ))}
         </div>
       </AdminBottomSheet>
@@ -308,39 +345,34 @@ function PortfolioWorkDetailSheet({
         </div>
 
         <div className="flex flex-col gap-2">
-          <button
-            type="button"
+          <SheetActionRow
+            label="Редактировать"
+            icon="pencil"
             disabled={actionsDisabled}
             onClick={() => {
               onClose();
               onEdit();
             }}
-            className="flex min-h-12 w-full items-center justify-center rounded-[17px] bg-[#F7F7F8] text-[15px] font-semibold text-[#111827] transition active:scale-[0.99] disabled:opacity-45"
-          >
-            Редактировать
-          </button>
-          <button
-            type="button"
+          />
+          <SheetActionRow
+            label={isCover ? 'Уже обложка' : 'Сделать обложкой'}
+            icon="star"
             disabled={actionsDisabled || !imageUrl || isCover}
             onClick={() => {
               onSetCover();
               onClose();
             }}
-            className="flex min-h-12 w-full items-center justify-center rounded-[17px] bg-[#FFF1F4] text-[15px] font-semibold text-[#F47C8C] transition active:scale-[0.99] disabled:opacity-45"
-          >
-            {isCover ? 'Уже обложка' : 'Сделать обложкой'}
-          </button>
-          <button
-            type="button"
+          />
+          <SheetActionRow
+            label="Удалить"
+            icon="trash"
+            tone="danger"
             disabled={actionsDisabled}
             onClick={() => {
               onClose();
               onDelete();
             }}
-            className="flex min-h-12 w-full items-center justify-center rounded-[17px] bg-[#FFF1F4] text-[15px] font-semibold text-red-600 transition active:scale-[0.99] disabled:opacity-45"
-          >
-            Удалить
-          </button>
+          />
         </div>
       </div>
     </AdminBottomSheet>
@@ -405,22 +437,26 @@ function PortfolioWorkCard({
               {
                 id: 'detail',
                 label: 'Подробнее',
+                icon: 'photo',
                 onClick: onOpenDetail,
               },
               {
                 id: 'cover',
                 label: isCover ? 'Уже обложка' : 'Сделать обложкой',
+                icon: 'star',
                 onClick: () => onSetPortfolioCover(item.id),
                 disabled: !imageUrl || isCover,
               },
               {
                 id: 'edit',
                 label: 'Редактировать',
+                icon: 'pencil',
                 onClick: () => onEditPortfolio(item.id),
               },
               {
                 id: 'delete',
                 label: 'Удалить',
+                icon: 'trash',
                 onClick: () => onDeletePortfolio(item.id),
                 tone: 'danger',
               },
@@ -429,30 +465,23 @@ function PortfolioWorkCard({
         </div>
       </div>
 
-      <div className="flex min-h-[7.25rem] flex-1 flex-col px-3 pb-3 pt-2.5">
-        <button type="button" onClick={onOpenDetail} className="flex min-h-0 flex-1 flex-col text-left">
-          <p
-            className={`line-clamp-2 min-h-[2.75rem] text-[14px] font-semibold leading-[1.375rem] text-[#111827] ${portfolioTextBreak}`}
-          >
-            {title}
-          </p>
-          <p
-            className={`mt-1 line-clamp-2 min-h-[2.5rem] text-[12px] leading-[1.25rem] text-[#6B7280] ${portfolioTextBreak} ${categoryLabel ? '' : 'invisible'}`}
-          >
-            {categoryLabel || '\u00a0'}
-          </p>
-        </button>
-        <div className="mt-2 flex shrink-0 justify-end">
-          <button
-            type="button"
-            onClick={onOpenDetail}
-            aria-label={`Подробнее: ${title}`}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#FDE8ED] bg-white text-[#F47C8C] shadow-[0_2px_8px_rgba(17,24,39,0.06)] transition hover:bg-[#FFF1F4] active:scale-[0.96]"
-          >
-            <CabinetIcon name="chevron-right" size={18} className="shrink-0" />
-          </button>
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={onOpenDetail}
+        aria-label={`Подробнее: ${title}`}
+        className="flex min-h-[5.5rem] flex-1 flex-col px-3 pb-3 pt-2.5 text-left"
+      >
+        <p
+          className={`line-clamp-2 min-h-[2.75rem] text-[14px] font-semibold leading-[1.375rem] text-[#111827] ${portfolioTextBreak}`}
+        >
+          {title}
+        </p>
+        <p
+          className={`mt-1 line-clamp-2 min-h-[2.5rem] text-[12px] leading-[1.25rem] text-[#6B7280] ${portfolioTextBreak} ${categoryLabel ? '' : 'invisible'}`}
+        >
+          {categoryLabel || '\u00a0'}
+        </p>
+      </button>
     </article>
   );
 }
@@ -578,10 +607,16 @@ export function TrustSection({
                         ariaLabel="Действия с сертификатом"
                         sheetTitle="Сертификат"
                         items={[
-                          { id: 'edit', label: 'Редактировать', onClick: () => onEditCert(certificate.id) },
+                          {
+                            id: 'edit',
+                            label: 'Редактировать',
+                            icon: 'pencil',
+                            onClick: () => onEditCert(certificate.id),
+                          },
                           {
                             id: 'delete',
                             label: 'Удалить',
+                            icon: 'trash',
                             onClick: () => onDeleteCert(certificate.id),
                             tone: 'danger',
                           },
@@ -678,10 +713,16 @@ export function TrustSection({
                             ariaLabel="Действия с записью"
                             sheetTitle="Запись опыта"
                             items={[
-                              { id: 'edit', label: 'Редактировать', onClick: () => onEditCareer(item.id) },
+                              {
+                                id: 'edit',
+                                label: 'Редактировать',
+                                icon: 'pencil',
+                                onClick: () => onEditCareer(item.id),
+                              },
                               {
                                 id: 'delete',
                                 label: 'Удалить',
+                                icon: 'trash',
                                 onClick: () => onDeleteCareer(item.id),
                                 tone: 'danger',
                               },

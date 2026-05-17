@@ -18,7 +18,7 @@ export function AdminPage() {
   const allowed = isDemoMaster() || apiMaster;
 
   if (isLoading) {
-    return <LoadingScreen label="Загрузка…" className="bg-[#F1EFEF]" />;
+    return <LoadingScreen className="bg-[#F1EFEF]" />;
   }
 
   if (!allowed) {

@@ -468,7 +468,7 @@ export function BookingPage() {
             <IconChevronLeft className="shrink-0" />
             Назад
           </Link>
-          <LoadingVideo size="lg" label="Загрузка…" className="mx-auto" />
+          <LoadingVideo size="lg" className="mx-auto" />
         </div>
       </div>
     );

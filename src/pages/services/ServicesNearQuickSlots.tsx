@@ -86,7 +86,7 @@ export const ServicesNearQuickSlots: FC<Props> = ({ category, apiSlots }) => {
 
         {backendStatus === 'loading' ? (
           <div className="mt-3 rounded-[28px] bg-white/90 px-4 py-6 text-center shadow-[0_10px_28px_rgba(17,17,17,0.035)]">
-            <LoadingVideo label="Загрузка…" />
+            <LoadingVideo size="lg" />
           </div>
         ) : backendStatus === 'error' ? (
           <div className="mt-3 rounded-[28px] bg-white/90 px-4 py-6 text-center shadow-[0_10px_28px_rgba(17,17,17,0.035)]">

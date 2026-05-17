@@ -10,6 +10,11 @@ import {
 import { HiCloud } from 'react-icons/hi2';
 import type { RatingDayStat } from './overviewReputationDemo';
 import { formatDdMm, formatDdMmYyyy } from './overviewFormat';
+import {
+  ratingToneFromValue,
+  ratingToneUi,
+  type RatingTone,
+} from './overviewRatingTone';
 
 type ChartPoint = { x: number; y: number; v: number; date: string };
 
@@ -44,9 +49,11 @@ function buildSmoothLinePath(points: ChartPoint[]): string {
 export function OverviewRatingChart({
   stats,
   emptyHint = 'Недостаточно данных для графика',
+  tone: toneProp,
 }: {
   stats: RatingDayStat[];
   emptyHint?: string;
+  tone?: RatingTone;
 }) {
   const gradientId = useId();
   const chartRef = useRef<HTMLDivElement>(null);
@@ -60,6 +67,15 @@ export function OverviewRatingChart({
   const padX = 4;
   const padY = 20;
   const baseline = chartHeight - padY;
+
+  const seriesTone = useMemo(() => {
+    if (toneProp) return toneProp;
+    if (!values.length) return 'empty' as RatingTone;
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    return ratingToneFromValue(avg);
+  }, [toneProp, values]);
+
+  const palette = ratingToneUi[seriesTone];
 
   const points = useMemo((): ChartPoint[] => {
     return values.map((v, i) => {
@@ -121,6 +137,8 @@ export function OverviewRatingChart({
 
   const active = activeIndex !== null ? points[activeIndex] : null;
   const activeStat = activeIndex !== null ? stats[activeIndex] : null;
+  const activeTone = active ? ratingToneFromValue(active.v) : seriesTone;
+  const activePalette = ratingToneUi[activeTone];
 
   const tooltipLeft =
     active && chartWidth > 0
@@ -131,7 +149,7 @@ export function OverviewRatingChart({
     <div className="min-w-0">
       <div
         ref={chartRef}
-        className={`relative ${chartBoxClass} w-full min-w-0 touch-none select-none overflow-hidden rounded-[20px] bg-gradient-to-b from-[#FFF5F7] to-white ${
+        className={`relative ${chartBoxClass} w-full min-w-0 touch-none select-none overflow-hidden rounded-[20px] bg-gradient-to-b ${palette.chartBg} ${
           hasData ? 'cursor-crosshair' : ''
         }`}
         onPointerMove={onPointerMove}
@@ -156,9 +174,9 @@ export function OverviewRatingChart({
             >
               <defs>
                 <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#F47C8C" stopOpacity="0.35" />
-                  <stop offset="55%" stopColor="#F9A8B4" stopOpacity="0.12" />
-                  <stop offset="100%" stopColor="#F47C8C" stopOpacity="0" />
+                  <stop offset="0%" stopColor={palette.chartFillTop} stopOpacity="1" />
+                  <stop offset="55%" stopColor={palette.chartFillMid} stopOpacity="1" />
+                  <stop offset="100%" stopColor={palette.chartStroke} stopOpacity="0" />
                 </linearGradient>
               </defs>
 
@@ -166,7 +184,7 @@ export function OverviewRatingChart({
               <path
                 d={linePath}
                 fill="none"
-                stroke="#F47C8C"
+                stroke={palette.chartStroke}
                 strokeWidth="2.75"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -180,24 +198,36 @@ export function OverviewRatingChart({
                     x2={active.x}
                     y1={padY}
                     y2={baseline}
-                    stroke="#F9A8B4"
+                    stroke={palette.chartStroke}
                     strokeWidth="1"
                     strokeDasharray="4 4"
-                    opacity="0.9"
+                    opacity="0.45"
                   />
-                  <circle cx={active.x} cy={active.y} r="9" fill="#F47C8C" opacity="0.18" />
+                  <circle
+                    cx={active.x}
+                    cy={active.y}
+                    r="9"
+                    fill={activePalette.chartStroke}
+                    opacity="0.18"
+                  />
                   <circle cx={active.x} cy={active.y} r="5.5" fill="#FFFFFF" />
-                  <circle cx={active.x} cy={active.y} r="4" fill="#F47C8C" />
+                  <circle cx={active.x} cy={active.y} r="4" fill={activePalette.chartStroke} />
                 </>
               ) : null}
             </svg>
 
             {active && activeStat ? (
               <div
-                className="pointer-events-none absolute top-2 z-10 -translate-x-1/2 rounded-[14px] border border-[#FDE8ED] bg-white/95 px-3 py-2 text-center shadow-[0_10px_28px_rgba(244,124,140,0.22)] backdrop-blur-sm"
-                style={{ left: tooltipLeft }}
+                className="pointer-events-none absolute top-2 z-10 -translate-x-1/2 rounded-[14px] border bg-white/95 px-3 py-2 text-center shadow-[0_10px_28px_rgba(17,24,39,0.08)] backdrop-blur-sm"
+                style={{
+                  left: tooltipLeft,
+                  borderColor: `${activePalette.chartStroke}33`,
+                }}
               >
-                <p className="text-[15px] font-bold tabular-nums tracking-[-0.03em] text-[#F47C8C]">
+                <p
+                  className="text-[15px] font-bold tabular-nums tracking-[-0.03em]"
+                  style={{ color: activePalette.chartStroke }}
+                >
                   {active.v.toFixed(1)}
                 </p>
                 <p className="mt-0.5 text-[11px] font-semibold text-[#6B7280]">

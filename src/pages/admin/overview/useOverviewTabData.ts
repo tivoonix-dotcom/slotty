@@ -13,7 +13,6 @@ import {
   overviewPeriodRange,
   overviewSummaryMetrics,
   type ClientAnalytics,
-  type OverviewAnalyticsTab,
   type OverviewPeriodPreset,
   type RevenueAnalytics,
 } from './overviewAnalytics';
@@ -30,12 +29,12 @@ type SummaryMetrics = {
 };
 
 export function useOverviewTabData({
-  activeTab,
+  activeTab: _activeTab,
   periodPreset,
   appointments,
   useCabinetApi,
 }: {
-  activeTab: OverviewAnalyticsTab;
+  activeTab: import('./overviewAnalytics').OverviewAnalyticsTab;
   periodPreset: OverviewPeriodPreset;
   appointments: DemoMasterAppointment[];
   useCabinetApi: boolean;
@@ -82,19 +81,17 @@ export function useOverviewTabData({
       setLoading(true);
       setError(null);
       try {
-        if (activeTab === 'summary') {
-          const data = await fetchOverviewSummary(periodPreset);
-          if (!cancelled) setApiSummary(data);
-        } else if (activeTab === 'revenue') {
-          const data = await fetchOverviewRevenue(periodPreset);
-          if (!cancelled) setApiRevenue(data);
-        } else if (activeTab === 'clients') {
-          const data = await fetchOverviewClients(periodPreset);
-          if (!cancelled) setApiClients(data);
-        } else if (activeTab === 'reputation') {
-          const data = await fetchOverviewReputation(periodPreset);
-          if (!cancelled) setApiReputation(data);
-        }
+        const [summary, revenue, clients, reputation] = await Promise.all([
+          fetchOverviewSummary(periodPreset),
+          fetchOverviewRevenue(periodPreset),
+          fetchOverviewClients(periodPreset),
+          fetchOverviewReputation(periodPreset),
+        ]);
+        if (cancelled) return;
+        setApiSummary(summary);
+        setApiRevenue(revenue);
+        setApiClients(clients);
+        setApiReputation(reputation);
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : 'Не удалось загрузить аналитику');
@@ -107,7 +104,7 @@ export function useOverviewTabData({
     return () => {
       cancelled = true;
     };
-  }, [activeTab, periodPreset, useCabinetApi, reputationTick]);
+  }, [periodPreset, useCabinetApi, reputationTick]);
 
   const refreshReputation = () => setReputationTick((n) => n + 1);
 

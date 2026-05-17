@@ -100,12 +100,14 @@ export function OverviewWideMetricCard({
   value,
   sub,
   badge,
+  valueClassName = 'text-[#111827]',
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   sub?: string;
   badge?: ReactNode;
+  valueClassName?: string;
 }) {
   return (
     <div className={`${overviewCard} ${overviewCardPad} relative overflow-hidden`}>
@@ -114,7 +116,9 @@ export function OverviewWideMetricCard({
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[13px] font-semibold text-[#6B7280]">{label}</p>
-          <p className="mt-1 break-words text-[26px] font-bold tabular-nums tracking-[-0.06em] text-[#111827] sm:text-[32px] sm:tracking-[-0.07em]">
+          <p
+            className={`mt-1 break-words text-[26px] font-bold tabular-nums tracking-[-0.06em] sm:text-[32px] sm:tracking-[-0.07em] ${valueClassName}`}
+          >
             {value}
           </p>
           {sub ? <p className="mt-1 text-[12px] font-medium text-[#6B7280]">{sub}</p> : null}

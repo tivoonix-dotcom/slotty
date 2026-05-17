@@ -120,7 +120,7 @@ export function AdminCabinetStatusBanner() {
     <div className={`mx-auto w-full min-w-0 px-4 pb-2 pt-2 ${ADMIN_CABINET_SHELL_MAX}`}>
       {cabinetLoading ? (
         <div className="rounded-2xl bg-white px-4 py-3 shadow-[0_8px_24px_rgba(17,17,17,0.04)]">
-          <LoadingVideo size="sm" label="Загрузка данных мастера…" />
+          <LoadingVideo size="md" />
         </div>
       ) : null}
       {cabinetError ? (
@@ -190,13 +190,13 @@ export function AdminLayout() {
             className="sticky top-0 z-40 w-full min-w-0 bg-white"
             style={
               {
-                '--slotty-admin-header-h': '6.5rem',
+                '--slotty-admin-header-h': '5.25rem',
                 '--slotty-profile-tab-bar-h': PROFILE_TAB_BAR_HEIGHT,
               } as CSSProperties
             }
           >
             <div
-              className={`mx-auto flex w-full min-w-0 ${ADMIN_CABINET_SHELL_MAX} items-center justify-between gap-3 px-4 pb-3 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] min-h-[5.5rem]`}
+              className={`mx-auto flex w-full min-w-0 ${ADMIN_CABINET_SHELL_MAX} items-center justify-between gap-3 px-4 pb-1 pt-[calc(0.25rem+env(safe-area-inset-top,0px))]`}
             >
                 <Link
                   to={HUB_PATH}

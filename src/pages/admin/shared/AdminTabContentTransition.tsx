@@ -35,7 +35,7 @@ export function AdminTabContentTransition({
           aria-live="polite"
           aria-busy="true"
         >
-          <LoadingVideo size="md" />
+          <LoadingVideo size="lg" />
         </div>
       ) : null}
     </div>

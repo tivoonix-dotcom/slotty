@@ -842,7 +842,7 @@ export function MasterProfilePage() {
   }
 
   if (profileLoading) {
-    return <LoadingScreen label="Загрузка профиля…" />;
+    return <LoadingScreen />;
   }
 
   if (!master) {

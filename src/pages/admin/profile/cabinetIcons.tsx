@@ -27,6 +27,7 @@ import {
   HiSquares2X2,
   HiStar,
   HiTag,
+  HiTrash,
   HiUser,
   HiKey,
   HiDevicePhoneMobile,
@@ -64,7 +65,8 @@ export type CabinetIconName =
   | 'plus'
   | 'more'
   | 'clock'
-  | 'card';
+  | 'card'
+  | 'trash';
 
 const ICONS: Record<CabinetIconName, IconType> = {
   'map-pin': HiMapPin,
@@ -98,6 +100,7 @@ const ICONS: Record<CabinetIconName, IconType> = {
   more: HiEllipsisHorizontal,
   clock: HiClock,
   card: HiCreditCard,
+  trash: HiTrash,
 };
 
 export function CabinetIcon({

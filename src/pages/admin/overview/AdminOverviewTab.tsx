@@ -60,7 +60,7 @@ export function AdminOverviewTab({
 
   const panel = useMemo(() => {
     if (loading) {
-      return <LoadingPanel label="Загрузка…" className="border-[#F3F4F6]" />;
+      return <LoadingPanel className="border-[#F3F4F6]" />;
     }
 
     if (error) {
