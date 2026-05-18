@@ -6,3 +6,7 @@ export const CLIENT_CONTENT_PAD_BOTTOM =
 
 export const CLIENT_HEADER_OFFSET =
   'pt-[calc(5.25rem+env(safe-area-inset-top,0px))]';
+
+/** Нижний отступ контента на странице мастера (без таб-бара, только sticky-кнопки). */
+export const CLIENT_MASTER_PROFILE_PAD_BOTTOM =
+  'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px)+0.5rem)]';

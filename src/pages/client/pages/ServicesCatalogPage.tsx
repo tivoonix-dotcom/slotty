@@ -23,7 +23,7 @@ const LIGHT_CHIPS: { id: ServiceCatalogChip; label: string }[] = [
 function ServiceList({ items }: { items: AggregatedServiceCard[] }) {
   if (!items.length) return null;
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {items.map((s) => (
         <ServiceCard key={s.id} service={s} />
       ))}

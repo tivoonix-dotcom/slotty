@@ -1,4 +1,4 @@
-/** Фото категорий: `public/photos/work/` (как на главной и в онбординге). */
+/** Фото плиток «Категории» в каталоге услуг: `public/photos/work/`. */
 export const CATEGORY_WORK_PHOTOS: Record<string, string> = {
   manicure: '/photos/work/manicure.webp',
   barbers: '/photos/work/barbers.webp',

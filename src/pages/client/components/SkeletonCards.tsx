@@ -1,16 +1,22 @@
-export function SkeletonServiceCard() {
+﻿export function SkeletonServiceCard() {
   return (
-    <div className="overflow-hidden rounded-[26px] bg-white shadow-[0_10px_36px_rgba(17,24,39,0.07)] ring-1 ring-[#f2f2f2]">
-      <div className="flex gap-3.5 p-3.5">
-        <div className="h-[8.75rem] w-[7.25rem] shrink-0 animate-pulse rounded-[20px] bg-neutral-200/80" />
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="h-5 w-3/4 animate-pulse rounded-full bg-neutral-200/80" />
-          <div className="h-3 w-full animate-pulse rounded-full bg-neutral-200/60" />
-          <div className="h-10 animate-pulse rounded-[14px] bg-neutral-200/50" />
-          <div className="h-12 animate-pulse rounded-[16px] bg-[#FFF1F4]/80" />
+    <div className="w-full overflow-hidden rounded-[24px] bg-white shadow-[0_10px_36px_rgba(17,24,39,0.07)] ring-1 ring-[#f2f2f2]">
+      <div className="space-y-4 p-4">
+        <div className="flex gap-3.5">
+          <div className="h-[5.5rem] w-[5.5rem] shrink-0 animate-pulse rounded-[20px] bg-neutral-200/80" />
+          <div className="min-w-0 flex-1 space-y-2.5 pt-1">
+            <div className="h-6 w-3/4 animate-pulse rounded-full bg-neutral-200/80" />
+            <div className="h-4 w-full animate-pulse rounded-full bg-neutral-200/60" />
+            <div className="h-4 w-1/2 animate-pulse rounded-full bg-neutral-200/50" />
+          </div>
         </div>
+        <div className="space-y-2 border-t border-[#F3F4F6] pt-3">
+          <div className="h-10 animate-pulse rounded-[14px] bg-neutral-200/50" />
+          <div className="h-10 animate-pulse rounded-[14px] bg-neutral-200/50" />
+          <div className="h-10 animate-pulse rounded-[14px] bg-neutral-200/50" />
+        </div>
+        <div className="h-[7.5rem] animate-pulse rounded-[18px] bg-[#F1EFEF]" />
       </div>
-      <div className="h-11 animate-pulse border-t border-[#F3F4F6] bg-[#FFFBFC]" />
     </div>
   );
 }

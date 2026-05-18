@@ -26,6 +26,7 @@ import { MasterStickyActions } from './MasterStickyActions';
 import { MasterTrustStats } from './MasterTrustStats';
 import { PortfolioImagePreview } from './PortfolioImagePreview';
 import { ServiceDetailSheet } from './ServiceDetailSheet';
+import { CLIENT_MASTER_PROFILE_PAD_BOTTOM } from '../clientNavConstants';
 import { SkeletonMasterProfile } from './SkeletonMasterProfile';
 import { shareMasterProfile } from './masterProfileUtils';
 import { useMasterNearestSlot } from './useMasterNearestSlot';
@@ -155,7 +156,9 @@ export function MasterPublicPage() {
         onShare={() => void onShare()}
       />
 
-      <main className="mx-auto max-w-lg px-4 pb-[calc(11.5rem+env(safe-area-inset-bottom,0px))] pt-[calc(4.25rem+env(safe-area-inset-top,0px))]">
+      <main
+        className={`mx-auto max-w-lg px-4 pt-[calc(4.25rem+env(safe-area-inset-top,0px))] ${CLIENT_MASTER_PROFILE_PAD_BOTTOM}`}
+      >
         <MasterHeroCard
           master={master}
           userLat={userLat}

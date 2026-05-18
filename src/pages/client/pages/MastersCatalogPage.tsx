@@ -7,7 +7,6 @@ import { QuickChips } from '../components/QuickChips';
 import { MasterCard } from '../components/MasterCard';
 import { MasterSectionRail } from '../components/MasterSectionRail';
 import { TopMastersSection } from '../components/TopMastersSection';
-import { MastersCatalogHero } from '../components/MastersCatalogHero';
 import { GeoPromptCard } from '../components/GeoPromptCard';
 import { CategoryMasterFilterSheet } from '../components/CategoryMasterFilterSheet';
 import { SkeletonMasterCard } from '../components/SkeletonCards';
@@ -93,8 +92,6 @@ export function MastersCatalogPage() {
   return (
     <ClientPageShell>
       <div className="space-y-6 pb-6">
-        <MastersCatalogHero total={feed.total} freeTodayCount={feed.freeTodayCount} />
-
         <ClientSearchBar
           value={search}
           onChange={setSearch}
