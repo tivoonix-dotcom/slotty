@@ -4,9 +4,11 @@ import { getServiceCategoryPath } from '../../../app/paths';
 import type { AggregatedServiceCard } from '../lib/aggregateServices';
 import {
   formatDurationMinutes,
-  formatNearestSlotLabel,
+  formatMastersCountLabel,
   formatPriceFrom,
+  formatServiceAvailabilityLabel,
 } from '../lib/catalogFormat';
+import { getCategoryWorkPhotoUrl } from '../../../features/catalog/categoryWorkPhotos';
 import { clientCard } from '../clientTheme';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 
@@ -20,15 +22,11 @@ type Props = {
   service: AggregatedServiceCard;
 };
 
-function categoryImageUrl(code: string): string {
-  const seed = encodeURIComponent(code);
-  return `https://images.unsplash.com/photo-1604654894610-df63bc536371?w=200&h=200&fit=crop&q=70&auto=format&sig=${seed}`;
-}
-
 export function ServiceCard({ service }: Props) {
-  const slotLabel = service.hasToday
-    ? 'Есть окна сегодня'
-    : formatNearestSlotLabel(service.nearestSlotIso) ?? 'Уточните время';
+  const availabilityLabel = formatServiceAvailabilityLabel(
+    service.hasToday,
+    service.nearestSlotIso,
+  );
 
   return (
     <Link
@@ -36,7 +34,7 @@ export function ServiceCard({ service }: Props) {
       className={`${clientCard} flex gap-3 p-3 transition active:scale-[0.99]`}
     >
       <ImageReveal
-        src={categoryImageUrl(service.categoryCode)}
+        src={getCategoryWorkPhotoUrl(service.categoryCode)}
         alt=""
         className="h-[88px] w-[88px] shrink-0 rounded-[20px] object-cover"
         loading="lazy"
@@ -54,10 +52,9 @@ export function ServiceCard({ service }: Props) {
           {formatPriceFrom(service.minPrice)} · {formatDurationMinutes(service.durationMinutes)}
         </p>
         <p className="mt-1 text-[13px] font-medium text-[#374151]">
-          {service.masterCount}{' '}
-          {service.masterCount === 1 ? 'мастер рядом' : service.masterCount < 5 ? 'мастера рядом' : 'мастеров рядом'}
+          {formatMastersCountLabel(service.masterCount)}
           {' · '}
-          <span className="text-[#F47C8C]">{slotLabel}</span>
+          <span className="text-[#F47C8C]">{availabilityLabel}</span>
         </p>
       </div>
       <HiChevronRight className="mt-6 h-5 w-5 shrink-0 text-[#D1D5DB]" aria-hidden />

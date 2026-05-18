@@ -59,9 +59,9 @@ export function AppRouter() {
           <Route path={`${SERVICES_PATH}/category/:categoryCode`} element={<ServiceCategoryPage />} />
           <Route path={MASTERS_PATH} element={<MastersCatalogPage />} />
           <Route path={PROFILE_PATH} element={<ProfilePage />} />
+          <Route path="/master/:id" element={<MasterProfilePage />} />
         </Route>
         <Route path="/catalog" element={<Navigate to={SERVICES_PATH} replace />} />
-        <Route path="/master/:id" element={<MasterProfilePage />} />
         <Route path={BOOKING_PATH} element={<BookingPage />} />
         <Route path={`${ADMIN_PATH}/*`} element={<AdminPage />} />
         <Route path={BECOME_MASTER_PATH} element={<BecomeMasterPage />} />

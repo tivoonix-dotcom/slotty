@@ -80,10 +80,10 @@ export function FilterChipGroup({
               key={o.id}
               type="button"
               onClick={() => onChange(on ? null : o.id)}
-              className={`rounded-full px-4 py-2 text-[13px] font-semibold transition ${
+              className={`rounded-full border-0 px-4 py-2 text-[13px] font-semibold transition ${
                 on
-                  ? 'bg-[#FFF1F4] text-[#F47C8C] ring-1 ring-[#F47C8C]/25'
-                  : 'bg-[#FAFAFA] text-[#374151] ring-1 ring-[#EAECEF]'
+                  ? 'bg-[#FFF1F4] text-[#F47C8C] shadow-[0_4px_14px_rgba(244,124,140,0.15)]'
+                  : 'bg-[#F1EFEF] text-[#374151] shadow-[0_2px_10px_rgba(17,24,39,0.04)]'
               }`}
             >
               {o.label}

@@ -69,3 +69,91 @@ export function isSlotToday(iso: string | null | undefined): boolean {
 export function visitFormatLabel(listing: ServiceListingRecord): string {
   return masterVisitTypeLabel(listing.location.visitType);
 }
+
+export function formatMasterCategoryLabel(category: string): string {
+  const c = category.trim();
+  if (!c || c === 'Мастер') return 'Beauty-мастер';
+  if (/мастер/i.test(c)) return c;
+  return `Мастер · ${c}`;
+}
+
+export function formatMasterRatingLine(listing: ServiceListingRecord): {
+  primary: string;
+  secondary: string | null;
+  isNew: boolean;
+} {
+  const reviews = listing.reviewsCount;
+  const rating = listing.rating;
+  if (reviews <= 0 && rating <= 0) {
+    return { primary: 'Новый мастер', secondary: 'Пока без отзывов', isNew: true };
+  }
+  if (reviews <= 0) {
+    return { primary: rating > 0 ? rating.toFixed(1) : 'Новый', secondary: 'Отзывы появятся скоро', isNew: true };
+  }
+  return {
+    primary: rating > 0 ? rating.toFixed(1) : '—',
+    secondary: formatReviewsCountLabel(reviews),
+    isNew: false,
+  };
+}
+
+export function shortMasterName(name: string, maxLen = 22): string {
+  const n = name.trim();
+  if (n.length <= maxLen) return n;
+  const parts = n.split(/\s+/);
+  if (parts.length >= 2) {
+    const short = `${parts[0]} ${parts[1][0]}.`;
+    if (short.length <= maxLen) return short;
+  }
+  return `${n.slice(0, maxLen - 1)}…`;
+}
+
+export function formatMastersCountLabel(count: number): string {
+  const n = Math.max(0, Math.floor(count));
+  if (n === 1) return '1 мастер';
+  if (n >= 2 && n <= 4) return `${n} мастера`;
+  return `${n} мастеров`;
+}
+
+/** Подпись доступности для карточки услуги в каталоге. */
+export function formatServiceAvailabilityLabel(
+  hasToday: boolean,
+  nearestSlotIso: string | null | undefined,
+): string {
+  if (hasToday) return 'есть окна сегодня';
+  const slot = formatNearestSlotLabel(nearestSlotIso);
+  if (!slot) return 'уточните время';
+  if (slot.startsWith('Завтра')) return 'ближайшее окно завтра';
+  if (slot.startsWith('Сегодня')) return 'есть окна сегодня';
+  return `ближайшее окно ${slot.replace(/^./, (c) => c.toLowerCase())}`;
+}
+
+/** Подпись времени для розовой плашки карточки мастера: «сегодня в 16:00». */
+export function formatSlotCardSubline(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  if (isSlotToday(iso)) return `сегодня в ${time}`;
+  const tomorrow = addDays(new Date(), 1);
+  if (isSameCalendarDay(d, tomorrow)) return `завтра в ${time}`;
+  const day = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  return `${day} в ${time}`;
+}
+
+export function masterLocationShortLine(listing: ServiceListingRecord): string {
+  const city = listing.location.city?.trim() || 'Минск';
+  const district = masterDistrictLabel(listing);
+  if (district && district !== city && district !== '—') {
+    const short = district.length > 28 ? `${district.slice(0, 27)}…` : district;
+    return `${city}, ${short}`;
+  }
+  return city;
+}
+
+export function masterDistrictLabel(listing: ServiceListingRecord): string | null {
+  const street = listing.location.street?.trim();
+  if (street && street !== '—') return street;
+  const city = listing.location.city?.trim();
+  return city || null;
+}

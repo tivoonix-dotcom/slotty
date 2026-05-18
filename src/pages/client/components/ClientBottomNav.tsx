@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { HiSparkles, HiUserGroup, HiUserCircle } from 'react-icons/hi2';
 import { MASTERS_PATH, PROFILE_PATH, SERVICES_PATH } from '../../../app/paths';
 
@@ -9,6 +9,9 @@ const TABS = [
 ] as const;
 
 export function ClientBottomNav() {
+  const { pathname } = useLocation();
+  const onMasterProfile = /^\/master\/[^/]+/.test(pathname);
+
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[max(12px,env(safe-area-inset-bottom,0px))]">
       <nav
@@ -20,26 +23,32 @@ export function ClientBottomNav() {
             key={to}
             to={to}
             end={to === PROFILE_PATH || to === MASTERS_PATH}
-            className={({ isActive }) =>
-              `relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[20px] px-1 py-1.5 transition duration-200 active:scale-[0.96] ${
-                isActive
+            className={({ isActive }) => {
+              const active =
+                to === MASTERS_PATH ? isActive || onMasterProfile : isActive;
+              return `relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[20px] px-1 py-1.5 transition duration-200 active:scale-[0.96] ${
+                active
                   ? 'bg-[#FFF1F4] text-[#F47C8C] shadow-[inset_0_0_0_1px_rgba(244,124,140,0.10)]'
                   : 'text-[#9CA3AF] hover:bg-[#FAFAFA] hover:text-[#6B7280]'
-              }`
-            }
+              }`;
+            }}
           >
-            {({ isActive }) => (
-              <>
-                <Icon className="h-[22px] w-[22px] shrink-0" aria-hidden />
-                <span
-                  className={`max-w-full truncate text-[10px] font-bold leading-none sm:text-[11px] ${
-                    isActive ? 'text-[#F47C8C]' : ''
-                  }`}
-                >
-                  {label}
-                </span>
-              </>
-            )}
+            {({ isActive }) => {
+              const active =
+                to === MASTERS_PATH ? isActive || onMasterProfile : isActive;
+              return (
+                <>
+                  <Icon className="h-[22px] w-[22px] shrink-0" aria-hidden />
+                  <span
+                    className={`max-w-full truncate text-[10px] font-bold leading-none sm:text-[11px] ${
+                      active ? 'text-[#F47C8C]' : ''
+                    }`}
+                  >
+                    {label}
+                  </span>
+                </>
+              );
+            }}
           </NavLink>
         ))}
       </nav>

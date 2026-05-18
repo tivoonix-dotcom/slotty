@@ -5,15 +5,18 @@ import { ClientPageShell } from '../components/ClientPageShell';
 import { ClientSearchBar } from '../components/ClientSearchBar';
 import { QuickChips } from '../components/QuickChips';
 import { MasterCard } from '../components/MasterCard';
-import { SectionHeading } from '../components/SectionHeading';
+import { MasterSectionRail } from '../components/MasterSectionRail';
+import { TopMastersSection } from '../components/TopMastersSection';
+import { MastersCatalogHero } from '../components/MastersCatalogHero';
 import { GeoPromptCard } from '../components/GeoPromptCard';
 import { FilterSheet, FilterChipGroup } from '../components/FilterSheet';
 import { SkeletonMasterCard } from '../components/SkeletonCards';
 import { EmptyState } from '../components/EmptyState';
 import { CatalogError } from '../components/CatalogError';
+import { SectionHeading } from '../components/SectionHeading';
 import { useCatalogData } from '../hooks/useCatalogData';
-import { groupListingsByMaster, sortMastersByDistance } from '../lib/groupMasters';
-import { isSlotToday } from '../lib/catalogFormat';
+import { groupListingsByMaster } from '../lib/groupMasters';
+import { buildMasterFeed } from '../lib/partitionMasters';
 import type { CatalogListingsParams } from '../../../features/services/api/catalogListingsApi';
 
 const QUICK_CHIPS = [
@@ -32,6 +35,8 @@ export function MastersCatalogPage() {
   const [minRating, setMinRating] = useState<string | null>(null);
   const [visitFilter, setVisitFilter] = useState<string | null>(null);
 
+  const flatMode = search.trim().length > 0 || chips.size > 0 || minRating != null || visitFilter != null;
+
   const apiParams = useMemo((): CatalogListingsParams => {
     const p: CatalogListingsParams = { limit: 80 };
     if (search.trim()) p.search = search.trim();
@@ -48,20 +53,18 @@ export function MastersCatalogPage() {
 
   const { listings, loading, error, reload } = useCatalogData(apiParams);
 
-  const masters = useMemo(() => {
-    const grouped = groupListingsByMaster(listings);
-    const sorted = sortMastersByDistance(grouped, userLat, userLng);
-    if (chips.has('top')) return [...sorted].sort((a, b) => b.rating - a.rating);
-    return sorted;
-  }, [listings, userLat, userLng, chips]);
+  const masters = useMemo(() => groupListingsByMaster(listings), [listings]);
 
-  const nearby = useMemo(() => masters.slice(0, 8), [masters]);
-  const freeToday = useMemo(() => masters.filter((m) => isSlotToday(m.nextSlotStartsAt)).slice(0, 8), [masters]);
-  const top = useMemo(
-    () => [...masters].sort((a, b) => b.rating - a.rating || b.reviewsCount - a.reviewsCount).slice(0, 6),
-    [masters],
+  const feed = useMemo(
+    () =>
+      buildMasterFeed(masters, {
+        hasGeo,
+        userLat,
+        userLng,
+        flatMode,
+      }),
+    [masters, hasGeo, userLat, userLng, flatMode],
   );
-  const newest = useMemo(() => [...masters].slice(-6).reverse(), [masters]);
 
   const toggleChip = (id: string) => {
     setChips((prev) => {
@@ -75,7 +78,13 @@ export function MastersCatalogPage() {
 
   return (
     <ClientPageShell>
-      <div className="space-y-5 pb-6">
+      <div className="space-y-6 pb-6">
+        <MastersCatalogHero
+          total={feed.total}
+          freeTodayCount={feed.freeTodayCount}
+          hasGeo={hasGeo}
+        />
+
         <ClientSearchBar
           value={search}
           onChange={setSearch}
@@ -85,7 +94,7 @@ export function MastersCatalogPage() {
 
         <QuickChips chips={[...QUICK_CHIPS]} activeIds={chips} onToggle={toggleChip} />
 
-        {!hasGeo ? <GeoPromptCard onAllow={requestGeo} /> : null}
+        {!hasGeo && !flatMode ? <GeoPromptCard onAllow={requestGeo} /> : null}
 
         {loading ? (
           <div className="space-y-3">
@@ -94,60 +103,63 @@ export function MastersCatalogPage() {
           </div>
         ) : error ? (
           <CatalogError message={error} onRetry={() => void reload()} />
-        ) : masters.length === 0 ? (
+        ) : feed.total === 0 ? (
           <EmptyState
             title="Мастеров пока нет"
             description="Попробуйте изменить фильтры или зайдите позже"
           />
+        ) : feed.singleMaster ? (
+          <MasterCard
+            listing={feed.singleMaster}
+            userLat={userLat}
+            userLng={userLng}
+            layout="featured"
+          />
         ) : (
-          <>
-            <section>
-              <SectionHeading title="Мастера рядом" />
-              {nearby.length === 0 ? (
-                <EmptyState
-                  title="Рядом ничего не найдено"
-                  description="Попробуйте изменить фильтры или укажите район"
-                />
-              ) : (
-                <div className="space-y-3">
-                  {nearby.map((m) => (
-                    <MasterCard key={m.masterId} listing={m} userLat={userLat} userLng={userLng} />
-                  ))}
-                </div>
-              )}
-            </section>
+          <div className="space-y-8">
+            {feed.sections.map((section) => {
+              if (section.id === 'top') {
+                return (
+                  <TopMastersSection
+                    key={section.id}
+                    items={section.items}
+                    userLat={userLat}
+                    userLng={userLng}
+                  />
+                );
+              }
 
-            {freeToday.length > 0 ? (
-              <section>
-                <SectionHeading title="Свободны сегодня" />
-                <div className="space-y-3">
-                  {freeToday.map((m) => (
-                    <MasterCard key={`free-${m.masterId}`} listing={m} userLat={userLat} userLng={userLng} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
+              if (section.layout === 'carousel') {
+                return (
+                  <MasterSectionRail
+                    key={section.id}
+                    title={section.title}
+                    subtitle={section.subtitle}
+                    items={section.items}
+                    userLat={userLat}
+                    userLng={userLng}
+                  />
+                );
+              }
 
-            <section>
-              <SectionHeading title="Топ мастера" />
-              <div className="space-y-3">
-                {top.map((m) => (
-                  <MasterCard key={`top-${m.masterId}`} listing={m} userLat={userLat} userLng={userLng} />
-                ))}
-              </div>
-            </section>
-
-            {newest.length > 0 ? (
-              <section>
-                <SectionHeading title="Новые мастера" />
-                <div className="space-y-3">
-                  {newest.map((m) => (
-                    <MasterCard key={`new-${m.masterId}`} listing={m} userLat={userLat} userLng={userLng} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-          </>
+              return (
+                <section key={section.id}>
+                  <SectionHeading title={section.title} subtitle={section.subtitle} />
+                  <div className="space-y-2.5">
+                    {section.items.map((m) => (
+                      <MasterCard
+                        key={m.masterId}
+                        listing={m}
+                        userLat={userLat}
+                        userLng={userLng}
+                        layout="list"
+                      />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
         )}
       </div>
 

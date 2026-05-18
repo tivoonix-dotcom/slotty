@@ -1,47 +1,48 @@
 import { useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import type { ClientOutletContext } from '../clientOutletContext';
+import type { AggregatedServiceCard } from '../lib/aggregateServices';
 import { ClientPageShell } from '../components/ClientPageShell';
 import { ClientSearchBar } from '../components/ClientSearchBar';
 import { QuickChips } from '../components/QuickChips';
 import { ServiceCategoryRail } from '../components/ServiceCategoryRail';
 import { ServiceCard } from '../components/ServiceCard';
 import { SectionHeading } from '../components/SectionHeading';
-import { GeoPromptCard } from '../components/GeoPromptCard';
-import { FilterSheet, FilterChipGroup } from '../components/FilterSheet';
 import { SkeletonServiceCard } from '../components/SkeletonCards';
 import { EmptyState } from '../components/EmptyState';
 import { CatalogError } from '../components/CatalogError';
 import { useCatalogData } from '../hooks/useCatalogData';
 import { aggregateServicesByCategory } from '../lib/aggregateServices';
+import { filterServicesForCatalog, type ServiceCatalogChip } from '../lib/filterServices';
 import type { CatalogListingsParams } from '../../../features/services/api/catalogListingsApi';
-const QUICK_CHIPS = [
-  { id: 'today', label: 'Сегодня' },
-  { id: 'near', label: 'Рядом' },
+
+const LIGHT_CHIPS: { id: ServiceCatalogChip; label: string }[] = [
+  { id: 'popular', label: 'Популярные' },
   { id: 'promo', label: 'С акциями' },
-  { id: 'home', label: 'На дому' },
-  { id: 'studio', label: 'В студии' },
-] as const;
+  { id: 'today', label: 'Есть сегодня' },
+];
+
+function ServiceList({ items }: { items: AggregatedServiceCard[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="space-y-3">
+      {items.map((s) => (
+        <ServiceCard key={s.id} service={s} />
+      ))}
+    </div>
+  );
+}
 
 export function ServicesCatalogPage() {
-  const { hasGeo, requestGeo } = useOutletContext<ClientOutletContext>();
   const [search, setSearch] = useState('');
   const [chips, setChips] = useState<Set<string>>(() => new Set());
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [visitFilter, setVisitFilter] = useState<string | null>(null);
-  const [todayOnly, setTodayOnly] = useState(false);
-  const [promoOnly, setPromoOnly] = useState(false);
 
   const apiParams = useMemo((): CatalogListingsParams => {
     const p: CatalogListingsParams = { limit: 80, sortBy: 'recommended' };
     if (search.trim()) p.search = search.trim();
-    if (chips.has('today') || todayOnly) p.dateRange = 'today';
-    if (chips.has('promo') || promoOnly) p.promotionOnly = true;
-    if (chips.has('home') || visitFilter === 'home') p.visitType = 'at_home';
-    if (chips.has('studio') || visitFilter === 'studio') p.visitType = 'studio';
-    if (chips.has('near') && hasGeo) p.sortBy = 'soonest';
+    const chipSet = chips as Set<ServiceCatalogChip>;
+    if (chipSet.has('today')) p.dateRange = 'today';
+    if (chipSet.has('promo')) p.promotionOnly = true;
     return p;
-  }, [search, chips, todayOnly, promoOnly, visitFilter, hasGeo]);
+  }, [search, chips]);
 
   const { listings, categories, loading, error, reload } = useCatalogData(apiParams);
 
@@ -50,33 +51,52 @@ export function ServicesCatalogPage() {
     [listings, categories],
   );
 
-  const popular = useMemo(() => services.filter((s) => s.badge === 'popular' || s.badge === 'hit').slice(0, 6), [services]);
-  const todayServices = useMemo(() => services.filter((s) => s.hasToday).slice(0, 6), [services]);
-  const displayList = services;
+  const chipSet = chips as Set<ServiceCatalogChip>;
+  const filtered = useMemo(
+    () => filterServicesForCatalog(services, { search, chips: chipSet }),
+    [services, search, chips],
+  );
+
+  const popular = useMemo(
+    () =>
+      filtered.filter((s) => s.badge === 'popular' || s.badge === 'hit').slice(0, 6),
+    [filtered],
+  );
+
+  const promoServices = useMemo(
+    () => filtered.filter((s) => s.badge === 'sale' || s.promotionOnly).slice(0, 4),
+    [filtered],
+  );
+
+  const showSections = chipSet.size === 0 && !search.trim();
 
   const toggleChip = (id: string) => {
     setChips((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      if (id === 'near' && !hasGeo) void requestGeo();
       return next;
     });
   };
 
   return (
     <ClientPageShell>
-      <div className="space-y-4 pb-6">
+      <div className="space-y-5 pb-6">
+        <div>
+          <h1 className="text-[28px] font-semibold tracking-tight text-[#111827]">Услуги</h1>
+          <p className="mt-1 text-[15px] text-[#6B7280]">Что вы хотите сделать?</p>
+        </div>
+
         <ClientSearchBar
           value={search}
           onChange={setSearch}
-          placeholder="Найти услугу или мастера"
-          onFilterClick={() => setFilterOpen(true)}
+          placeholder="Найти услугу"
+          showFilter={false}
         />
 
-        <QuickChips chips={[...QUICK_CHIPS]} activeIds={chips} onToggle={toggleChip} />
-
-        {!hasGeo ? <GeoPromptCard onAllow={requestGeo} /> : null}
+        {LIGHT_CHIPS.length > 0 ? (
+          <QuickChips chips={LIGHT_CHIPS} activeIds={chips} onToggle={toggleChip} />
+        ) : null}
 
         {loading ? (
           <div className="space-y-3">
@@ -86,87 +106,41 @@ export function ServicesCatalogPage() {
           </div>
         ) : error ? (
           <CatalogError message={error} onRetry={() => void reload()} />
+        ) : services.length === 0 ? (
+          <EmptyState title="Пока нет доступных услуг" description="Загляните позже" />
+        ) : filtered.length === 0 ? (
+          <EmptyState title="Такой услуги пока нет" description="Попробуйте другой запрос" />
         ) : (
           <>
             <section>
               <SectionHeading title="Категории" />
-              <ServiceCategoryRail categories={categories} />
+              <ServiceCategoryRail categories={categories} showAllLink />
             </section>
 
-            {popular.length > 0 ? (
+            {showSections && popular.length > 0 ? (
               <section>
                 <SectionHeading title="Популярные услуги" />
-                <div className="space-y-3">
-                  {popular.map((s) => (
-                    <ServiceCard key={s.id} service={s} />
-                  ))}
-                </div>
+                <ServiceList items={popular} />
               </section>
             ) : null}
 
-            {todayServices.length > 0 ? (
+            {showSections && promoServices.length > 0 ? (
               <section>
-                <SectionHeading title="Есть окна сегодня" />
-                <div className="space-y-3">
-                  {todayServices.map((s) => (
-                    <ServiceCard key={`today-${s.id}`} service={s} />
-                  ))}
-                </div>
+                <SectionHeading title="С акциями" />
+                <ServiceList items={promoServices} />
               </section>
             ) : null}
 
             <section>
-              <SectionHeading title="Все услуги" />
-              {displayList.length === 0 ? (
-                <EmptyState title="Пока нет доступных услуг" description="Загляните позже — мастера скоро добавят услуги" />
-              ) : (
-                <div className="space-y-3">
-                  {displayList.map((s) => (
-                    <ServiceCard key={s.id} service={s} />
-                  ))}
-                </div>
-              )}
+              <SectionHeading
+                title={showSections ? 'Все услуги' : 'Найдено'}
+                subtitle={showSections ? undefined : `${filtered.length} вариантов`}
+              />
+              <ServiceList items={showSections ? filtered : filtered} />
             </section>
           </>
         )}
       </div>
-
-      <FilterSheet
-        open={filterOpen}
-        title="Фильтры услуг"
-        onClose={() => setFilterOpen(false)}
-        onReset={() => {
-          setVisitFilter(null);
-          setTodayOnly(false);
-          setPromoOnly(false);
-        }}
-        onApply={() => {
-          setFilterOpen(false);
-          void reload();
-        }}
-      >
-        <FilterChipGroup
-          label="Формат"
-          options={[
-            { id: 'studio', label: 'В студии' },
-            { id: 'home', label: 'На дому' },
-          ]}
-          value={visitFilter}
-          onChange={setVisitFilter}
-        />
-        <FilterChipGroup
-          label="Окна"
-          options={[{ id: 'today', label: 'Только сегодня' }]}
-          value={todayOnly ? 'today' : null}
-          onChange={(id) => setTodayOnly(id === 'today')}
-        />
-        <FilterChipGroup
-          label="Акции"
-          options={[{ id: 'promo', label: 'С акциями' }]}
-          value={promoOnly ? 'promo' : null}
-          onChange={(id) => setPromoOnly(id === 'promo')}
-        />
-      </FilterSheet>
     </ClientPageShell>
   );
 }

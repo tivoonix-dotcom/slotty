@@ -28,6 +28,10 @@ export type ServiceListingRecord = {
   nextSlotId?: string | null;
   /** С бэка: ближайшее свободное окно (ISO) для бейджа на /services. */
   nextSlotStartsAt?: string | null;
+  /** Превью работ для карточки в каталоге (если API отдаёт). */
+  portfolioPreview?: string[];
+  /** Всего работ в портфолио (для «+N работ»). */
+  portfolioTotal?: number;
 };
 
 /** Услуга мастера (каталог). TODO: маппинг с таблицы services. */
