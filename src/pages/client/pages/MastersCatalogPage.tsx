@@ -93,11 +93,7 @@ export function MastersCatalogPage() {
   return (
     <ClientPageShell>
       <div className="space-y-6 pb-6">
-        <MastersCatalogHero
-          total={feed.total}
-          freeTodayCount={feed.freeTodayCount}
-          hasGeo={hasGeo}
-        />
+        <MastersCatalogHero total={feed.total} freeTodayCount={feed.freeTodayCount} />
 
         <ClientSearchBar
           value={search}

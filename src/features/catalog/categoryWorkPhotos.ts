@@ -25,12 +25,17 @@ const CATEGORY_LABEL_TO_CODE: Record<string, string> = {
   ногти: 'manicure',
   барберы: 'barbers',
   барбер: 'barbers',
+  стрижка: 'barbers',
+  стрижки: 'barbers',
+  борода: 'barbers',
   'брови и ресницы': 'brows-lashes',
   брови: 'brows-lashes',
   ресницы: 'brows-lashes',
   массаж: 'massage',
   фитнес: 'fitness',
+  тренировки: 'fitness',
   тату: 'tattoo',
+  татуировка: 'tattoo',
 };
 
 /** Код категории по slug из API или русскому названию («Маникюр» → `manicure`). */

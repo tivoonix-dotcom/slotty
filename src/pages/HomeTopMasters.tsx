@@ -105,7 +105,7 @@ export const HomeTopMasters: FC<HomeTopMastersProps> = ({
           "
         >
           {isLoading ? (
-            <div className="flex w-full min-w-0 shrink-0 justify-center py-6">
+            <div className="flex min-h-[14rem] w-full min-w-0 shrink-0 items-center justify-center py-8">
               <LoadingVideo size="lg" label="Загрузка мастеров…" />
             </div>
           ) : masters.length === 0 ? (

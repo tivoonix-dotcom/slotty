@@ -562,7 +562,7 @@ export const DEMO_SERVICE_LISTINGS: ServiceListingRecord[] = MASTERS.map((m) => 
     primaryServiceId: primary.id,
     nextSlotStartsAt: nextSlot.toISOString(),
     nextSlotId: `demo-slot-${m.masterId}`,
-    portfolioPreview: [categoryPhoto, categoryPhoto, categoryPhoto, categoryPhoto],
+    portfolioPreview: [categoryPhoto],
     portfolioTotal: 27,
   };
 });

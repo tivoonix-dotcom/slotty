@@ -949,16 +949,16 @@ export function ProfilePage() {
           {clientShell && isMasterCabinet ? (
             <Link
               to={ADMIN_PATH}
-              className="mt-5 flex items-center gap-4 rounded-[28px] bg-gradient-to-br from-[#FFF1F4] to-white p-4 ring-1 ring-[#FCE7EC] shadow-[0_8px_28px_rgba(244,124,140,0.12)] transition active:scale-[0.99]"
+              className="mt-5 flex items-center gap-3.5 rounded-[22px] bg-[#F1EFEF] p-4 shadow-[0_2px_12px_rgba(17,24,39,0.05)] transition active:scale-[0.98]"
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[22px] shadow-sm">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] bg-white text-[20px] text-[#6B7280] shadow-[0_1px_4px_rgba(17,24,39,0.06)]">
                 ✨
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[16px] font-semibold text-neutral-950">Вы мастер</p>
-                <p className="mt-0.5 text-[13px] text-neutral-500">Перейти в кабинет мастера</p>
+                <p className="text-[16px] font-semibold text-[#111827]">Вы мастер</p>
+                <p className="mt-0.5 text-[13px] text-[#6B7280]">Перейти в кабинет мастера</p>
               </div>
-              <IconChevronRight className="h-5 w-5 shrink-0 text-[#F47C8C]" />
+              <IconChevronRight className="h-5 w-5 shrink-0 text-[#9CA3AF]" />
             </Link>
           ) : null}
 

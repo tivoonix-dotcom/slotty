@@ -2,12 +2,23 @@ import type { ServiceCategoryDto } from '../../../features/master-onboarding/api
 import type { ServiceListingRecord } from '../../../features/services/model/demoMasters';
 import { isSlotToday } from './catalogFormat';
 
+const CATEGORY_SUBTITLE: Record<string, string> = {
+  manicure: 'Классический, аппаратный, комбинированный',
+  barbers: 'Стрижка, борода, камуфляж',
+  'brows-lashes': 'Архитектура бровей, ламинирование, наращивание',
+  brows_lashes: 'Архитектура бровей, ламинирование, наращивание',
+  massage: 'Классический, расслабляющий, лечебный',
+  fitness: 'Персональные и групповые тренировки',
+  tattoo: 'Эскиз, мини-тату, перекрытие',
+};
+
 export type AggregatedServiceCard = {
   id: string;
   categoryCode: string;
   categoryName: string;
   /** Типичное название услуги в категории */
   title: string;
+  subtitle: string;
   minPrice: number;
   durationMinutes: number;
   masterCount: number;
@@ -15,6 +26,7 @@ export type AggregatedServiceCard = {
   hasToday: boolean;
   promotionOnly: boolean;
   badge: 'popular' | 'hit' | 'sale' | null;
+  promoText: string | null;
 };
 
 function medianDuration(values: number[]): number {
@@ -75,21 +87,33 @@ export function aggregateServicesByCategory(
     if (totalReviews > 80 || topRating >= 4.9) badge = 'popular';
     else if (hasToday && masterIds.size >= 5) badge = 'hit';
 
+    let promoText: string | null = null;
+    if (!badge && hasToday && minPrice > 0 && minPrice <= 55) {
+      badge = 'sale';
+      promoText = '-10% на первое посещение';
+    }
+
     const primaryName =
       rows.sort((a, b) => b.reviewsCount - a.reviewsCount)[0]?.serviceName ?? cat.name;
+    const subtitle =
+      CATEGORY_SUBTITLE[cat.code] ??
+      CATEGORY_SUBTITLE[cat.code.replace(/-/g, '_')] ??
+      'Выберите мастера и удобное время';
 
     cards.push({
       id: cat.code,
       categoryCode: cat.code,
       categoryName: cat.name,
       title: cat.name || primaryName,
+      subtitle,
       minPrice,
       durationMinutes: medianDuration(durations),
       masterCount: masterIds.size,
       nearestSlotIso: nearest,
       hasToday,
-      promotionOnly: false,
+      promotionOnly: badge === 'sale',
       badge,
+      promoText,
     });
   }
 

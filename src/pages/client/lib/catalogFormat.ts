@@ -160,6 +160,13 @@ export function shortMasterName(name: string, maxLen = 22): string {
   return `${n.slice(0, maxLen - 1)}…`;
 }
 
+export function formatMastersNearbyLabel(count: number): string {
+  const n = Math.max(0, Math.floor(count));
+  if (n === 1) return '1 мастер рядом';
+  if (n >= 2 && n <= 4) return `${n} мастера рядом`;
+  return `${n} мастеров рядом`;
+}
+
 export function formatMastersCountLabel(count: number): string {
   const n = Math.max(0, Math.floor(count));
   if (n === 1) return '1 мастер';

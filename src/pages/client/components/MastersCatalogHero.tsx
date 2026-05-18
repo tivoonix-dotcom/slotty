@@ -1,10 +1,9 @@
 type Props = {
   total: number;
   freeTodayCount: number;
-  hasGeo: boolean;
 };
 
-export function MastersCatalogHero({ total, freeTodayCount, hasGeo }: Props) {
+export function MastersCatalogHero({ total, freeTodayCount }: Props) {
   if (total === 0) return null;
 
   return (
@@ -19,7 +18,6 @@ export function MastersCatalogHero({ total, freeTodayCount, hasGeo }: Props) {
         {freeTodayCount > 0
           ? ` · ${freeTodayCount} ${freeTodayCount === 1 ? 'свободен' : freeTodayCount < 5 ? 'свободны' : 'свободны'} сегодня`
           : ''}
-        {hasGeo ? ' · сортировка по расстоянию' : ' · Минск'}
       </p>
     </div>
   );

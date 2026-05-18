@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { ServiceCategoryDto } from '../../../features/master-onboarding/api/becomeMasterApi';
-import { getCategoryWorkPhotoUrl } from '../../../features/catalog/categoryWorkPhotos';
+import { getCatalogServicePhotoUrl } from '../../../features/catalog/catalogServicePhotos';
 import { getServiceCategoryPath, SERVICES_PATH } from '../../../app/paths';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 
@@ -31,7 +31,7 @@ export function ServiceCategoryRail({ categories, activeCode, showAllLink }: Pro
       ) : null}
       {categories.map((cat) => {
         const on = activeCode === cat.code;
-        const imageSrc = getCategoryWorkPhotoUrl(cat.code);
+        const imageSrc = getCatalogServicePhotoUrl(cat.code || cat.name);
         return (
           <Link
             key={cat.code}

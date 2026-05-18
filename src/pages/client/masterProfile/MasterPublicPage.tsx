@@ -18,7 +18,6 @@ import { EmptyState } from '../components/EmptyState';
 import { BookingTimeSheet } from './BookingTimeSheet';
 import { MasterExtraSections } from './MasterExtraSections';
 import { MasterHeroCard } from './MasterHeroCard';
-import { MasterNearestSlotBanner } from './MasterNearestSlotBanner';
 import { MasterPortfolioRail } from './MasterPortfolioRail';
 import { MasterProfileHeader } from './MasterProfileHeader';
 import { MasterReviewsSection } from './MasterReviewsSection';
@@ -42,7 +41,7 @@ export function MasterPublicPage() {
   const highlightServiceId = searchParams.get('service') ?? searchParams.get('service_id');
 
   const { master, loading, error, reload } = useMasterPublicProfile(masterId);
-  const { nearest } = useMasterNearestSlot(master);
+  const { nearest, loading: nearestLoading } = useMasterNearestSlot(master);
 
   const [isFavorite, setIsFavorite] = useState(() =>
     masterId ? isFavoriteMasterId(masterId) : false,
@@ -157,10 +156,12 @@ export function MasterPublicPage() {
       />
 
       <main className="mx-auto max-w-lg px-4 pb-[calc(11.5rem+env(safe-area-inset-bottom,0px))] pt-[calc(4.25rem+env(safe-area-inset-top,0px))]">
-        <MasterHeroCard master={master} userLat={userLat} userLng={userLng} />
-
-        <MasterNearestSlotBanner
+        <MasterHeroCard
+          master={master}
+          userLat={userLat}
+          userLng={userLng}
           nearest={nearest}
+          nearestLoading={nearestLoading}
           onChooseTime={() => openBooking(nearest?.serviceId)}
         />
 

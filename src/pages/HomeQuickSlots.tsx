@@ -146,8 +146,8 @@ export const HomeQuickSlots: FC = () => {
             </p>
           </div>
         ) : isLoading ? (
-          <div className="mt-4 flex justify-center rounded-[32px] bg-white/90 px-4 py-8 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
-            <LoadingVideo label="Загрузка окон…" />
+          <div className="mt-4 flex min-h-[16rem] items-center justify-center rounded-[32px] bg-white/90 px-4 py-10 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
+            <LoadingVideo size="lg" label="Загрузка окон…" />
           </div>
         ) : isError ? (
           <div className="mt-4 rounded-[32px] bg-white/90 px-5 py-8 text-center shadow-[0_10px_30px_rgba(17,17,17,0.035)] sm:px-8">

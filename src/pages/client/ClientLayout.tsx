@@ -4,13 +4,20 @@ import { ClientHeader } from './components/ClientHeader';
 import type { ClientOutletContext } from './clientOutletContext';
 import { useClientGeo } from './hooks/useClientGeo';
 
+import { BOOKING_PATH } from '../../app/paths';
+
 function isMasterPublicPath(pathname: string): boolean {
   return /^\/master\/[^/]+/.test(pathname);
+}
+
+function isBookingPath(pathname: string): boolean {
+  return pathname === BOOKING_PATH;
 }
 
 export function ClientLayout() {
   const { pathname } = useLocation();
   const hideCatalogHeader = isMasterPublicPath(pathname);
+  const hideBottomNav = isMasterPublicPath(pathname) || isBookingPath(pathname);
   const { cityLabel, hasGeo, requestGeo, userLat, userLng } = useClientGeo();
 
   const outletContext: ClientOutletContext = {
@@ -28,7 +35,7 @@ export function ClientLayout() {
         <ClientHeader cityLabel={cityLabel} onCityClick={hasGeo ? undefined : requestGeo} />
       )}
       <Outlet context={outletContext} />
-      <ClientBottomNav />
+      {hideBottomNav ? null : <ClientBottomNav />}
     </div>
   );
 }

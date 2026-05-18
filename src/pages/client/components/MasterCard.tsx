@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   HiCalendarDays,
-  HiChatBubbleLeftRight,
   HiCheckBadge,
   HiClock,
   HiHeart,
@@ -27,7 +26,7 @@ import {
   masterLocationChipLine,
   visitFormatChipLabel,
 } from '../lib/catalogFormat';
-import { clientOutlineBtn, clientPinkBtn } from '../clientTheme';
+import { clientPinkBtn } from '../clientTheme';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import {
   addMyFavoriteMaster,
@@ -133,8 +132,8 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
     const categoryPhoto = getCategoryWorkPhotoUrl(resolveCategoryWorkCode(listing.category));
     const total = listing.portfolioTotal ?? 0;
     return {
-      previewPhotos: [categoryPhoto, categoryPhoto, categoryPhoto, categoryPhoto],
-      extraWorks: total > 4 ? total - 4 : total > 0 ? total - 4 : 0,
+      previewPhotos: [categoryPhoto],
+      extraWorks: total > 1 ? total - 1 : 0,
     };
   }, [listing.portfolioPreview, listing.portfolioTotal, listing.category]);
 
@@ -326,7 +325,9 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
           {previewPhotos.map((url, i) => (
             <div
               key={`${url}-${i}`}
-              className="h-[3.75rem] min-w-0 flex-1 overflow-hidden rounded-[14px] bg-[#FAFAFA]"
+              className={`h-[3.75rem] overflow-hidden rounded-[14px] bg-[#FAFAFA] ${
+                previewPhotos.length === 1 ? 'w-[5.5rem] shrink-0' : 'min-w-0 flex-1'
+              }`}
             >
               <ImageReveal src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
             </div>
@@ -340,29 +341,16 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
         </div>
       ) : null}
 
-      <div className="mt-3.5 flex gap-2">
-        <button
-          type="button"
-          onClick={openBooking}
-          className={`${clientPinkBtn} min-h-[52px] flex-1 flex-col gap-0 py-2.5`}
-        >
-          <span className="text-[16px] font-semibold leading-tight">Записаться</span>
-          <span className="text-[12px] font-medium leading-tight text-white/90">
-            {hasSlot ? 'Выбрать время' : 'Открыть профиль'}
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            openProfile();
-          }}
-          aria-label="Написать мастеру"
-          className={`${clientOutlineBtn} !min-h-[52px] !w-[52px] !shrink-0 !p-0`}
-        >
-          <HiChatBubbleLeftRight className="h-5 w-5 text-[#F47C8C]" aria-hidden />
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={openBooking}
+        className={`${clientPinkBtn} mt-3.5 min-h-[52px] w-full flex-col gap-0 py-2.5`}
+      >
+        <span className="text-[16px] font-semibold leading-tight">Записаться</span>
+        <span className="text-[12px] font-medium leading-tight text-white/90">
+          {hasSlot ? 'Выбрать время' : 'Открыть профиль'}
+        </span>
+      </button>
     </article>
   );
 }
