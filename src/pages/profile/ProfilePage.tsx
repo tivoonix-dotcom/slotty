@@ -32,6 +32,16 @@ import {
   type FavoriteMasterDto,
 } from '../../features/profile/api/clientFavorites';
 import {
+  mirrorApiFavoritesToLocalCache,
+  resolveLocalFavoritesForDisplay,
+  syncLocalFavoritesToServer,
+} from '../../features/profile/lib/favoriteMastersResolve';
+import { hasApiBackend } from '../../features/profile/lib/favoriteMastersPolicy';
+import {
+  FAVORITE_MASTERS_CHANGED,
+  removeFavoriteMasterId,
+} from '../../features/profile/lib/favoriteMastersStorage';
+import {
   fetchMyNotifications,
   markNotificationReadApi,
   type MeNotificationRow,
@@ -797,15 +807,32 @@ export function ProfilePage() {
   }, [isAuthenticated]);
 
   const loadFavorites = useCallback(async () => {
-    if (!isAuthenticated || !getApiBaseUrl()) {
-      setFavorites([]);
+    if (hasApiBackend()) {
+      if (!isAuthenticated) {
+        setFavorites([]);
+        setFavoritesError(null);
+        return;
+      }
+      setFavoritesLoading(true);
       setFavoritesError(null);
+      try {
+        await syncLocalFavoritesToServer();
+        const rows = await fetchMyFavorites();
+        mirrorApiFavoritesToLocalCache(rows);
+        setFavorites(rows);
+      } catch (e) {
+        setFavorites([]);
+        setFavoritesError(e instanceof Error ? e.message : 'Не удалось загрузить избранное.');
+      } finally {
+        setFavoritesLoading(false);
+      }
       return;
     }
+
     setFavoritesLoading(true);
     setFavoritesError(null);
     try {
-      setFavorites(await fetchMyFavorites());
+      setFavorites(await resolveLocalFavoritesForDisplay());
     } catch (e) {
       setFavorites([]);
       setFavoritesError(e instanceof Error ? e.message : 'Не удалось загрузить избранное.');
@@ -839,6 +866,23 @@ export function ProfilePage() {
   }, [loadClientAppointments, loadFavorites, loadNotifications, searchParams]);
 
   useEffect(() => {
+    if (mainTab !== 'favorites') return;
+    void loadFavorites();
+  }, [mainTab, loadFavorites]);
+
+  useEffect(() => {
+    if (isAuthenticated) void loadFavorites();
+  }, [isAuthenticated, loadFavorites]);
+
+  useEffect(() => {
+    const onFavoritesChanged = () => {
+      if (mainTab === 'favorites') void loadFavorites();
+    };
+    window.addEventListener(FAVORITE_MASTERS_CHANGED, onFavoritesChanged);
+    return () => window.removeEventListener(FAVORITE_MASTERS_CHANGED, onFavoritesChanged);
+  }, [mainTab, loadFavorites]);
+
+  useEffect(() => {
     if (!apptError) return;
     showError(apptError, { title: 'Записи', onRetry: () => void loadClientAppointments() });
   }, [apptError, loadClientAppointments, showError]);
@@ -853,17 +897,27 @@ export function ProfilePage() {
     showError(notificationsError, { title: 'Уведомления', onRetry: () => void loadNotifications() });
   }, [notificationsError, loadNotifications, showError]);
 
-  const handleRemoveFavorite = useCallback(async (masterId: string) => {
-    setFavoritesError(null);
-    try {
-      await removeMyFavoriteMaster(masterId);
-      setFavorites((prev) => prev.filter((f) => f.masterId !== masterId));
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Не удалось убрать из избранного.';
-      setFavoritesError(msg);
-      showError(msg, { title: 'Избранное' });
-    }
-  }, [showError]);
+  const handleRemoveFavorite = useCallback(
+    async (masterId: string) => {
+      setFavoritesError(null);
+      try {
+        if (hasApiBackend()) {
+          if (!isAuthenticated) {
+            showError('Войдите через Telegram, чтобы изменить избранное.', { title: 'Избранное' });
+            return;
+          }
+          await removeMyFavoriteMaster(masterId);
+        }
+        removeFavoriteMasterId(masterId);
+        setFavorites((prev) => prev.filter((f) => f.masterId !== masterId));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Не удалось убрать из избранного.';
+        setFavoritesError(msg);
+        showError(msg, { title: 'Избранное' });
+      }
+    },
+    [isAuthenticated, showError],
+  );
 
   const selectedAppointment = useMemo(() => {
     if (!selectedAppointmentId) return null;
@@ -1001,14 +1055,14 @@ export function ProfilePage() {
               to={ADMIN_PATH}
               className="mt-5 flex items-center gap-3.5 rounded-[22px] bg-[#F1EFEF] p-4 shadow-[0_2px_12px_rgba(17,24,39,0.05)] transition active:scale-[0.98]"
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[16px] bg-white p-1.5 shadow-[0_1px_4px_rgba(17,24,39,0.06)]">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[16px] bg-white shadow-[0_1px_4px_rgba(17,24,39,0.06)]">
                 <img
                   src={HEADER_LOGO_SRC}
                   alt="SLOTTY"
                   width={44}
                   height={44}
                   decoding="async"
-                  className="h-full w-full object-contain"
+                  className="h-9 w-auto origin-center object-contain [transform:scale(1.65)]"
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -1311,10 +1365,10 @@ export function ProfilePage() {
               <p className="rounded-2xl bg-amber-50 px-4 py-3 text-[14px] font-medium text-amber-950">
                 Укажите VITE_API_URL, чтобы загрузить избранное.
               </p>
-            ) : !authLoading && !isAuthenticated ? (
+            ) : !authLoading && hasApiBackend() && !isAuthenticated ? (
               <NothingFoundCard
                 title="Войдите в аккаунт"
-                text="Избранные мастера хранятся в вашем профиле на сервере. Откройте приложение в Telegram."
+                text="Избранные мастера сохраняются на сервере. Откройте SLOTTY через Telegram."
               />
             ) : favoritesError ? (
               <p className="rounded-2xl bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800">{favoritesError}</p>
@@ -1340,14 +1394,14 @@ export function ProfilePage() {
               />
             ) : (
               <ul className="flex flex-col gap-3">
-                {favorites.map((row, i) => (
-                  <FavoriteMasterRow
-                    key={row.masterId}
-                    row={row}
-                    onRemove={handleRemoveFavorite}
-                    imagePriority={i < 8}
-                  />
-                ))}
+                  {favorites.map((row, i) => (
+                    <FavoriteMasterRow
+                      key={row.masterId}
+                      row={row}
+                      onRemove={handleRemoveFavorite}
+                      imagePriority={i < 8}
+                    />
+                  ))}
               </ul>
             )}
           </section>

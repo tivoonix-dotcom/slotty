@@ -5,12 +5,18 @@ type Props = {
   isFavorite: boolean;
   onFavoriteToggle: () => void;
   onShare: () => void;
+  favoriteDisabled?: boolean;
 };
 
 const iconBtn =
   'flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#6B7280] shadow-[0_4px_18px_rgba(17,24,39,0.08)] transition active:scale-95';
 
-export function MasterProfileHeader({ isFavorite, onFavoriteToggle, onShare }: Props) {
+export function MasterProfileHeader({
+  isFavorite,
+  onFavoriteToggle,
+  onShare,
+  favoriteDisabled = false,
+}: Props) {
   const navigate = useNavigate();
 
   return (
@@ -30,9 +36,10 @@ export function MasterProfileHeader({ isFavorite, onFavoriteToggle, onShare }: P
         <button
           type="button"
           onClick={onFavoriteToggle}
+          disabled={favoriteDisabled}
           aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
           aria-pressed={isFavorite}
-          className={`${iconBtn} ${isFavorite ? 'text-[#F47C8C]' : ''}`}
+          className={`${iconBtn} ${isFavorite ? 'text-[#F47C8C]' : ''} disabled:opacity-45`}
         >
           <HiHeart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
         </button>

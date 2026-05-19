@@ -2,17 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router-dom';
 import { MASTERS_PATH } from '../../../app/paths';
 import type { ClientOutletContext } from '../clientOutletContext';
-import { useAuth } from '../../../features/auth/AuthProvider';
-import { getApiBaseUrl } from '../../../shared/api/backendClient';
-import {
-  addMyFavoriteMaster,
-  fetchMyFavorites,
-  removeMyFavoriteMaster,
-} from '../../../features/profile/api/clientFavorites';
-import {
-  isFavoriteMasterId,
-  setFavoriteMasterId,
-} from '../../../features/profile/lib/favoriteMastersStorage';
+import { useFavoriteMaster } from '../../../features/profile/hooks/useFavoriteMaster';
 import { useClientErrorModal } from '../ClientErrorModalContext';
 import type { DemoMasterService } from '../../../features/services/model/demoMasters';
 import { EmptyState } from '../components/EmptyState';
@@ -38,9 +28,11 @@ export function MasterPublicPage() {
   const { id: rawId } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const { userLat, userLng } = useOutletContext<ClientOutletContext>();
-  const { isAuthenticated } = useAuth();
   const { showError } = useClientErrorModal();
   const masterId = useMemo(() => (rawId ? decodeURIComponent(rawId) : ''), [rawId]);
+  const { isFavorite, toggleFavorite, favoriteDisabled } = useFavoriteMaster(masterId, (message) =>
+    showError(message, { title: 'Избранное' }),
+  );
   const highlightServiceId = searchParams.get('service') ?? searchParams.get('service_id');
 
   const { master, loading, error, reload } = useMasterPublicProfile(masterId);
@@ -54,9 +46,6 @@ export function MasterPublicPage() {
     });
   }, [error, reload, showError]);
 
-  const [isFavorite, setIsFavorite] = useState(() =>
-    masterId ? isFavoriteMasterId(masterId) : false,
-  );
   const [toast, setToast] = useState<string | null>(null);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [bookingServiceId, setBookingServiceId] = useState<string | null>(null);
@@ -68,55 +57,10 @@ export function MasterPublicPage() {
     [master?.portfolio],
   );
 
-  useEffect(() => {
-    if (!masterId) {
-      setIsFavorite(false);
-      return;
-    }
-    setIsFavorite(isFavoriteMasterId(masterId));
-    if (!isAuthenticated || !getApiBaseUrl()) return;
-
-    let cancelled = false;
-    void (async () => {
-      try {
-        const list = await fetchMyFavorites();
-        if (!cancelled) setIsFavorite(list.some((f) => f.masterId === masterId));
-      } catch {
-        /* local state */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [masterId, isAuthenticated]);
-
   const showToast = (msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), 2500);
   };
-
-  const onFavoriteToggle = useCallback(async () => {
-    if (!masterId) return;
-    const wasFavorite = isFavorite;
-    const next = !wasFavorite;
-    setIsFavorite(next);
-
-    if (isAuthenticated && getApiBaseUrl()) {
-      try {
-        if (next) await addMyFavoriteMaster(masterId);
-        else await removeMyFavoriteMaster(masterId);
-        setFavoriteMasterId(masterId, next);
-      } catch (e) {
-        setIsFavorite(wasFavorite);
-        showError(e instanceof Error ? e.message : 'Не удалось обновить избранное', {
-          title: 'Избранное',
-        });
-      }
-      return;
-    }
-
-    setFavoriteMasterId(masterId, next);
-  }, [isAuthenticated, isFavorite, masterId, showError]);
 
   const onShare = useCallback(async () => {
     if (!master) return;
@@ -171,7 +115,8 @@ export function MasterPublicPage() {
     <div className="min-h-dvh bg-white text-[#111827]">
       <MasterProfileHeader
         isFavorite={isFavorite}
-        onFavoriteToggle={() => void onFavoriteToggle()}
+        onFavoriteToggle={() => void toggleFavorite()}
+        favoriteDisabled={favoriteDisabled}
         onShare={() => void onShare()}
       />
 

@@ -23,6 +23,11 @@ export function getFavoriteMasterIds(): string[] {
   return readIds();
 }
 
+/** Синхронизировать localStorage с ответом API (кэш для dev / после входа). */
+export function replaceFavoriteMasterIds(ids: string[]): void {
+  writeIds([...new Set(ids.filter((id) => typeof id === 'string' && id.trim()))]);
+}
+
 export function isFavoriteMasterId(masterId: string): boolean {
   return readIds().includes(masterId);
 }

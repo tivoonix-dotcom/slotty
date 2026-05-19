@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { syncMasterFlagFromProfile } from '../profile/lib/demoMasterStorage';
+import { syncLocalFavoritesToServer } from '../profile/lib/favoriteMastersResolve';
 import { apiFetch, getApiBaseUrl, getStoredAuthToken, setStoredAuthToken } from '../../shared/api/backendClient';
 import { useTelegram } from '../../shared/hooks/useTelegram';
 import type { BackendProfile } from './types';
@@ -102,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setToken(data.token);
             setProfile(data.profile);
           }
+          await syncLocalFavoritesToServer();
           return;
         }
 
@@ -114,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setToken(existing);
               setProfile(me);
             }
+            await syncLocalFavoritesToServer();
           } else {
             setStoredAuthToken(null);
             if (!cancelled) {

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   HiCalendarDays,
@@ -28,14 +28,8 @@ import {
 } from '../lib/catalogFormat';
 import { clientPinkBtn } from '../clientTheme';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
-import {
-  addMyFavoriteMaster,
-  removeMyFavoriteMaster,
-} from '../../../features/profile/api/clientFavorites';
-import {
-  isFavoriteMasterId,
-  toggleFavoriteMasterId,
-} from '../../../features/profile/lib/favoriteMastersStorage';
+import { useFavoriteMaster } from '../../../features/profile/hooks/useFavoriteMaster';
+import { useClientErrorModal } from '../ClientErrorModalContext';
 
 type Props = {
   listing: ServiceListingRecord;
@@ -48,26 +42,6 @@ function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
   return (name[0] ?? 'M').toUpperCase();
-}
-
-function useFavorite(masterId: string) {
-  const [fav, setFav] = useState(() => isFavoriteMasterId(masterId));
-  const onToggleFav = useCallback(
-    async (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const next = toggleFavoriteMasterId(masterId);
-      setFav(next);
-      try {
-        if (next) await addMyFavoriteMaster(masterId);
-        else await removeMyFavoriteMaster(masterId);
-      } catch {
-        /* local */
-      }
-    },
-    [masterId],
-  );
-  return { fav, onToggleFav };
 }
 
 function uniquePortfolioUrls(urls: string[] | undefined): string[] {
@@ -104,7 +78,11 @@ function StatColumn({
 
 export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props) {
   const navigate = useNavigate();
-  const { fav, onToggleFav } = useFavorite(listing.masterId);
+  const { showError } = useClientErrorModal();
+  const { isFavorite: fav, toggleFavoriteFromEvent: onToggleFav, favoriteDisabled } = useFavoriteMaster(
+    listing.masterId,
+    (message) => showError(message, { title: 'Избранное' }),
+  );
   const featured = layout === 'featured';
 
   const hasSlot = Boolean(listing.nextSlotStartsAt);
@@ -200,6 +178,7 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
           <button
             type="button"
             onClick={onToggleFav}
+            disabled={favoriteDisabled}
             aria-label={fav ? 'Убрать из избранного' : 'В избранное'}
             className={`absolute -right-0.5 -top-0.5 z-10 flex h-9 w-9 items-center justify-center rounded-[14px] bg-white shadow-[0_4px_14px_rgba(17,24,39,0.08)] transition active:scale-95 ${
               fav ? 'text-[#F47C8C]' : 'text-[#9CA3AF]'
