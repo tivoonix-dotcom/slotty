@@ -15,6 +15,14 @@ import { formatReviewsCountLabel } from '../features/services/model/demoMasters'
 import { getApiBaseUrl } from '../shared/api/backendClient';
 import { ImageReveal } from '../shared/ui/ImageReveal';
 import { LoadingVideo } from '../shared/ui/LoadingVideo';
+import {
+  homeCard,
+  homePinkBtn,
+  homeScrollRow,
+  homeSection,
+  homeSectionSubtitle,
+  homeSectionTitle,
+} from './home/homeTheme';
 
 function IconStar({ className }: { className?: string }) {
   return (
@@ -117,26 +125,16 @@ export const HomeQuickSlots: FC = () => {
 
   return (
     <section
-      className="mt-12 w-full min-w-0 max-w-full animate-fade-enter scroll-mt-28 sm:mt-16"
+      className={`${homeSection} w-full min-w-0 max-w-full`}
       style={{ animationDelay: '80ms' }}
       aria-labelledby="home-quick-slots-heading"
     >
-      <div className="rounded-[38px] bg-[#F1EFEF] p-3 shadow-[0_24px_70px_rgba(17,17,17,0.05)] sm:rounded-[44px]">
-        <div className="overflow-hidden rounded-[32px] bg-white px-5 py-6 shadow-[0_10px_30px_rgba(17,17,17,0.035)] sm:rounded-[38px] sm:px-7 sm:py-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-[26rem]">
-              <h2
-                id="home-quick-slots-heading"
-                className="text-[clamp(1.75rem,4.8vw,2.35rem)] font-semibold leading-[1.06] tracking-[-0.06em] text-neutral-950"
-              >
-                Свободные окна сегодня
-              </h2>
-              <p className="mt-2 text-[15px] leading-relaxed text-neutral-500">
-                Быстро запишитесь к мастеру на ближайшее время.
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="mb-4 px-0.5">
+        <h2 id="home-quick-slots-heading" className={homeSectionTitle}>
+          Свободные окна сегодня
+        </h2>
+        <p className={homeSectionSubtitle}>Быстро запишитесь к мастеру на ближайшее время.</p>
+      </div>
 
         {!hasApi ? (
           <div className="mt-4 rounded-[32px] bg-white/90 px-5 py-8 text-center shadow-[0_10px_30px_rgba(17,17,17,0.035)] sm:px-8">
@@ -157,7 +155,7 @@ export const HomeQuickSlots: FC = () => {
             </p>
             <Link
               to={SERVICES_PATH}
-              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[#E29595] px-6 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.24)] transition active:scale-[0.98]"
+              className={`mt-5 ${homePinkBtn} px-6 text-[15px]`}
             >
               К услугам
             </Link>
@@ -170,13 +168,13 @@ export const HomeQuickSlots: FC = () => {
             </p>
             <Link
               to={SERVICES_PATH}
-              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-[#E29595] px-6 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.24)] transition active:scale-[0.98]"
+              className={`mt-5 ${homePinkBtn} px-6 text-[15px]`}
             >
               К услугам
             </Link>
           </div>
         ) : (
-          <div className="-mx-1 mt-4 flex gap-3 overflow-x-auto pb-1 pl-1 pr-1 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className={homeScrollRow}>
             {rows.map((row, index) => {
               const slot = row.slot;
               const eager = index < 6;
@@ -185,7 +183,7 @@ export const HomeQuickSlots: FC = () => {
                   key={row.key}
                   role="button"
                   tabIndex={0}
-                  className="w-[min(17.5rem,78vw)] shrink-0 cursor-pointer rounded-[32px] bg-[#F1EFEF] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)] outline-none transition active:scale-[0.99] sm:w-72"
+                  className={`w-[min(17.5rem,78vw)] shrink-0 cursor-pointer p-1 outline-none transition active:scale-[0.99] sm:w-72 ${homeCard}`}
                   style={{ animationDelay: `${100 + index * 45}ms` }}
                   onClick={() => goBook(slot)}
                   onKeyDown={(e) => {
@@ -196,7 +194,7 @@ export const HomeQuickSlots: FC = () => {
                   }}
                   aria-label={`Запись: ${slot.serviceTitle} у ${slot.masterDisplayName}`}
                 >
-                  <div className="rounded-[28px] bg-white p-4 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
+                  <div className="p-3">
                     <div className="flex gap-3">
                       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[22px] bg-[#F1EFEF]">
                         <ImageReveal
@@ -216,7 +214,7 @@ export const HomeQuickSlots: FC = () => {
                         <p className="mt-0.5 truncate text-[13px] font-medium text-neutral-500">{slot.serviceTitle}</p>
                         <div className="mt-1.5 flex flex-wrap items-center gap-2">
                           <span className="inline-flex items-center gap-1 rounded-full bg-[#F1EFEF] px-2 py-0.5 text-[12px] font-semibold text-neutral-700">
-                            <IconStar className="text-[#E29595]" />
+                            <IconStar className="text-[#F47C8C]" />
                             {row.rating.toFixed(1)}
                           </span>
                           <span className="text-[12px] font-medium text-neutral-400">
@@ -242,7 +240,7 @@ export const HomeQuickSlots: FC = () => {
 
                     <button
                       type="button"
-                      className="mt-4 flex min-h-11 w-full items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_28px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
+                      className={`mt-4 w-full ${homePinkBtn} text-[15px]`}
                       onClick={(e) => {
                         e.stopPropagation();
                         goBook(slot);
@@ -256,7 +254,6 @@ export const HomeQuickSlots: FC = () => {
             })}
           </div>
         )}
-      </div>
     </section>
   );
 };

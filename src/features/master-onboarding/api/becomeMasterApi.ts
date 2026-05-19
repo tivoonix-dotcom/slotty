@@ -13,7 +13,7 @@ async function readApiError(res: Response): Promise<string> {
 }
 
 export async function fetchServiceCategories(): Promise<ServiceCategoryDto[]> {
-  const res = await apiFetch('/api/catalog/service-categories');
+  const res = await apiFetch('/api/catalog/service-categories', { skipAuth: true });
   if (!res.ok) throw new Error(await readApiError(res));
   const d = (await res.json()) as { categories?: ServiceCategoryDto[] };
   return d.categories ?? [];

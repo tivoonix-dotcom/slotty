@@ -19,6 +19,17 @@ SLOTTY использует Telegram Web App и Bot API для кнопки ме
 
 Остальные переменные (`DATABASE_URL`, `JWT_SECRET`, `PORT`, `CLIENT_URL` и т.д.) — по `server/.env.example`.
 
+**Чтобы работала команда `/start`**, Telegram должен слать обновления на ваш бэкенд:
+
+| Переменная | Назначение |
+|------------|------------|
+| `TELEGRAM_WEBHOOK_URL` | Полный URL: `https://ВАШ_API/api/telegram/webhook` |
+| или `PUBLIC_API_URL` | `https://ВАШ_API` — путь к вебхуку допишется сам |
+| `TELEGRAM_WEBHOOK_SECRET` | Случайная строка (рекомендуется на проде) |
+| `TELEGRAM_USE_POLLING=true` | Только локально без HTTPS — long polling вместо вебхука |
+
+На **Railway** у сервиса `server` часто достаточно `TELEGRAM_BOT_TOKEN`, `WEB_APP_URL` и токена: домен подставится из `RAILWAY_PUBLIC_DOMAIN` при старте. Явно задайте `TELEGRAM_WEBHOOK_URL`, если авто-URL не сработал.
+
 На **Railway** те же переменные задаются в **Variables** сервиса с root `server` (см. [RAILWAY.md](./RAILWAY.md)).
 
 ## 3. Настройка команд и кнопки меню
@@ -37,7 +48,10 @@ npm run telegram:setup
 ## 4. Проверка в Telegram
 
 1. Откройте своего бота в Telegram.
-2. Откройте меню (кнопка рядом с полем ввода) и нажмите **«Открыть SLOTTY»** — должно открыться мини-приложение по `WEB_APP_URL`.
+2. Отправьте **`/start`** — должно прийти приветствие и кнопка **«Открыть SLOTTY»**.
+3. Откройте меню (кнопка рядом с полем ввода) и нажмите **«Открыть SLOTTY»** — мини-приложение по `WEB_APP_URL`.
+
+Если `/start` молчит: проверьте логи бэкенда (`setWebhook OK`), что `TELEGRAM_WEBHOOK_SECRET` совпадает с тем, что был при `telegram:setup`, и что API доступен по HTTPS из интернета.
 
 ## 5. Утечка токена
 

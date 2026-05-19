@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { env } from '../../config/env.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
-import { sendTelegramHelpReply, sendTelegramStartReply, isTelegramHelpCommand, isTelegramStartCommand } from './telegram.webhook.service.js';
+import { handleTelegramUpdate } from './telegram.updateHandler.js';
 
 export const telegramWebhookRouter = Router();
 
@@ -12,6 +12,10 @@ telegramWebhookRouter.post(
     if (secret) {
       const header = req.get('X-Telegram-Bot-Api-Secret-Token');
       if (header !== secret) {
+        console.warn(
+          '[telegram webhook] 403: неверный X-Telegram-Bot-Api-Secret-Token. ' +
+            'Перезапустите npm run telegram:setup или совпадите TELEGRAM_WEBHOOK_SECRET с setWebhook.',
+        );
         res.status(403).type('text').send('forbidden');
         return;
       }
@@ -21,22 +25,8 @@ telegramWebhookRouter.post(
       );
     }
 
-    const update = req.body as { message?: { text?: string; chat?: { id: number } } };
-    const msg = update.message;
-    if (!msg?.chat?.id) {
-      res.sendStatus(200);
-      return;
-    }
-
-    const text = (msg.text ?? '').trim();
-    const chatId = msg.chat.id;
-
     try {
-      if (isTelegramStartCommand(text)) {
-        await sendTelegramStartReply(chatId);
-      } else if (isTelegramHelpCommand(text)) {
-        await sendTelegramHelpReply(chatId);
-      }
+      await handleTelegramUpdate(req.body);
     } catch (e) {
       console.warn('[telegram webhook] handler error:', e instanceof Error ? e.message : e);
     }

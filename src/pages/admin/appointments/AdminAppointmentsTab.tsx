@@ -3,14 +3,8 @@ import { preloadTabIntroImages } from '../useTabIntroImage';
 import { Link } from 'react-router-dom';
 import { HiInbox } from 'react-icons/hi2';
 import { ADMIN_BILLING_PATH } from '../../../app/paths';
-import {
-  canCreateMoreAppointments,
-  countAppointmentsInCurrentMonth,
-  getCurrentMasterPlan,
-  getPlanLimits,
-  isFreeAppointmentLimitAlmostReached,
-  planBadgeLabel,
-} from '../../../features/billing/model/masterPlans';
+import { planBadgeLabel } from '../../../features/billing/model/masterPlans';
+import { useMasterPlanEntitlements } from '../../../features/billing/useMasterPlanEntitlements';
 import type {
   DemoAppointmentStatus,
   DemoMasterAppointment,
@@ -199,13 +193,14 @@ export function AdminAppointmentsTab({
     };
   }, [historyRows]);
 
-  const billingPlan = getCurrentMasterPlan();
-  const monthlyApptCount = useMemo(() => countAppointmentsInCurrentMonth(appointments), [appointments]);
-  const freeApptCap = getPlanLimits('free').maxMonthlyAppointments ?? 20;
-  const atFreeApptLimit =
-    billingPlan.plan === 'free' && !canCreateMoreAppointments('free', monthlyApptCount);
-  const almostFreeAppt =
-    billingPlan.plan === 'free' && isFreeAppointmentLimitAlmostReached(monthlyApptCount);
+  const {
+    planId: billingPlanId,
+    limits: billingLimits,
+    monthlyAppointments: monthlyApptCount,
+    freeAppointmentLimitReached: atFreeApptLimit,
+    freeAppointmentLimitAlmostReached: almostFreeAppt,
+  } = useMasterPlanEntitlements();
+  const freeApptCap = billingLimits.maxMonthlyAppointments ?? 20;
   const apptUsageRatio = Math.min(1, monthlyApptCount / freeApptCap);
 
   const showToast = useCallback((message: string) => {
@@ -440,7 +435,7 @@ export function AdminAppointmentsTab({
           </div>
         ) : null}
 
-        {billingPlan.plan === 'free' ? (
+        {billingPlanId === 'free' ? (
           <section
             className={`rounded-[22px] border bg-white px-4 py-3 shadow-[0_8px_28px_rgba(17,24,39,0.05)] ${
               atFreeApptLimit ? 'border-amber-200' : almostFreeAppt ? 'border-amber-100' : 'border-[#EAECEF]'
@@ -448,7 +443,7 @@ export function AdminAppointmentsTab({
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="min-w-0 flex-1 text-[14px] font-medium text-[#374151]">
-                {planBadgeLabel(billingPlan.plan)} · {monthlyApptCount} / {freeApptCap} записей в месяце
+                {planBadgeLabel(billingPlanId)} · {monthlyApptCount} / {freeApptCap} записей в месяце
               </p>
               <Link
                 to={ADMIN_BILLING_PATH}

@@ -1,10 +1,18 @@
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import { SERVICES_PATH } from '../app/paths';
+import { MASTERS_PATH } from '../app/paths';
 import type { MasterFeedItem } from '../features/booking/api/useMastersFeed';
 import { NothingFoundCard } from '../shared/ui/NothingFoundCard';
 import { LoadingVideo } from '../shared/ui/LoadingVideo';
 import { MasterCard } from './HomeMasterCard';
+import {
+  homeLink,
+  homePinkBtn,
+  homeScrollRow,
+  homeSection,
+  homeSectionSubtitle,
+  homeSectionTitle,
+} from './home/homeTheme';
 
 export type HomeTopMastersProps = {
   masters: MasterFeedItem[];
@@ -19,143 +27,56 @@ export const HomeTopMasters: FC<HomeTopMastersProps> = ({
 }) => {
   return (
     <section
-      className="mt-16 animate-fade-enter scroll-mt-28 sm:mt-20"
+      className={homeSection}
       style={{ animationDelay: '140ms' }}
       aria-labelledby="top-masters-heading"
     >
-      <div
-        className="
-          rounded-[38px]
-          bg-[#F1EFEF]
-          p-3
-          shadow-[0_24px_70px_rgba(17,17,17,0.05)]
-          sm:rounded-[44px]
-        "
-      >
-        <div
-          className="
-            overflow-hidden
-            rounded-[32px]
-            bg-white
-            px-5
-            py-6
-            shadow-[0_10px_30px_rgba(17,17,17,0.035)]
-            sm:rounded-[38px]
-            sm:px-7
-            sm:py-8
-          "
-        >
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-[24rem]">
+      <div className="mb-4 flex items-end justify-between gap-3 px-0.5">
+        <div className="min-w-0">
+          <h2 id="top-masters-heading" className={homeSectionTitle}>
+            Мастера в ленте
+          </h2>
+          <p className={homeSectionSubtitle}>
+            Популярные специалисты — как в каталоге SLOTTY
+          </p>
+        </div>
+        <Link to={MASTERS_PATH} className={homeLink}>
+          Все мастера
+        </Link>
+      </div>
 
-              <h2
-                id="top-masters-heading"
-                className="
-                  mt-2
-                  text-[clamp(1.9rem,5.2vw,2.8rem)]
-                  font-semibold
-                  leading-[1.04]
-                  tracking-[-0.065em]
-                  text-neutral-950
-                "
-              >
-                Мастера в ленте
-              </h2>
-
-
-            </div>
-
-            <Link
-              to={SERVICES_PATH}
-              className="
-                inline-flex
-                min-h-12
-                shrink-0
-                items-center
-                justify-center
-                gap-2
-                rounded-full
-                bg-[#F1EFEF]
-                px-5
-                text-[15px]
-                font-semibold
-                text-neutral-900
-                transition
-                active:scale-[0.98]
-              "
-            >
-              Все услуги
-            </Link>
+      <div className={homeScrollRow}>
+        {isLoading ? (
+          <div className="flex min-h-[14rem] w-full min-w-0 shrink-0 items-center justify-center py-8">
+            <LoadingVideo size="lg" label="Загрузка мастеров…" />
           </div>
-        </div>
-
-        <div
-          className="
-            -mx-1
-            mt-4
-            flex
-            gap-4
-            overflow-x-auto
-            pb-1
-            pl-1
-            pr-1
-            pt-1
-            [scrollbar-width:none]
-            [&::-webkit-scrollbar]:hidden
-          "
-        >
-          {isLoading ? (
-            <div className="flex min-h-[14rem] w-full min-w-0 shrink-0 items-center justify-center py-8">
-              <LoadingVideo size="lg" label="Загрузка мастеров…" />
+        ) : masters.length === 0 ? (
+          <div className="w-full min-w-0 shrink-0 px-0.5">
+            <NothingFoundCard
+              title="Пока никого нет"
+              text="Попробуйте позже или откройте каталог мастеров."
+              action={
+                <Link to={MASTERS_PATH} className={`${homePinkBtn} w-full max-w-xs`}>
+                  Каталог мастеров
+                </Link>
+              }
+            />
+          </div>
+        ) : (
+          masters.map((item, index) => (
+            <div
+              key={item.id}
+              className="w-[min(18.5rem,86vw)] shrink-0 sm:w-[19.5rem]"
+            >
+              <MasterCard
+                item={item}
+                style={{ animationDelay: `${160 + index * 50}ms` }}
+                priorityImage={index < 6}
+                onPick={onPick}
+              />
             </div>
-          ) : masters.length === 0 ? (
-            <div className="w-full min-w-0 shrink-0 px-1">
-              <div className="rounded-[32px] bg-white p-3 shadow-[0_12px_34px_rgba(17,17,17,0.045)]">
-                <NothingFoundCard
-                  title="Пока никого нет"
-                  text="Попробуйте позже или откройте каталог услуг."
-                  action={
-                    <Link
-                      to={SERVICES_PATH}
-                      className="
-                        inline-flex
-                        min-h-[3.15rem]
-                        w-full
-                        max-w-xs
-                        items-center
-                        justify-center
-                        rounded-full
-                        bg-[#E29595]
-                        text-[15px]
-                        font-semibold
-                        text-white
-                        shadow-[0_12px_30px_rgba(226,149,149,0.26)]
-                        transition
-                        active:scale-[0.98]
-                      "
-                    >
-                      Найти услуги
-                    </Link>
-                  }
-                />
-              </div>
-            </div>
-          ) : (
-            masters.map((item, index) => (
-              <div
-                key={item.id}
-                className="w-[min(19.5rem,82vw)] shrink-0 sm:w-64"
-              >
-                <MasterCard
-                  item={item}
-                  style={{ animationDelay: `${160 + index * 50}ms` }}
-                  priorityImage={index < 8}
-                  onPick={onPick}
-                />
-              </div>
-            ))
-          )}
-        </div>
+          ))
+        )}
       </div>
     </section>
   );

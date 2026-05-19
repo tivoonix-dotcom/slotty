@@ -47,7 +47,7 @@ export const HomeTelegramShowcase: FC = () => {
         <div className="pointer-events-none absolute inset-0" aria-hidden>
           <div className="absolute -left-20 top-10 h-56 w-56 rounded-full bg-white/70 blur-3xl" />
           <div className="absolute -right-20 bottom-0 h-56 w-56 rounded-full bg-white/60 blur-3xl" />
-          <div className="absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E29595]/10 blur-3xl" />
+          <div className="absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F47C8C]/10 blur-3xl" />
         </div>
 
         <div className="relative mx-auto min-h-[430px] max-w-[24rem]">
@@ -65,7 +65,7 @@ export const HomeTelegramShowcase: FC = () => {
               рейтинг
             </p>
             <div className="mt-1 flex items-center gap-1.5">
-              <IconStar className="h-4 w-4 text-[#E29595]" />
+              <IconStar className="h-4 w-4 text-[#F47C8C]" />
               <span className="text-[22px] font-semibold tracking-[-0.05em]">
                 4.9
               </span>
@@ -73,7 +73,7 @@ export const HomeTelegramShowcase: FC = () => {
           </div>
 
           <div className="absolute left-1/2 top-[118px] z-[3] w-[270px] -translate-x-1/2 rounded-[36px] bg-white px-5 py-6 text-center shadow-[0_28px_80px_rgba(17,17,17,0.08)]">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F6F3F3] text-[#E29595]">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F6F3F3] text-[#F47C8C]">
               <IconCheck className="h-5 w-5" />
             </div>
 
@@ -89,7 +89,7 @@ export const HomeTelegramShowcase: FC = () => {
               Маникюр завтра в 14:30. Напоминание придет в Telegram.
             </p>
 
-            <div className="mt-5 rounded-full bg-[#E29595] px-5 py-3 text-[14px] font-semibold text-white shadow-[0_14px_34px_rgba(226,149,149,0.32)]">
+            <div className="mt-5 rounded-full bg-[#F47C8C] px-5 py-3 text-[14px] font-semibold text-white shadow-[0_14px_34px_rgba(244,124,140,0.32)]">
               Открыть запись
             </div>
           </div>
@@ -108,7 +108,7 @@ export const HomeTelegramShowcase: FC = () => {
 
           <div className={`${FLOAT_CARD} absolute right-0 bottom-20 w-[178px] -rotate-[2deg] px-4 py-3.5 opacity-90`}>
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F6F3F3] text-[#E29595]">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F6F3F3] text-[#F47C8C]">
                 <IconBell className="h-5 w-5" />
               </span>
 
@@ -124,7 +124,7 @@ export const HomeTelegramShowcase: FC = () => {
           </div>
 
           <div className="absolute bottom-0 left-1/2 flex w-max -translate-x-1/2 items-center gap-2 rounded-full bg-white/85 px-4 py-3 shadow-[0_16px_44px_rgba(17,17,17,0.06)] backdrop-blur-xl">
-            <span className="h-2 w-2 rounded-full bg-[#E29595]" />
+            <span className="h-2 w-2 rounded-full bg-[#F47C8C]" />
             <span className="text-[13px] font-semibold text-neutral-700">
               всё внутри Telegram
             </span>

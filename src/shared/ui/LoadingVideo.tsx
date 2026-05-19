@@ -11,6 +11,8 @@ const SIZE_CLASS = {
   xl: 'h-[min(22rem,72vw)] w-[min(22rem,72vw)]',
 } as const;
 
+const VIDEO_ROUNDED = 'overflow-hidden rounded-[26px]';
+
 type Size = keyof typeof SIZE_CLASS;
 
 type LoadingVideoProps = {
@@ -44,24 +46,28 @@ export function LoadingVideo({ size = 'md', label, className = '' }: LoadingVide
       aria-live="polite"
       aria-busy="true"
     >
-      <video
-        ref={videoRef}
-        key={src}
-        src={src}
-        autoPlay
-        loop
-        muted
-        playsInline
-        disablePictureInPicture
-        preload="auto"
-        className={`${SIZE_CLASS[size]} shrink-0 object-contain`}
-        aria-hidden
-        onError={() => {
-          setSrc((current) =>
-            current === LOADING_VIDEO_SRC ? LOADING_VIDEO_SRC_FALLBACK : current,
-          );
-        }}
-      />
+      <div
+        className={`${SIZE_CLASS[size]} ${VIDEO_ROUNDED} shrink-0 shadow-[0_8px_28px_rgba(17,24,39,0.08)] ring-1 ring-[#F3F4F6]`}
+      >
+        <video
+          ref={videoRef}
+          key={src}
+          src={src}
+          autoPlay
+          loop
+          muted
+          playsInline
+          disablePictureInPicture
+          preload="auto"
+          className="h-full w-full object-cover"
+          aria-hidden
+          onError={() => {
+            setSrc((current) =>
+              current === LOADING_VIDEO_SRC ? LOADING_VIDEO_SRC_FALLBACK : current,
+            );
+          }}
+        />
+      </div>
       {label ? (
         <p className="max-w-[18rem] text-center text-[13px] font-medium leading-snug text-[#9CA3AF]">
           {label}

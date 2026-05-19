@@ -11,8 +11,9 @@ import {
 } from '../../../features/profile/api/clientFavorites';
 import {
   isFavoriteMasterId,
-  toggleFavoriteMasterId,
+  setFavoriteMasterId,
 } from '../../../features/profile/lib/favoriteMastersStorage';
+import { useClientErrorModal } from '../ClientErrorModalContext';
 import type { DemoMasterService } from '../../../features/services/model/demoMasters';
 import { EmptyState } from '../components/EmptyState';
 import { BookingTimeSheet } from './BookingTimeSheet';
@@ -38,11 +39,20 @@ export function MasterPublicPage() {
   const [searchParams] = useSearchParams();
   const { userLat, userLng } = useOutletContext<ClientOutletContext>();
   const { isAuthenticated } = useAuth();
+  const { showError } = useClientErrorModal();
   const masterId = useMemo(() => (rawId ? decodeURIComponent(rawId) : ''), [rawId]);
   const highlightServiceId = searchParams.get('service') ?? searchParams.get('service_id');
 
   const { master, loading, error, reload } = useMasterPublicProfile(masterId);
   const { nearest, loading: nearestLoading } = useMasterNearestSlot(master);
+
+  useEffect(() => {
+    if (!error) return;
+    showError('Не удалось загрузить профиль мастера. Проверьте соединение.', {
+      title: 'Мастер',
+      onRetry: reload,
+    });
+  }, [error, reload, showError]);
 
   const [isFavorite, setIsFavorite] = useState(() =>
     masterId ? isFavoriteMasterId(masterId) : false,
@@ -87,17 +97,26 @@ export function MasterPublicPage() {
 
   const onFavoriteToggle = useCallback(async () => {
     if (!masterId) return;
-    const next = toggleFavoriteMasterId(masterId);
+    const wasFavorite = isFavorite;
+    const next = !wasFavorite;
     setIsFavorite(next);
+
     if (isAuthenticated && getApiBaseUrl()) {
       try {
         if (next) await addMyFavoriteMaster(masterId);
         else await removeMyFavoriteMaster(masterId);
-      } catch {
-        /* TODO: API favorites */
+        setFavoriteMasterId(masterId, next);
+      } catch (e) {
+        setIsFavorite(wasFavorite);
+        showError(e instanceof Error ? e.message : 'Не удалось обновить избранное', {
+          title: 'Избранное',
+        });
       }
+      return;
     }
-  }, [masterId, isAuthenticated]);
+
+    setFavoriteMasterId(masterId, next);
+  }, [isAuthenticated, isFavorite, masterId, showError]);
 
   const onShare = useCallback(async () => {
     if (!master) return;

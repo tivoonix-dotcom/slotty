@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import {
   HiCalendarDays,
   HiCheckBadge,
@@ -6,9 +5,6 @@ import {
   HiStar,
   HiXMark,
 } from 'react-icons/hi2';
-import { getProfilePath, SERVICES_PATH } from '../../app/paths';
-import { HEADER_LOGO_SRC } from '../../app/headerLogo';
-import { openBookingVoucherPrint } from '../../features/booking/lib/bookingConfirmationVoucherPrint';
 import type { DemoMasterProfile } from '../../features/services/model/demoMasters';
 import { formatReviewsCountLabel } from '../../features/services/model/demoMasters';
 import type { DemoMasterService } from '../../features/services/model/demoMasters';
@@ -30,14 +26,10 @@ import {
   bookingSlotIdle,
 } from './bookingUi';
 import { formatServicePrice } from './bookingFormat';
+import { BookingSuccessModal } from './BookingSuccessModal';
+import type { BookingSuccessPayload } from './bookingTypes';
 
-export type BookingSuccessPayload = {
-  masterName: string;
-  serviceTitle: string;
-  dateLabel: string;
-  timeLabel: string;
-  locationLine?: string;
-};
+export type { BookingSuccessPayload };
 
 type Props = {
   master: DemoMasterProfile;
@@ -332,64 +324,7 @@ export function BookingFlowView({
         </div>
       ) : null}
 
-      {success ? (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/35 p-4 sm:items-center">
-          <div
-            role="dialog"
-            className="w-full max-w-md rounded-[26px] bg-white p-6 shadow-[0_24px_80px_rgba(17,24,39,0.15)]"
-          >
-            <h2 className="text-center text-[20px] font-semibold text-[#111827]">Запись создана</h2>
-            <p className="mt-2 text-center text-[14px] text-[#6B7280]">
-              Напомним о визите в Telegram
-            </p>
-            <div className={`${bookingMutedPanel} mt-5 space-y-2 p-4 text-[14px]`}>
-              <p>
-                <span className="text-[#6B7280]">Мастер: </span>
-                <span className="font-semibold">{success.masterName}</span>
-              </p>
-              <p>
-                <span className="text-[#6B7280]">Услуга: </span>
-                <span className="font-semibold">{success.serviceTitle}</span>
-              </p>
-              <p>
-                <span className="text-[#6B7280]">Когда: </span>
-                <span className="font-semibold capitalize">
-                  {success.dateLabel}, {success.timeLabel}
-                </span>
-              </p>
-            </div>
-            <div className="mt-5 space-y-2">
-              <Link to={getProfilePath('appointments')} className={`${clientPinkBtn} w-full`}>
-                Мои записи
-              </Link>
-              <button
-                type="button"
-                onClick={() =>
-                  openBookingVoucherPrint(
-                    {
-                      masterName: success.masterName,
-                      serviceTitle: success.serviceTitle,
-                      dateLabel: success.dateLabel,
-                      timeLabel: success.timeLabel,
-                      locationLine: success.locationLine,
-                    },
-                    HEADER_LOGO_SRC,
-                  )
-                }
-                className="flex min-h-11 w-full items-center justify-center rounded-full border border-[#F47C8C] bg-white text-[14px] font-semibold text-[#F47C8C]"
-              >
-                Скачать PDF
-              </button>
-              <Link
-                to={SERVICES_PATH}
-                className="flex min-h-11 w-full items-center justify-center rounded-full bg-[#F1EFEF] text-[14px] font-semibold text-[#374151]"
-              >
-                К услугам
-              </Link>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {success ? <BookingSuccessModal success={success} /> : null}
     </>
   );
 }

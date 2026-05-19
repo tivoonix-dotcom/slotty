@@ -152,7 +152,7 @@ export const HomeFooter: FC = () => {
                   href={TIVONIX_SITE_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-[#E29595] underline decoration-[#E29595]/35 underline-offset-2 transition hover:decoration-[#E29595]"
+                  className="font-semibold text-[#F47C8C] underline decoration-[#F47C8C]/35 underline-offset-2 transition hover:decoration-[#F47C8C]"
                 >
                   tivonix.tech
                 </a>

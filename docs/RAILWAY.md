@@ -32,6 +32,8 @@
    | `CLIENT_URL` | Публичный URL **фронта** (после шага 3), например `https://slotty-web-production.up.railway.app`. |
    | `TELEGRAM_BOT_TOKEN` | Токен от BotFather (только в Variables, не в git). |
    | `WEB_APP_URL` | Тот же URL, что и фронт (HTTPS), для кнопки Web App в Telegram. |
+   | `TELEGRAM_WEBHOOK_URL` | `https://ВАШ_API_ДОМЕН/api/telegram/webhook` — для команды **/start** (или задайте `PUBLIC_API_URL` = URL API без `/api`). |
+   | `TELEGRAM_WEBHOOK_SECRET` | Случайная строка (опционально, но рекомендуется). |
    | `PORT` | Обычно **не задавать** — Railway подставит сам. |
 
 3. **Deploy** → дождаться **Public Networking** → **Generate Domain** → скопируйте URL API, например `https://slotty-api-production-xxxx.up.railway.app`.
@@ -74,7 +76,11 @@
    npm run telegram:setup
    ```
 
-   Нужны `TELEGRAM_BOT_TOKEN` и `WEB_APP_URL` (https).
+   Нужны `TELEGRAM_BOT_TOKEN`, `WEB_APP_URL` (https) и URL вебхука (см. таблицу выше).
+
+3. После деплоя бэкенд **сам** вызывает `setWebhook` при старте (если задан `TELEGRAM_WEBHOOK_URL` или `PUBLIC_API_URL` / `RAILWAY_PUBLIC_DOMAIN`). В логах должно быть: `[telegram] setWebhook OK → …`
+
+4. В боте отправьте **`/start`** — приветствие и кнопка Web App.
 
 Уведомления о записях идут **автоматически** с бэкенда при работающем `TELEGRAM_BOT_TOKEN`.
 

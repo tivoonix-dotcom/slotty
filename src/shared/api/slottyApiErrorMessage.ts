@@ -27,6 +27,18 @@ const SLOT_MESSAGES: Record<string, string> = {
   BAD_SERVICE: 'Услуга не найдена или скрыта.',
 };
 
+const REVIEW_MESSAGES: Record<string, string> = {
+  APPOINTMENT_NOT_FOUND: 'Запись не найдена.',
+  NOT_YOUR_APPOINTMENT: 'Нельзя оставить отзыв к чужой записи.',
+  APPOINTMENT_NOT_REVIEWABLE: 'Отзыв можно оставить после завершённого визита.',
+  REVIEW_EXISTS: 'Вы уже оставили отзыв к этой записи.',
+  REVIEW_BODY_REQUIRED: 'Напишите текст отзыва.',
+};
+
+const FAVORITE_MESSAGES: Record<string, string> = {
+  SELF_FAVORITE: 'Нельзя добавить себя в избранное.',
+};
+
 const LIMIT_MESSAGES: Record<string, string> = {
   LIMIT_SERVICES_REACHED:
     'Достигнут лимит услуг по тарифу. Оформите Pro или деактивируйте лишние услуги.',
@@ -42,6 +54,8 @@ export async function readSlottyApiErrorMessage(res: Response): Promise<string> 
   const code = j?.error?.code;
   if (code && APPOINTMENT_MESSAGES[code]) return APPOINTMENT_MESSAGES[code];
   if (code && SLOT_MESSAGES[code]) return SLOT_MESSAGES[code];
+  if (code && REVIEW_MESSAGES[code]) return REVIEW_MESSAGES[code];
+  if (code && FAVORITE_MESSAGES[code]) return FAVORITE_MESSAGES[code];
   if (code && LIMIT_MESSAGES[code]) return LIMIT_MESSAGES[code];
   const msg = j?.error?.message;
   if (msg) return msg;

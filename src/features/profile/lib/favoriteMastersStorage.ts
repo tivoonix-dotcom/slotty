@@ -43,6 +43,15 @@ export function removeFavoriteMasterId(masterId: string): void {
   writeIds(readIds().filter((id) => id !== masterId));
 }
 
+export function setFavoriteMasterId(masterId: string, favored: boolean): void {
+  const ids = readIds();
+  if (favored) {
+    if (!ids.includes(masterId)) writeIds([...ids, masterId]);
+    return;
+  }
+  removeFavoriteMasterId(masterId);
+}
+
 export function subscribeFavoriteMasterIds(listener: () => void): () => void {
   const onStorage = (e: StorageEvent) => {
     if (e.key === STORAGE_KEY || e.key === null) listener();

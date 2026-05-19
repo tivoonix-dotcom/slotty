@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../../../features/auth/AuthProvider';
 import { getApiBaseUrl } from '../../../shared/api/backendClient';
 import type { DemoMasterService } from '../../../features/services/model/demoMasters';
+import { BookingSuccessCelebration } from '../../booking/BookingSuccessModal';
 import { clientPinkBtn } from '../clientTheme';
 import { ClientSheetShell } from './ClientSheetShell';
 import { formatServicePrice, serviceDurationLabel } from './masterProfileUtils';
@@ -159,9 +160,14 @@ export function BookingTimeSheet({ open, onClose, master, initialServiceId }: Pr
       }
     >
       {success ? (
-        <div className="py-6 text-center">
-          <p className="text-[20px] font-semibold text-[#111827]">Заявка отправлена</p>
-          <p className="mt-2 text-[14px] text-[#6B7280]">Мастер подтвердит запись</p>
+        <div className="pb-2 pt-2">
+          <BookingSuccessCelebration compact />
+          <p className="mt-4 text-center text-[20px] font-semibold text-[#111827]">
+            Заявка отправлена
+          </p>
+          <p className="mt-2 text-center text-[14px] leading-snug text-[#6B7280]">
+            Мастер подтвердит запись
+          </p>
         </div>
       ) : !service ? (
         <ul className="space-y-2">

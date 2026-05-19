@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import type { MasterOnboardingService } from '../../../features/profile/lib/demoMasterStorage';
-import { getMySubscription } from '../../../features/admin/api/adminBillingApi';
+import { useMasterPlanEntitlements } from '../../../features/billing/useMasterPlanEntitlements';
 import {
   createMySlot,
   deleteMySlot,
@@ -101,7 +101,8 @@ export function useScheduleData(
   const [rows, setRows] = useState<MySlotDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [templates, setTemplates] = useState<WindowTemplate[]>(() => loadWindowTemplates(masterId));
-  const [scheduleHorizonDays, setScheduleHorizonDays] = useState<number | null>(null);
+  const { limits } = useMasterPlanEntitlements();
+  const scheduleHorizonDays = useCabinetApi ? limits.scheduleHorizonDays : 90;
 
   const reloadSlots = useCallback(async (): Promise<MySlotDto[]> => {
     if (!useCabinetApi) return [];
@@ -139,24 +140,6 @@ export function useScheduleData(
       cancelled = true;
     };
   }, [useCabinetApi, appointmentsSlotSignature]);
-
-  useEffect(() => {
-    if (!useCabinetApi) {
-      setScheduleHorizonDays(90);
-      return;
-    }
-    let cancelled = false;
-    void getMySubscription()
-      .then((sub) => {
-        if (!cancelled) setScheduleHorizonDays(sub.plan.maxScheduleDaysAhead);
-      })
-      .catch(() => {
-        if (!cancelled) setScheduleHorizonDays(14);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [useCabinetApi]);
 
   const persistTemplates = useCallback(
     (next: WindowTemplate[]) => {

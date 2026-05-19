@@ -10,6 +10,7 @@ import { AdminLayout } from './AdminLayout';
 import { AdminOverviewPage } from './overview/AdminOverviewPage';
 import { AdminSchedulePage } from './schedule/AdminSchedulePage';
 import { AdminServicesPage } from './services/AdminServicesPage';
+import { AdminNotificationsPage } from './notifications/AdminNotificationsPage';
 import { LoadingScreen } from '../../shared/ui/LoadingVideo';
 
 export function AdminPage() {
@@ -57,6 +58,7 @@ export function AdminPage() {
         <Route path="schedule" element={<AdminSchedulePage />} />
         <Route path="appointments" element={<AdminAppointmentsPage />} />
         <Route path="billing" element={<AdminBillingPage />} />
+        <Route path="notifications" element={<AdminNotificationsPage />} />
         <Route path="profile" element={<Navigate to={ADMIN_PATH} replace />} />
       </Route>
       <Route path="*" element={<Navigate to={ADMIN_PATH} replace />} />

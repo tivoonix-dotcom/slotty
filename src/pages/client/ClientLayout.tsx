@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { ClientBottomNav } from './components/ClientBottomNav';
 import { ClientHeader } from './components/ClientHeader';
+import { ClientErrorModalProvider } from './ClientErrorModalContext';
 import type { ClientOutletContext } from './clientOutletContext';
 import { useClientGeo } from './hooks/useClientGeo';
 
@@ -30,12 +31,14 @@ export function ClientLayout() {
   };
 
   return (
-    <div className="min-h-dvh bg-white text-neutral-900">
-      {hideCatalogHeader ? null : (
-        <ClientHeader cityLabel={cityLabel} onCityClick={hasGeo ? undefined : requestGeo} />
-      )}
-      <Outlet context={outletContext} />
-      {hideBottomNav ? null : <ClientBottomNav />}
-    </div>
+    <ClientErrorModalProvider>
+      <div className="min-h-dvh bg-white text-neutral-900">
+        {hideCatalogHeader ? null : (
+          <ClientHeader cityLabel={cityLabel} onCityClick={hasGeo ? undefined : requestGeo} />
+        )}
+        <Outlet context={outletContext} />
+        {hideBottomNav ? null : <ClientBottomNav />}
+      </div>
+    </ClientErrorModalProvider>
   );
 }

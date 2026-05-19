@@ -17,8 +17,8 @@ export async function listFavorites(clientId: string) {
     displayName: row.display_name,
     photoUrl: row.photo_url,
     slug: row.slug,
-    rating: Number(row.rating_avg),
-    reviewsCount: row.reviews_count,
+    rating: row.rating_avg != null && row.rating_avg !== '' ? Number(row.rating_avg) : 0,
+    reviewsCount: Number(row.reviews_count) || 0,
   }));
 }
 

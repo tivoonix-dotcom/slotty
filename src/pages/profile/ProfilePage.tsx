@@ -42,6 +42,9 @@ import { NothingFoundCard } from '../../shared/ui/NothingFoundCard';
 import { useTelegram } from '../../shared/hooks/useTelegram';
 import { formatTelegramUserDisplayName } from '../../shared/lib/telegramWebApp';
 import { apiFetch, getApiBaseUrl } from '../../shared/api/backendClient';
+import { readSlottyApiErrorMessage } from '../../shared/api/slottyApiErrorMessage';
+import { postClientReview } from '../../features/profile/api/clientReviews';
+import { useClientErrorModal } from '../client/ClientErrorModalContext';
 import { optimizeAvatarUrl } from '../../shared/lib/optimizeAvatarUrl';
 import { ImageReveal } from '../../shared/ui/ImageReveal';
 import { HomeHeader } from '../HomeHeader';
@@ -756,6 +759,11 @@ export function ProfilePage() {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [cancelModal, setCancelModal] = useState<CancelModalState>({ open: false });
   const [reviewAppointmentId, setReviewAppointmentId] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewBody, setReviewBody] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+
+  const { showError } = useClientErrorModal();
 
   const loadClientAppointments = useCallback(async () => {
     const base = getApiBaseUrl();
@@ -772,7 +780,9 @@ export function ProfilePage() {
       if (!res.ok) {
         setApptState(emptyClientAppointments());
         setApptError(
-          res.status === 401 ? 'Сессия истекла. Откройте приложение снова.' : 'Не удалось загрузить записи.',
+          res.status === 401
+            ? 'Сессия истекла. Откройте приложение снова.'
+            : await readSlottyApiErrorMessage(res),
         );
         return;
       }
@@ -796,9 +806,9 @@ export function ProfilePage() {
     setFavoritesError(null);
     try {
       setFavorites(await fetchMyFavorites());
-    } catch {
+    } catch (e) {
       setFavorites([]);
-      setFavoritesError('Не удалось загрузить избранное.');
+      setFavoritesError(e instanceof Error ? e.message : 'Не удалось загрузить избранное.');
     } finally {
       setFavoritesLoading(false);
     }
@@ -814,9 +824,9 @@ export function ProfilePage() {
     setNotificationsError(null);
     try {
       setNotifications(await fetchMyNotifications());
-    } catch {
+    } catch (e) {
       setNotifications([]);
-      setNotificationsError('Не удалось загрузить уведомления.');
+      setNotificationsError(e instanceof Error ? e.message : 'Не удалось загрузить уведомления.');
     } finally {
       setNotificationsLoading(false);
     }
@@ -828,15 +838,32 @@ export function ProfilePage() {
     void loadNotifications();
   }, [loadClientAppointments, loadFavorites, loadNotifications, searchParams]);
 
+  useEffect(() => {
+    if (!apptError) return;
+    showError(apptError, { title: 'Записи', onRetry: () => void loadClientAppointments() });
+  }, [apptError, loadClientAppointments, showError]);
+
+  useEffect(() => {
+    if (!favoritesError) return;
+    showError(favoritesError, { title: 'Избранное', onRetry: () => void loadFavorites() });
+  }, [favoritesError, loadFavorites, showError]);
+
+  useEffect(() => {
+    if (!notificationsError) return;
+    showError(notificationsError, { title: 'Уведомления', onRetry: () => void loadNotifications() });
+  }, [notificationsError, loadNotifications, showError]);
+
   const handleRemoveFavorite = useCallback(async (masterId: string) => {
     setFavoritesError(null);
     try {
       await removeMyFavoriteMaster(masterId);
       setFavorites((prev) => prev.filter((f) => f.masterId !== masterId));
-    } catch {
-      setFavoritesError('Не удалось убрать из избранного.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Не удалось убрать из избранного.';
+      setFavoritesError(msg);
+      showError(msg, { title: 'Избранное' });
     }
-  }, []);
+  }, [showError]);
 
   const selectedAppointment = useMemo(() => {
     if (!selectedAppointmentId) return null;
@@ -901,12 +928,35 @@ export function ProfilePage() {
 
   const openReview = useCallback((row: DemoAppointmentRecord) => {
     setSelectedAppointmentId(null);
+    setReviewRating(5);
+    setReviewBody('');
     setReviewAppointmentId(row.id);
   }, []);
 
   const closeReview = useCallback(() => {
     setReviewAppointmentId(null);
+    setReviewBody('');
+    setReviewSubmitting(false);
   }, []);
+
+  const submitReview = useCallback(async () => {
+    if (!reviewRow || !getApiBaseUrl()) return;
+    const body = reviewBody.trim();
+    if (body.length < 2) {
+      showError('Напишите пару слов об услуге — так мастеру будет приятнее.', { title: 'Отзыв' });
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      await postClientReview(reviewRow.id, reviewRating, body);
+      closeReview();
+      void loadNotifications();
+    } catch (e) {
+      showError(e instanceof Error ? e.message : 'Не удалось отправить отзыв', { title: 'Отзыв' });
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }, [closeReview, loadNotifications, reviewBody, reviewRating, reviewRow, showError]);
 
   const openDownloadPdf = useCallback((row: DemoAppointmentRecord) => {
     openBookingVoucherPrint(demoAppointmentToVoucherPayload(row), HEADER_LOGO_SRC);
@@ -951,8 +1001,15 @@ export function ProfilePage() {
               to={ADMIN_PATH}
               className="mt-5 flex items-center gap-3.5 rounded-[22px] bg-[#F1EFEF] p-4 shadow-[0_2px_12px_rgba(17,24,39,0.05)] transition active:scale-[0.98]"
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] bg-white text-[20px] text-[#6B7280] shadow-[0_1px_4px_rgba(17,24,39,0.06)]">
-                ✨
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[16px] bg-white p-1.5 shadow-[0_1px_4px_rgba(17,24,39,0.06)]">
+                <img
+                  src={HEADER_LOGO_SRC}
+                  alt="SLOTTY"
+                  width={44}
+                  height={44}
+                  decoding="async"
+                  className="h-full w-full object-contain"
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[16px] font-semibold text-[#111827]">Вы мастер</p>
@@ -1544,24 +1601,56 @@ export function ProfilePage() {
 
       {reviewRow ? (
         <AppointmentBottomSheet onClose={closeReview} labelledBy="review-appointment-title">
-          {/* TODO: create review form and insert into reviews. */}
           <h2
             id="review-appointment-title"
             className="text-[26px] font-semibold tracking-[-0.055em] text-neutral-950"
           >
             Оставить отзыв
           </h2>
-
-          <p className="mt-3 text-[15px] leading-relaxed text-neutral-600">
-            Отзывы появятся после подключения базы данных.
+          <p className="mt-2 text-[15px] text-neutral-600">
+            {reviewRow.masterName} · {reviewRow.serviceTitle}
           </p>
+
+          <p className="mt-5 text-[13px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Оценка</p>
+          <div className="mt-2 flex gap-2">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setReviewRating(n)}
+                className={`flex h-11 w-11 items-center justify-center rounded-2xl text-[20px] transition active:scale-[0.97] ${
+                  n <= reviewRating
+                    ? 'bg-[#FFF1F4] text-[#F47C8C] ring-2 ring-[#F47C8C]/30'
+                    : 'bg-[#F1EFEF] text-neutral-400'
+                }`}
+                aria-label={`${n} из 5`}
+              >
+                ★
+              </button>
+            ))}
+          </div>
+
+          <label className="mt-5 block">
+            <span className="text-[13px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+              Комментарий
+            </span>
+            <textarea
+              value={reviewBody}
+              onChange={(e) => setReviewBody(e.target.value)}
+              rows={4}
+              maxLength={500}
+              placeholder="Как прошла услуга?"
+              className="mt-2 w-full resize-none rounded-[22px] bg-[#F1EFEF] px-4 py-3 text-[15px] text-neutral-900 outline-none ring-0 placeholder:text-neutral-400"
+            />
+          </label>
 
           <button
             type="button"
-            onClick={closeReview}
-            className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full bg-[#E29595] px-4 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.26)] transition active:scale-[0.98]"
+            disabled={reviewSubmitting || !backendConfigured}
+            onClick={() => void submitReview()}
+            className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full bg-[#E29595] px-4 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.26)] transition active:scale-[0.98] disabled:opacity-60"
           >
-            Понятно
+            {reviewSubmitting ? 'Отправляем…' : 'Отправить отзыв'}
           </button>
         </AppointmentBottomSheet>
       ) : null}

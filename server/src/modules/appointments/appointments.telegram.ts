@@ -1,8 +1,13 @@
+import { notifyUser } from '../notifications/notifyUser.js';
 import { escapeTelegramHtml } from '../telegram/telegram.service.js';
 import { formatAppointmentDateTime } from '../telegram/formatAppointmentDateTime.js';
-import { sendNotificationToProfile } from '../telegram/telegramProfileNotifications.js';
+import { notifyClientBookingCreated } from './appointments.clientNotifications.js';
+import { notifyMasterBookingCreated } from './appointments.masterNotifications.js';
+import { fetchAppointmentNotifyContext } from './appointmentNotifyContext.js';
+import type { AppointmentNotifyContext } from './appointmentNotifyContext.js';
 
-export type AppointmentCreatedTelegramPayload = {
+export type AppointmentCreatedPayload = {
+  appointmentId: string;
   clientId: string;
   masterId: string;
   serviceTitle: string;
@@ -13,90 +18,58 @@ export type AppointmentCreatedTelegramPayload = {
 };
 
 function logNotifyError(context: string, err: unknown): void {
-  console.warn(`[telegram] ${context}:`, err instanceof Error ? err.message : err);
+  console.warn(`[notify] ${context}:`, err instanceof Error ? err.message : err);
 }
 
-export async function notifyAppointmentCreatedTelegram(payload: AppointmentCreatedTelegramPayload): Promise<void> {
+function toContext(payload: AppointmentCreatedPayload): AppointmentNotifyContext {
+  return {
+    appointmentId: payload.appointmentId,
+    clientId: payload.clientId,
+    masterId: payload.masterId,
+    serviceTitle: payload.serviceTitle,
+    startsAt: payload.startsAt,
+    voucherNumber: payload.voucherNumber,
+    clientName: payload.clientDisplayName,
+    masterName: payload.masterDisplayName,
+  };
+}
+
+/** После новой записи: клиенту и мастеру (in-app + Telegram). */
+export async function notifyAppointmentCreated(payload: AppointmentCreatedPayload): Promise<void> {
   try {
-    const { date, time } = formatAppointmentDateTime(payload.startsAt);
-    const svc = escapeTelegramHtml(payload.serviceTitle);
-    const masterName = escapeTelegramHtml(payload.masterDisplayName);
-    const clientName = escapeTelegramHtml(payload.clientDisplayName);
-    const voucher = escapeTelegramHtml(payload.voucherNumber);
-
-    const clientText =
-      `Вы записались на <b>${svc}</b>\n` +
-      `Дата: ${escapeTelegramHtml(date)}\n` +
-      `Время: ${escapeTelegramHtml(time)}\n` +
-      `Мастер: ${masterName}\n` +
-      `Номер записи: <code>${voucher}</code>`;
-
-    const masterText =
-      `Новая запись\n` +
-      `Клиент: ${clientName}\n` +
-      `Услуга: ${svc}\n` +
-      `Дата: ${escapeTelegramHtml(date)}\n` +
-      `Время: ${escapeTelegramHtml(time)}\n` +
-      `Номер записи: <code>${voucher}</code>`;
-
-    const [cRes, mRes] = await Promise.all([
-      sendNotificationToProfile(payload.clientId, clientText),
-      sendNotificationToProfile(payload.masterId, masterText),
-    ]);
-
-    for (const [label, res] of [
-      ['client', cRes],
-      ['master', mRes],
-    ] as const) {
-      if (res.status === 'error') {
-        logNotifyError(`notifyAppointmentCreatedTelegram ${label}`, res.message);
-      }
-    }
+    const ctx = toContext(payload);
+    await Promise.all([notifyClientBookingCreated(ctx), notifyMasterBookingCreated(ctx)]);
   } catch (e) {
-    logNotifyError('notifyAppointmentCreatedTelegram', e);
+    logNotifyError('notifyAppointmentCreated', e);
   }
 }
 
-export async function notifyAppointmentConfirmedTelegram(clientId: string): Promise<void> {
+/** Мастеру: клиент отменил запись (in-app + Telegram). */
+export async function notifyMasterClientCancelledBooking(
+  masterId: string,
+  appointmentId: string,
+): Promise<void> {
   try {
-    const res = await sendNotificationToProfile(clientId, 'Ваша запись подтверждена');
-    if (res.status === 'error') {
-      logNotifyError('notifyAppointmentConfirmedTelegram', res.message);
-    }
-  } catch (e) {
-    logNotifyError('notifyAppointmentConfirmedTelegram', e);
-  }
-}
+    const ctx = await fetchAppointmentNotifyContext(appointmentId);
+    if (!ctx) return;
 
-export async function notifyAppointmentCompletedTelegram(clientId: string): Promise<void> {
-  try {
-    const res = await sendNotificationToProfile(clientId, 'Визит завершён. Вы можете оставить отзыв.');
-    if (res.status === 'error') {
-      logNotifyError('notifyAppointmentCompletedTelegram', res.message);
-    }
-  } catch (e) {
-    logNotifyError('notifyAppointmentCompletedTelegram', e);
-  }
-}
+    const w = formatAppointmentDateTime(ctx.startsAt);
+    const plain = `${w.date}, ${w.time}`;
 
-export async function notifyAppointmentCancelledByMasterTelegram(clientId: string): Promise<void> {
-  try {
-    const res = await sendNotificationToProfile(clientId, 'Мастер отменил запись');
-    if (res.status === 'error') {
-      logNotifyError('notifyAppointmentCancelledByMasterTelegram', res.message);
-    }
+    await notifyUser({
+      userId: masterId,
+      type: 'appointment_cancelled',
+      title: 'Клиент отменил запись',
+      body: `${ctx.clientName} отменил запись: ${ctx.serviceTitle} (${plain}).`,
+      relatedEntityType: 'appointment',
+      relatedEntityId: appointmentId,
+      telegramHtml:
+        `<b>Клиент отменил запись</b>\n` +
+        `Клиент: ${escapeTelegramHtml(ctx.clientName)}\n` +
+        `Услуга: ${escapeTelegramHtml(ctx.serviceTitle)}\n` +
+        `Было: ${escapeTelegramHtml(plain)}`,
+    });
   } catch (e) {
-    logNotifyError('notifyAppointmentCancelledByMasterTelegram', e);
-  }
-}
-
-export async function notifyAppointmentCancelledByClientTelegram(masterId: string): Promise<void> {
-  try {
-    const res = await sendNotificationToProfile(masterId, 'Клиент отменил запись');
-    if (res.status === 'error') {
-      logNotifyError('notifyAppointmentCancelledByClientTelegram', res.message);
-    }
-  } catch (e) {
-    logNotifyError('notifyAppointmentCancelledByClientTelegram', e);
+    logNotifyError('notifyMasterClientCancelledBooking', e);
   }
 }

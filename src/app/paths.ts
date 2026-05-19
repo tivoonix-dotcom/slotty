@@ -29,6 +29,7 @@ export const ADMIN_SCHEDULE_PATH = '/admin/schedule';
 export const ADMIN_APPOINTMENTS_PATH = '/admin/appointments';
 export const ADMIN_OVERVIEW_PATH = '/admin/overview';
 export const ADMIN_BILLING_PATH = '/admin/billing';
+export const ADMIN_NOTIFICATIONS_PATH = '/admin/notifications';
 
 /** Политика обработки персональных данных (страница). */
 export const LEGAL_PRIVACY_PATH = '/legal/privacy';

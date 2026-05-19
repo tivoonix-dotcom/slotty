@@ -41,6 +41,13 @@ const envSchema = z.object({
     (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
     z.string().min(1).optional(),
   ),
+  /** Планировщик напоминаний о записи (за 24ч и 1ч). По умолчанию включён. */
+  APPOINTMENT_REMINDERS_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false' && v !== '0'),
+  /** Интервал проверки напоминаний, мс (по умолчанию 5 мин). */
+  APPOINTMENT_REMINDERS_INTERVAL_MS: z.coerce.number().int().min(60_000).max(3_600_000).default(300_000),
 });
 
 const parsed = envSchema.safeParse(process.env);

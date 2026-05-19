@@ -7,6 +7,7 @@ import { normalizeMasterCareerItemType } from '../../../features/profile/lib/dem
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import { AdminCabinetStatusBanner } from '../AdminLayout';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
+import { AdminNotificationsBanner } from '../notifications/AdminNotificationsBanner';
 import { useAdminMasterDraft } from '../useAdminMasterData';
 import {
   deleteCareerItem,
@@ -929,6 +930,7 @@ export function AdminProfileSection() {
   return (
     <CabinetPageShell>
       <section className="relative pb-10 pt-0">
+        {useCabinetApi ? <AdminNotificationsBanner /> : null}
         <AdminProfileReadView
           draft={draft}
           appointments={appointments}

@@ -6,10 +6,7 @@ import type {
   MasterDraft,
   MasterOnboardingService,
 } from '../../../features/profile/lib/demoMasterStorage';
-import {
-  canUseBundlesAndPromotions,
-  isFreeServiceLimitReached,
-} from '../../../features/billing/model/masterPlans';
+import { useMasterPlanEntitlements } from '../../../features/billing/useMasterPlanEntitlements';
 import { ADMIN_BILLING_PATH } from '../../../app/paths';
 import {
   deleteMasterService,
@@ -98,11 +95,12 @@ function reindexServices(list: ManagedService[]): ManagedService[] {
 export function AdminServicesTab({ draft, onPersist }: Props) {
   const navigate = useNavigate();
   const { useCabinetApi, refreshDraft, commitDraftBaseline } = useAdminMasterCabinet();
+  const { canUseBundlesAndPromotions, freeServiceLimitReached } = useMasterPlanEntitlements();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<ServiceSheetMode>('full');
   const [freeLimitOpen, setFreeLimitOpen] = useState(false);
   const [extrasProOpen, setExtrasProOpen] = useState(false);
-  const extrasLocked = !canUseBundlesAndPromotions();
+  const extrasLocked = !canUseBundlesAndPromotions;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ManagedService | null>(null);
   const [previewTarget, setPreviewTarget] = useState<ManagedService | null>(null);
@@ -208,7 +206,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
   }, []);
 
   const openCreate = useCallback(() => {
-    if (isFreeServiceLimitReached(services.length)) {
+    if (freeServiceLimitReached) {
       setFreeLimitOpen(true);
       return;
     }
@@ -291,7 +289,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
       }
     }
 
-    if (!editingId && isFreeServiceLimitReached(services.length)) {
+    if (!editingId && freeServiceLimitReached) {
       setFormError('На тарифе Free можно не больше 3 услуг.');
       setFreeLimitOpen(true);
       return;
@@ -430,7 +428,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
 
   const duplicateService = useCallback(
     async (service: ManagedService) => {
-      if (isFreeServiceLimitReached(services.length)) {
+      if (freeServiceLimitReached) {
         setFreeLimitOpen(true);
         return;
       }

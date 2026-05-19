@@ -1,4 +1,5 @@
 import { apiFetch } from '../../../shared/api/backendClient';
+import { readSlottyApiErrorMessage } from '../../../shared/api/slottyApiErrorMessage';
 
 export type MeNotificationRow = {
   id: string;
@@ -14,7 +15,7 @@ export type MeNotificationRow = {
 export async function fetchMyNotifications(): Promise<MeNotificationRow[]> {
   const res = await apiFetch('/api/me/notifications');
   if (!res.ok) {
-    throw new Error(`NOTIFICATIONS_HTTP_${res.status}`);
+    throw new Error(await readSlottyApiErrorMessage(res));
   }
   const data = (await res.json()) as { notifications?: MeNotificationRow[] };
   return data.notifications ?? [];
@@ -25,6 +26,6 @@ export async function markNotificationReadApi(notificationId: string): Promise<v
     method: 'PATCH',
   });
   if (!res.ok) {
-    throw new Error(`NOTIFICATION_READ_${res.status}`);
+    throw new Error(await readSlottyApiErrorMessage(res));
   }
 }

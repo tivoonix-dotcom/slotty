@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import { ImageReveal } from '../shared/ui/ImageReveal';
+import { homeSection, homeSectionTitle } from './home/homeTheme';
 
 const CATEGORIES = [
   {
@@ -40,16 +41,12 @@ type HomeCategoriesProps = {
 
 export const HomeCategories: FC<HomeCategoriesProps> = ({ onCategory }) => {
   return (
-    <section className="mt-14 animate-fade-enter scroll-mt-28" style={{ animationDelay: '120ms' }}>
-      <div className="mb-6 px-1 text-center">
-
-
-        <h2 className="mt-2 text-[32px] font-semibold tracking-[-0.05em] text-neutral-950">
-          Что ищем?
-        </h2>
+    <section className={homeSection} style={{ animationDelay: '120ms' }}>
+      <div className="mb-4 px-0.5 text-center sm:text-left">
+        <h2 className={homeSectionTitle}>Что ищем?</h2>
       </div>
 
-      <div className="rounded-[36px] bg-[#F1EFEF] px-4 py-5 shadow-[0_24px_70px_rgba(17,17,17,0.05)]">
+      <div className="rounded-[28px] bg-[#F1EFEF] px-3 py-4 shadow-[0_8px_28px_rgba(17,24,39,0.05)]">
         <div className="flex flex-col gap-3">
           {CATEGORIES.map((category, index) => (
             <button
@@ -62,12 +59,14 @@ export const HomeCategories: FC<HomeCategoriesProps> = ({ onCategory }) => {
                 w-full
                 items-center
                 gap-4
-                rounded-[24px]
+                rounded-[22px]
                 bg-white
                 px-4
                 py-4
                 text-left
-                shadow-[0_12px_35px_rgba(17,17,17,0.04)]
+                ring-1
+                ring-[#F3F4F6]
+                shadow-[0_8px_28px_rgba(17,24,39,0.06)]
                 transition
                 active:scale-[0.985]
               "

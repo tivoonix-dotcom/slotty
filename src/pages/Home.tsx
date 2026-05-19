@@ -101,7 +101,7 @@ export function Home() {
             <button
               type="button"
               onClick={() => void onFindServices()}
-              className="rounded-full bg-brand-primary px-8 py-3.5 text-[15px] font-semibold text-white outline-none ring-0 transition hover:opacity-90 active:scale-[0.99]"
+              className="rounded-full bg-gradient-to-r from-[#F47C8C] to-[#F26D83] px-8 py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_28px_rgba(244,124,140,0.28)] outline-none ring-0 transition active:scale-[0.99]"
             >
               Найти услуги
             </button>

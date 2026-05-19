@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { withTransaction, query } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { assertMasterMonthlyAppointmentsAllowNew } from '../billing/billing.service.js';
+import { notifyClientByAppointmentId } from './appointments.clientNotifications.js';
 
 type SlotRow = {
   id: string;
@@ -140,17 +141,7 @@ export async function createAppointmentTx(input: {
       [input.slotId],
     );
 
-    await client.query(
-      `insert into public.notifications (user_id, type, title, body, related_entity_type, related_entity_id)
-       values ($1, 'appointment_new'::public.notification_type, $2, $3, 'appointment', $4)`,
-      [slot.master_id, 'Новая запись', 'У вас новая запись от клиента', appointmentId],
-    );
-
-    await client.query(
-      `insert into public.notifications (user_id, type, title, body, related_entity_type, related_entity_id)
-       values ($1, 'appointment_confirmed'::public.notification_type, $2, $3, 'appointment', $4)`,
-      [input.clientId, 'Запись создана', 'Вы записались к мастеру', appointmentId],
-    );
+    // Уведомления клиенту и мастеру — после commit (полный текст с ваучером).
 
     const vRes = await client.query<{ n: string }>(
       `select 'SL-' || upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 12)) as n`,
@@ -262,6 +253,9 @@ export async function cancelClientAppointment(clientId: string, appointmentId: s
       where a.id = $1 and s.id = a.slot_id and s.status = 'booked'`,
     [appointmentId],
   );
+
+  void notifyClientByAppointmentId(appointmentId, 'cancelled_by_self');
+
   return { masterId: row.master_id };
 }
 
@@ -280,6 +274,9 @@ export async function masterConfirmAppointment(masterId: string, appointmentId: 
   await query(`update public.appointments set status = 'confirmed', updated_at = now() where id = $1`, [
     appointmentId,
   ]);
+
+  void notifyClientByAppointmentId(appointmentId, 'confirmed');
+
   return { clientId: row.client_id };
 }
 
@@ -298,6 +295,9 @@ export async function masterCompleteAppointment(masterId: string, appointmentId:
   await query(`update public.appointments set status = 'completed', updated_at = now() where id = $1`, [
     appointmentId,
   ]);
+
+  void notifyClientByAppointmentId(appointmentId, 'completed');
+
   return { clientId: row.client_id };
 }
 
@@ -324,5 +324,8 @@ export async function masterCancelAppointment(masterId: string, appointmentId: s
       where a.id = $1 and s.id = a.slot_id and s.status = 'booked'`,
     [appointmentId],
   );
+
+  void notifyClientByAppointmentId(appointmentId, 'cancelled_by_master');
+
   return { clientId: row.client_id };
 }

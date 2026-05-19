@@ -6,6 +6,7 @@ import {
   type CatalogListingsParams,
 } from '../../../features/services/api/catalogListingsApi';
 import type { ServiceListingRecord } from '../../../features/services/model/demoMasters';
+import { getApiBaseUrl } from '../../../shared/api/backendClient';
 
 export type CatalogLoadState = {
   listings: ServiceListingRecord[];
@@ -32,6 +33,15 @@ export function useCatalogData(params: CatalogListingsParams = {}) {
 
   const reload = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }));
+    if (!getApiBaseUrl()) {
+      setState({
+        listings: [],
+        categories: [],
+        loading: false,
+        error: 'Сервер не настроен. Укажите VITE_API_URL в окружении.',
+      });
+      return;
+    }
     try {
       const p = paramsRef.current;
       const [catRes, listRes] = await Promise.all([

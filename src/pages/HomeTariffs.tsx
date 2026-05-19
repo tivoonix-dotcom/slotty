@@ -110,7 +110,7 @@ export const HomeTariffs: FC = () => {
                 ${
                   plan.muted
                     ? 'bg-white text-neutral-950'
-                    : 'bg-[#E29595] text-white shadow-[0_20px_60px_rgba(226,149,149,0.32)]'
+                    : 'bg-[#F47C8C] text-white shadow-[0_20px_60px_rgba(244,124,140,0.32)]'
                 }
               `}
             >
@@ -186,7 +186,7 @@ export const HomeTariffs: FC = () => {
                           items-center
                           justify-center
                           rounded-full
-                          ${plan.muted ? 'bg-[#F1EFEF] text-[#E29595]' : 'bg-white/20 text-white'}
+                          ${plan.muted ? 'bg-[#F1EFEF] text-[#F47C8C]' : 'bg-white/20 text-white'}
                         `}
                       >
                         <IconCheck className="h-3.5 w-3.5" />

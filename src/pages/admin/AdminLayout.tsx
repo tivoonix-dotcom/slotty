@@ -5,13 +5,16 @@ import { HEADER_LOGO_SRC } from '../../app/headerLogo';
 import {
   ADMIN_APPOINTMENTS_PATH,
   ADMIN_BILLING_PATH,
+  ADMIN_NOTIFICATIONS_PATH,
   ADMIN_OVERVIEW_PATH,
   ADMIN_PATH,
   ADMIN_SCHEDULE_PATH,
   ADMIN_SERVICES_PATH,
   HUB_PATH,
 } from '../../app/paths';
-import { getCurrentMasterPlan, planBadgeLabel } from '../../features/billing/model/masterPlans';
+import { AdminNotificationsProvider, useAdminNotifications } from './notifications/AdminNotificationsContext';
+import { planBadgeLabel } from '../../features/billing/model/masterPlans';
+import { useMasterPlanEntitlements } from '../../features/billing/useMasterPlanEntitlements';
 import { AdminMasterCabinetProvider, useAdminMasterCabinet } from './AdminMasterCabinetContext';
 import { ProfileSectionTabsBar, ProfileTabProvider, PROFILE_TAB_BAR_HEIGHT } from './profile/profileTabContext';
 import { ADMIN_CABINET_SHELL_MAX, OVERVIEW_TAB_BAR_HEIGHT } from './overview/adminOverviewTheme';
@@ -101,6 +104,28 @@ function IconNavDocuments({ className }: { className?: string }) {
   );
 }
 
+function IconNavNotifications({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden {...iconStroke}>
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
+
+function UnreadBadge({ count, inverted }: { count: number; inverted?: boolean }) {
+  const label = count > 9 ? '9+' : String(count);
+  return (
+    <span
+      className={`flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold leading-none ${
+        inverted ? 'bg-white/25 text-white' : 'bg-[#F47C8C] text-white'
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
+
 type MenuItem = {
   to: string;
   label: string;
@@ -153,6 +178,18 @@ export function AdminCabinetStatusBanner() {
 type SettingsSheetView = 'support' | 'documents' | null;
 
 export function AdminLayout() {
+  return (
+    <AdminMasterCabinetProvider>
+      <AdminNotificationsProvider>
+        <AdminLayoutInner />
+      </AdminNotificationsProvider>
+    </AdminMasterCabinetProvider>
+  );
+}
+
+function AdminLayoutInner() {
+  const { planId } = useMasterPlanEntitlements();
+  const { hasUnread, unreadCount } = useAdminNotifications();
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsSheet, setSettingsSheet] = useState<SettingsSheetView>(null);
   const stickyShellRef = useRef<HTMLDivElement>(null);
@@ -162,6 +199,7 @@ export function AdminLayout() {
   const isServices = pathname === ADMIN_SERVICES_PATH;
   const isSchedule = pathname === ADMIN_SCHEDULE_PATH;
   const isAppointments = pathname === ADMIN_APPOINTMENTS_PATH;
+  const isNotifications = pathname === ADMIN_NOTIFICATIONS_PATH;
 
   useLayoutEffect(() => {
     const el = stickyShellRef.current;
@@ -204,7 +242,6 @@ export function AdminLayout() {
     <div
       className={`min-h-dvh pb-[calc(2rem+env(safe-area-inset-bottom,0px))] text-[#111827] ${pageShellBg}`}
     >
-      <AdminMasterCabinetProvider>
         <ProfileTabProvider>
           <div
             ref={stickyShellRef}
@@ -232,15 +269,38 @@ export function AdminLayout() {
                     className="h-20 w-auto max-w-[min(20rem,70vw)] object-contain object-left sm:h-[5.5rem] sm:max-w-[22rem]"
                   />
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen(true)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F3F4F6] text-[#111827] transition hover:bg-[#E4E7EC] active:scale-[0.97]"
-                  aria-label="Меню разделов"
-                  aria-expanded={menuOpen}
-                >
-                  <IconBurger className="text-neutral-800" />
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Link
+                    to={ADMIN_NOTIFICATIONS_PATH}
+                    className={`relative flex h-11 w-11 items-center justify-center rounded-2xl transition active:scale-[0.97] ${
+                      isNotifications
+                        ? 'bg-[#FFF1F4] text-[#F47C8C]'
+                        : 'bg-[#F3F4F6] text-[#111827] hover:bg-[#E4E7EC]'
+                    }`}
+                    aria-label={
+                      hasUnread ? `Уведомления, ${unreadCount} новых` : 'Уведомления'
+                    }
+                  >
+                    <IconNavNotifications />
+                    {hasUnread ? (
+                      <span
+                        className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#F47C8C] px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white"
+                        aria-hidden
+                      >
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    ) : null}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setMenuOpen(true)}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F3F4F6] text-[#111827] transition hover:bg-[#E4E7EC] active:scale-[0.97]"
+                    aria-label="Меню разделов"
+                    aria-expanded={menuOpen}
+                  >
+                    <IconBurger className="text-neutral-800" />
+                  </button>
+                </div>
               </div>
             <div className="w-full border-b-2 border-[#F47C8C]" aria-hidden />
           </div>
@@ -254,7 +314,6 @@ export function AdminLayout() {
             <ProfileSectionTabsBar />
           </div>
         </ProfileTabProvider>
-      </AdminMasterCabinetProvider>
 
       <AdminBottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Разделы">
         <nav className="flex flex-col gap-2 pb-1" aria-label="Разделы кабинета">
@@ -287,6 +346,30 @@ export function AdminLayout() {
             </NavLink>
           ))}
 
+          <NavLink
+            to={ADMIN_NOTIFICATIONS_PATH}
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) => navClass(isActive)}
+          >
+            {({ isActive }) => (
+              <>
+                <span className="flex min-w-0 flex-1 items-center gap-3">
+                  <IconNavNotifications className="shrink-0 opacity-95" />
+                  <span className="truncate">Уведомления</span>
+                </span>
+                {isActive ? (
+                  <span className="shrink-0 text-[12px] font-medium text-white/90" aria-hidden>
+                    ●
+                  </span>
+                ) : hasUnread ? (
+                  <UnreadBadge count={unreadCount} inverted={false} />
+                ) : (
+                  <span className="w-3 shrink-0" aria-hidden />
+                )}
+              </>
+            )}
+          </NavLink>
+
           <div className="mt-2 flex flex-col gap-2 border-t border-neutral-200/80 pt-3">
             <NavLink
               to={ADMIN_BILLING_PATH}
@@ -294,8 +377,7 @@ export function AdminLayout() {
               className={({ isActive }) => navClass(isActive)}
             >
               {({ isActive }) => {
-                const plan = getCurrentMasterPlan();
-                const badge = planBadgeLabel(plan.plan);
+                const badge = planBadgeLabel(planId);
                 return (
                   <>
                     <span className="flex min-w-0 flex-1 items-center gap-3">

@@ -1,12 +1,9 @@
 import { env } from '../../config/env.js';
+import { callBotMethod, getBotToken, getWebhookInfo } from './telegram.botApi.js';
+import { startTelegramPolling } from './telegram.polling.js';
+import { resolveTelegramWebhookUrl, shouldUseTelegramPolling } from './telegram.webhookConfig.js';
 
 const TG_API_BASE = 'https://api.telegram.org';
-
-function getBotToken(): string | undefined {
-  const raw = process.env.TELEGRAM_BOT_TOKEN;
-  const t = typeof raw === 'string' ? raw.trim() : '';
-  return t.length > 0 ? t : undefined;
-}
 
 function logTelegramFailure(operation: string, message: string): void {
   console.warn(`[telegram] ${operation} failed:`, message);
@@ -60,24 +57,7 @@ export async function sendTelegramMessage(params: {
   }
 }
 
-type StepResult = { ok: true } | { ok: false; error: string };
-
-async function callBotMethod(token: string, method: string, body: Record<string, unknown>): Promise<StepResult> {
-  try {
-    const res = await fetch(`${TG_API_BASE}/bot${token}/${method}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = (await res.json().catch(() => ({}))) as { ok?: boolean; description?: string };
-    if (!res.ok || data.ok === false) {
-      return { ok: false, error: data.description?.trim() || `HTTP ${res.status}` };
-    }
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'network_error' };
-  }
-}
+export type StepResult = { ok: true } | { ok: false; error: string };
 
 export type SetupTelegramBotReport = {
   commands: StepResult;
@@ -129,6 +109,7 @@ export async function setupTelegramBot(params: {
     const body: Record<string, unknown> = {
       url: wurl,
       allowed_updates: ['message'],
+      drop_pending_updates: true,
     };
     if (wsec) {
       body.secret_token = wsec;
@@ -140,27 +121,52 @@ export async function setupTelegramBot(params: {
 }
 
 /**
- * При старте бэкенда: если в env заданы токен и TELEGRAM_WEBHOOK_URL — вызывает setWebhook,
- * чтобы не забывали после деплоя (достаточно переменных на Railway).
+ * При старте: вебхук (прод) или long polling (локально без HTTPS).
  */
-export async function ensureTelegramWebhookFromEnv(): Promise<void> {
+export async function initTelegramBotTransport(): Promise<void> {
   const token = getBotToken();
-  const url = env.TELEGRAM_WEBHOOK_URL?.trim();
-  if (!token || !url) {
+  if (!token) {
+    console.warn('[telegram] TELEGRAM_BOT_TOKEN не задан — /start и уведомления не работают.');
     return;
   }
+
+  if (shouldUseTelegramPolling()) {
+    await startTelegramPolling();
+    return;
+  }
+
+  const url = resolveTelegramWebhookUrl();
+  if (!url) {
+    console.warn(
+      '[telegram] Не задан TELEGRAM_WEBHOOK_URL (или PUBLIC_API_URL / RAILWAY_PUBLIC_DOMAIN) — ' +
+        'команда /start не будет обрабатываться. Задайте TELEGRAM_WEBHOOK_URL=https://ВАШ_API/api/telegram/webhook',
+    );
+    return;
+  }
+
   const wsec = env.TELEGRAM_WEBHOOK_SECRET?.trim();
   const body: Record<string, unknown> = {
     url,
     allowed_updates: ['message'],
+    drop_pending_updates: false,
   };
   if (wsec) {
     body.secret_token = wsec;
   }
+
   const r = await callBotMethod(token, 'setWebhook', body);
   if (r.ok) {
-    console.log('[telegram] setWebhook on startup OK');
+    console.log('[telegram] setWebhook OK →', url);
+    const info = await getWebhookInfo(token);
+    if (info?.last_error_message) {
+      console.warn('[telegram] webhook last error:', info.last_error_message);
+    }
   } else {
-    console.warn('[telegram] setWebhook on startup failed:', r.error);
+    console.warn('[telegram] setWebhook failed:', r.error);
   }
+}
+
+/** @deprecated используйте initTelegramBotTransport */
+export async function ensureTelegramWebhookFromEnv(): Promise<void> {
+  await initTelegramBotTransport();
 }

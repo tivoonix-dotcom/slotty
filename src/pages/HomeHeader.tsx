@@ -254,7 +254,7 @@ export function HomeHeader({
                     className="
                       w-full
                       rounded-full
-                      bg-brand-primary
+                      bg-gradient-to-r from-[#F47C8C] to-[#F26D83]
                       py-4
                       text-center
                       text-[15px]

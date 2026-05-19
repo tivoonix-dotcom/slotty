@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useCatalogErrorModal } from '../hooks/useCatalogErrorModal';
 import { useOutletContext } from 'react-router-dom';
 import type { ClientOutletContext } from '../clientOutletContext';
 import { ClientPageShell } from '../components/ClientPageShell';
@@ -53,6 +54,7 @@ export function MastersCatalogPage() {
   );
 
   const { listings, categories, loading, error, reload } = useCatalogData(apiParams);
+  useCatalogErrorModal(error, reload, 'Мастера');
 
   const masters = useMemo(() => {
     let list = groupListingsByMaster(listings);

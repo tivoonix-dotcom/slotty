@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useCatalogErrorModal } from '../hooks/useCatalogErrorModal';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { HiArrowLeft } from 'react-icons/hi2';
 import type { ClientOutletContext } from '../clientOutletContext';
@@ -56,6 +57,7 @@ export function ServiceCategoryPage() {
   );
 
   const { listings, categories, loading, error, reload } = useCatalogData(apiParams);
+  useCatalogErrorModal(error, reload, 'Категория');
 
   const categoryName =
     categories.find((c) => c.code === categoryCode)?.name ?? categoryCode ?? 'Услуга';

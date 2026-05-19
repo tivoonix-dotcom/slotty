@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { setupTelegramBot } from '../modules/telegram/telegram.service.js';
+import { resolveTelegramWebhookUrl } from '../modules/telegram/telegram.webhookConfig.js';
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -31,17 +32,26 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL?.trim();
+  const webhookUrl = resolveTelegramWebhookUrl();
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
-  if (webhookUrl && !webhookSecret) {
+  if (!webhookUrl) {
+    console.error(
+      'Задайте TELEGRAM_WEBHOOK_URL=https://ВАШ_API_HOST/api/telegram/webhook\n' +
+        'или PUBLIC_API_URL=https://ВАШ_API_HOST (Railway: домен сервиса slotty-api).',
+    );
+    process.exit(1);
+  }
+  if (!webhookSecret) {
     console.warn(
-      'TELEGRAM_WEBHOOK_SECRET не задан — вебхук будет без secret_token (для продакшена лучше задать секрет).',
+      'TELEGRAM_WEBHOOK_SECRET не задан — вебхук без secret_token (для продакшена лучше задать секрет).',
     );
   }
 
+  console.log('Webhook URL:', webhookUrl);
+
   const report = await setupTelegramBot({
     webAppUrl,
-    webhookUrl: webhookUrl || undefined,
+    webhookUrl,
     webhookSecret: webhookSecret || undefined,
   });
 

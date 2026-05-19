@@ -9,7 +9,7 @@ import {
   priceForPlan,
   saveCurrentMasterPlan,
 } from '../../../features/billing/model/masterPlans';
-import { getBillingPlans, switchMySubscriptionMock, getMySubscription, type BillingPlanDto, type MasterSubscriptionDto } from '../../../features/admin/api/adminBillingApi';
+import { getBillingPlans, switchMySubscriptionMock, type BillingPlanDto } from '../../../features/admin/api/adminBillingApi';
 import { getMasterDraft } from '../../../features/master/model/masterDraftStorage';
 import { ensureDemoAppointmentsSeeded } from '../../../features/master/model/demoMasterAppointments';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
@@ -82,17 +82,16 @@ const PLAN_UI: Record<
 };
 
 export function AdminBillingTab() {
-  const { useCabinetApi } = useAdminMasterCabinet();
+  const { useCabinetApi, subscription, refreshSubscription, cabinetLoading } = useAdminMasterCabinet();
 
   const [planState, setPlanState] = useState<MasterPlanState>(() => getCurrentMasterPlan());
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(() => getCurrentMasterPlan().billingPeriod);
   const [mockProOpen, setMockProOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const [billingFallback, setBillingFallback] = useState(false);
+  const [plansError, setPlansError] = useState(false);
   const [apiLoading, setApiLoading] = useState(() => Boolean(useCabinetApi));
   const [apiPlans, setApiPlans] = useState<BillingPlanDto[] | null>(null);
-  const [apiSub, setApiSub] = useState<MasterSubscriptionDto | null>(null);
 
   useEffect(() => {
     if (!useCabinetApi) {
@@ -103,14 +102,13 @@ export function AdminBillingTab() {
     (async () => {
       setApiLoading(true);
       try {
-        const [plans, sub] = await Promise.all([getBillingPlans(), getMySubscription()]);
+        const plans = await getBillingPlans();
         if (cancelled) return;
         setApiPlans(plans);
-        setApiSub(sub);
-        setBillingFallback(false);
+        setPlansError(false);
       } catch {
         if (cancelled) return;
-        setBillingFallback(true);
+        setPlansError(true);
       } finally {
         if (!cancelled) setApiLoading(false);
       }
@@ -120,7 +118,8 @@ export function AdminBillingTab() {
     };
   }, [useCabinetApi]);
 
-  const useLiveBilling = Boolean(useCabinetApi && !billingFallback && apiSub);
+  const apiSub = subscription;
+  const useLiveBilling = Boolean(useCabinetApi && apiSub);
 
   const appointments = useMemo(() => ensureDemoAppointmentsSeeded(), []);
   const monthlyCountDemo = useMemo(() => countAppointmentsInCurrentMonth(appointments), [appointments]);
@@ -157,8 +156,8 @@ export function AdminBillingTab() {
     async (next: BillingPeriod) => {
       if (useLiveBilling && apiSub) {
         try {
-          const sub = await switchMySubscriptionMock(apiSub.plan.code as 'free' | 'pro', next);
-          setApiSub(sub);
+          await switchMySubscriptionMock(apiSub.plan.code as 'free' | 'pro', next);
+          await refreshSubscription();
         } catch (e) {
           setToast(e instanceof Error ? e.message : 'Не удалось сохранить период');
           window.setTimeout(() => setToast(null), 3200);
@@ -174,15 +173,15 @@ export function AdminBillingTab() {
       saveCurrentMasterPlan(merged);
       setPlanState(merged);
     },
-    [apiSub, planState, useLiveBilling],
+    [apiSub, planState, refreshSubscription, useLiveBilling],
   );
 
   const applyPlan = useCallback(
     async (plan: PlanId) => {
       if (useLiveBilling) {
         try {
-          const sub = await switchMySubscriptionMock(plan, billingPeriodView);
-          setApiSub(sub);
+          await switchMySubscriptionMock(plan, billingPeriodView);
+          await refreshSubscription();
           showToast(plan === 'free' ? 'Тариф Free' : 'Тариф обновлён');
         } catch (e) {
           setToast(e instanceof Error ? e.message : 'Не удалось сменить тариф');
@@ -198,7 +197,7 @@ export function AdminBillingTab() {
       saveCurrentMasterPlan(next);
       setPlanState(next);
     },
-    [billingPeriod, billingPeriodView, showToast, useLiveBilling],
+    [billingPeriod, billingPeriodView, refreshSubscription, showToast, useLiveBilling],
   );
 
   const confirmMockDemo = useCallback(() => {
@@ -216,8 +215,8 @@ export function AdminBillingTab() {
   const confirmMock = useCallback(async () => {
     if (useLiveBilling) {
       try {
-        const sub = await switchMySubscriptionMock('pro', billingPeriodView);
-        setApiSub(sub);
+        await switchMySubscriptionMock('pro', billingPeriodView);
+        await refreshSubscription();
         setMockProOpen(false);
         showToast('Тариф Pro подключён');
       } catch (e) {
@@ -227,7 +226,7 @@ export function AdminBillingTab() {
       return;
     }
     confirmMockDemo();
-  }, [billingPeriodView, confirmMockDemo, showToast, useLiveBilling]);
+  }, [billingPeriodView, confirmMockDemo, refreshSubscription, showToast, useLiveBilling]);
 
   const maxSvc = Math.max(1, limits.maxServices ?? 3);
   const maxAppt = Math.max(1, limits.maxMonthlyAppointments ?? 20);
@@ -240,8 +239,20 @@ export function AdminBillingTab() {
         </div>
       ) : null}
 
-      {apiLoading ? (
+      {apiLoading || (useCabinetApi && cabinetLoading) ? (
         <LoadingVideo size="sm" label="Загрузка тарифов…" className="py-2" />
+      ) : null}
+
+      {useCabinetApi && !cabinetLoading && !subscription ? (
+        <p className="rounded-2xl bg-[#FFF0F0] px-4 py-3 text-center text-[14px] font-semibold text-[#9B2C2C]">
+          Не удалось загрузить подписку. Обновите страницу или повторите позже.
+        </p>
+      ) : null}
+
+      {plansError ? (
+        <p className="rounded-2xl bg-[#FFF0F0] px-4 py-3 text-center text-[14px] font-semibold text-[#9B2C2C]">
+          Не удалось загрузить список тарифов.
+        </p>
       ) : null}
 
       <section className="rounded-[36px] bg-[#F1EFEF] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)]">

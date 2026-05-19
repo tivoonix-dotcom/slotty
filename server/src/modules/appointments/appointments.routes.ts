@@ -11,13 +11,7 @@ import {
   masterCompleteAppointment,
   masterConfirmAppointment,
 } from './appointments.service.js';
-import {
-  notifyAppointmentCancelledByClientTelegram,
-  notifyAppointmentCancelledByMasterTelegram,
-  notifyAppointmentCompletedTelegram,
-  notifyAppointmentConfirmedTelegram,
-  notifyAppointmentCreatedTelegram,
-} from './appointments.telegram.js';
+import { notifyAppointmentCreated, notifyMasterClientCancelledBooking } from './appointments.telegram.js';
 
 export const appointmentCreateRouter = Router();
 appointmentCreateRouter.use(authMiddleware);
@@ -38,7 +32,8 @@ appointmentCreateRouter.post(
       serviceId: body.serviceId,
       clientNote: body.clientNote,
     });
-    void notifyAppointmentCreatedTelegram({
+    void notifyAppointmentCreated({
+      appointmentId: out.appointmentId,
       clientId: out.clientId,
       masterId: out.masterId,
       serviceTitle: out.serviceTitle,
@@ -67,7 +62,7 @@ clientAppointmentsRouter.patch(
   asyncHandler(async (req, res) => {
     const appointmentId = z.string().uuid().parse(req.params.appointmentId);
     const { masterId } = await cancelClientAppointment(req.user!.id, appointmentId);
-    void notifyAppointmentCancelledByClientTelegram(masterId);
+    void notifyMasterClientCancelledBooking(masterId, appointmentId);
     res.status(204).send();
   }),
 );
@@ -86,8 +81,7 @@ masterAppointmentsRouter.patch(
   '/:appointmentId/confirm',
   asyncHandler(async (req, res) => {
     const appointmentId = z.string().uuid().parse(req.params.appointmentId);
-    const { clientId } = await masterConfirmAppointment(req.user!.id, appointmentId);
-    void notifyAppointmentConfirmedTelegram(clientId);
+    await masterConfirmAppointment(req.user!.id, appointmentId);
     res.status(204).send();
   }),
 );
@@ -96,8 +90,7 @@ masterAppointmentsRouter.patch(
   '/:appointmentId/complete',
   asyncHandler(async (req, res) => {
     const appointmentId = z.string().uuid().parse(req.params.appointmentId);
-    const { clientId } = await masterCompleteAppointment(req.user!.id, appointmentId);
-    void notifyAppointmentCompletedTelegram(clientId);
+    await masterCompleteAppointment(req.user!.id, appointmentId);
     res.status(204).send();
   }),
 );
@@ -106,8 +99,7 @@ masterAppointmentsRouter.patch(
   '/:appointmentId/cancel',
   asyncHandler(async (req, res) => {
     const appointmentId = z.string().uuid().parse(req.params.appointmentId);
-    const { clientId } = await masterCancelAppointment(req.user!.id, appointmentId);
-    void notifyAppointmentCancelledByMasterTelegram(clientId);
+    await masterCancelAppointment(req.user!.id, appointmentId);
     res.status(204).send();
   }),
 );

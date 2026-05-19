@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { getApiBaseUrl } from '../../shared/api/backendClient';
+import { getMySubscription, type MasterSubscriptionDto } from '../../features/admin/api/adminBillingApi';
 import {
   deleteMasterService,
   fetchMasterAppointments,
@@ -74,6 +75,8 @@ type Ctx = {
   cabinetLoading: boolean;
   cabinetError: string | null;
   useCabinetApi: boolean;
+  subscription: MasterSubscriptionDto | null;
+  refreshSubscription: () => Promise<void>;
 };
 
 const AdminCabinetCtx = createContext<Ctx | null>(null);
@@ -107,6 +110,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
   const [appointments, setAppointments] = useState<DemoMasterAppointment[]>(() => ensureDemoAppointmentsSeeded());
   const [cabinetLoading, setCabinetLoading] = useState(useCabinetApi);
   const [cabinetError, setCabinetError] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<MasterSubscriptionDto | null>(null);
 
   const appointmentsRef = useRef(appointments);
   appointmentsRef.current = appointments;
@@ -123,6 +127,11 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       setDraft(mapped);
       lastSyncedSnapshotRef.current = cloneDraft(mapped);
       setAppointments(rows.map(mapMasterAppointmentRowToDemo));
+      try {
+        setSubscription(await getMySubscription());
+      } catch {
+        setSubscription(null);
+      }
     } catch (e) {
       setCabinetError(e instanceof Error ? e.message : 'Не удалось загрузить кабинет');
     } finally {
@@ -134,6 +143,11 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
     try {
       const [cabinet, rows] = await Promise.all([fetchMasterCabinet(), fetchMasterAppointments()]);
       const mapped = cabinetDtoToMasterDraft(cabinet);
+      try {
+        setSubscription(await getMySubscription());
+      } catch {
+        /* keep previous subscription */
+      }
       setDraft((prev) => {
         const coverId = prev.portfolioCoverId?.trim();
         const keepCover =
@@ -151,6 +165,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
   useEffect(() => {
     if (!useCabinetApi) {
       setCabinetLoading(false);
+      setSubscription(null);
       if (!getStoredMasterDraft()) {
         persistMasterDraft(getMasterDraft());
         setDraft(getMasterDraft());
@@ -265,6 +280,11 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
     }
 
     lastSyncedSnapshotRef.current = cloneDraft(working);
+    try {
+      setSubscription(await getMySubscription());
+    } catch {
+      /* keep previous */
+    }
   }, []);
 
   const flushDraftToBackend = useCallback(
@@ -426,6 +446,15 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
     [scheduleSync, useCabinetApi],
   );
 
+  const refreshSubscription = useCallback(async () => {
+    if (!useCabinetApi) return;
+    try {
+      setSubscription(await getMySubscription());
+    } catch {
+      /* keep previous */
+    }
+  }, [useCabinetApi]);
+
   const refreshDraft = useCallback(async () => {
     if (useCabinetApi) {
       await reloadCabinetFromApiSilent();
@@ -478,6 +507,11 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
         await Promise.all(calls);
         const fresh = await fetchMasterAppointments();
         setAppointments(fresh.map(mapMasterAppointmentRowToDemo));
+        try {
+          setSubscription(await getMySubscription());
+        } catch {
+          /* keep previous */
+        }
         setCabinetError(null);
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Не удалось обновить запись';
@@ -503,6 +537,8 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       cabinetLoading,
       cabinetError,
       useCabinetApi,
+      subscription,
+      refreshSubscription,
     }),
     [
       draft,
@@ -517,6 +553,8 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       cabinetLoading,
       cabinetError,
       useCabinetApi,
+      subscription,
+      refreshSubscription,
     ],
   );
 

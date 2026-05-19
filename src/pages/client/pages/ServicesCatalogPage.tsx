@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useCatalogErrorModal } from '../hooks/useCatalogErrorModal';
 import type { AggregatedServiceCard } from '../lib/aggregateServices';
 import { ClientPageShell } from '../components/ClientPageShell';
 import { ClientSearchBar } from '../components/ClientSearchBar';
@@ -45,6 +46,7 @@ export function ServicesCatalogPage() {
   }, [search, chips]);
 
   const { listings, categories, loading, error, reload } = useCatalogData(apiParams);
+  useCatalogErrorModal(error, reload, 'Услуги');
 
   const services = useMemo(
     () => aggregateServicesByCategory(listings, categories),

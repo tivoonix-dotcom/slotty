@@ -23,6 +23,7 @@ import {
   pickFirstSlot,
   startOfDay,
 } from '../../features/booking/model/demoBookingSlotGrid';
+import { useClientErrorModal } from '../client/ClientErrorModalContext';
 import { BookingFlowView } from './BookingFlowView';
 import { BookingPageShell } from './BookingPageShell';
 import { BookingStateScreen } from './BookingStateScreen';
@@ -67,6 +68,8 @@ export function BookingPage() {
     | { status: 'error' };
 
   const [apiBundle, setApiBundle] = useState<ApiBookingBundle>({ status: 'idle' });
+  const [apiReloadKey, setApiReloadKey] = useState(0);
+  const { showError } = useClientErrorModal();
 
   useEffect(() => {
     if (!wantsApiBooking || !effectiveMasterId || !serviceIdFromUrl) {
@@ -96,7 +99,15 @@ export function BookingPage() {
     return () => {
       cancelled = true;
     };
-  }, [wantsApiBooking, effectiveMasterId, serviceIdFromUrl]);
+  }, [wantsApiBooking, effectiveMasterId, serviceIdFromUrl, apiReloadKey]);
+
+  useEffect(() => {
+    if (apiBundle.status !== 'error') return;
+    showError('Не удалось загрузить данные для записи. Проверьте соединение.', {
+      title: 'Запись',
+      onRetry: () => setApiReloadKey((k) => k + 1),
+    });
+  }, [apiBundle.status, showError]);
 
   const demoMaster = effectiveMasterId ? getDemoMasterProfile(effectiveMasterId) : undefined;
 
@@ -145,6 +156,11 @@ export function BookingPage() {
   const [bookError, setBookError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!bookError) return;
+    showError(bookError, { title: 'Запись' });
+  }, [bookError, showError]);
 
   useEffect(() => {
     if (slotFromUrl && slotDays.length > 0) {

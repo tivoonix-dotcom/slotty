@@ -1,4 +1,4 @@
-﻿export function SkeletonServiceCard() {
+export function SkeletonServiceCard() {
   return (
     <div className="w-full overflow-hidden rounded-[24px] bg-white shadow-[0_10px_36px_rgba(17,24,39,0.07)] ring-1 ring-[#f2f2f2]">
       <div className="space-y-4 p-4">

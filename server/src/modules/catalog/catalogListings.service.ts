@@ -269,13 +269,22 @@ export async function searchCatalogListings(q: CatalogListingsQuery): Promise<Ca
   }
 
   if (q.promotionOnly) {
-    whereParts.push(`exists (
-      select 1 from public.master_services msp
-      where msp.master_id = mp.master_id and msp.is_active = true
-        and (
-          msp.has_promotion = true
-          or (msp.old_price_amount is not null and msp.old_price_amount > msp.price_amount)
-        )
+    whereParts.push(`(
+      exists (
+        select 1 from public.master_services msp
+        where msp.master_id = mp.master_id and msp.is_active = true
+          and (
+            msp.has_promotion = true
+            or (msp.old_price_amount is not null and msp.old_price_amount > msp.price_amount)
+          )
+      )
+      or exists (
+        select 1 from public.master_service_promotions pr
+        where pr.master_id = mp.master_id
+          and pr.status = 'active'
+          and pr.starts_at <= now()
+          and pr.ends_at >= now()
+      )
     )`);
   }
 
