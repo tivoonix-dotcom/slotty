@@ -14,7 +14,7 @@ import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import { cabinetCard, cabinetCardPad, cabinetIconCircle, cabinetPinkBtn } from './adminProfileCabinetTheme';
 
-/** РРєРѕРЅРєР° СЃРµРєС†РёРё: РјСЏРіРєРёР№ РєРІР°РґСЂР°С‚, РµРґРёРЅС‹Р№ РЅР°Р±РѕСЂ SVG. */
+/** Иконка секции: мягкий квадрат, единый набор SVG. */
 function CabinetSectionIcon({ name, size = 18 }: { name: CabinetIconName; size?: number }) {
   return (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C]">
@@ -53,21 +53,21 @@ function buildRatingStat(meta?: ProfileStatsRatingMeta): StatMiniDisplay {
   const rating = meta?.rating ?? 0;
   const hasRating = reviews > 0 && Number.isFinite(rating) && rating > 0;
   if (!hasRating) {
-    return { value: 'РќРѕРІС‹Р№', label: 'Р РµР№С‚РёРЅРі', empty: true };
+    return { value: 'Новый', label: 'Рейтинг', empty: true };
   }
-  return { value: rating.toFixed(1), label: 'Р РµР№С‚РёРЅРі', empty: false };
+  return { value: rating.toFixed(1), label: 'Рейтинг', empty: false };
 }
 
 function buildBookingsStat(appointments: DemoMasterAppointment[]): StatMiniDisplay {
   const count = appointments.length;
   return {
     value: String(count),
-    label: 'Р—Р°РїРёСЃРё',
+    label: 'Записи',
     empty: count <= 0,
   };
 }
 
-/** Р”РѕР»СЏ Р·Р°РІРµСЂС€С‘РЅРЅС‹С… СЃСЂРµРґРё Р·Р°РІРµСЂС€С‘РЅРЅС‹С… Рё РѕС‚РјРµРЅС‘РЅРЅС‹С… вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РІ РєР°Р±РёРЅРµС‚Рµ. */
+/** Доля завершённых среди завершённых и отменённых — только для отображения в кабинете. */
 function computeHappyClientsPercent(appointments: DemoMasterAppointment[]): number | null {
   const completed = appointments.filter((a) => a.status === 'completed').length;
   if (completed <= 0) return null;
@@ -80,9 +80,9 @@ function computeHappyClientsPercent(appointments: DemoMasterAppointment[]): numb
 function buildHappyStat(appointments: DemoMasterAppointment[]): StatMiniDisplay {
   const percent = computeHappyClientsPercent(appointments);
   if (percent == null) {
-    return { value: 'РџРѕРєР° РЅРµС‚', label: 'РљР»РёРµРЅС‚С‹', empty: true };
+    return { value: 'Пока нет', label: 'Клиенты', empty: true };
   }
-  return { value: `${percent}%`, label: 'Р”РѕРІРѕР»СЊРЅС‹Рµ РєР»РёРµРЅС‚С‹', empty: false };
+  return { value: `${percent}%`, label: 'Довольные клиенты', empty: false };
 }
 
 export function buildProfileStats(
@@ -121,8 +121,8 @@ function StatMiniCard({ icon, label, value, empty }: StatMiniDisplay & { icon: R
 }
 
 export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: ProfileStats }) {
-  const photoSrc = (draft.photoUrl && draft.photoUrl.trim()) || defaultMasterAvatarUrl(draft.name || 'РњР°СЃС‚РµСЂ');
-  const displayName = draft.name.trim() || 'РњР°СЃС‚РµСЂ';
+  const photoSrc = (draft.photoUrl && draft.photoUrl.trim()) || defaultMasterAvatarUrl(draft.name || 'Мастер');
+  const displayName = draft.name.trim() || 'Мастер';
 
   return (
     <section className={`${cabinetCard} relative z-0 rounded-t-none border-t-0 shadow-none`}>
@@ -134,7 +134,7 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
           height={360}
           className="h-full w-full object-cover"
           onError={(event) => {
-            (event.target as HTMLImageElement).src = defaultMasterAvatarUrl(draft.name || 'РњР°СЃС‚РµСЂ');
+            (event.target as HTMLImageElement).src = defaultMasterAvatarUrl(draft.name || 'Мастер');
           }}
         />
       </div>
@@ -149,7 +149,7 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
               height={176}
               className="h-full w-full object-cover"
               onError={(event) => {
-                (event.target as HTMLImageElement).src = defaultMasterAvatarUrl(draft.name || 'РњР°СЃС‚РµСЂ');
+                (event.target as HTMLImageElement).src = defaultMasterAvatarUrl(draft.name || 'Мастер');
               }}
             />
           </div>
@@ -160,7 +160,7 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
             {displayName}
           </h2>
           <span className="mt-2 inline-flex rounded-full bg-[#FFF1F4] px-3.5 py-1 text-[12px] font-semibold text-[#F47C8C]">
-            РњР°СЃС‚РµСЂ
+            Мастер
           </span>
         </div>
 
@@ -177,10 +177,10 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
 export type ProfileSectionId = 'main' | 'address' | 'portfolio' | 'rules';
 
 /**
- * РќРёР¶РЅРёР№ РєСЂР°Р№ С€Р°РїРєРё: pt + min-h + pb + border-b-2 (СЃРј. AdminLayout).
- * Р”РѕР»Р¶РµРЅ СЃРѕРІРїР°РґР°С‚СЊ С‚РѕС‡РЅРѕ, РёРЅР°С‡Рµ РїСЂРё sticky С‚Р°Р±С‹ В«РїСЂС‹РіР°СЋС‚В» РІРІРµСЂС….
+ * Нижний край шапки: pt + min-h + pb + border-b-2 (см. AdminLayout).
+ * Должен совпадать точно, иначе при sticky табы «прыгают» вверх.
  */
-/** РЎРѕРІРїР°РґР°РµС‚ СЃ СЂРµР°Р»СЊРЅРѕР№ РІС‹СЃРѕС‚РѕР№ С€Р°РїРєРё (AdminLayout + ResizeObserver). */
+/** Совпадает с реальной высотой шапки (AdminLayout + ResizeObserver). */
 export const CABINET_HEADER_STICKY_TOP = 'var(--slotty-admin-header-h, 4.5rem)';
 
 export function SectionTabs({
@@ -191,16 +191,16 @@ export function SectionTabs({
   onChange: (section: ProfileSectionId) => void;
 }) {
   const tabs: Array<{ id: ProfileSectionId; label: string; icon: ReactNode }> = [
-    { id: 'main', label: 'РџСЂРѕС„РёР»СЊ', icon: <CabinetIcon name="user" size={22} /> },
-    { id: 'portfolio', label: 'РџРѕСЂС‚С„РѕР»РёРѕ', icon: <CabinetIcon name="photo" size={22} /> },
-    { id: 'address', label: 'РђРґСЂРµСЃ', icon: <CabinetIcon name="map-pin" size={22} /> },
-    { id: 'rules', label: 'РџСЂР°РІРёР»Р°', icon: <CabinetIcon name="rules" size={22} /> },
+    { id: 'main', label: 'Профиль', icon: <CabinetIcon name="user" size={22} /> },
+    { id: 'portfolio', label: 'Портфолио', icon: <CabinetIcon name="photo" size={22} /> },
+    { id: 'address', label: 'Адрес', icon: <CabinetIcon name="map-pin" size={22} /> },
+    { id: 'rules', label: 'Правила', icon: <CabinetIcon name="rules" size={22} /> },
   ];
 
   return (
     <nav
       className="flex h-[68px] w-full items-stretch gap-0.5 rounded-[24px] border border-[#EAECEF]/80 bg-white px-1.5 py-1.5 shadow-[0_12px_40px_rgba(17,24,39,0.12)]"
-      aria-label="Р Р°Р·РґРµР»С‹ РїСЂРѕС„РёР»СЏ"
+      aria-label="Разделы профиля"
     >
       {tabs.map((tab) => {
         const selected = active === tab.id;
@@ -254,7 +254,7 @@ function InfoGridCell({
 
 function valueOrDash(value?: string | null): string {
   const trimmed = value?.trim() ?? '';
-  return trimmed || 'вЂ”';
+  return trimmed || '—';
 }
 
 export function MainInfoCard({ draft, onEdit }: { draft: MasterDraft; onEdit: () => void }) {
@@ -264,34 +264,34 @@ export function MainInfoCard({ draft, onEdit }: { draft: MasterDraft; onEdit: ()
   return (
     <section className={`${cabinetCard} ${cabinetCardPad}`}>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">РћСЃРЅРѕРІРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</h2>
+        <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Основная информация</h2>
         <button
           type="button"
           onClick={onEdit}
           className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#FFF1F4] px-3.5 text-[13px] font-semibold text-[#F47C8C] transition hover:bg-[#FFE4EA] active:scale-[0.98]"
         >
           <CabinetIcon name="pencil" size={16} />
-          Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ
+          Редактировать
         </button>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <InfoGridCell
-          label="РРјСЏ Рё С„Р°РјРёР»РёСЏ"
+          label="Имя и фамилия"
           value={valueOrDash(draft.name)}
           icon={<CabinetIcon name="user" size={18} />}
         />
         <InfoGridCell
-          label="РљР°С‚РµРіРѕСЂРёСЏ"
+          label="Категория"
           value={valueOrDash(draft.category)}
           icon={<CabinetIcon name="tag" size={18} />}
         />
         <InfoGridCell
-          label="РўРµР»РµС„РѕРЅ"
+          label="Телефон"
           value={valueOrDash(draft.phone)}
           icon={
             draft.phone?.trim() ? (
-              <BY title="Р‘РµР»Р°СЂСѓСЃСЊ" className="h-[18px] w-[18px] rounded-full object-cover" />
+              <BY title="Беларусь" className="h-[18px] w-[18px] rounded-full object-cover" />
             ) : (
               <CabinetIcon name="phone" size={18} />
             )
@@ -322,7 +322,7 @@ export function AboutCard({ description }: { description: string }) {
           <CabinetIcon name="chat" size={20} />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Рћ СЃРµР±Рµ</h2>
+          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">О себе</h2>
           <p className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-[#6B7280]">{text}</p>
         </div>
       </div>
@@ -338,16 +338,16 @@ export function ScheduleWorkCard({
   onEditSchedule: () => void;
 }) {
   const workDays = new Set(draft.schedule.workDays);
-  const preview = formatScheduleClientPreview(draft.schedule).replace(/^РљР»РёРµРЅС‚С‹ СЃРјРѕРіСѓС‚ Р·Р°РїРёСЃС‹РІР°С‚СЊСЃСЏ:\s*/i, '');
+  const preview = formatScheduleClientPreview(draft.schedule).replace(/^Клиенты смогут записываться:\s*/i, '');
 
   return (
     <section className={`${cabinetCard} ${cabinetCardPad}`}>
       <div className="flex items-center gap-3">
         <CabinetSectionIcon name="clock" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Р“СЂР°С„РёРє СЂР°Р±РѕС‚С‹</h2>
+          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">График работы</h2>
           <p className="mt-0.5 text-[13px] leading-snug text-[#6B7280]">
-            РљР»РёРµРЅС‚С‹ СЃРјРѕРіСѓС‚ Р·Р°РїРёСЃС‹РІР°С‚СЊСЃСЏ {preview || 'вЂ”'}
+            Клиенты смогут записываться {preview || '—'}
           </p>
         </div>
       </div>
@@ -355,7 +355,7 @@ export function ScheduleWorkCard({
       <div
         className="mt-3 grid grid-cols-7 gap-1 rounded-xl bg-[#F7F7F8] p-1"
         role="list"
-        aria-label="Р Р°Р±РѕС‡РёРµ РґРЅРё РЅРµРґРµР»Рё"
+        aria-label="Рабочие дни недели"
       >
         {WEEKDAY_LABELS_SHORT.map((label, day) => {
           const active = workDays.has(day);
@@ -380,9 +380,12 @@ export function ScheduleWorkCard({
         onClick={onEditSchedule}
         className={`mt-4 flex min-h-11 w-full items-center justify-center rounded-2xl text-[15px] font-semibold transition ${cabinetPinkBtn}`}
       >
-        РР·РјРµРЅРёС‚СЊ РіСЂР°С„РёРє СЂР°Р±РѕС‚С‹
+        Изменить график работы
       </button>
     </section>
   );
 }
+
+/** @deprecated moved to ProfileCompletionBlock + profileCompletion.ts — remove re-exports below if unused */
+
 export { ADMIN_SERVICES_PATH };
