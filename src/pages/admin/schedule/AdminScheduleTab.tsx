@@ -29,6 +29,9 @@ import {
 } from './scheduleUtils';
 import type { RepeatCount } from './RepeatSettings';
 import { useScheduleData } from './useScheduleData';
+import { SmartPromotionSuggestionsPanel } from './SmartPromotionSuggestionsPanel';
+import { useSmartPromotionSuggestions } from './useSmartPromotionSuggestions';
+import type { SmartPromotionSuggestionDto } from '../../../features/admin/api/smartPromotionSuggestionsApi';
 
 type Props = {
   draft: MasterDraft;
@@ -69,7 +72,12 @@ export function AdminScheduleTab({ draft }: Props) {
     createSlots,
     updateSlot,
     removeSlot,
+    reloadSlots,
   } = useScheduleData(masterId, visibleServices, useCabinetApi, appointments);
+
+  const smartPromo = useSmartPromotionSuggestions(useCabinetApi);
+  const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<Set<string>>(() => new Set());
+  const [listFocusDayIso, setListFocusDayIso] = useState<string | null>(null);
 
   const [pageTab, setPageTab] = useState<SchedulePageTab>('create');
 
@@ -99,6 +107,27 @@ export function AdminScheduleTab({ draft }: Props) {
     setToast(msg);
     window.setTimeout(() => setToast(null), 2800);
   }, []);
+
+  const dismissSuggestion = useCallback((id: string) => {
+    setDismissedSuggestionIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+
+  const onViewSuggestionWindows = useCallback((suggestion: SmartPromotionSuggestionDto) => {
+    const dayIso = suggestion.promotionDraft.startsAt;
+    setListFocusDayIso(dayIso);
+    setPageTab('list');
+    showToast('Свободные окна в списке');
+  }, [showToast]);
+
+  const onSmartPromotionCreated = useCallback(async () => {
+    if (useCabinetApi) {
+      await reloadSlots();
+    }
+  }, [reloadSlots, useCabinetApi]);
 
   const serviceOptions = useMemo(
     () => [
@@ -355,6 +384,16 @@ export function AdminScheduleTab({ draft }: Props) {
       >
         <ScheduleTabIntro tab={pageTab} />
 
+        <SmartPromotionSuggestionsPanel
+          state={smartPromo.state}
+          dismissedIds={dismissedSuggestionIds}
+          onDismiss={dismissSuggestion}
+          onReload={smartPromo.reload}
+          onViewWindows={onViewSuggestionWindows}
+          onPromotionCreated={() => void onSmartPromotionCreated()}
+          showToast={showToast}
+        />
+
         <AdminTabContentTransition activeKey={pageTab}>
         {pageTab === 'create' ? (
           <ScheduleCreateTab
@@ -382,6 +421,7 @@ export function AdminScheduleTab({ draft }: Props) {
           <ScheduleSlotsListTab
             windows={windows}
             loading={loading}
+            focusDayIso={listFocusDayIso}
             onWindowClick={(w) => setEditWindow(w)}
           />
         ) : null}

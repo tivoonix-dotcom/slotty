@@ -2,6 +2,10 @@ import type { PoolClient } from 'pg';
 import { withTransaction, query } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { assertMasterMonthlyAppointmentsAllowNew } from '../billing/billing.service.js';
+import {
+  applyPromotionToPrice,
+  resolveActivePromotionForSlot,
+} from '../service-extras/promotionSlots.service.js';
 import { notifyClientByAppointmentId } from './appointments.clientNotifications.js';
 
 type SlotRow = {
@@ -114,6 +118,23 @@ export async function createAppointmentTx(input: {
 
     await assertMasterMonthlyAppointmentsAllowNew(client, slot.master_id);
 
+    const basePrice = Number(service.price_amount);
+    const activePromo = await resolveActivePromotionForSlot(
+      client,
+      input.slotId,
+      slot.master_id,
+      input.serviceId,
+    );
+    const priceSnapshot = activePromo
+      ? String(
+          applyPromotionToPrice(
+            basePrice,
+            activePromo.discount_type,
+            Number(activePromo.discount_value),
+          ),
+        )
+      : service.price_amount;
+
     const insAppt = await client.query<{ id: string }>(
       `insert into public.appointments (
          client_id, master_id, service_id, slot_id, starts_at, ends_at, status,
@@ -127,7 +148,7 @@ export async function createAppointmentTx(input: {
         input.slotId,
         slotStart.toISOString(),
         apptEnd.toISOString(),
-        service.price_amount,
+        priceSnapshot,
         service.price_type,
         service.title,
         service.duration_minutes,

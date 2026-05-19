@@ -80,10 +80,7 @@ export function BookingTimeSheet({ open, onClose, master, initialServiceId }: Pr
           serviceId: service.id,
         });
         if (cancelled) return;
-        const days = buildBookingSlotDaysFromPublicSlots(
-          startOfDay(new Date()),
-          slots.map((s) => ({ id: s.id, startsAt: s.startsAt })),
-        );
+        const days = buildBookingSlotDaysFromPublicSlots(startOfDay(new Date()), slots);
         setSlotDays(days);
         const first = pickFirstSlot(days);
         setSelectedDate(first?.day.date ?? null);
@@ -231,20 +228,31 @@ export function BookingTimeSheet({ open, onClose, master, initialServiceId }: Pr
 
               {selectedDay ? (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {selectedDay.times.map((slot) => (
-                    <button
-                      key={slot.slotId}
-                      type="button"
-                      onClick={() => setSelectedSlotId(slot.slotId)}
-                      className={`min-w-[4.5rem] rounded-full px-4 py-2.5 text-[14px] font-semibold ${
-                        selectedSlotId === slot.slotId
-                          ? 'bg-[#F47C8C] text-white'
-                          : 'bg-[#F1EFEF] text-[#374151]'
-                      }`}
-                    >
-                      {slot.timeLabel}
-                    </button>
-                  ))}
+                  {selectedDay.times.map((slot) => {
+                    const active = selectedSlotId === slot.slotId;
+                    const promo = slot.promotion;
+                    return (
+                      <button
+                        key={slot.slotId}
+                        type="button"
+                        onClick={() => setSelectedSlotId(slot.slotId)}
+                        className={`min-w-[4.5rem] rounded-full px-4 py-2.5 text-[14px] font-semibold ${
+                          active ? 'bg-[#F47C8C] text-white' : 'bg-[#F1EFEF] text-[#374151]'
+                        }`}
+                      >
+                        <span className="block">{slot.timeLabel}</span>
+                        {promo ? (
+                          <span
+                            className={`mt-0.5 block text-[10px] font-bold leading-none ${
+                              active ? 'text-white/90' : 'text-[#F47C8C]'
+                            }`}
+                          >
+                            {promo.discountLabel}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
                 </div>
               ) : null}
 
@@ -260,8 +268,24 @@ export function BookingTimeSheet({ open, onClose, master, initialServiceId }: Pr
                     <span className="text-[#9CA3AF]">Время:</span> {selectedSlot.timeLabel}
                   </p>
                   <p className="mt-1">
-                    <span className="text-[#9CA3AF]">Цена:</span> {formatServicePrice(service)}
+                    <span className="text-[#9CA3AF]">Цена:</span>{' '}
+                    {selectedSlot.promotion &&
+                    selectedSlot.promotion.discountedPrice < selectedSlot.promotion.originalPrice ? (
+                      <>
+                        <span className="text-[#9CA3AF] line-through">
+                          {Math.round(selectedSlot.promotion.originalPrice)} BYN
+                        </span>{' '}
+                        <span className="font-semibold text-[#F47C8C]">
+                          {Math.round(selectedSlot.promotion.discountedPrice)} BYN
+                        </span>
+                      </>
+                    ) : (
+                      formatServicePrice(service)
+                    )}
                   </p>
+                  {selectedSlot.promotion?.isSlotBound ? (
+                    <p className="mt-1 text-[13px] font-semibold text-[#F47C8C]">Акция на это окно</p>
+                  ) : null}
                 </div>
               ) : null}
             </>

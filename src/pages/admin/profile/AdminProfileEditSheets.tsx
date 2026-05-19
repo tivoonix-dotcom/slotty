@@ -37,7 +37,9 @@ import {
 } from '../../../features/master-onboarding/model/belarusPhone';
 import { getMasterDisplayNameQualityError } from '../../../shared/lib/masterDisplayNamePolicy';
 import { SlottySelect } from '../../../shared/ui/SlottySelect';
+import { uploadMasterHeroPhotoFromRemoteUrl } from '../../../features/admin/api/masterCabinetApi';
 import { fetchServiceCategories, type ServiceCategoryDto } from '../../../features/master-onboarding/api/becomeMasterApi';
+import { useTelegram } from '../../../shared/hooks/useTelegram';
 import { MasterProfileContactsBlock } from '../../master-onboarding/MasterProfileContactsBlock';
 import {
   OnboardingAddressMap,
@@ -175,8 +177,10 @@ export function SheetMainInfo({
   /** Если задано — после выбора файла изображение загружается на сервер, в профиль попадает https URL. */
   uploadHeroPhoto?: (imageDataUrl: string) => Promise<string>;
 }) {
+  const { telegramUserPhotoUrl } = useTelegram();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [photoUrl, setPhotoUrl] = useState(draft.photoUrl ?? '');
+  const [tgPhotoLoading, setTgPhotoLoading] = useState(false);
   const [name, setName] = useState(draft.name);
   const [catalogCategories, setCatalogCategories] = useState<ServiceCategoryDto[]>([]);
   const [categoryId, setCategoryId] = useState(() => draft.primaryCategoryId ?? '');
@@ -269,6 +273,25 @@ export function SheetMainInfo({
     [uploadHeroPhoto],
   );
 
+  const applyTelegramPhoto = useCallback(async () => {
+    const tgUrl = telegramUserPhotoUrl?.trim();
+    if (!tgUrl) return;
+    setPhotoUploadErr(null);
+    setTgPhotoLoading(true);
+    try {
+      if (uploadHeroPhoto) {
+        const url = await uploadMasterHeroPhotoFromRemoteUrl(tgUrl);
+        setPhotoUrl(url);
+      } else {
+        setPhotoUrl(tgUrl);
+      }
+    } catch (e) {
+      setPhotoUploadErr(e instanceof Error ? e.message : 'Не удалось взять фото из Telegram');
+    } finally {
+      setTgPhotoLoading(false);
+    }
+  }, [telegramUserPhotoUrl, uploadHeroPhoto]);
+
   const preview = photoUrl.trim() || defaultMasterAvatarUrl(name || draft.name);
 
   const save = async () => {
@@ -353,9 +376,20 @@ export function SheetMainInfo({
               }}
             />
           </div>
-          <div className="absolute bottom-2 right-2 flex flex-wrap justify-end gap-1.5">
+          <div className="absolute bottom-2 right-2 flex max-w-[calc(100%-0.5rem)] flex-wrap justify-end gap-1.5">
+            {telegramUserPhotoUrl ? (
+              <button
+                type="button"
+                disabled={tgPhotoLoading || saving}
+                onClick={() => void applyTelegramPhoto()}
+                className={sheetOutlineBtnClass}
+              >
+                {tgPhotoLoading ? 'Загрузка…' : 'Из Telegram'}
+              </button>
+            ) : null}
             <button
               type="button"
+              disabled={saving}
               onClick={() => photoInputRef.current?.click()}
               className={sheetPinkPillBtnClass}
             >
@@ -365,7 +399,11 @@ export function SheetMainInfo({
         </div>
         <div className="mt-2 space-y-1">
           {photoUploadErr ? <p className="text-center text-[12px] font-medium text-red-600">{photoUploadErr}</p> : null}
-
+          {uploadHeroPhoto && !telegramUserPhotoUrl ? (
+            <p className={sheetHintClass}>
+              Чтобы подставить фото из Telegram, откройте кабинет мастера внутри мини-приложения Telegram.
+            </p>
+          ) : null}
         </div>
       </div>
 

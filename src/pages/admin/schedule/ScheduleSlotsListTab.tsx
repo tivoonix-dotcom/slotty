@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { HiFunnel, HiMagnifyingGlass, HiRectangleStack } from 'react-icons/hi2';
 import type { ScheduleWindowView } from './scheduleTypes';
 import { ScheduleWindowCard } from './ScheduleWindowCard';
@@ -20,6 +20,7 @@ import { LoadingVideo } from '../../../shared/ui/LoadingVideo';
 type Props = {
   windows: ScheduleWindowView[];
   loading: boolean;
+  focusDayIso?: string | null;
   onWindowClick: (w: ScheduleWindowView) => void;
 };
 
@@ -45,10 +46,20 @@ function formatDayChip(iso: string): string {
   return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' }).format(d);
 }
 
-export function ScheduleSlotsListTab({ windows, loading, onWindowClick }: Props) {
+export function ScheduleSlotsListTab({ windows, loading, focusDayIso, onWindowClick }: Props) {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<ScheduleSlotsFilters>(DEFAULT_SLOTS_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    if (!focusDayIso?.trim()) return;
+    setFilters((prev) => ({
+      ...prev,
+      dayIso: focusDayIso.trim(),
+      status: 'free',
+      onlyUpcoming: true,
+    }));
+  }, [focusDayIso]);
 
   const filtersActive =
     filters.status !== 'all' || filters.dayIso.trim() !== '' || filters.onlyUpcoming;

@@ -42,6 +42,7 @@ import { completeMyMasterOnboarding } from './masterOnboardingComplete.service.j
 import { masterDisplayNamePassesQuality } from '../../lib/masterDisplayNamePolicy.js';
 import { masterServicesRouter } from '../services/services.routes.js';
 import { masterBundlesRouter, masterPromotionsRouter } from '../service-extras/serviceExtras.routes.js';
+import { smartPromotionSuggestionsRouter } from '../smart-promotions/smartPromotionSuggestions.routes.js';
 import { masterSlotsRouter } from '../slots/slots.routes.js';
 import { masterAppointmentsRouter } from '../appointments/appointments.routes.js';
 import { getMasterSubscriptionWithUsage, switchMasterSubscriptionMock } from '../billing/billing.service.js';
@@ -931,6 +932,12 @@ mastersRouter.delete(
 mastersRouter.use('/me/services', authMiddleware, requireMasterDbAccess, masterServicesRouter);
 mastersRouter.use('/me/bundles', authMiddleware, requireMasterDbAccess, masterBundlesRouter);
 mastersRouter.use('/me/promotions', authMiddleware, requireMasterDbAccess, masterPromotionsRouter);
+mastersRouter.use(
+  '/me/smart-promotion-suggestions',
+  authMiddleware,
+  requireMasterDbAccess,
+  smartPromotionSuggestionsRouter,
+);
 mastersRouter.use('/me/slots', authMiddleware, requireMasterDbAccess, masterSlotsRouter);
 mastersRouter.use('/me/appointments', authMiddleware, requireMasterDbAccess, masterAppointmentsRouter);
 mastersRouter.use('/me/overview', masterOverviewRouter);

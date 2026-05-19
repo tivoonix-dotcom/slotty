@@ -157,8 +157,13 @@ export function MasterPublicPage() {
       <MasterStickyActions
         onChooseTime={() => openBooking()}
         phone={master.phone}
+        contact={master.contact}
         onPhoneUnavailable={() =>
-          showToast('Телефон будет доступен после подтверждения записи')
+          showToast(
+            master.phone || master.contact
+              ? 'Не удалось открыть набор номера. Попробуйте скопировать телефон из профиля.'
+              : 'Телефон мастера не указан. Запишитесь онлайн или напишите в мессенджер из контактов.',
+          )
         }
       />
 

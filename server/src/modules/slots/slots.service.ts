@@ -1,6 +1,7 @@
 import { query } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { assertSlotWithinPlanHorizon } from '../billing/billing.service.js';
+import { mapPromotionFields } from '../service-extras/promotionSlots.service.js';
 
 function num(v: string | null | undefined): number | null {
   if (v == null) return null;
@@ -148,7 +149,13 @@ export async function listPublicSlots(filters: {
       mp.display_name as master_display_name,
       coalesce(ms.title, psvc.title) as service_title,
       coalesce(ms.price_amount, psvc.price_amount)::text as service_price,
-      coalesce(s.service_id, psvc.id) as booking_service_id
+      coalesce(s.service_id, psvc.id) as booking_service_id,
+      coalesce(slot_promo.id, service_promo.id) as promo_id,
+      coalesce(slot_promo.template, service_promo.template) as promo_template,
+      coalesce(slot_promo.title, service_promo.title) as promo_title,
+      coalesce(slot_promo.discount_type, service_promo.discount_type) as promo_discount_type,
+      coalesce(slot_promo.discount_value, service_promo.discount_value) as promo_discount_value,
+      coalesce(slot_promo.discount_label, service_promo.discount_label) as promo_discount_label
     from public.master_availability_slots s
     join public.master_profiles mp on mp.master_id = s.master_id
     left join public.master_services ms on ms.id = s.service_id and ms.master_id = s.master_id
@@ -159,6 +166,43 @@ export async function listPublicSlots(filters: {
       order by ms2.sort_order asc, ms2.price_amount asc nulls last, ms2.title asc
       limit 1
     ) psvc on true
+    left join lateral (
+      select
+        p.id,
+        p.template,
+        p.title,
+        p.discount_type::text as discount_type,
+        p.discount_value::text as discount_value,
+        p.discount_label
+      from public.master_service_promotion_slots ps
+      join public.master_service_promotions p on p.id = ps.promotion_id
+      where ps.slot_id = s.id
+        and ps.master_id = s.master_id
+        and p.status in ('active', 'scheduled')
+        and (timezone('Europe/Minsk', s.starts_at))::date between p.starts_at and p.ends_at
+      order by p.created_at desc
+      limit 1
+    ) slot_promo on true
+    left join lateral (
+      select
+        p.id,
+        p.template,
+        p.title,
+        p.discount_type::text as discount_type,
+        p.discount_value::text as discount_value,
+        p.discount_label
+      from public.master_service_promotions p
+      where p.master_id = s.master_id
+        and p.service_id = coalesce(s.service_id, psvc.id)
+        and p.status in ('active', 'scheduled')
+        and (timezone('Europe/Minsk', s.starts_at))::date between p.starts_at and p.ends_at
+        and not exists (
+          select 1 from public.master_service_promotion_slots ps2
+          where ps2.promotion_id = p.id
+        )
+      order by p.created_at desc
+      limit 1
+    ) service_promo on true
     where ${where}
     order by s.starts_at asc
     limit $${limIdx}
@@ -175,20 +219,45 @@ export async function listPublicSlots(filters: {
     service_title: string | null;
     service_price: string | null;
     booking_service_id: string;
+    promo_id: string | null;
+    promo_template: string | null;
+    promo_title: string | null;
+    promo_discount_type: string | null;
+    promo_discount_value: string | null;
+    promo_discount_label: string | null;
   }>(sql, params);
-  return r.rows.map((row) => ({
-    id: row.id,
-    masterId: row.master_id,
-    serviceId: row.service_id,
-    bookingServiceId: row.booking_service_id,
-    startsAt: row.starts_at,
-    endsAt: row.ends_at,
-    status: row.status,
-    source: row.source,
-    masterDisplayName: row.master_display_name,
-    serviceTitle: row.service_title ?? 'Услуга',
-    servicePrice: num(row.service_price) ?? 0,
-  }));
+  return r.rows.map((row) => {
+    const basePrice = num(row.service_price) ?? 0;
+    const promotion =
+      row.promo_id && row.promo_discount_type
+        ? mapPromotionFields(
+            {
+              id: row.promo_id,
+              template: row.promo_template ?? '',
+              title: row.promo_title ?? '',
+              discount_type: row.promo_discount_type,
+              discount_value: row.promo_discount_value ?? '0',
+              discount_label: row.promo_discount_label ?? '',
+            },
+            basePrice,
+          )
+        : null;
+
+    return {
+      id: row.id,
+      masterId: row.master_id,
+      serviceId: row.service_id,
+      bookingServiceId: row.booking_service_id,
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      status: row.status,
+      source: row.source,
+      masterDisplayName: row.master_display_name,
+      serviceTitle: row.service_title ?? 'Услуга',
+      servicePrice: basePrice,
+      promotion,
+    };
+  });
 }
 
 export async function listMySlots(masterId: string) {

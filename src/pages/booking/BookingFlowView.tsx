@@ -14,7 +14,10 @@ import { MasterAddressBlock } from '../client/masterProfile/MasterAddressBlock';
 import { clientPinkBtn } from '../client/clientTheme';
 import { optimizeAvatarUrl } from '../../shared/lib/optimizeAvatarUrl';
 import { ImageReveal } from '../../shared/ui/ImageReveal';
-import type { DemoBookingGridDay } from '../../features/booking/model/demoBookingSlotGrid';
+import type {
+  DemoBookingGridDay,
+  DemoBookingGridSlot,
+} from '../../features/booking/model/demoBookingSlotGrid';
 import type { CalendarMonth } from './bookingCalendar';
 import {
   bookingCard,
@@ -35,7 +38,7 @@ type Props = {
   master: DemoMasterProfile;
   service: DemoMasterService;
   selectedDay: DemoBookingGridDay | null;
-  selectedSlot: { slotId: string; timeLabel: string } | null;
+  selectedSlot: Pick<DemoBookingGridSlot, 'slotId' | 'timeLabel' | 'promotion'> | null;
   quickDateDays: DemoBookingGridDay[];
   calendarMonths: CalendarMonth[];
   bookError: string | null;
@@ -85,6 +88,12 @@ export function BookingFlowView({
   onConfirm,
 }: Props) {
   const showVerified = master.rating >= 4.5 && master.reviewsCount >= 10;
+  const slotPromo = selectedSlot?.promotion;
+  const displayPrice =
+    slotPromo && slotPromo.discountedPrice >= 0
+      ? slotPromo.discountedPrice
+      : service.price;
+  const pricePrefix = service.priceType === 'from' ? 'от ' : '';
 
   return (
     <>
@@ -186,16 +195,26 @@ export function BookingFlowView({
           <div className="flex flex-wrap gap-2">
             {selectedDay.times.map((slot) => {
               const active = slot.slotId === selectedSlot?.slotId;
+              const promo = slot.promotion;
               return (
                 <button
                   key={slot.slotId}
                   type="button"
                   onClick={() => onPickSlot(slot.slotId)}
-                  className={`min-h-11 min-w-[4.5rem] rounded-full px-4 text-[14px] font-semibold transition active:scale-[0.98] ${
+                  className={`relative min-h-11 min-w-[4.5rem] rounded-full px-4 text-[14px] font-semibold transition active:scale-[0.98] ${
                     active ? bookingSlotActive : bookingSlotIdle
                   }`}
                 >
-                  {slot.timeLabel}
+                  <span className="block">{slot.timeLabel}</span>
+                  {promo ? (
+                    <span
+                      className={`mt-0.5 block text-[10px] font-bold leading-none ${
+                        active ? 'text-white/90' : 'text-[#F47C8C]'
+                      }`}
+                    >
+                      {promo.discountLabel}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -228,6 +247,12 @@ export function BookingFlowView({
             <dt className="text-[#6B7280]">Время</dt>
             <dd className="text-right font-medium text-[#111827]">{selectedSlot?.timeLabel ?? '—'}</dd>
           </div>
+          {slotPromo?.isSlotBound ? (
+            <div className="flex justify-between gap-3">
+              <dt className="text-[#6B7280]">Акция</dt>
+              <dd className="text-right text-[13px] font-semibold text-[#F47C8C]">Акция на это окно</dd>
+            </div>
+          ) : null}
         </dl>
 
         <div className="mt-4 rounded-[16px] bg-[#FAFAFA] p-3 ring-1 ring-[#F3F4F6]">
@@ -237,7 +262,19 @@ export function BookingFlowView({
 
         <div className="mt-4 flex items-center justify-between border-t border-[#F3F4F6] pt-3">
           <span className="text-[14px] text-[#6B7280]">Стоимость</span>
-          <span className="text-[18px] font-bold text-[#111827]">{formatServicePrice(service)}</span>
+          <div className="text-right">
+            {slotPromo && slotPromo.discountedPrice < slotPromo.originalPrice ? (
+              <span className="mr-2 text-[14px] font-medium text-[#9CA3AF] line-through">
+                {pricePrefix}
+                {Math.round(slotPromo.originalPrice)} BYN
+              </span>
+            ) : null}
+            <span className="text-[18px] font-bold text-[#111827]">
+              {displayPrice <= 0
+                ? 'Бесплатно'
+                : `${pricePrefix}${Math.round(displayPrice)} BYN`}
+            </span>
+          </div>
         </div>
       </section>
 

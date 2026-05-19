@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 import { BY } from 'country-flag-icons/react/1x1';
 import { CabinetIcon, type CabinetIconName } from './cabinetIcons';
 import { ADMIN_SERVICES_PATH } from '../../../app/paths';
@@ -14,29 +14,13 @@ import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import { cabinetCard, cabinetCardPad, cabinetIconCircle, cabinetPinkBtn } from './adminProfileCabinetTheme';
 
-const PROFILE_COMPLETE_IMAGE_SRC = '/photos/SUCCE.webp';
-
-/** Иконка секции: мягкий квадрат, единый набор SVG. */
+/** РРєРѕРЅРєР° СЃРµРєС†РёРё: РјСЏРіРєРёР№ РєРІР°РґСЂР°С‚, РµРґРёРЅС‹Р№ РЅР°Р±РѕСЂ SVG. */
 function CabinetSectionIcon({ name, size = 18 }: { name: CabinetIconName; size?: number }) {
   return (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C]">
       <CabinetIcon name={name} size={size} />
     </span>
   );
-}
-
-function CompletionStatusIcon({ done }: { done: boolean }) {
-  if (done) {
-    return (
-      <span
-        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FFF1F4] ring-1 ring-[#FDE8ED]"
-        aria-hidden
-      >
-        <CabinetIcon name="check" size={12} />
-      </span>
-    );
-  }
-  return <span className="h-5 w-5 shrink-0 rounded-full border-2 border-[#E5E7EB] bg-white" aria-hidden />;
 }
 
 export function CabinetPageShell({ children }: { children: ReactNode }) {
@@ -69,21 +53,21 @@ function buildRatingStat(meta?: ProfileStatsRatingMeta): StatMiniDisplay {
   const rating = meta?.rating ?? 0;
   const hasRating = reviews > 0 && Number.isFinite(rating) && rating > 0;
   if (!hasRating) {
-    return { value: 'Новый', label: 'Рейтинг', empty: true };
+    return { value: 'РќРѕРІС‹Р№', label: 'Р РµР№С‚РёРЅРі', empty: true };
   }
-  return { value: rating.toFixed(1), label: 'Рейтинг', empty: false };
+  return { value: rating.toFixed(1), label: 'Р РµР№С‚РёРЅРі', empty: false };
 }
 
 function buildBookingsStat(appointments: DemoMasterAppointment[]): StatMiniDisplay {
   const count = appointments.length;
   return {
     value: String(count),
-    label: 'Записи',
+    label: 'Р—Р°РїРёСЃРё',
     empty: count <= 0,
   };
 }
 
-/** Доля завершённых среди завершённых и отменённых — только для отображения в кабинете. */
+/** Р”РѕР»СЏ Р·Р°РІРµСЂС€С‘РЅРЅС‹С… СЃСЂРµРґРё Р·Р°РІРµСЂС€С‘РЅРЅС‹С… Рё РѕС‚РјРµРЅС‘РЅРЅС‹С… вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РІ РєР°Р±РёРЅРµС‚Рµ. */
 function computeHappyClientsPercent(appointments: DemoMasterAppointment[]): number | null {
   const completed = appointments.filter((a) => a.status === 'completed').length;
   if (completed <= 0) return null;
@@ -96,9 +80,9 @@ function computeHappyClientsPercent(appointments: DemoMasterAppointment[]): numb
 function buildHappyStat(appointments: DemoMasterAppointment[]): StatMiniDisplay {
   const percent = computeHappyClientsPercent(appointments);
   if (percent == null) {
-    return { value: 'Пока нет', label: 'Клиенты', empty: true };
+    return { value: 'РџРѕРєР° РЅРµС‚', label: 'РљР»РёРµРЅС‚С‹', empty: true };
   }
-  return { value: `${percent}%`, label: 'Довольные клиенты', empty: false };
+  return { value: `${percent}%`, label: 'Р”РѕРІРѕР»СЊРЅС‹Рµ РєР»РёРµРЅС‚С‹', empty: false };
 }
 
 export function buildProfileStats(
@@ -137,8 +121,8 @@ function StatMiniCard({ icon, label, value, empty }: StatMiniDisplay & { icon: R
 }
 
 export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: ProfileStats }) {
-  const photoSrc = (draft.photoUrl && draft.photoUrl.trim()) || defaultMasterAvatarUrl(draft.name || 'Мастер');
-  const displayName = draft.name.trim() || 'Мастер';
+  const photoSrc = (draft.photoUrl && draft.photoUrl.trim()) || defaultMasterAvatarUrl(draft.name || 'РњР°СЃС‚РµСЂ');
+  const displayName = draft.name.trim() || 'РњР°СЃС‚РµСЂ';
 
   return (
     <section className={`${cabinetCard} relative z-0 rounded-t-none border-t-0 shadow-none`}>
@@ -150,7 +134,7 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
           height={360}
           className="h-full w-full object-cover"
           onError={(event) => {
-            (event.target as HTMLImageElement).src = defaultMasterAvatarUrl(draft.name || 'Мастер');
+            (event.target as HTMLImageElement).src = defaultMasterAvatarUrl(draft.name || 'РњР°СЃС‚РµСЂ');
           }}
         />
       </div>
@@ -165,7 +149,7 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
               height={176}
               className="h-full w-full object-cover"
               onError={(event) => {
-                (event.target as HTMLImageElement).src = defaultMasterAvatarUrl(draft.name || 'Мастер');
+                (event.target as HTMLImageElement).src = defaultMasterAvatarUrl(draft.name || 'РњР°СЃС‚РµСЂ');
               }}
             />
           </div>
@@ -176,7 +160,7 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
             {displayName}
           </h2>
           <span className="mt-2 inline-flex rounded-full bg-[#FFF1F4] px-3.5 py-1 text-[12px] font-semibold text-[#F47C8C]">
-            Мастер
+            РњР°СЃС‚РµСЂ
           </span>
         </div>
 
@@ -193,10 +177,10 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
 export type ProfileSectionId = 'main' | 'address' | 'portfolio' | 'rules';
 
 /**
- * Нижний край шапки: pt + min-h + pb + border-b-2 (см. AdminLayout).
- * Должен совпадать точно, иначе при sticky табы «прыгают» вверх.
+ * РќРёР¶РЅРёР№ РєСЂР°Р№ С€Р°РїРєРё: pt + min-h + pb + border-b-2 (СЃРј. AdminLayout).
+ * Р”РѕР»Р¶РµРЅ СЃРѕРІРїР°РґР°С‚СЊ С‚РѕС‡РЅРѕ, РёРЅР°С‡Рµ РїСЂРё sticky С‚Р°Р±С‹ В«РїСЂС‹РіР°СЋС‚В» РІРІРµСЂС….
  */
-/** Совпадает с реальной высотой шапки (AdminLayout + ResizeObserver). */
+/** РЎРѕРІРїР°РґР°РµС‚ СЃ СЂРµР°Р»СЊРЅРѕР№ РІС‹СЃРѕС‚РѕР№ С€Р°РїРєРё (AdminLayout + ResizeObserver). */
 export const CABINET_HEADER_STICKY_TOP = 'var(--slotty-admin-header-h, 4.5rem)';
 
 export function SectionTabs({
@@ -207,16 +191,16 @@ export function SectionTabs({
   onChange: (section: ProfileSectionId) => void;
 }) {
   const tabs: Array<{ id: ProfileSectionId; label: string; icon: ReactNode }> = [
-    { id: 'main', label: 'Профиль', icon: <CabinetIcon name="user" size={22} /> },
-    { id: 'portfolio', label: 'Портфолио', icon: <CabinetIcon name="photo" size={22} /> },
-    { id: 'address', label: 'Адрес', icon: <CabinetIcon name="map-pin" size={22} /> },
-    { id: 'rules', label: 'Правила', icon: <CabinetIcon name="rules" size={22} /> },
+    { id: 'main', label: 'РџСЂРѕС„РёР»СЊ', icon: <CabinetIcon name="user" size={22} /> },
+    { id: 'portfolio', label: 'РџРѕСЂС‚С„РѕР»РёРѕ', icon: <CabinetIcon name="photo" size={22} /> },
+    { id: 'address', label: 'РђРґСЂРµСЃ', icon: <CabinetIcon name="map-pin" size={22} /> },
+    { id: 'rules', label: 'РџСЂР°РІРёР»Р°', icon: <CabinetIcon name="rules" size={22} /> },
   ];
 
   return (
     <nav
       className="flex h-[68px] w-full items-stretch gap-0.5 rounded-[24px] border border-[#EAECEF]/80 bg-white px-1.5 py-1.5 shadow-[0_12px_40px_rgba(17,24,39,0.12)]"
-      aria-label="Разделы профиля"
+      aria-label="Р Р°Р·РґРµР»С‹ РїСЂРѕС„РёР»СЏ"
     >
       {tabs.map((tab) => {
         const selected = active === tab.id;
@@ -270,7 +254,7 @@ function InfoGridCell({
 
 function valueOrDash(value?: string | null): string {
   const trimmed = value?.trim() ?? '';
-  return trimmed || '—';
+  return trimmed || 'вЂ”';
 }
 
 export function MainInfoCard({ draft, onEdit }: { draft: MasterDraft; onEdit: () => void }) {
@@ -280,34 +264,34 @@ export function MainInfoCard({ draft, onEdit }: { draft: MasterDraft; onEdit: ()
   return (
     <section className={`${cabinetCard} ${cabinetCardPad}`}>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Основная информация</h2>
+        <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">РћСЃРЅРѕРІРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ</h2>
         <button
           type="button"
           onClick={onEdit}
           className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#FFF1F4] px-3.5 text-[13px] font-semibold text-[#F47C8C] transition hover:bg-[#FFE4EA] active:scale-[0.98]"
         >
           <CabinetIcon name="pencil" size={16} />
-          Редактировать
+          Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ
         </button>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <InfoGridCell
-          label="Имя и фамилия"
+          label="РРјСЏ Рё С„Р°РјРёР»РёСЏ"
           value={valueOrDash(draft.name)}
           icon={<CabinetIcon name="user" size={18} />}
         />
         <InfoGridCell
-          label="Категория"
+          label="РљР°С‚РµРіРѕСЂРёСЏ"
           value={valueOrDash(draft.category)}
           icon={<CabinetIcon name="tag" size={18} />}
         />
         <InfoGridCell
-          label="Телефон"
+          label="РўРµР»РµС„РѕРЅ"
           value={valueOrDash(draft.phone)}
           icon={
             draft.phone?.trim() ? (
-              <BY title="Беларусь" className="h-[18px] w-[18px] rounded-full object-cover" />
+              <BY title="Р‘РµР»Р°СЂСѓСЃСЊ" className="h-[18px] w-[18px] rounded-full object-cover" />
             ) : (
               <CabinetIcon name="phone" size={18} />
             )
@@ -338,7 +322,7 @@ export function AboutCard({ description }: { description: string }) {
           <CabinetIcon name="chat" size={20} />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">О себе</h2>
+          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Рћ СЃРµР±Рµ</h2>
           <p className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-[#6B7280]">{text}</p>
         </div>
       </div>
@@ -354,16 +338,16 @@ export function ScheduleWorkCard({
   onEditSchedule: () => void;
 }) {
   const workDays = new Set(draft.schedule.workDays);
-  const preview = formatScheduleClientPreview(draft.schedule).replace(/^Клиенты смогут записываться:\s*/i, '');
+  const preview = formatScheduleClientPreview(draft.schedule).replace(/^РљР»РёРµРЅС‚С‹ СЃРјРѕРіСѓС‚ Р·Р°РїРёСЃС‹РІР°С‚СЊСЃСЏ:\s*/i, '');
 
   return (
     <section className={`${cabinetCard} ${cabinetCardPad}`}>
       <div className="flex items-center gap-3">
         <CabinetSectionIcon name="clock" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">График работы</h2>
+          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Р“СЂР°С„РёРє СЂР°Р±РѕС‚С‹</h2>
           <p className="mt-0.5 text-[13px] leading-snug text-[#6B7280]">
-            Клиенты смогут записываться {preview || '—'}
+            РљР»РёРµРЅС‚С‹ СЃРјРѕРіСѓС‚ Р·Р°РїРёСЃС‹РІР°С‚СЊСЃСЏ {preview || 'вЂ”'}
           </p>
         </div>
       </div>
@@ -371,7 +355,7 @@ export function ScheduleWorkCard({
       <div
         className="mt-3 grid grid-cols-7 gap-1 rounded-xl bg-[#F7F7F8] p-1"
         role="list"
-        aria-label="Рабочие дни недели"
+        aria-label="Р Р°Р±РѕС‡РёРµ РґРЅРё РЅРµРґРµР»Рё"
       >
         {WEEKDAY_LABELS_SHORT.map((label, day) => {
           const active = workDays.has(day);
@@ -396,133 +380,9 @@ export function ScheduleWorkCard({
         onClick={onEditSchedule}
         className={`mt-4 flex min-h-11 w-full items-center justify-center rounded-2xl text-[15px] font-semibold transition ${cabinetPinkBtn}`}
       >
-        Изменить график работы
+        РР·РјРµРЅРёС‚СЊ РіСЂР°С„РёРє СЂР°Р±РѕС‚С‹
       </button>
     </section>
   );
 }
-
-export type CompletionItem = {
-  id: string;
-  label: string;
-  done: boolean;
-  onPress: () => void;
-};
-
-export function computeProfileCompletion(draft: MasterDraft): { percent: number; items: CompletionItem[] } {
-  const items: Omit<CompletionItem, 'onPress'>[] = [
-    {
-      id: 'main',
-      label: 'Основная информация',
-      done: Boolean(draft.name?.trim() && draft.phone?.trim() && draft.category?.trim()),
-    },
-    {
-      id: 'portfolio',
-      label: 'Портфолио',
-      done: (draft.portfolio?.length ?? 0) > 0,
-    },
-    {
-      id: 'services',
-      label: 'Услуги и цены',
-      done: (draft.services?.length ?? 0) > 0,
-    },
-    {
-      id: 'schedule',
-      label: 'График работы',
-      done: (draft.schedule?.workDays?.length ?? 0) > 0,
-    },
-  ];
-  const doneCount = items.filter((i) => i.done).length;
-  const percent = items.length ? Math.round((doneCount / items.length) * 100) : 0;
-  return { percent, items: items as CompletionItem[] };
-}
-
-export function ProfileCompletionCard({
-  percent,
-  items,
-}: {
-  percent: number;
-  items: CompletionItem[];
-}) {
-  const clamped = Math.min(100, Math.max(0, percent));
-  const isComplete = clamped >= 100;
-
-  return (
-    <section className={`${cabinetCard} ${cabinetCardPad}`}>
-      <div className="flex items-end justify-between gap-3">
-        <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Завершение профиля</h2>
-        <span className="text-[15px] font-semibold tabular-nums text-[#F47C8C]">{clamped}%</span>
-      </div>
-
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#F7F7F8]">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-[#F47C8C] to-[#F26D83] transition-[width] duration-500"
-          style={{ width: `${clamped}%` }}
-        />
-      </div>
-
-      {isComplete ? (
-        <div className="mt-4 overflow-hidden rounded-[20px] bg-[#FFF1F4] ring-1 ring-[#FDE8ED]">
-          <img
-            src={PROFILE_COMPLETE_IMAGE_SRC}
-            alt=""
-            width={800}
-            height={600}
-            decoding="async"
-            className="block w-full object-cover"
-          />
-
-        </div>
-      ) : (
-        <ul className="mt-4 divide-y divide-[#EAECEF]">
-          {items.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                onClick={item.onPress}
-                className="flex min-h-[48px] w-full items-center gap-3 py-2 text-left transition hover:bg-[#FAFAFB] active:scale-[0.995]"
-              >
-                <CompletionStatusIcon done={item.done} />
-                <span
-                  className={`min-w-0 flex-1 text-[15px] font-medium ${
-                    item.done ? 'text-[#6B7280]' : 'text-[#111827]'
-                  }`}
-                >
-                  {item.label}
-                </span>
-                <CabinetIcon name="chevron-right" size={16} className="shrink-0 text-[#9CA3AF]" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-export function wireCompletionActions(
-  draft: MasterDraft,
-  handlers: {
-    onEditMain: () => void;
-    onGoPortfolio: () => void;
-    onGoServices: () => void;
-    onEditSchedule: () => void;
-  },
-): { percent: number; items: CompletionItem[] } {
-  const { percent, items } = computeProfileCompletion(draft);
-  const actionById: Record<string, () => void> = {
-    main: handlers.onEditMain,
-    portfolio: handlers.onGoPortfolio,
-    services: handlers.onGoServices,
-    schedule: handlers.onEditSchedule,
-  };
-  return {
-    percent,
-    items: items.map((item) => ({
-      ...item,
-      onPress: actionById[item.id] ?? handlers.onEditMain,
-    })),
-  };
-}
-
 export { ADMIN_SERVICES_PATH };

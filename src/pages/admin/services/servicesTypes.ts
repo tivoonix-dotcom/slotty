@@ -5,6 +5,7 @@ export type ServicePromotionTemplate =
   | 'weekly_combo'
   | 'seasonal'
   | 'happy_hours'
+  | 'free_slots'
   /** @deprecated legacy stored promos */
   | 'percent'
   | 'bundle'

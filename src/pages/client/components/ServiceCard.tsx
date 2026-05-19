@@ -17,7 +17,7 @@ import {
   formatSlotCardSubline,
 } from '../lib/catalogFormat';
 import { getCatalogServicePhotoUrl } from '../../../features/catalog/catalogServicePhotos';
-import { clientOutlineBtn } from '../clientTheme';
+import { clientOutlineBtn, clientPinkBtn } from '../clientTheme';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 
 type Props = {
@@ -147,7 +147,9 @@ export function ServiceCard({ service }: Props) {
               )}
             </div>
           </div>
-          <span className={`${clientOutlineBtn} mt-3 w-full !min-h-11 !text-[14px]`}>
+          <span
+            className={`${hasSlot ? clientPinkBtn : clientOutlineBtn} mt-3 w-full !min-h-11 !text-[14px]`}
+          >
             {hasSlot ? 'Смотреть окно' : 'Открыть категорию'}
           </span>
         </div>

@@ -123,6 +123,13 @@ function mapJoinedPlanRow(row: {
   };
 }
 
+export async function assertMasterHasProPlan(masterId: string): Promise<void> {
+  const sub = await getMasterSubscriptionWithUsage(masterId);
+  if (sub.plan.code.toLowerCase() !== 'pro') {
+    throw ApiError.forbidden('Акции и наборы доступны на тарифе Pro', 'PRO_REQUIRED');
+  }
+}
+
 export async function getMasterSubscriptionWithUsage(masterId: string): Promise<MasterSubscriptionWithUsageDto> {
   await ensureMasterSubscription(masterId);
   const r = await query<{

@@ -5,6 +5,17 @@ async function readApiError(res: Response): Promise<string> {
   return j?.error?.message ?? `Ошибка ${res.status}`;
 }
 
+export type PublicSlotPromotionDto = {
+  promotionId: string;
+  promotionTemplate: string;
+  promotionTitle: string;
+  discountType: string;
+  discountValue: number;
+  discountLabel: string;
+  originalPrice: number;
+  discountedPrice: number;
+};
+
 export type PublicSlotDto = {
   id: string;
   masterId: string;
@@ -17,6 +28,7 @@ export type PublicSlotDto = {
   masterDisplayName: string;
   serviceTitle: string;
   servicePrice: number;
+  promotion: PublicSlotPromotionDto | null;
 };
 
 export async function fetchPublicSlots(params: {

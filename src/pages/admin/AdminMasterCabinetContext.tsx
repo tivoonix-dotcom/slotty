@@ -40,6 +40,7 @@ import { getMasterDraft, persistMasterDraft } from '../../features/master/model/
 import { getStoredMasterDraft } from '../../features/profile/lib/demoMasterStorage';
 import { contactsToLegacyContactLine } from '../../features/master-onboarding/model/masterContacts';
 import type { MasterDraft } from '../../features/profile/lib/demoMasterStorage';
+import type { MasterPublicationStatus } from '../../features/admin/lib/profileCompletion';
 
 export type MasterProfilePatch = Pick<
   MasterDraft,
@@ -77,6 +78,8 @@ type Ctx = {
   useCabinetApi: boolean;
   subscription: MasterSubscriptionDto | null;
   refreshSubscription: () => Promise<void>;
+  publicationStatus: MasterPublicationStatus | null;
+  setPublicationStatus: (status: MasterPublicationStatus) => void;
 };
 
 const AdminCabinetCtx = createContext<Ctx | null>(null);
@@ -111,6 +114,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
   const [cabinetLoading, setCabinetLoading] = useState(useCabinetApi);
   const [cabinetError, setCabinetError] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<MasterSubscriptionDto | null>(null);
+  const [publicationStatus, setPublicationStatus] = useState<MasterPublicationStatus | null>(null);
 
   const appointmentsRef = useRef(appointments);
   appointmentsRef.current = appointments;
@@ -125,6 +129,9 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       const [cabinet, rows] = await Promise.all([fetchMasterCabinet(), fetchMasterAppointments()]);
       const mapped = cabinetDtoToMasterDraft(cabinet);
       setDraft(mapped);
+      setPublicationStatus(
+        (cabinet.profile.publicationStatus as MasterPublicationStatus) || 'draft',
+      );
       lastSyncedSnapshotRef.current = cloneDraft(mapped);
       setAppointments(rows.map(mapMasterAppointmentRowToDemo));
       try {
@@ -148,6 +155,9 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       } catch {
         /* keep previous subscription */
       }
+      setPublicationStatus(
+        (cabinet.profile.publicationStatus as MasterPublicationStatus) || 'draft',
+      );
       setDraft((prev) => {
         const coverId = prev.portfolioCoverId?.trim();
         const keepCover =
@@ -166,6 +176,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
     if (!useCabinetApi) {
       setCabinetLoading(false);
       setSubscription(null);
+      setPublicationStatus('draft');
       if (!getStoredMasterDraft()) {
         persistMasterDraft(getMasterDraft());
         setDraft(getMasterDraft());
@@ -539,6 +550,8 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       useCabinetApi,
       subscription,
       refreshSubscription,
+      publicationStatus,
+      setPublicationStatus,
     }),
     [
       draft,
@@ -555,6 +568,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       useCabinetApi,
       subscription,
       refreshSubscription,
+      publicationStatus,
     ],
   );
 

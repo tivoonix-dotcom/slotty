@@ -10,6 +10,12 @@ export const DEMO_BOOKING_GRID_DAY_COUNT = 62;
 export type DemoBookingGridSlot = {
   slotId: string;
   timeLabel: string;
+  promotion?: {
+    discountLabel: string;
+    discountedPrice: number;
+    originalPrice: number;
+    isSlotBound: boolean;
+  };
 };
 
 export type DemoBookingGridDay = {

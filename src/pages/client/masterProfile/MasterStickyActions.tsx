@@ -1,19 +1,30 @@
+import { useCallback, useMemo } from 'react';
 import { HiCalendarDays, HiPhone } from 'react-icons/hi2';
 import { clientPinkBtn, clientOutlineBtn } from '../clientTheme';
-import { buildTelHref } from './masterProfileUtils';
+import { openPhoneDial, resolveMasterCallablePhone } from './masterProfileUtils';
 
 type Props = {
   onChooseTime: () => void;
   phone?: string;
+  contact?: string;
   onPhoneUnavailable?: () => void;
 };
 
 export function MasterStickyActions({
   onChooseTime,
   phone,
+  contact,
   onPhoneUnavailable,
 }: Props) {
-  const telHref = phone ? buildTelHref(phone) : null;
+  const callablePhone = useMemo(
+    () => resolveMasterCallablePhone(phone, contact),
+    [contact, phone],
+  );
+
+  const handleCall = useCallback(() => {
+    if (callablePhone && openPhoneDial(callablePhone)) return;
+    onPhoneUnavailable?.();
+  }, [callablePhone, onPhoneUnavailable]);
 
   const callBtnClass = `${clientOutlineBtn} min-h-12 flex-1 gap-1.5 !px-3`;
 
@@ -24,17 +35,10 @@ export function MasterStickyActions({
           <HiCalendarDays className="h-5 w-5" aria-hidden />
           Выбрать время
         </button>
-        {telHref ? (
-          <a href={telHref} className={callBtnClass}>
-            <HiPhone className="h-4 w-4" aria-hidden />
-            Позвонить
-          </a>
-        ) : (
-          <button type="button" onClick={() => onPhoneUnavailable?.()} className={callBtnClass}>
-            <HiPhone className="h-4 w-4" aria-hidden />
-            Позвонить
-          </button>
-        )}
+        <button type="button" onClick={handleCall} className={callBtnClass}>
+          <HiPhone className="h-4 w-4" aria-hidden />
+          Позвонить
+        </button>
       </div>
     </div>
   );

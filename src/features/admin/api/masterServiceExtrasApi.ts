@@ -152,6 +152,7 @@ export async function postMasterPromotion(body: {
   status?: ServicePromotion['status'];
   backgroundImage?: string;
   publish?: boolean;
+  slotIds?: string[];
 }): Promise<ServicePromotion> {
   const res = await apiFetch('/api/masters/me/promotions', { method: 'POST', body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readApiError(res));

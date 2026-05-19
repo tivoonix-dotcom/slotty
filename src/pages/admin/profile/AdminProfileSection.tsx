@@ -1,6 +1,6 @@
 ﻿import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ADMIN_SERVICES_PATH } from '../../../app/paths';
+import { ADMIN_SCHEDULE_PATH, ADMIN_SERVICES_PATH } from '../../../app/paths';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import type { MasterCareerItemType, MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import { normalizeMasterCareerItemType } from '../../../features/profile/lib/demoMasterStorage';
@@ -50,10 +50,9 @@ import {
   buildProfileStats,
   CabinetPageShell,
   MainInfoCard,
-  ProfileCompletionCard,
   ScheduleWorkCard,
-  wireCompletionActions,
 } from './AdminProfileCabinetUi';
+import { ProfileCompletionBlock } from './ProfileCompletionBlock';
 import { useProfileTabs } from './profileTabContext';
 
 type CareerItemType = MasterCareerItemType;
@@ -148,7 +147,6 @@ function MainSection({
   draft,
   onEditMain,
   onEditSchedule,
-  onGoPortfolio,
   onGoServices,
   cabinetLoading,
   useCabinetApi,
@@ -156,17 +154,12 @@ function MainSection({
   draft: MasterDraft;
   onEditMain: () => void;
   onEditSchedule: () => void;
-  onGoPortfolio: () => void;
   onGoServices: () => void;
   cabinetLoading?: boolean;
   useCabinetApi?: boolean;
 }) {
-  const completion = wireCompletionActions(draft, {
-    onEditMain,
-    onGoPortfolio,
-    onGoServices,
-    onEditSchedule,
-  });
+  const navigate = useNavigate();
+  const { setActiveSection } = useProfileTabs();
 
   return (
     <div className="space-y-4">
@@ -174,7 +167,17 @@ function MainSection({
       <MainInfoCard draft={draft} onEdit={onEditMain} />
       <AboutCard description={draft.description} />
       <ScheduleWorkCard draft={draft} onEditSchedule={onEditSchedule} />
-      <ProfileCompletionCard percent={completion.percent} items={completion.items} />
+      <ProfileCompletionBlock
+        draft={draft}
+        handlers={{
+          onEditMain,
+          onGoServices,
+          onGoSchedule: () => navigate(ADMIN_SCHEDULE_PATH),
+          onGoAddress: () => setActiveSection('address'),
+          onGoPortfolio: () => setActiveSection('portfolio'),
+          onGoRules: () => setActiveSection('rules'),
+        }}
+      />
     </div>
   );
 }
@@ -359,7 +362,7 @@ function AdminProfileReadView({
   onSetPortfolioCover: (portfolioItemId: string) => void;
   actionsDisabled?: boolean;
 }) {
-  const { activeSection, setActiveSection } = useProfileTabs();
+  const { activeSection } = useProfileTabs();
   const stats = useMemo(() => buildProfileStats(appointments), [appointments]);
 
   const section = useMemo(() => {
@@ -392,7 +395,6 @@ function AdminProfileReadView({
         draft={draft}
         onEditMain={onEditMain}
         onEditSchedule={onEditSchedule}
-        onGoPortfolio={() => setActiveSection('portfolio')}
         onGoServices={onGoServices}
         cabinetLoading={cabinetLoading}
         useCabinetApi={useCabinetApi}

@@ -133,10 +133,7 @@ export function BookingPage() {
     if (!master || !service) return [];
 
     if (isApiSlotGrid && apiBundle.status === 'ok') {
-      return buildBookingSlotDaysFromPublicSlots(
-        bookingAnchorDate,
-        apiBundle.slots.map((s) => ({ id: s.id, startsAt: s.startsAt })),
-      );
+      return buildBookingSlotDaysFromPublicSlots(bookingAnchorDate, apiBundle.slots);
     }
 
     return buildBookingSlotDays({
@@ -387,11 +384,7 @@ export function BookingPage() {
         master={master}
         service={service}
         selectedDay={selectedDay}
-        selectedSlot={
-          selectedSlot
-            ? { slotId: selectedSlot.slotId, timeLabel: selectedSlot.timeLabel }
-            : null
-        }
+        selectedSlot={selectedSlot}
         quickDateDays={quickDateDays}
         calendarMonths={calendarMonths}
         bookError={bookError}

@@ -32,7 +32,7 @@ const bundleBody = z.object({
 
 const bundlePatch = bundleBody.partial();
 
-const promoBody = z.object({
+const promoBodyBase = z.object({
   template: z.string().min(1).max(40),
   title: z.string().trim().min(1).max(300),
   description: z.string().max(20_000).optional(),
@@ -45,9 +45,33 @@ const promoBody = z.object({
   status: promoStatus.optional(),
   backgroundImage: z.string().max(2000).optional(),
   publish: z.boolean().optional(),
+  slotIds: z.array(z.string().uuid()).max(48).optional(),
 });
 
-const promoPatch = promoBody.partial();
+function refinePromotionSlotIds(
+  body: { template: string; slotIds?: string[] },
+  ctx: z.RefinementCtx,
+): void {
+  const slotCount = body.slotIds?.length ?? 0;
+  if (body.template === 'free_slots' && slotCount === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'slotIds required for free_slots promotions',
+      path: ['slotIds'],
+    });
+  }
+  if (body.template !== 'free_slots' && slotCount > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'slotIds only allowed for free_slots template',
+      path: ['slotIds'],
+    });
+  }
+}
+
+const promoBody = promoBodyBase.superRefine(refinePromotionSlotIds);
+
+const promoPatch = promoBodyBase.partial();
 
 export const masterBundlesRouter = Router();
 
@@ -138,6 +162,7 @@ masterPromotionsRouter.post(
       status: body.status,
       backgroundImage: body.backgroundImage,
       publish: body.publish,
+      slotIds: body.slotIds,
     });
     res.status(201).json(created);
   }),

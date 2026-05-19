@@ -125,6 +125,7 @@ export async function patchMasterMe(body: {
   contacts?: MasterContactPatch[] | null;
   photoUrl?: string | null;
   primaryCategoryCode?: string | null;
+  publicationStatus?: 'draft' | 'published' | 'hidden' | 'blocked';
 }): Promise<void> {
   const res = await apiFetch('/api/masters/me', { method: 'PATCH', body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readApiError(res));
@@ -163,6 +164,28 @@ export async function uploadMasterHeroPhotoFromDataUrl(dataUrl: string): Promise
   const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
   const file = new File([blob], `hero.${ext}`, { type: blob.type || 'image/jpeg' });
   return uploadMasterHeroPhotoFile(file);
+}
+
+/**
+ * Фото из Telegram (https) → загрузка в Storage.
+ * При CORS-ошибке в браузере возвращает исходный URL (сохранится в photo_url).
+ */
+export async function uploadMasterHeroPhotoFromRemoteUrl(imageUrl: string): Promise<string> {
+  const url = imageUrl.trim();
+  if (!url.startsWith('https://')) {
+    throw new Error('Некорректная ссылка на фото');
+  }
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/')) throw new Error('not image');
+    const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
+    const file = new File([blob], `telegram.${ext}`, { type: blob.type || 'image/jpeg' });
+    return uploadMasterHeroPhotoFile(file);
+  } catch {
+    return url;
+  }
 }
 
 export async function putMasterPrimaryLocation(body: PrimaryLocationBody): Promise<void> {

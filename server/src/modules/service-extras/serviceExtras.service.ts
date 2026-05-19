@@ -1,5 +1,8 @@
-import { query } from '../../config/db.js';
+import type { PoolClient } from 'pg';
+import { query, withTransaction } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { assertMasterHasProPlan } from '../billing/billing.service.js';
+import { assertAndBindPromotionSlots } from './promotionSlots.service.js';
 
 function num(v: string | number): number {
   return typeof v === 'number' ? v : Number(v);
@@ -109,6 +112,7 @@ export async function createMyBundle(
     status: string;
   },
 ) {
+  await assertMasterHasProPlan(masterId);
   await assertServicesBelongToMaster(masterId, body.serviceIds);
   if (body.status === 'visible' && body.serviceIds.length < 2) {
     throw ApiError.badRequest('В наборе должно быть минимум 2 услуги', 'BUNDLE_MIN_SERVICES');
@@ -298,9 +302,28 @@ export async function createMyPromotion(
     status?: string;
     backgroundImage?: string;
     publish?: boolean;
+    slotIds?: string[];
   },
 ) {
+  await assertMasterHasProPlan(masterId);
   await assertServiceBelongsToMaster(masterId, body.serviceId);
+
+  const isFreeSlots = body.template === 'free_slots';
+  const slotIds = body.slotIds ?? [];
+
+  if (isFreeSlots && !slotIds.length) {
+    throw ApiError.badRequest(
+      'Для умной акции укажите окна (slotIds)',
+      'FREE_SLOTS_REQUIRES_SLOT_IDS',
+    );
+  }
+  if (!isFreeSlots && slotIds.length) {
+    throw ApiError.badRequest(
+      'Привязка к окнам только для template free_slots',
+      'SLOT_IDS_NOT_ALLOWED',
+    );
+  }
+
   const status = resolvePromotionStatus(
     body.publish ?? body.status !== 'draft',
     body.startsAt,
@@ -308,29 +331,39 @@ export async function createMyPromotion(
     body.status,
   );
 
-  const ins = await query<{ id: string }>(
-    `insert into public.master_service_promotions (
-       master_id, template, title, description, service_id, discount_type, discount_value,
-       discount_label, starts_at, ends_at, status, background_image
-     ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-     returning id`,
-    [
-      masterId,
-      body.template,
-      body.title,
-      body.description ?? '',
-      body.serviceId,
-      body.discountType,
-      body.discountValue,
-      body.discountLabel,
-      body.startsAt,
-      body.endsAt,
-      status,
-      body.backgroundImage ?? '',
-    ],
-  );
+  const promotionId = await withTransaction(async (client: PoolClient) => {
+    const ins = await client.query<{ id: string }>(
+      `insert into public.master_service_promotions (
+         master_id, template, title, description, service_id, discount_type, discount_value,
+         discount_label, starts_at, ends_at, status, background_image
+       ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       returning id`,
+      [
+        masterId,
+        body.template,
+        body.title,
+        body.description ?? '',
+        body.serviceId,
+        body.discountType,
+        body.discountValue,
+        body.discountLabel,
+        body.startsAt,
+        body.endsAt,
+        status,
+        body.backgroundImage ?? '',
+      ],
+    );
+    const id = ins.rows[0]!.id;
+
+    if (isFreeSlots) {
+      await assertAndBindPromotionSlots(client, masterId, id, body.serviceId, slotIds);
+    }
+
+    return id;
+  });
+
   await syncServicePromotionFlags(masterId);
-  return getMyPromotion(masterId, ins.rows[0]!.id);
+  return getMyPromotion(masterId, promotionId);
 }
 
 export async function getMyPromotion(masterId: string, promotionId: string) {

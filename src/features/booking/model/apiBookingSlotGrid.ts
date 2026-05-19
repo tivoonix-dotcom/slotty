@@ -9,11 +9,9 @@ import {
   type DemoBookingGridDay,
   type DemoBookingGridSlot,
 } from './demoBookingSlotGrid';
+import type { PublicSlotDto } from '../api/publicSlotsApi';
 
-export type PublicSlotForGrid = {
-  id: string;
-  startsAt: string | Date;
-};
+export type PublicSlotForGrid = Pick<PublicSlotDto, 'id' | 'startsAt' | 'promotion'>;
 
 /**
  * Сетка дней как в демо, но слоты из GET /api/slots (реальные UUID).
@@ -39,9 +37,18 @@ export function buildBookingSlotDaysFromPublicSlots(
     const raw = slotsByDate.get(iso) ?? [];
     const times: DemoBookingGridSlot[] = raw.map((slot) => {
       const t = new Date(slot.startsAt);
+      const promo = slot.promotion;
       return {
         slotId: slot.id,
         timeLabel: t.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        promotion: promo
+          ? {
+              discountLabel: promo.discountLabel,
+              discountedPrice: promo.discountedPrice,
+              originalPrice: promo.originalPrice,
+              isSlotBound: promo.promotionTemplate === 'free_slots',
+            }
+          : undefined,
       };
     });
 

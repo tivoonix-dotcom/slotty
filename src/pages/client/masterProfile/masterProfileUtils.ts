@@ -23,6 +23,50 @@ export function buildTelHref(phone: string): string | null {
   return `tel:${normalized}`;
 }
 
+/** Телефон из поля phone или из строки contact (legacy). */
+export function resolveMasterCallablePhone(phone?: string, contact?: string): string | null {
+  const direct = phone?.trim();
+  if (direct && buildTelHref(direct)) return direct;
+
+  const legacy = contact?.trim();
+  if (!legacy) return null;
+
+  const embedded = legacy.match(/(?:\+?\d[\d\s\-()]{7,}\d)/);
+  if (embedded) {
+    const candidate = embedded[0].trim();
+    if (buildTelHref(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Звонок мастеру. В Telegram Mini App обычный `<a href="tel:">` не срабатывает —
+ * используем WebApp.openLink.
+ */
+export function openPhoneDial(phone: string): boolean {
+  const telHref = buildTelHref(phone);
+  if (!telHref || typeof window === 'undefined') return false;
+
+  const tg = (window as unknown as { Telegram?: { WebApp?: { openLink?: (u: string) => void } } })
+    .Telegram?.WebApp;
+
+  try {
+    if (typeof tg?.openLink === 'function') {
+      tg.openLink(telHref);
+      return true;
+    }
+  } catch {
+    /* fall through */
+  }
+
+  try {
+    window.location.href = telHref;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function telegramUrlFromContact(contact: string): string | null {
   const s = contact.trim();
   const embedded = s.match(/(?:https?:\/\/)?(?:t\.me|telegram\.me)\/([a-zA-Z0-9_]+)/i);
