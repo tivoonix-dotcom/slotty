@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import { buildYandexMapWidgetUrl } from '../../../features/appointments/model/demoAppointments';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import {
   buildLocationDisplayParts,
@@ -69,6 +70,50 @@ function AddressInfoRow({
 
 function AddressBlockTitle({ children }: { children: ReactNode }) {
   return <p className="mb-2 text-[14px] font-semibold text-[#111827]">{children}</p>;
+}
+
+function buildCatalogMapWidgetUrl(
+  addressText: string,
+  coords?: { lat?: number; lng?: number },
+): string {
+  const hasCoords = coords?.lat != null && coords?.lng != null;
+  return buildYandexMapWidgetUrl({
+    addressShort: addressText,
+    yandexMap: hasCoords
+      ? { lat: coords!.lat!, lon: coords!.lng!, zoom: 16 }
+      : undefined,
+    location: {
+      visitType: 'studio',
+      street: addressText,
+      building: '',
+      lat: coords?.lat,
+      lng: coords?.lng,
+    },
+  });
+}
+
+function AddressCatalogMap({
+  address,
+  lat,
+  lng,
+}: {
+  address: string;
+  lat?: number;
+  lng?: number;
+}) {
+  const mapSrc = useMemo(() => buildCatalogMapWidgetUrl(address, { lat, lng }), [address, lat, lng]);
+
+  return (
+    <div className="mt-2 overflow-hidden rounded-[18px] bg-[#F7F7F8] ring-1 ring-[#EAECEF]">
+      <iframe
+        title={`Карта — ${address}`}
+        src={mapSrc}
+        className="block h-[min(220px,42dvh)] w-full min-h-[180px] border-0"
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
+    </div>
+  );
 }
 
 /** Подпись поля в форме редактирования адреса. */
@@ -143,7 +188,10 @@ export function AddressSection({
                 Адрес не указан — нажмите «Изменить»
               </p>
             ) : (
-              <AddressInfoRow iconName="map-pin" label="Адрес для всех" value={catalogMain} />
+              <>
+                <AddressInfoRow iconName="map-pin" label="Адрес для всех" value={catalogMain} />
+                <AddressCatalogMap address={catalogMain} lat={loc?.lat} lng={loc?.lng} />
+              </>
             )}
           </div>
 

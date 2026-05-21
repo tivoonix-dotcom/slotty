@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { IconType } from 'react-icons';
+import { HiCheck, HiClipboardDocument, HiEye, HiShare } from 'react-icons/hi2';
 import { useNavigate } from 'react-router-dom';
 import { getMasterPath } from '../../../app/paths';
 import { updateMyMasterProfile } from '../../../features/admin/api/adminProfileApi';
@@ -111,7 +113,46 @@ function CelebrationImageContent() {
 }
 
 function ActionStack({ children }: { children: ReactNode }) {
-  return <div className="mt-4 flex flex-col gap-2">{children}</div>;
+  return <div className="mt-4 flex flex-col gap-2.5">{children}</div>;
+}
+
+type ProfileReadyBtnVariant = 'primary' | 'soft' | 'muted';
+
+function ProfileReadyActionButton({
+  variant,
+  icon: Icon,
+  children,
+  disabled,
+  onClick,
+}: {
+  variant: ProfileReadyBtnVariant;
+  icon: IconType;
+  children: ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  const iconWrap =
+    variant === 'primary'
+      ? 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25 text-white shadow-sm'
+      : variant === 'soft'
+        ? 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#F47C8C] shadow-[0_2px_8px_rgba(244,124,140,0.12)] ring-1 ring-[#FDE8ED]'
+        : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#6B7280] ring-1 ring-[#EAECEF]';
+
+  const variantClass =
+    variant === 'primary'
+      ? `${cabinetPinkBtn} w-full gap-3 px-4 py-3.5 text-[15px] disabled:opacity-50`
+      : variant === 'soft'
+        ? 'flex w-full items-center justify-center gap-3 rounded-[16px] bg-[#FFF1F4] px-4 py-3.5 text-[15px] font-semibold text-[#F47C8C] ring-1 ring-[#FDE8ED] transition hover:bg-[#FFE4EA] active:scale-[0.99] disabled:opacity-50'
+        : 'flex w-full items-center justify-center gap-3 rounded-[16px] bg-[#F7F7F8] px-4 py-3.5 text-[15px] font-semibold text-[#111827] ring-1 ring-[#EAECEF] transition hover:bg-[#F3F4F6] active:scale-[0.99] disabled:opacity-50';
+
+  return (
+    <button type="button" disabled={disabled} onClick={onClick} className={variantClass}>
+      <span className={iconWrap} aria-hidden>
+        <Icon className="h-5 w-5" />
+      </span>
+      <span>{children}</span>
+    </button>
+  );
 }
 
 function UnpublishedWarning({
@@ -325,30 +366,30 @@ export function ProfileCompletionBlock({ draft, handlers }: Props) {
           Клиенты могут записываться к вам
         </p>
         <ActionStack>
-          <button
-            type="button"
+          <ProfileReadyActionButton
+            variant="primary"
+            icon={copied ? HiCheck : HiClipboardDocument}
             disabled={!bookingLink}
             onClick={() => bookingLink && void copyHref(bookingLink.href)}
-            className={`${cabinetPinkBtn} w-full justify-center py-3 text-[15px] disabled:opacity-50`}
           >
             {copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
-          </button>
-          <button
-            type="button"
+          </ProfileReadyActionButton>
+          <ProfileReadyActionButton
+            variant="soft"
+            icon={HiShare}
             disabled={!bookingLink}
             onClick={() => void onShare()}
-            className="w-full rounded-[14px] bg-[#FFF1F4] py-3 text-[15px] font-semibold text-[#F47C8C] ring-1 ring-[#FDE8ED] transition active:opacity-90 disabled:opacity-50"
           >
             Поделиться
-          </button>
+          </ProfileReadyActionButton>
           {draft.masterId ? (
-            <button
-              type="button"
+            <ProfileReadyActionButton
+              variant="muted"
+              icon={HiEye}
               onClick={() => navigate(getMasterPath(draft.masterId!))}
-              className="w-full rounded-[14px] bg-[#F7F7F8] py-3 text-[15px] font-semibold text-[#111827] ring-1 ring-[#EAECEF] transition active:opacity-90"
             >
               Посмотреть как клиент
-            </button>
+            </ProfileReadyActionButton>
           ) : null}
         </ActionStack>
         {shareHint ? (

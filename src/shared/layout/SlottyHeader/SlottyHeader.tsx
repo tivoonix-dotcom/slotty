@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState, type FocusEvent, type ReactNo
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   HiBell,
-  HiCalendarDays,
   HiChevronDown,
+  HiSquares2X2,
   HiUser,
 } from 'react-icons/hi2';
 
@@ -463,16 +463,30 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
     />
   );
 
+  const goCatalog = useCallback(() => {
+    closeMobileMenu();
+    closeMegaMenu();
+    void setProfileRole('client');
+    navigate(SERVICES_PATH);
+  }, [closeMegaMenu, closeMobileMenu, navigate]);
+
+  const goClientProfile = useCallback(() => {
+    closeMobileMenu();
+    closeMegaMenu();
+    void setProfileRole('client');
+    navigate(isAuthenticated ? PROFILE_PATH : loginHref);
+  }, [closeMegaMenu, closeMobileMenu, isAuthenticated, loginHref, navigate]);
+
   const desktopActions = (
     <div className="hidden shrink-0 items-center gap-2 lg:flex">
       <button
         type="button"
-        onClick={() => void goAppointments()}
+        onClick={() => void goCatalog()}
         className={iconBtn}
-        aria-label="Мои записи"
-        title="Мои записи"
+        aria-label="Каталог"
+        title="Каталог услуг"
       >
-        <HiCalendarDays className="h-5 w-5" aria-hidden />
+        <HiSquares2X2 className="h-5 w-5" aria-hidden />
       </button>
 
       {isAuthenticated && isMasterUser ? (
@@ -606,20 +620,29 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
 
       {compactMobile ? (
         <div className="flex shrink-0 items-center gap-2 lg:hidden">
-          {isAuthenticated ? (
-            <button
-              type="button"
-              onClick={() => void goAppointments()}
-              className={iconBtn}
-              aria-label="Мои записи"
-            >
-              <HiCalendarDays className="h-5 w-5" aria-hidden />
-            </button>
-          ) : (
-            <Link to={loginHref} className={iconBtn} aria-label="Войти">
+          <button
+            type="button"
+            onClick={() => void goCatalog()}
+            className={iconBtn}
+            aria-label="Каталог"
+            title="Каталог"
+          >
+            <HiSquares2X2 className="h-5 w-5" aria-hidden />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void goClientProfile()}
+            className={iconBtn}
+            aria-label={isAuthenticated ? 'Профиль' : 'Войти'}
+            title={isAuthenticated ? 'Профиль' : 'Войти'}
+          >
+            {isAuthenticated && profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
+            ) : (
               <HiUser className="h-5 w-5" aria-hidden />
-            </Link>
-          )}
+            )}
+          </button>
 
           <button
             type="button"
