@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly VITE_DISABLE_TELEGRAM_MOCK?: string;
   /** Имя Telegram-бота без @ (ссылки вида https://t.me/BOT?start=master_…) */
   readonly VITE_TELEGRAM_BOT_USERNAME?: string;
+  /** Короткое имя Mini App в BotFather — прямой deep link на Web App. */
+  readonly VITE_TELEGRAM_WEBAPP_SHORT_NAME?: string;
   /** Публичный URL фронта для ссылок клиентам (например https://slotty.of.by). */
   readonly VITE_PUBLIC_APP_URL?: string;
   /** Google OAuth Web client id (Google Cloud Console). */

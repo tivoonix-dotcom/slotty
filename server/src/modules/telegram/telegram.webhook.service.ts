@@ -17,11 +17,22 @@ export function parseStartPayload(text: string): string | null {
   return payload && payload.length > 0 ? payload : null;
 }
 
+function isLoginStartPayload(payload: string): boolean {
+  return payload === 'login' || payload.startsWith('login_');
+}
+
 function webAppUrlForStart(startText?: string): string | undefined {
   const base = webAppBaseUrl();
   if (!base) return undefined;
   const payload = startText ? parseStartPayload(startText) : null;
   if (!payload) return base;
+  if (isLoginStartPayload(payload)) {
+    if (payload.startsWith('login_')) {
+      const from = `/${payload.slice('login_'.length).replace(/_/g, '/')}`;
+      return `${base}/login?${new URLSearchParams({ from }).toString()}`;
+    }
+    return `${base}/login`;
+  }
   const sep = base.includes('?') ? '&' : '?';
   return `${base}${sep}tgWebAppStartParam=${encodeURIComponent(payload)}`;
 }
@@ -110,7 +121,11 @@ export async function sendTelegramStartReply(chatId: number, startText = '/start
 
   const payload = parseStartPayload(startText);
   let text = START_TEXT;
-  if (payload?.startsWith('master_')) {
+  if (payload && isLoginStartPayload(payload)) {
+    text =
+      'Вход в SLOTTY через Telegram.\n\n' +
+      'Нажмите кнопку ниже — откроется приложение, вход выполнится автоматически.';
+  } else if (payload?.startsWith('master_')) {
     text += '\n\nВы перешли по ссылке мастера — откройте приложение, чтобы записаться.';
   }
 

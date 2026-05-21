@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { FORGOT_PASSWORD_PATH } from '../../../app/paths';
 import {
   fetchAuthIdentities,
@@ -13,6 +13,7 @@ import {
   sendEmailVerification,
 } from '../api/authApi';
 import { messageForAuthErrorCode } from '../lib/authApiErrors';
+import { buildTelegramLoginUrl, openTelegramLogin } from '../lib/telegramLoginLink';
 import type { AuthIdentityDto, AuthProvider, BackendProfile } from '../types';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { LoginMethodsHint } from './LoginMethodsHint';
@@ -68,9 +69,8 @@ function maskEmail(email: string | null): string | null {
   return `${head}@${domain}`;
 }
 
-function getTelegramBotUrl(): string | null {
-  const bot = import.meta.env.VITE_TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, '');
-  return bot ? `https://t.me/${bot}` : null;
+function getTelegramBotUrl(returnPath?: string): string | null {
+  return buildTelegramLoginUrl(returnPath);
 }
 
 function ErrorBanner({ message, pageStyle }: { message: string; pageStyle: boolean }) {
@@ -132,6 +132,8 @@ function GoogleLoginPill({ busy, googleClientId, onCredential, onError, label, p
 }
 
 export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', onLinked }: Props) {
+  const [searchParams] = useSearchParams();
+  const loginReturnPath = searchParams.get('from') ?? undefined;
   const { isAuthenticated, applySession, refreshProfile } = useAuth();
   const { initDataRaw, isTelegramWebApp } = useTelegram();
   const [identities, setIdentities] = useState<AuthIdentityDto[]>([]);
@@ -148,7 +150,7 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
   const isSettings = mode === 'settings' && isAuthenticated;
   const pageStyle = appearance === 'page';
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
-  const telegramBotUrl = getTelegramBotUrl();
+  const telegramBotUrl = getTelegramBotUrl(loginReturnPath);
 
   const reload = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -220,8 +222,13 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
       return;
     }
 
-    setError(messageForAuthErrorCode('TELEGRAM_NOT_AVAILABLE'));
-  }, [applySession, initDataRaw, isTelegramWebApp, onLinked]);
+    setError(null);
+    if (!openTelegramLogin(loginReturnPath)) {
+      setError(
+        'Укажите VITE_TELEGRAM_BOT_USERNAME в настройках сайта или откройте SLOTTY через кнопку «Открыть SLOTTY» в боте.',
+      );
+    }
+  }, [applySession, initDataRaw, isTelegramWebApp, loginReturnPath, onLinked]);
 
   const handleLinkTelegram = useCallback(async () => {
     if (!initDataRaw || !isTelegramWebApp) {
@@ -403,17 +410,9 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
           </button>
 
           {!initDataRaw || !isTelegramWebApp ? (
-            <div className="space-y-2 pl-0.5">
-              <p className="text-[12px] leading-relaxed text-[#9CA3AF]">
-                Вход через Telegram доступен в Mini App. Или откройте бота:
-              </p>
-              {openTelegramBtn ? (
-                <a href={telegramBotUrl!} target="_blank" rel="noopener noreferrer" className={`${pageSocialBtn} no-underline`}>
-                  <TelegramMark />
-                  <span>Открыть Telegram</span>
-                </a>
-              ) : null}
-            </div>
+            <p className="text-center text-[12px] leading-relaxed text-[#9CA3AF]">
+              Откроется Telegram → бот SLOTTY → кнопка «Открыть SLOTTY» для входа.
+            </p>
           ) : null}
         </div>
       </div>
@@ -448,12 +447,9 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
           </button>
 
           {!initDataRaw || !isTelegramWebApp ? (
-            <div className="space-y-2">
-              <p className="text-[12px] leading-relaxed text-neutral-500">
-                Откройте SLOTTY в Telegram, чтобы войти через Telegram.
-              </p>
-              {openTelegramBtn}
-            </div>
+            <p className="text-[12px] leading-relaxed text-neutral-500">
+              Нажмите «Войти через Telegram» — откроется приложение Telegram и бот SLOTTY.
+            </p>
           ) : null}
 
           {!showLoginEmail ? (
