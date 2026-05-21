@@ -1,17 +1,11 @@
 import { useCallback, useState, type FC, type FormEvent } from 'react';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
-import {
-  homeOutlineBtn,
-  homePinkBtn,
-  homeSection,
-} from './homeTheme';
+import { homePinkBtn } from './homeTheme';
 
-const BENEFITS = [
-  'Онлайн-запись 24/7',
-  'Напоминания в Telegram',
-  'Проверенные мастера',
-  'Без звонков и переписок',
-] as const;
+const HERO_BG = '/photos/heroo.webp';
+
+const heroMasterBtn =
+  'inline-flex min-h-12 w-full items-center justify-center rounded-full border-0 bg-[#F1EFEF] px-6 text-[15px] font-semibold text-[#374151] shadow-[0_2px_12px_rgba(17,24,39,0.06)] transition hover:bg-[#E8E6E6] active:scale-[0.98] sm:w-auto sm:min-w-[10.5rem]';
 
 export type HomeHeroProps = {
   onFindMaster: () => void;
@@ -37,71 +31,82 @@ export const HomeHero: FC<HomeHeroProps> = ({
   );
 
   return (
-    <section className={`${homeSection} !mt-0 scroll-mt-28`} aria-labelledby="home-hero-heading">
-      <div className="relative isolate overflow-hidden rounded-[28px] bg-[#FAF8F8] px-5 py-8 ring-1 ring-[#F3F4F6] shadow-[0_12px_40px_rgba(17,24,39,0.06)] sm:rounded-[32px] sm:px-8 sm:py-10">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#F47C8C]/12 blur-3xl" aria-hidden />
-        <div className="pointer-events-none absolute -bottom-24 -left-12 h-48 w-48 rounded-full bg-[#F1EFEF] blur-2xl" aria-hidden />
-
-        <div className="relative">
-          <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#FFF1F4] to-[#FCE8EC] px-3.5 py-1.5 text-[13px] font-semibold text-[#D45A6E] ring-1 ring-[#F47C8C]/20">
-            <span aria-hidden className="text-base leading-none">
-              🎁
-            </span>
-            −10 BYN на первую запись
-          </span>
-
+    <section className="scroll-mt-28" aria-labelledby="home-hero-heading">
+      <div
+        className="
+          relative isolate w-full overflow-hidden
+          rounded-[24px]
+          shadow-[0_20px_56px_rgba(244,124,140,0.14),0_8px_32px_rgba(17,24,39,0.06)]
+          ring-1 ring-[#F47C8C]/10
+          min-h-[clamp(560px,78dvh,680px)]
+          sm:min-h-[620px]
+          sm:rounded-[28px]
+          lg:min-h-[720px]
+        "
+        style={{
+          backgroundImage: `url(${HERO_BG})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        <div
+          className="
+            relative z-10 mx-auto flex min-h-[inherit] w-full max-w-[36rem]
+            flex-col items-center justify-center px-5 py-10 text-center
+            sm:max-w-[42rem] sm:px-8 sm:py-12
+          "
+        >
           <h1
             id="home-hero-heading"
-            className="mt-5 max-w-[20rem] text-balance text-[clamp(1.75rem,6vw,2.5rem)] font-bold leading-[1.08] tracking-[-0.04em] text-[#111827] sm:max-w-[26rem]"
+            className="max-w-[22rem] text-balance text-[clamp(1.65rem,5.5vw,2.5rem)] font-bold leading-[1.06] tracking-[-0.04em] text-[#111827] [text-shadow:0_1px_20px_rgba(255,255,255,0.9)] sm:max-w-[32rem]"
           >
             Запишитесь к мастеру за пару кликов
           </h1>
 
-          <p className="mt-3 max-w-[22rem] text-[15px] leading-relaxed text-[#6B7280] sm:max-w-[28rem] sm:text-[16px]">
-            Маникюр, брови, ресницы, барберы, массаж, фитнес и тату — выбирайте услугу, мастера и удобное
-            время прямо в Telegram.
-          </p>
-
-          <form className="mt-6 flex gap-2" onSubmit={submitSearch}>
-            <label className="relative min-w-0 flex-1">
-              <HiMagnifyingGlass
-                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9CA3AF]"
-                aria-hidden
-              />
+          <form
+            className="mt-6 hidden w-full max-w-[min(100%,26rem)] sm:block sm:max-w-[28rem]"
+            onSubmit={submitSearch}
+          >
+            <div
+              className="
+                flex items-center gap-1 rounded-full
+                bg-white/95 p-1.5 pl-3
+                shadow-[0_8px_32px_rgba(17,24,39,0.08),0_0_0_2px_rgba(255,255,255,0.9)]
+                ring-1 ring-[#F3F4F6]
+                backdrop-blur-md
+              "
+            >
+              <HiMagnifyingGlass className="h-5 w-5 shrink-0 text-[#9CA3AF]" aria-hidden />
               <input
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Услуга, мастер или салон"
-                className="h-12 w-full rounded-full border-0 bg-white pl-11 pr-4 text-[15px] text-[#111827] shadow-[0_4px_20px_rgba(17,24,39,0.06)] outline-none ring-1 ring-[#F3F4F6] placeholder:text-[#9CA3AF] focus:ring-2 focus:ring-[#F47C8C]/35"
+                className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-left text-[15px] text-[#111827] outline-none placeholder:text-[#9CA3AF]"
+                aria-label="Поиск услуги, мастера или салона"
               />
-            </label>
-            <button type="submit" className={`shrink-0 px-5 ${homePinkBtn}`}>
-              Найти
-            </button>
+              <button
+                type="submit"
+                className={`shrink-0 px-5 py-2.5 ${homePinkBtn} text-[14px] sm:text-[15px]`}
+              >
+                Найти
+              </button>
+            </div>
           </form>
 
-          <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
-            <button type="button" onClick={() => onFindMaster()} className={`w-full sm:flex-1 ${homePinkBtn} min-h-12 text-[15px]`}>
-              Найти мастера
-            </button>
+          <div className="mt-6 flex w-full max-w-[20rem] flex-col items-center gap-2.5 sm:mt-7 sm:max-w-[24rem] sm:flex-row sm:justify-center">
             <button
               type="button"
-              onClick={() => onBecomeMaster()}
-              className={`w-full sm:flex-1 ${homeOutlineBtn} min-h-12 text-[15px]`}
+              onClick={() => onFindMaster()}
+              className={`w-full sm:flex-1 ${homePinkBtn} min-h-12 px-7 text-[15px]`}
             >
+              Найти мастера
+            </button>
+            <button type="button" onClick={() => onBecomeMaster()} className={`${heroMasterBtn} sm:flex-1`}>
               {masterCtaLabel}
             </button>
           </div>
-
-          <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-5">
-            {BENEFITS.map((item) => (
-              <li key={item} className="flex items-center gap-2 text-[12px] font-medium text-[#6B7280] sm:text-[13px]">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#F47C8C]" aria-hidden />
-                {item}
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
     </section>

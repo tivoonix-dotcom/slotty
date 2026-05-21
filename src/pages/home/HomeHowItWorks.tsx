@@ -1,67 +1,157 @@
 import type { FC } from 'react';
-import { homeSection, homeSectionSubtitle, homeSectionTitle } from './homeTheme';
+import { ImageReveal } from '../../shared/ui/ImageReveal';
+import { homeSection } from './homeTheme';
 
-const STEPS = [
+const PHOTO = (name: string) => `/photos/ШАГИ/${name}`;
+
+const BENTO_PHOTOS = [
+  { src: PHOTO('4.png'), alt: '', containOnMobile: true },
+  { src: PHOTO('2.png'), alt: 'Выберите время', containOnMobile: false },
+] as const;
+
+type Step = {
+  label: string;
+  title: string;
+  text: string;
+};
+
+const STEPS_LEFT: Step[] = [
   {
-    n: '1',
+    label: 'Шаг 1',
     title: 'Выберите услугу',
     text: 'Откройте нужную категорию и найдите подходящего мастера.',
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-        <path d="M4 6h16M4 12h10M4 18h7" strokeLinecap="round" />
-      </svg>
-    ),
   },
   {
-    n: '2',
+    label: 'Шаг 2',
     title: 'Выберите время',
     text: 'Смотрите свободные окна и записывайтесь без звонков.',
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 2" strokeLinecap="round" />
-      </svg>
-    ),
+  },
+];
+
+const STEPS_RIGHT: Step[] = [
+  {
+    label: 'Шаг 3',
+    title: 'Запишитесь',
+    text: 'Подтвердите визит в пару кликов — без звонков и переписок.',
   },
   {
-    n: '3',
+    label: 'Шаг 4',
     title: 'Получите напоминание',
     text: 'Подтверждение и напоминание придут прямо в Telegram.',
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-        <path d="M18 8.5a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7Z" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M10.3 19a2 2 0 0 0 3.4 0" strokeLinecap="round" />
-      </svg>
-    ),
   },
-] as const;
+];
+
+const BENTO_ROUND = 'overflow-hidden rounded-[20px] sm:rounded-[28px]';
+const BENTO_SURFACE = 'bg-[#FAF7F4]';
+
+function StepBadge({ children }: { children: string }) {
+  return (
+    <span className="mb-3 inline-flex w-fit rounded-full bg-white/90 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#9CA3AF] sm:mb-4 sm:px-4 sm:py-1.5 sm:text-[12px] sm:tracking-[0.14em]">
+      {children}
+    </span>
+  );
+}
+
+function StepItem({ step }: { step: Step }) {
+  return (
+    <li>
+      <StepBadge>{step.label}</StepBadge>
+      <h3 className="text-[1.375rem] font-bold leading-[1.1] tracking-[-0.02em] text-[#111827] sm:text-[clamp(1.5rem,4.5vw,2.25rem)] sm:leading-[1.08] sm:tracking-[-0.03em]">
+        {step.title}
+      </h3>
+      <p className="mt-2 text-[15px] leading-[1.5] text-[#4B5563] sm:mt-3 sm:max-w-[28rem] sm:text-[18px] sm:leading-[1.5]">
+        {step.text}
+      </p>
+    </li>
+  );
+}
+
+function BentoImageOnly({
+  src,
+  alt,
+  priority,
+  containOnMobile = false,
+  className = '',
+}: {
+  src: string;
+  alt: string;
+  priority?: boolean;
+  containOnMobile?: boolean;
+  className?: string;
+}) {
+  const fitClass = containOnMobile
+    ? 'object-contain object-center p-3 sm:object-cover sm:p-0'
+    : 'object-cover';
+
+  return (
+    <article
+      className={`${BENTO_ROUND} ${containOnMobile ? 'bg-[#FAF7F4]' : ''} aspect-[4/5] w-full sm:aspect-auto sm:min-h-0 ${className}`}
+    >
+      <ImageReveal
+        src={src}
+        alt={alt}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'low'}
+        draggable={false}
+        className={`block h-full w-full ${fitClass}`}
+      />
+    </article>
+  );
+}
+
+function BentoStepsCard({ steps, className = '' }: { steps: Step[]; className?: string }) {
+  return (
+    <article
+      className={`${BENTO_ROUND} ${BENTO_SURFACE} flex flex-col justify-center p-5 sm:min-h-0 sm:p-10 ${className}`}
+    >
+      <ol className="space-y-6 sm:space-y-12">
+        {steps.map((step) => (
+          <StepItem key={step.label} step={step} />
+        ))}
+      </ol>
+    </article>
+  );
+}
 
 export const HomeHowItWorks: FC = () => {
   return (
     <section className={homeSection} aria-labelledby="home-how-heading">
-      <div className="mb-5 px-0.5">
-        <h2 id="home-how-heading" className={homeSectionTitle}>
-          Как работает запись
-        </h2>
-        <p className={homeSectionSubtitle}>Три шага — и вы у мастера без переписок.</p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        {STEPS.map((step) => (
-          <article
-            key={step.n}
-            className="flex min-h-[10.5rem] flex-col rounded-[24px] bg-white p-5 ring-1 ring-[#F3F4F6] shadow-[0_10px_32px_rgba(17,24,39,0.06)]"
+      <div className="mx-auto max-w-[68rem]">
+        <div className="mx-auto max-w-[40rem] px-1 text-center sm:px-0">
+          <h2
+            id="home-how-heading"
+            className="text-[clamp(1.75rem,5.5vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[#111827]"
           >
-            <div className="flex items-start justify-between gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF1F4] text-[#F47C8C]">
-                {step.icon}
-              </span>
-              <span className="text-[13px] font-bold tabular-nums text-[#F47C8C]/80">{step.n}</span>
+            Как работает запись
+          </h2>
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 gap-2.5 sm:mt-14 sm:grid-cols-12 sm:items-stretch sm:gap-4">
+          <BentoStepsCard steps={STEPS_LEFT} className="sm:col-span-7 sm:min-h-[18rem] sm:h-full" />
+
+          <div className="grid grid-cols-2 gap-2.5 sm:contents">
+            <div className="sm:col-span-5 sm:flex sm:h-full">
+              <BentoImageOnly
+                src={BENTO_PHOTOS[0].src}
+                alt={BENTO_PHOTOS[0].alt}
+                priority
+                containOnMobile={BENTO_PHOTOS[0].containOnMobile}
+                className="sm:aspect-[4/5]"
+              />
             </div>
-            <h3 className="mt-4 text-[16px] font-semibold tracking-tight text-[#111827]">{step.title}</h3>
-            <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-[#6B7280]">{step.text}</p>
-          </article>
-        ))}
+
+            <div className="sm:col-span-5 sm:flex sm:h-full">
+              <BentoImageOnly
+                src={BENTO_PHOTOS[1].src}
+                alt={BENTO_PHOTOS[1].alt}
+                containOnMobile={BENTO_PHOTOS[1].containOnMobile}
+                className="sm:aspect-[4/5]"
+              />
+            </div>
+          </div>
+
+          <BentoStepsCard steps={STEPS_RIGHT} className="sm:col-span-7 sm:h-full" />
+        </div>
       </div>
     </section>
   );

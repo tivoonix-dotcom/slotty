@@ -5,14 +5,7 @@ import type { MasterFeedItem } from '../features/booking/api/useMastersFeed';
 import { NothingFoundCard } from '../shared/ui/NothingFoundCard';
 import { LoadingVideo } from '../shared/ui/LoadingVideo';
 import { MasterCard } from './HomeMasterCard';
-import {
-  homeLink,
-  homePinkBtn,
-  homeScrollRow,
-  homeSection,
-  homeSectionSubtitle,
-  homeSectionTitle,
-} from './home/homeTheme';
+import { homeLink, homePinkBtn, homeScrollRow, homeSection } from './home/homeTheme';
 
 export type HomeTopMastersProps = {
   masters: MasterFeedItem[];
@@ -31,21 +24,19 @@ export const HomeTopMasters: FC<HomeTopMastersProps> = ({
       style={{ animationDelay: '140ms' }}
       aria-labelledby="top-masters-heading"
     >
-      <div className="mb-4 flex items-end justify-between gap-3 px-0.5">
-        <div className="min-w-0">
-          <h2 id="top-masters-heading" className={homeSectionTitle}>
-            Мастера рядом с вами
-          </h2>
-          <p className={homeSectionSubtitle}>
-            Выбирайте специалиста по рейтингу, услугам, цене и свободному времени.
-          </p>
-        </div>
-        <Link to={MASTERS_PATH} className={homeLink}>
+      <div className="mx-auto max-w-[40rem] text-center">
+        <h2
+          id="top-masters-heading"
+          className="text-[clamp(2rem,6vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[#111827]"
+        >
+          Мастера рядом с вами
+        </h2>
+        <Link to={MASTERS_PATH} className={`${homeLink} mt-4 inline-flex`}>
           Все мастера
         </Link>
       </div>
 
-      <div className={homeScrollRow}>
+      <div className={`${homeScrollRow} mt-10 sm:mt-14`}>
         {isLoading ? (
           <div className="flex min-h-[14rem] w-full min-w-0 shrink-0 items-center justify-center py-8">
             <LoadingVideo size="lg" label="Загрузка мастеров…" />

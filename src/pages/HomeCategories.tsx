@@ -1,15 +1,19 @@
 import type { FC } from 'react';
 import { ImageReveal } from '../shared/ui/ImageReveal';
-import { homeSection, homeSectionSubtitle, homeSectionTitle } from './home/homeTheme';
+import { homeScrollRow, homeSection } from './home/homeTheme';
 
 const CATEGORIES = [
-  { key: 'manicure', label: 'Маникюр', image: '/photos/work/manicure.webp' },
-  { key: 'barbers', label: 'Барберы', image: '/photos/work/barbers.webp' },
-  { key: 'brows-lashes', label: 'Брови и ресницы', image: '/photos/work/brows_lashes.webp' },
-  { key: 'massage', label: 'Массаж', image: '/photos/work/massage.webp' },
-  { key: 'fitness', label: 'Фитнес', image: '/photos/work/fitness.webp' },
-  { key: 'tattoo', label: 'Тату', image: '/photos/work/tattoo.webp' },
-];
+  { key: 'manicure', label: 'Маникюр', image: '/photos/лендинг/каталог/маникюр.png' },
+  { key: 'barbers', label: 'Барберы', image: '/photos/лендинг/каталог/барберы.png' },
+  { key: 'brows-lashes', label: 'Брови и ресницы', image: '/photos/лендинг/каталог/брови.png' },
+  { key: 'massage', label: 'Массаж', image: '/photos/лендинг/каталог/массаж.png' },
+  { key: 'fitness', label: 'Фитнес', image: '/photos/лендинг/каталог/фитнес.png' },
+  { key: 'tattoo', label: 'Тату', image: '/photos/лендинг/каталог/тату.png' },
+] as const;
+
+function categoryImageSrc(category: (typeof CATEGORIES)[number]): string {
+  return category.image;
+}
 
 type HomeCategoriesProps = {
   onCategory: (category: string) => void;
@@ -17,52 +21,52 @@ type HomeCategoriesProps = {
 
 export const HomeCategories: FC<HomeCategoriesProps> = ({ onCategory }) => {
   return (
-    <section className={homeSection} style={{ animationDelay: '120ms' }} aria-labelledby="home-categories-heading">
-      <div className="mb-4 px-0.5">
-        <h2 id="home-categories-heading" className={homeSectionTitle}>
-          Выберите услугу
-        </h2>
-        <p className={homeSectionSubtitle}>Найдите подходящего мастера в нужной категории.</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {CATEGORIES.map((category, index) => (
-          <button
-            key={category.key}
-            type="button"
-            onClick={() => onCategory(category.key)}
-            className="
-              flex
-              h-full
-              min-h-[8.5rem]
-              flex-col
-              items-stretch
-              overflow-hidden
-              rounded-[22px]
-              bg-white
-              text-left
-              ring-1
-              ring-[#F3F4F6]
-              shadow-[0_8px_28px_rgba(17,24,39,0.06)]
-              transition
-              active:scale-[0.98]
-            "
+    <section
+      className={`${homeSection} !mt-12 sm:!mt-16`}
+      style={{ animationDelay: '120ms' }}
+      aria-labelledby="home-categories-heading"
+    >
+      <div className="mx-auto max-w-[68rem]">
+        <div className="mx-auto max-w-[40rem] text-center">
+          <h2
+            id="home-categories-heading"
+            className="text-[clamp(2rem,6vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[#111827]"
           >
-            <span className="flex h-[4.75rem] shrink-0 items-center justify-center bg-[#FAF8F8] sm:h-[5.25rem]">
-              <ImageReveal
-                src={category.image}
-                alt=""
-                loading={index < 2 ? 'eager' : 'lazy'}
-                fetchPriority={index < 2 ? 'high' : 'low'}
-                draggable={false}
-                className="h-[3.25rem] w-[3.25rem] origin-center scale-[1.28] select-none object-contain sm:h-[3.5rem] sm:w-[3.5rem]"
-              />
-            </span>
-            <span className="flex flex-1 items-center justify-center px-3 py-3 text-center text-[14px] font-semibold leading-snug tracking-[-0.02em] text-[#111827] sm:text-[15px]">
-              {category.label}
-            </span>
-          </button>
-        ))}
+            Выберите услугу
+          </h2>
+
+        </div>
+
+        <div className="relative mt-10 w-[calc(100%+(100vw-100%)/2)] max-w-none overflow-visible sm:mt-14">
+          <ul
+            className={`${homeScrollRow} list-none gap-5 pb-2 pl-0 pr-[max(1.25rem,env(safe-area-inset-right))] snap-x snap-mandatory scroll-pl-0 sm:gap-6`}
+          >
+            {CATEGORIES.map((category, index) => (
+              <li
+                key={category.key}
+                className="w-[min(17.5rem,82vw)] shrink-0 snap-start sm:w-[19.5rem]"
+              >
+                <button
+                  type="button"
+                  onClick={() => onCategory(category.key)}
+                  aria-label={category.label}
+                  className="group block w-full transition active:opacity-95"
+                >
+                  <div className="overflow-hidden rounded-[22px] bg-[#F2F2F2] p-3 sm:rounded-[26px] sm:p-4">
+                    <ImageReveal
+                      src={categoryImageSrc(category)}
+                      alt=""
+                      loading={index < 2 ? 'eager' : 'lazy'}
+                      fetchPriority={index < 2 ? 'high' : 'low'}
+                      draggable={false}
+                      className="block h-auto w-full rounded-[18px] object-contain transition duration-500 group-hover:scale-[1.01] sm:rounded-[22px]"
+                    />
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

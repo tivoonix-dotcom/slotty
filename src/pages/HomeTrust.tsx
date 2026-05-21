@@ -1,54 +1,65 @@
 import type { FC } from 'react';
-import { Link } from 'react-router-dom';
-import { HiBell, HiCalendarDays } from 'react-icons/hi2';
-import { homeOutlineBtn, homePinkBtn, homeSection } from './home/homeTheme';
+import { ImageReveal } from '../shared/ui/ImageReveal';
+import { homeSection } from './home/homeTheme';
 
-const STATS = [
-  { title: '6 категорий', Icon: HiCalendarDays },
-  { title: 'Онлайн-запись 24/7', Icon: HiCalendarDays },
-  { title: 'Telegram-напоминания', Icon: HiBell, highlight: true },
-] as const;
+const TRUST_IMAGE_DESKTOP = '/photos/Онлайн-запись.png';
+const TRUST_IMAGE_MOBILE = '/photos/онлайнзаписьмбилка.png';
 
-export type HomeTrustProps = {
-  onFindMaster: () => void | Promise<void>;
-};
+const STATS = ['6 категорий', 'Онлайн-запись 24/7', 'Telegram-напоминания'] as const;
 
-export const HomeTrust: FC<HomeTrustProps> = ({ onFindMaster }) => {
+const imgClass = 'block h-auto w-full object-contain';
+
+function TrustOverlay() {
   return (
-    <section id="nagrady" className={homeSection} style={{ animationDelay: '80ms' }}>
-      <div className="rounded-[28px] bg-[#F1EFEF] p-4 shadow-[0_10px_36px_rgba(17,24,39,0.05)] sm:p-5">
-        <div className="rounded-[24px] bg-white px-5 py-8 text-center ring-1 ring-[#F3F4F6] shadow-[0_8px_28px_rgba(17,24,39,0.06)] sm:px-8 sm:py-10">
-          <div className="grid gap-4 sm:grid-cols-3">
-            {STATS.map((row) => (
-              <div key={row.title} className="flex flex-col items-center gap-2 px-2">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF1F4] text-[#F47C8C]">
-                  <row.Icon className="h-5 w-5" aria-hidden />
-                </span>
-                <p
-                  className={`text-center text-[15px] font-bold leading-snug tracking-tight sm:text-[16px] ${
-                    'highlight' in row && row.highlight
-                      ? 'bg-gradient-to-r from-[#F47C8C] to-[#F26D83] bg-clip-text text-transparent'
-                      : 'text-[#111827]'
-                  }`}
-                >
-                  {row.title}
-                </p>
-              </div>
-            ))}
-          </div>
+    <div className="absolute inset-0 flex flex-col items-center justify-center px-5 py-8 text-center sm:px-10 sm:py-12">
+      <h2 id="home-trust-heading" className="sr-only">
+        Преимущества SLOTTY
+      </h2>
 
-          <p className="mx-auto mt-6 max-w-md text-[14px] leading-relaxed text-[#6B7280]">
-            Мастера, услуги, график работы и напоминания — в одном понятном интерфейсе.
-          </p>
+      <ul className="flex w-full max-w-[20rem] flex-col items-center gap-2.5 text-center sm:max-w-lg sm:gap-4">
+        {STATS.map((title, index) => (
+          <li
+            key={title}
+            className={
+              index === 2
+                ? 'bg-gradient-to-r from-[#F47C8C] to-[#F26D83] bg-clip-text text-[1.1rem] font-bold leading-[1.1] tracking-tight text-transparent sm:text-[clamp(1.25rem,5vw,2rem)]'
+                : 'text-[1.1rem] font-bold leading-[1.1] tracking-tight text-[#111827] sm:text-[clamp(1.25rem,5vw,2rem)]'
+            }
+          >
+            {title}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
-          <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2.5">
-            <button type="button" onClick={() => void onFindMaster()} className={`w-full ${homePinkBtn} min-h-12 text-[15px]`}>
-              Найти мастера
-            </button>
-            <Link to="#tarify" className={`w-full ${homeOutlineBtn} min-h-12 text-[15px]`}>
-              Смотреть тарифы
-            </Link>
-          </div>
+export const HomeTrust: FC = () => {
+  return (
+    <section id="nagrady" className={homeSection} style={{ animationDelay: '80ms' }} aria-labelledby="home-trust-heading">
+      <div className="relative w-full overflow-hidden rounded-[24px] sm:rounded-[28px]">
+        <div className="relative sm:hidden">
+          <ImageReveal
+            src={TRUST_IMAGE_MOBILE}
+            alt=""
+            loading="lazy"
+            draggable={false}
+            className={imgClass}
+            aria-hidden
+          />
+          <TrustOverlay />
+        </div>
+
+        <div className="relative hidden sm:block">
+          <ImageReveal
+            src={TRUST_IMAGE_DESKTOP}
+            alt=""
+            loading="lazy"
+            draggable={false}
+            className={imgClass}
+            aria-hidden
+          />
+          <TrustOverlay />
         </div>
       </div>
     </section>

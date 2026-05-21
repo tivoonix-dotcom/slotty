@@ -14,9 +14,8 @@ import { useIsMasterUser } from '../features/profile/hooks/useIsMasterUser';
 import { setProfileRole } from '../features/profile/lib/setProfileRole';
 import { useTelegram } from '../shared/hooks/useTelegram';
 import { readTelegramWebAppStartParam } from '../shared/lib/telegramWebApp';
-import { HomeBonusBlock } from './home/HomeBonusBlock';
 import { HomeForMasters } from './home/HomeForMasters';
-import { HomeHero } from './home/HomeHero';
+import { HomeHeroStack } from './home/HomeHeroStack';
 import { HomeHowItWorks } from './home/HomeHowItWorks';
 import { HomeCategories } from './HomeCategories';
 import { HomeFaq } from './HomeFaq';
@@ -69,10 +68,6 @@ export function Home() {
     void pickClientRoleAnd(MASTERS_PATH);
   }, [pickClientRoleAnd]);
 
-  const onFindServices = useCallback(() => {
-    void pickClientRoleAnd(SERVICES_PATH);
-  }, [pickClientRoleAnd]);
-
   const onSearch = useCallback(
     (q: string) => {
       void setProfileRole('client');
@@ -104,17 +99,15 @@ export function Home() {
     <div className="min-h-dvh bg-[#FFFCFC] text-neutral-900">
       <HomeHeader isDemoMaster={isMasterUser} onProfileTab={onProfileTab} />
 
-      <main className="relative z-10 mx-auto max-w-[1100px] px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[calc(5.25rem+env(safe-area-inset-top,0px))] sm:px-6">
-        <HomeHero
-          onFindMaster={onFindMaster}
-          onBecomeMaster={onBecomeMaster}
-          onSearch={onSearch}
-          masterCtaLabel={masterCtaLabel}
-        />
+      <HomeHeroStack
+        onFindMaster={onFindMaster}
+        onBecomeMaster={onBecomeMaster}
+        onSearch={onSearch}
+        masterCtaLabel={masterCtaLabel}
+      />
 
+      <main className="relative z-10 mx-auto max-w-[1100px] px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-0 sm:px-6">
         <HomeCategories onCategory={onCategory} />
-
-        <HomeBonusBlock onClaim={onFindServices} />
 
         <HomeQuickSlots />
 
@@ -128,7 +121,7 @@ export function Home() {
 
         <HomeTariffs />
 
-        <HomeTrust onFindMaster={onFindMaster} />
+        <HomeTrust />
 
         <HomeFaq />
       </main>

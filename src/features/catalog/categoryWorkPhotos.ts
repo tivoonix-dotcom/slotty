@@ -1,12 +1,12 @@
-/** Фото плиток «Категории» в каталоге услуг: `public/photos/work/`. */
+/** Фото плиток категорий: `public/photos/каталог_услуги/`. */
 export const CATEGORY_WORK_PHOTOS: Record<string, string> = {
-  manicure: '/photos/work/manicure.webp',
-  barbers: '/photos/work/barbers.webp',
-  'brows-lashes': '/photos/work/brows_lashes.webp',
-  brows_lashes: '/photos/work/brows_lashes.webp',
-  massage: '/photos/work/massage.webp',
-  fitness: '/photos/work/fitness.webp',
-  tattoo: '/photos/work/tattoo.webp',
+  manicure: '/photos/каталог_услуги/manicure.webp',
+  barbers: '/photos/каталог_услуги/barbers.webp',
+  'brows-lashes': '/photos/каталог_услуги/brows_lashes.webp',
+  brows_lashes: '/photos/каталог_услуги/brows_lashes.webp',
+  massage: '/photos/каталог_услуги/massage.webp',
+  fitness: '/photos/каталог_услуги/fitness.webp',
+  tattoo: '/photos/каталог_услуги/tattoo.webp',
 };
 
 export function getCategoryWorkPhotoUrl(code: string | null | undefined): string {

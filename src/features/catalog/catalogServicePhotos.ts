@@ -1,6 +1,6 @@
 import { resolveCategoryWorkCode } from './categoryWorkPhotos';
 
-/** Фото карточек блока «Все услуги» (`public/photos/каталог_услуги/`). Категории — `categoryWorkPhotos` → `/photos/work/`. */
+/** Фото карточек блока «Все услуги» (`public/photos/каталог_услуги/`). Плитки категорий — `categoryWorkPhotos`. */
 export const CATALOG_SERVICE_IMAGES = {
   manicure: '/photos/каталог_услуги/manicure.webp',
   barbers: '/photos/каталог_услуги/barbers.webp',

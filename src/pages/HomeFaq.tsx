@@ -36,53 +36,25 @@ const FAQ_ITEMS = [
 export const HomeFaq: FC = () => {
   return (
     <section id="faq" className="mt-14 scroll-mt-28 sm:mt-16" style={{ animationDelay: '100ms' }}>
-      <div className="px-0.5 text-center sm:text-left">
-        <h2 className="text-[clamp(1.35rem,4vw,1.75rem)] font-semibold tracking-tight text-[#111827]">
+      <div className="mx-auto max-w-[40rem] px-0.5 text-center">
+        <h2 className="text-[clamp(2rem,6vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[#111827]">
           Частые вопросы
         </h2>
-        <p className="mt-1 text-[13px] leading-snug text-[#9CA3AF] sm:text-[14px]">
-          Коротко о записи, Telegram и возможностях для мастеров.
-        </p>
       </div>
 
-      <div className="mt-6 space-y-2.5">
+      <div className="mt-8 space-y-2.5 sm:mt-10">
         {FAQ_ITEMS.map((item) => (
           <details
             key={item.key}
-            className="group rounded-[20px] bg-white px-5 py-4 ring-1 ring-[#F3F4F6] shadow-[0_6px_24px_rgba(17,24,39,0.05)] sm:px-6"
+            className="group rounded-full bg-[#F1EFEF] px-5 py-4 shadow-[0_4px_18px_rgba(17,24,39,0.04)] transition-[border-radius] duration-200 group-open:rounded-[2rem] sm:px-6"
           >
             <summary
-              className="
-                cursor-pointer
-                list-none
-                text-left
-                text-[15px]
-                font-semibold
-                tracking-tight
-                text-neutral-950
-                [&::-webkit-details-marker]:hidden
-              "
+              className="cursor-pointer list-none text-left text-[15px] font-semibold tracking-tight text-[#111827] [&::-webkit-details-marker]:hidden"
             >
               <span className="flex items-center justify-between gap-3">
                 {item.q}
-
                 <span
-                  className="
-                    flex
-                    h-8
-                    w-8
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-white
-                    text-lg
-                    font-light
-                    leading-none
-                    text-neutral-400
-                    transition
-                    group-open:rotate-45
-                  "
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/90 text-lg font-light leading-none text-[#9CA3AF] transition group-open:rotate-45"
                   aria-hidden
                 >
                   +
@@ -90,7 +62,7 @@ export const HomeFaq: FC = () => {
               </span>
             </summary>
 
-            <p className="mt-3 pt-1 text-left text-[14px] leading-relaxed text-neutral-600 sm:text-[15px]">
+            <p className="mt-3 text-left text-[14px] leading-relaxed text-[#6B7280] sm:text-[15px]">
               {item.a}
             </p>
           </details>
