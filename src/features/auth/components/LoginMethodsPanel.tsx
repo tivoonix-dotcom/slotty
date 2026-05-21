@@ -296,22 +296,6 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
 
   const linkedEmailLabel = emailIdentity?.email ? maskEmail(emailIdentity.email) : null;
 
-  const openTelegramBtn = telegramBotUrl ? (
-    <a
-      href={telegramBotUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={
-        pageStyle
-          ? `${pageSocialBtn} no-underline`
-          : 'flex w-full min-h-11 items-center justify-center rounded-full border border-[#2AABEE]/30 bg-white px-4 text-[14px] font-semibold text-[#2AABEE] no-underline transition hover:bg-[#F0F9FF]'
-      }
-    >
-      <TelegramMark />
-      <span>Открыть Telegram</span>
-    </a>
-  ) : null;
-
   /* ——— Вход: /login (как в референсе — email, затем «или продолжить с») ——— */
   if (!isSettings && pageStyle) {
     return (
