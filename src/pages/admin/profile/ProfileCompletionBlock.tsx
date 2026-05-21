@@ -139,7 +139,7 @@ function ProfileReadyActionButton({
         : 'flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#6B7280] ring-1 ring-[#EAECEF]';
 
   const shell =
-    'grid w-full min-h-[52px] grid-cols-[2.5rem_1fr_2.5rem] items-center gap-x-1 rounded-[16px] py-3 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50';
+    'relative flex w-full min-h-[52px] items-center justify-center rounded-[16px] px-5 py-3.5 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50';
 
   const variantClass =
     variant === 'primary'
@@ -150,18 +150,20 @@ function ProfileReadyActionButton({
 
   const textClass =
     variant === 'primary'
-      ? 'text-center text-[15px] font-semibold leading-snug text-white'
+      ? 'w-full text-center text-[15px] font-semibold leading-snug text-white'
       : variant === 'soft'
-        ? 'text-center text-[15px] font-semibold leading-snug text-[#F47C8C]'
-        : 'text-center text-[15px] font-semibold leading-snug text-[#111827]';
+        ? 'w-full text-center text-[15px] font-semibold leading-snug text-[#F47C8C]'
+        : 'w-full text-center text-[15px] font-semibold leading-snug text-[#111827]';
 
   return (
     <button type="button" disabled={disabled} onClick={onClick} className={variantClass}>
-      <span className={`col-start-1 row-start-1 justify-self-start ${iconWrap}`} aria-hidden>
+      <span
+        className={`absolute left-5 top-1/2 -translate-y-1/2 ${iconWrap}`}
+        aria-hidden
+      >
         <Icon className="h-5 w-5 shrink-0" />
       </span>
-      <span className={`col-start-2 row-start-1 min-w-0 px-0.5 ${textClass}`}>{children}</span>
-      <span className="col-start-3 row-start-1 w-10" aria-hidden />
+      <span className={`${textClass} px-14`}>{children}</span>
     </button>
   );
 }

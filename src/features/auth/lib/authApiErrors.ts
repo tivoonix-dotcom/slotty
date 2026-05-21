@@ -8,6 +8,9 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
     'На сервере API не задан GOOGLE_CLIENT_SECRET. Добавьте его в Railway (slotty-api) или откройте привязку в браузере.',
   API_PUBLIC_URL_MISSING:
     'На сервере API не задан публичный URL (PUBLIC_API_URL или RAILWAY_PUBLIC_DOMAIN).',
+  AUTH_REQUIRED: 'Сначала войдите через Telegram в кабинет, затем снова нажмите «Подключить Google».',
+  GOOGLE_LINK_HANDOFF_INVALID:
+    'Ссылка для привязки устарела. Вернитесь в Telegram → «Способы входа» → «Подключить Google».',
   GOOGLE_OAUTH_STATE_INVALID: 'Сессия Google устарела. Начните вход заново.',
   GOOGLE_OAUTH_EXCHANGE_FAILED: 'Не удалось завершить вход через Google.',
   GOOGLE_TOKEN_INVALID: 'Не удалось войти через Google.',

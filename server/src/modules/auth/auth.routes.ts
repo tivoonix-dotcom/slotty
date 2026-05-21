@@ -15,7 +15,9 @@ import {
   buildClientOAuthDoneUrl,
   buildGoogleAuthorizationUrl,
   exchangeGoogleAuthorizationCode,
+  signGoogleLinkHandoff,
   signGoogleOAuthState,
+  verifyGoogleLinkHandoff,
   verifyGoogleOAuthState,
 } from './googleOAuth.service.js';
 import { listAuthIdentitiesForProfile } from './authIdentities.service.js';
@@ -35,6 +37,10 @@ const telegramBody = z.object({
 
 const googleBody = z.object({
   idToken: z.string().min(1, 'idToken is required'),
+});
+
+const googleLinkBody = googleBody.extend({
+  handoffToken: z.string().min(1).optional(),
 });
 
 const emailLoginBody = z.object({
@@ -122,11 +128,25 @@ authRouter.post(
 );
 
 authRouter.post(
-  '/link/google',
+  '/google/link-handoff',
   authMiddleware,
   asyncHandler(async (req, res) => {
-    const body = googleBody.parse(req.body);
-    const out = await linkGoogle(body.idToken, req.user!.id);
+    res.json({ handoffToken: signGoogleLinkHandoff(req.user!.id) });
+  }),
+);
+
+authRouter.post(
+  '/link/google',
+  optionalAuthMiddleware,
+  asyncHandler(async (req, res) => {
+    const body = googleLinkBody.parse(req.body);
+    const profileId = body.handoffToken
+      ? verifyGoogleLinkHandoff(body.handoffToken)
+      : req.user?.id;
+    if (!profileId) {
+      throw ApiError.unauthorized('Войдите в аккаунт, чтобы привязать Google', 'AUTH_REQUIRED');
+    }
+    const out = await linkGoogle(body.idToken, profileId);
     res.json(out);
   }),
 );
@@ -155,13 +175,20 @@ authRouter.get(
     const stateRaw = typeof req.query.state === 'string' ? req.query.state : '';
     const oauthError = typeof req.query.error === 'string' ? req.query.error : '';
 
+    let oauthPurpose: 'link' | 'login' = 'login';
+    try {
+      if (stateRaw) oauthPurpose = verifyGoogleOAuthState(stateRaw).purpose;
+    } catch {
+      /* use login for error redirect */
+    }
+
     if (oauthError) {
-      res.redirect(buildClientOAuthDoneUrl({ purpose: 'login', error: oauthError }));
+      res.redirect(buildClientOAuthDoneUrl({ purpose: oauthPurpose, error: oauthError }));
       return;
     }
 
     if (!code || !stateRaw) {
-      res.redirect(buildClientOAuthDoneUrl({ purpose: 'login', error: 'missing_code' }));
+      res.redirect(buildClientOAuthDoneUrl({ purpose: oauthPurpose, error: 'missing_code' }));
       return;
     }
 
@@ -186,9 +213,15 @@ authRouter.get(
         }),
       );
     } catch (e) {
-      const code =
+      const errCode =
         e instanceof ApiError ? (e.code ?? 'oauth_failed') : 'oauth_failed';
-      res.redirect(buildClientOAuthDoneUrl({ purpose: 'login', error: code }));
+      let purpose: 'link' | 'login' = 'login';
+      try {
+        purpose = verifyGoogleOAuthState(stateRaw).purpose;
+      } catch {
+        /* keep login */
+      }
+      res.redirect(buildClientOAuthDoneUrl({ purpose, error: errCode }));
     }
   }),
 );

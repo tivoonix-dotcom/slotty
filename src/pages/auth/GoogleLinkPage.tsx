@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ADMIN_LOGIN_METHODS_PATH, HUB_PATH, LOGIN_PATH } from '../../app/paths';
 import { linkGoogle } from '../../features/auth/api/authApi';
 import { GoogleSignInButton } from '../../features/auth/components/GoogleSignInButton';
@@ -9,6 +9,8 @@ import { GoogleIcon } from '../../shared/ui/GoogleIcon';
 /** Привязка Google в обычном браузере (fallback, если OAuth redirect на API не настроен). */
 export function GoogleLinkPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const handoffToken = searchParams.get('handoff')?.trim() || undefined;
   const { isAuthenticated, isLoading, refreshProfile } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -17,19 +19,35 @@ export function GoogleLinkPage() {
     async (idToken: string) => {
       setError(null);
       try {
-        await linkGoogle(idToken);
-        await refreshProfile();
+        await linkGoogle(idToken, handoffToken);
+        if (!handoffToken) await refreshProfile();
         setDone(true);
-        setTimeout(() => navigate(ADMIN_LOGIN_METHODS_PATH, { replace: true }), 1200);
+        if (!handoffToken) {
+          setTimeout(() => navigate(ADMIN_LOGIN_METHODS_PATH, { replace: true }), 1200);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Не удалось привязать Google');
       }
     },
-    [navigate, refreshProfile],
+    [handoffToken, navigate, refreshProfile],
   );
 
-  if (!isLoading && !isAuthenticated) {
-    return <Navigate to={LOGIN_PATH} replace />;
+  if (!isLoading && !isAuthenticated && !handoffToken) {
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-10 text-center">
+        <h1 className="text-[22px] font-bold text-[#111827]">Привязать Google</h1>
+        <p className="mt-4 text-[15px] leading-relaxed text-[#6B7280]">
+          Откройте «Способы входа» в Telegram (вы должны быть уже в кабинете) и нажмите «Подключить Google» там —
+          откроется эта страница с одноразовой ссылкой.
+        </p>
+        <Link
+          to={LOGIN_PATH}
+          className="mt-8 inline-block rounded-2xl bg-[#111827] px-4 py-3.5 text-[15px] font-semibold text-white no-underline"
+        >
+          Страница входа
+        </Link>
+      </main>
+    );
   }
 
   return (
@@ -48,7 +66,9 @@ export function GoogleLinkPage() {
 
         {done ? (
           <p className="mt-6 rounded-2xl bg-[#F0FDF4] px-4 py-3 text-[14px] font-semibold text-[#166534]">
-            Google привязан. Перенаправляем…
+            {handoffToken
+              ? 'Google привязан к вашему кабинету. Закройте браузер и обновите «Способы входа» в Telegram.'
+              : 'Google привязан. Перенаправляем…'}
           </p>
         ) : (
           <div className="relative mt-6 min-h-[52px] w-full">

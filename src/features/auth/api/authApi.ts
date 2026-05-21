@@ -72,10 +72,23 @@ export async function startGoogleOAuth(params: {
   return (await res.json()) as { authorizationUrl: string };
 }
 
-export async function linkGoogle(idToken: string): Promise<AuthIdentityDto[]> {
+export async function createGoogleLinkHandoff(): Promise<{ handoffToken: string }> {
+  const res = await apiFetch('/api/auth/google/link-handoff', { method: 'POST' });
+  if (!res.ok) throw new Error(await readAuthApiError(res));
+  return (await res.json()) as { handoffToken: string };
+}
+
+export async function linkGoogle(
+  idToken: string,
+  handoffToken?: string,
+): Promise<AuthIdentityDto[]> {
   const res = await apiFetch('/api/auth/link/google', {
     method: 'POST',
-    body: JSON.stringify({ idToken }),
+    skipAuth: Boolean(handoffToken),
+    body: JSON.stringify({
+      idToken,
+      ...(handoffToken ? { handoffToken } : {}),
+    }),
   });
   if (!res.ok) throw new Error(await readAuthApiError(res));
   const d = (await res.json()) as { identities?: AuthIdentityDto[] };

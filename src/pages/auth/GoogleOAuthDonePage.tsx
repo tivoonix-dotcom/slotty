@@ -27,13 +27,17 @@ export function GoogleOAuthDonePage() {
     const status = params.get('status');
     const from = params.get('from') ?? undefined;
 
-    if (error) {
-      setMessage(messageForAuthErrorCode(error, 'Не удалось войти через Google.'));
+    if (status === 'linked') {
+      setMessage(
+        error
+          ? messageForAuthErrorCode(error, 'Не удалось привязать Google.')
+          : 'Google привязан. Вернитесь в Telegram и обновите «Способы входа».',
+      );
       return;
     }
 
-    if (status === 'linked') {
-      setMessage('Google привязан. Вернитесь в Telegram и обновите страницу настроек.');
+    if (error) {
+      setMessage(messageForAuthErrorCode(error, 'Не удалось войти через Google.'));
       return;
     }
 

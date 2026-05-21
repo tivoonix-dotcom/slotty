@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Link, useSearchParams } from 'react-router-dom';
 import { FORGOT_PASSWORD_PATH } from '../../../app/paths';
 import {
+  createGoogleLinkHandoff,
   fetchAuthIdentities,
   linkEmail,
   linkGoogle,
@@ -140,9 +141,24 @@ function GoogleLoginPill({
 
   const publicConfig = usePublicAppConfig();
 
+  const openGoogleLinkInBrowser = async () => {
+    const { handoffToken } = await createGoogleLinkHandoff();
+    const url = `${readPublicAppOrigin()}${GOOGLE_LINK_PATH}?handoff=${encodeURIComponent(handoffToken)}`;
+    openTelegramOrBrowserUrl(url);
+  };
+
   const openGoogleOAuth = async () => {
-    if (isTelegramWebApp && publicConfig.googleOAuthConfigured === false) {
-      openTelegramOrBrowserUrl(`${readPublicAppOrigin()}${GOOGLE_LINK_PATH}`);
+    if (oauthPurpose === 'login' && isTelegramWebApp && publicConfig.googleOAuthConfigured === false) {
+      onError(messageForAuthErrorCode('GOOGLE_OAUTH_NOT_CONFIGURED'));
+      return;
+    }
+
+    if (oauthPurpose === 'link' && isTelegramWebApp && publicConfig.googleOAuthConfigured === false) {
+      try {
+        await openGoogleLinkInBrowser();
+      } catch (e) {
+        onError(e instanceof Error ? e.message : messageForAuthErrorCode('AUTH_REQUIRED'));
+      }
       return;
     }
 
@@ -154,15 +170,24 @@ function GoogleLoginPill({
       openTelegramOrBrowserUrl(authorizationUrl);
     } catch (e) {
       const msg = e instanceof Error ? e.message : messageForAuthErrorCode('GOOGLE_OAUTH_EXCHANGE_FAILED');
-      if (isTelegramWebApp && msg.includes('GOOGLE_CLIENT_SECRET')) {
-        openTelegramOrBrowserUrl(`${readPublicAppOrigin()}${GOOGLE_LINK_PATH}`);
-        return;
+      if (oauthPurpose === 'link' && isTelegramWebApp) {
+        try {
+          await openGoogleLinkInBrowser();
+          return;
+        } catch (fallbackErr) {
+          onError(
+            fallbackErr instanceof Error
+              ? fallbackErr.message
+              : messageForAuthErrorCode('GOOGLE_OAUTH_NOT_CONFIGURED'),
+          );
+          return;
+        }
       }
       onError(msg);
     }
   };
 
-  if (isTelegramWebApp) {
+  if (isTelegramWebApp || oauthPurpose === 'link') {
     return (
       <button type="button" disabled={busy} onClick={() => void openGoogleOAuth()} className={pillClass}>
         <GoogleIcon size={20} />
