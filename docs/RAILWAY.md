@@ -52,6 +52,7 @@
    |------------|----------|
    | `VITE_API_URL` | URL бэкенда **без** `/api` в конце, например `https://slotty-api-production-xxxx.up.railway.app` |
    | `VITE_PUBLIC_APP_URL` | Канонический URL для ссылок клиентам, например `https://slotty.of.by` (без слэша в конце). Если не задан — в production подставляется `https://slotty.of.by` даже при открытии кабинета с Railway-домена. |
+   | `VITE_TELEGRAM_BOT_USERNAME` | Опционально. Если не задан — кнопка «Telegram» на `/login` подтянет имя бота с API (`GET /api/public/config`), если на **slotty-api** задан `TELEGRAM_BOT_TOKEN`. |
 
 4. **Build Command**: `npm run build`  
 5. **Start Command**: `npm start` (в корневом `package.json` это `node ./scripts/static-serve.mjs`, слушает `PORT` и отдаёт `dist/` с SPA fallback).

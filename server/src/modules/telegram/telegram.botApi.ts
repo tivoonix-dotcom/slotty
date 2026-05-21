@@ -37,6 +37,20 @@ export type WebhookInfo = {
   last_error_message?: string;
 };
 
+export async function getBotUsername(token: string): Promise<string | undefined> {
+  try {
+    const res = await fetch(`${TG_API_BASE}/bot${token}/getMe`);
+    const data = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      result?: { username?: string };
+    };
+    const username = data.ok ? data.result?.username?.trim() : undefined;
+    return username && /^[a-zA-Z0-9_]{3,64}$/.test(username) ? username : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function getWebhookInfo(token: string): Promise<WebhookInfo | null> {
   try {
     const res = await fetch(`${TG_API_BASE}/bot${token}/getWebhookInfo`);

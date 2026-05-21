@@ -13,7 +13,7 @@ import {
   sendEmailVerification,
 } from '../api/authApi';
 import { messageForAuthErrorCode } from '../lib/authApiErrors';
-import { buildTelegramLoginUrl, openTelegramLogin } from '../lib/telegramLoginLink';
+import { useTelegramLoginUrl } from '../hooks/useTelegramLoginUrl';
 import type { AuthIdentityDto, AuthProvider, BackendProfile } from '../types';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { LoginMethodsHint } from './LoginMethodsHint';
@@ -67,10 +67,6 @@ function maskEmail(email: string | null): string | null {
   if (!domain) return email;
   const head = local.length <= 2 ? local[0] ?? '*' : `${local.slice(0, 2)}…`;
   return `${head}@${domain}`;
-}
-
-function getTelegramBotUrl(returnPath?: string): string | null {
-  return buildTelegramLoginUrl(returnPath);
 }
 
 function ErrorBanner({ message, pageStyle }: { message: string; pageStyle: boolean }) {
@@ -150,7 +146,8 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
   const isSettings = mode === 'settings' && isAuthenticated;
   const pageStyle = appearance === 'page';
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
-  const telegramBotUrl = getTelegramBotUrl(loginReturnPath);
+  const telegramLoginUrl = useTelegramLoginUrl(loginReturnPath);
+  const inTelegramApp = Boolean(initDataRaw && isTelegramWebApp);
 
   const reload = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -222,13 +219,40 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
       return;
     }
 
-    setError(null);
-    if (!openTelegramLogin(loginReturnPath)) {
-      setError(
-        'Укажите VITE_TELEGRAM_BOT_USERNAME в настройках сайта или откройте SLOTTY через кнопку «Открыть SLOTTY» в боте.',
+    setError(
+      telegramLoginUrl
+        ? null
+        : 'Telegram-бот не настроен. Задайте TELEGRAM_BOT_TOKEN на сервере или VITE_TELEGRAM_BOT_USERNAME на фронте.',
+    );
+  }, [applySession, initDataRaw, isTelegramWebApp, onLinked, telegramLoginUrl]);
+
+  const renderTelegramLoginControl = (className: string, label: string) => {
+    const content = (
+      <>
+        <TelegramMark />
+        <span>{label}</span>
+      </>
+    );
+    if (inTelegramApp) {
+      return (
+        <button type="button" disabled={busy} onClick={() => void handleLoginTelegram()} className={className}>
+          {content}
+        </button>
       );
     }
-  }, [applySession, initDataRaw, isTelegramWebApp, loginReturnPath, onLinked]);
+    if (telegramLoginUrl) {
+      return (
+        <a href={telegramLoginUrl} className={`${className} no-underline`}>
+          {content}
+        </a>
+      );
+    }
+    return (
+      <button type="button" disabled={busy} onClick={() => void handleLoginTelegram()} className={className}>
+        {content}
+      </button>
+    );
+  };
 
   const handleLinkTelegram = useCallback(async () => {
     if (!initDataRaw || !isTelegramWebApp) {
@@ -388,10 +412,7 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
             onError={(m) => setError(m)}
           />
 
-          <button type="button" disabled={busy} onClick={() => void handleLoginTelegram()} className={pageSocialBtn}>
-            <TelegramMark />
-            <span>Telegram</span>
-          </button>
+          {renderTelegramLoginControl(pageSocialBtn, 'Telegram')}
 
           {!initDataRaw || !isTelegramWebApp ? (
             <p className="text-center text-[12px] leading-relaxed text-[#9CA3AF]">
@@ -425,10 +446,7 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
             onError={(m) => setError(m)}
           />
 
-          <button type="button" disabled={busy} onClick={() => void handleLoginTelegram()} className={socialOutlineBtn}>
-            <TelegramMark />
-            <span>Войти через Telegram</span>
-          </button>
+          {renderTelegramLoginControl(socialOutlineBtn, 'Войти через Telegram')}
 
           {!initDataRaw || !isTelegramWebApp ? (
             <p className="text-[12px] leading-relaxed text-neutral-500">
@@ -551,11 +569,9 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
                   Подключить Telegram
                 </button>
               ) : null}
-              {telegramBotUrl ? (
+              {telegramLoginUrl ? (
                 <a
-                  href={telegramBotUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={telegramLoginUrl}
                   className={`${settingsActionBtn} inline-flex items-center justify-center no-underline`}
                 >
                   Открыть Telegram

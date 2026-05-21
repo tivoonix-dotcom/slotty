@@ -15,6 +15,7 @@ import { billingRouter } from './modules/billing/billing.routes.js';
 import { reviewsRouter } from './modules/reviews/reviews.routes.js';
 import { catalogRouter } from './modules/catalog/catalog.routes.js';
 import { telegramWebhookRouter } from './modules/telegram/telegram.webhook.routes.js';
+import { publicRouter } from './modules/public/public.routes.js';
 
 export function createApp() {
   const app = express();
@@ -23,6 +24,7 @@ export function createApp() {
 
   const api = express.Router();
   api.use('/health', healthRouter);
+  api.use('/public', publicRouter);
   api.use('/auth', authRouter);
   api.use('/me', profilesRouter);
   api.use('/me/appointments', clientAppointmentsRouter);

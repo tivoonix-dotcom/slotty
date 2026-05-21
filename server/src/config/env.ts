@@ -9,6 +9,11 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
+  /** Имя бота без @ — для публичных ссылок t.me (если не задано, берётся из getMe). */
+  TELEGRAM_BOT_USERNAME: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim().replace(/^@+/, '')),
+    z.string().min(3).max(64).regex(/^[a-zA-Z0-9_]+$/).optional(),
+  ),
   /** Google OAuth client id (Web) — same value as VITE_GOOGLE_CLIENT_ID on frontend. */
   GOOGLE_CLIENT_ID: z.preprocess(
     (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
