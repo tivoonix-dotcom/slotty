@@ -38,17 +38,14 @@ export function LoginPage() {
   return (
     <main className="min-h-dvh bg-white text-[#111827]">
       <div className="grid min-h-dvh lg:grid-cols-2">
-        <section className="relative hidden min-h-dvh overflow-hidden bg-[#FFF1F4] lg:block">
+        <section className="relative hidden min-h-dvh flex-col overflow-hidden bg-[#FFF1F4] lg:flex">
           <div
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(244,124,140,0.35),transparent_45%),radial-gradient(circle_at_85%_75%,rgba(255,182,198,0.55),transparent_50%)]"
             aria-hidden
           />
 
-          {/* Фиксированный центр — не зависит от высоты правой колонки */}
-          <div
-            className={`pointer-events-none absolute inset-0 flex items-center justify-center ${COL_PAD}`}
-          >
-            <div className={`${COL_BODY} flex w-full shrink-0 flex-col gap-8`}>
+          <div className={`relative flex w-full flex-1 flex-col items-center ${COL_PAD}`}>
+            <div className={`${COL_BODY} flex w-full flex-col gap-8`}>
               <div className="min-h-[8.5rem] shrink-0">
                 <h1 className={TITLE_CLASS}>Вы мастер?</h1>
                 <p className={`${SUBTITLE_CLASS} font-semibold text-[#111827]`}>
@@ -74,9 +71,7 @@ export function LoginPage() {
           </div>
         </section>
 
-        <section
-          className={`flex min-h-dvh flex-col items-center justify-center ${COL_PAD}`}
-        >
+        <section className={`flex min-h-dvh flex-col items-center ${COL_PAD}`}>
           <div className={COL_BODY}>
             <h1 className={TITLE_CLASS}>Войти</h1>
             <p className={SUBTITLE_CLASS}>Email, Google или Telegram — как вам удобнее.</p>
