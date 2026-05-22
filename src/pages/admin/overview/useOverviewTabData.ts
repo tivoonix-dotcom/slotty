@@ -5,6 +5,10 @@ import {
   type OverviewSummaryApiDto,
 } from '../../../features/admin/api/masterOverviewApi';
 import {
+  readOverviewBundleCache,
+  writeOverviewBundleCache,
+} from './adminOverviewSessionCache';
+import {
   computeClientAnalytics,
   computeRevenueAnalytics,
   overviewPeriodRange,
@@ -58,12 +62,22 @@ export function useOverviewTabData({
     [reportRange.end, reportRange.start],
   );
 
+  const initialBundle = useCabinetApi ? readOverviewBundleCache(periodPreset) : null;
+
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [apiSummary, setApiSummary] = useState<OverviewSummaryApiDto | null>(null);
-  const [apiRevenue, setApiRevenue] = useState<RevenueAnalytics | null>(null);
-  const [apiClients, setApiClients] = useState<ClientAnalytics | null>(null);
-  const [apiReputation, setApiReputation] = useState<ReputationAnalyticsPayload | null>(null);
+  const [apiSummary, setApiSummary] = useState<OverviewSummaryApiDto | null>(
+    () => initialBundle?.summary ?? null,
+  );
+  const [apiRevenue, setApiRevenue] = useState<RevenueAnalytics | null>(
+    () => initialBundle?.revenue ?? null,
+  );
+  const [apiClients, setApiClients] = useState<ClientAnalytics | null>(
+    () => initialBundle?.clients ?? null,
+  );
+  const [apiReputation, setApiReputation] = useState<ReputationAnalyticsPayload | null>(
+    () => initialBundle?.reputation ?? null,
+  );
   const [reputationTick, setReputationTick] = useState(0);
   const hasApiDataRef = useRef(false);
   hasApiDataRef.current = apiSummary !== null;
@@ -90,6 +104,7 @@ export function useOverviewTabData({
       try {
         const bundle = await fetchOverviewBundle(periodPreset);
         if (cancelled) return;
+        writeOverviewBundleCache(periodPreset, bundle);
         setApiSummary(bundle.summary);
         setApiRevenue(bundle.revenue);
         setApiClients(bundle.clients);

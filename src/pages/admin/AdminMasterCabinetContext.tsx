@@ -41,6 +41,12 @@ import { getStoredMasterDraft } from '../../features/profile/lib/demoMasterStora
 import { contactsToLegacyContactLine } from '../../features/master-onboarding/model/masterContacts';
 import type { MasterDraft } from '../../features/profile/lib/demoMasterStorage';
 import type { MasterPublicationStatus } from '../../features/admin/lib/profileCompletion';
+import {
+  clearAdminCabinetSessionCache,
+  readAdminCabinetSessionCache,
+  writeAdminCabinetSessionCache,
+} from './adminCabinetSessionCache';
+import { clearOverviewBundleCache } from './overview/adminOverviewSessionCache';
 
 export type MasterProfilePatch = Pick<
   MasterDraft,
@@ -110,53 +116,104 @@ function cloneDraft(d: MasterDraft): MasterDraft {
 export function AdminMasterCabinetProvider({ children }: { children: ReactNode }) {
   const { profile, isLoading: authLoading } = useAuth();
   const useCabinetApi = Boolean(getApiBaseUrl() && profile?.role === 'master');
+  const masterId = profile?.id ?? null;
 
-  const [draft, setDraft] = useState<MasterDraft>(() => getMasterDraft());
-  const [appointments, setAppointments] = useState<DemoMasterAppointment[]>(() => ensureDemoAppointmentsSeeded());
-  const [cabinetLoading, setCabinetLoading] = useState(useCabinetApi);
+  const sessionCache = masterId ? readAdminCabinetSessionCache(masterId) : null;
+
+  const [draft, setDraft] = useState<MasterDraft>(() => sessionCache?.draft ?? getMasterDraft());
+  const [appointments, setAppointments] = useState<DemoMasterAppointment[]>(
+    () => sessionCache?.appointments ?? ensureDemoAppointmentsSeeded(),
+  );
+  const [cabinetLoading, setCabinetLoading] = useState(
+    () => useCabinetApi && !sessionCache,
+  );
   const [cabinetError, setCabinetError] = useState<string | null>(null);
-  const [subscription, setSubscription] = useState<MasterSubscriptionDto | null>(null);
-  const [publicationStatus, setPublicationStatus] = useState<MasterPublicationStatus | null>(null);
+  const [subscription, setSubscription] = useState<MasterSubscriptionDto | null>(
+    () => sessionCache?.subscription ?? null,
+  );
+  const [publicationStatus, setPublicationStatus] = useState<MasterPublicationStatus | null>(
+    () => sessionCache?.publicationStatus ?? null,
+  );
   const [cabinetProfileMeta, setCabinetProfileMeta] = useState<{
     rating: number;
     reviewsCount: number;
-  } | null>(null);
+  } | null>(() => sessionCache?.cabinetProfileMeta ?? null);
 
   const appointmentsRef = useRef(appointments);
   appointmentsRef.current = appointments;
 
-  const lastSyncedSnapshotRef = useRef<MasterDraft | null>(null);
+  const lastSyncedSnapshotRef = useRef<MasterDraft | null>(
+    sessionCache ? cloneDraft(sessionCache.draft) : null,
+  );
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cabinetReadyRef = useRef(Boolean(sessionCache));
+  const prevMasterIdRef = useRef<string | null>(masterId);
+  const subscriptionRef = useRef(subscription);
+  subscriptionRef.current = subscription;
 
-  const loadFromApi = useCallback(async () => {
-    setCabinetLoading(true);
-    setCabinetError(null);
-    try {
-      const [cabinet, rows] = await Promise.all([fetchMasterCabinet(), fetchMasterAppointments()]);
-      const mapped = cabinetDtoToMasterDraft(cabinet);
-      setDraft(mapped);
-      setPublicationStatus(
-        (cabinet.profile.publicationStatus as MasterPublicationStatus) || 'draft',
-      );
-      setCabinetProfileMeta({
-        rating: cabinet.profile.rating,
-        reviewsCount: cabinet.profile.reviewsCount,
+  const persistCabinetSession = useCallback(
+    (
+      mid: string,
+      mapped: MasterDraft,
+      rows: DemoMasterAppointment[],
+      pub: MasterPublicationStatus | null,
+      meta: { rating: number; reviewsCount: number } | null,
+      sub: MasterSubscriptionDto | null,
+    ) => {
+      writeAdminCabinetSessionCache({
+        masterId: mid,
+        draft: mapped,
+        appointments: rows,
+        publicationStatus: pub,
+        cabinetProfileMeta: meta,
+        subscription: sub,
       });
-      lastSyncedSnapshotRef.current = cloneDraft(mapped);
-      setAppointments(rows.map(mapMasterAppointmentRowToDemo));
+      cabinetReadyRef.current = true;
+    },
+    [],
+  );
+
+  const loadFromApi = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!masterId) return;
+      const silent = opts?.silent ?? cabinetReadyRef.current;
+      if (!silent) setCabinetLoading(true);
+      setCabinetError(null);
       try {
-        setSubscription(await getMySubscription());
-      } catch {
-        setSubscription(null);
+        const [cabinet, rows] = await Promise.all([fetchMasterCabinet(), fetchMasterAppointments()]);
+        const mapped = cabinetDtoToMasterDraft(cabinet);
+        const pub = (cabinet.profile.publicationStatus as MasterPublicationStatus) || 'draft';
+        const meta = {
+          rating: cabinet.profile.rating,
+          reviewsCount: cabinet.profile.reviewsCount,
+        };
+        const appts = rows.map(mapMasterAppointmentRowToDemo);
+        let sub: MasterSubscriptionDto | null = null;
+        try {
+          sub = await getMySubscription();
+        } catch {
+          sub = null;
+        }
+        setDraft(mapped);
+        setPublicationStatus(pub);
+        setCabinetProfileMeta(meta);
+        lastSyncedSnapshotRef.current = cloneDraft(mapped);
+        setAppointments(appts);
+        setSubscription(sub);
+        persistCabinetSession(masterId, mapped, appts, pub, meta, sub);
+      } catch (e) {
+        if (!silent) {
+          setCabinetError(e instanceof Error ? e.message : 'Не удалось загрузить кабинет');
+        }
+      } finally {
+        setCabinetLoading(false);
       }
-    } catch (e) {
-      setCabinetError(e instanceof Error ? e.message : 'Не удалось загрузить кабинет');
-    } finally {
-      setCabinetLoading(false);
-    }
-  }, []);
+    },
+    [masterId, persistCabinetSession],
+  );
 
   const reloadCabinetFromApiSilent = useCallback(async () => {
+    if (!masterId) return;
     try {
       const [cabinet, rows] = await Promise.all([fetchMasterCabinet(), fetchMasterAppointments()]);
       const mapped = cabinetDtoToMasterDraft(cabinet);
@@ -165,29 +222,34 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       } catch {
         /* keep previous subscription */
       }
-      setPublicationStatus(
-        (cabinet.profile.publicationStatus as MasterPublicationStatus) || 'draft',
-      );
-      setCabinetProfileMeta({
+      const pub = (cabinet.profile.publicationStatus as MasterPublicationStatus) || 'draft';
+      const meta = {
         rating: cabinet.profile.rating,
         reviewsCount: cabinet.profile.reviewsCount,
-      });
+      };
+      const appts = rows.map(mapMasterAppointmentRowToDemo);
+      setPublicationStatus(pub);
+      setCabinetProfileMeta(meta);
       setDraft((prev) => {
         const coverId = prev.portfolioCoverId?.trim();
         const keepCover =
           coverId && mapped.portfolio?.some((p) => p.id === coverId) ? coverId : undefined;
         const next = keepCover ? { ...mapped, portfolioCoverId: keepCover } : mapped;
         lastSyncedSnapshotRef.current = cloneDraft(next);
+        persistCabinetSession(masterId, next, appts, pub, meta, subscriptionRef.current);
         return next;
       });
-      setAppointments(rows.map(mapMasterAppointmentRowToDemo));
+      setAppointments(appts);
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [masterId, persistCabinetSession]);
 
   useEffect(() => {
     if (!useCabinetApi) {
+      clearAdminCabinetSessionCache();
+      clearOverviewBundleCache();
+      cabinetReadyRef.current = false;
       setCabinetLoading(false);
       setSubscription(null);
       setPublicationStatus('draft');
@@ -203,16 +265,36 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       return undefined;
     }
 
-    if (authLoading) return undefined;
+    if (authLoading || !masterId) return undefined;
 
-    void loadFromApi();
+    if (prevMasterIdRef.current && prevMasterIdRef.current !== masterId) {
+      clearAdminCabinetSessionCache();
+      clearOverviewBundleCache();
+      cabinetReadyRef.current = false;
+    }
+    prevMasterIdRef.current = masterId;
+
+    const cached = readAdminCabinetSessionCache(masterId);
+    if (cached) {
+      cabinetReadyRef.current = true;
+      setDraft(cached.draft);
+      setAppointments(cached.appointments);
+      setPublicationStatus(cached.publicationStatus);
+      setCabinetProfileMeta(cached.cabinetProfileMeta);
+      setSubscription(cached.subscription);
+      lastSyncedSnapshotRef.current = cloneDraft(cached.draft);
+      setCabinetLoading(false);
+      void loadFromApi({ silent: true });
+    } else {
+      void loadFromApi({ silent: false });
+    }
 
     const onVis = () => {
-      if (document.visibilityState === 'visible') void loadFromApi();
+      if (document.visibilityState === 'visible') void reloadCabinetFromApiSilent();
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, [useCabinetApi, authLoading, loadFromApi]);
+  }, [useCabinetApi, authLoading, loadFromApi, masterId, reloadCabinetFromApiSilent]);
 
   const pushDraftToBackend = useCallback(async (next: MasterDraft) => {
     await patchMasterMe({
