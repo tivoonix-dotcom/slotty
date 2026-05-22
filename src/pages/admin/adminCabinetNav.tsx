@@ -5,6 +5,7 @@ import {
   ADMIN_LOGIN_METHODS_PATH,
   ADMIN_NOTIFICATIONS_PATH,
   ADMIN_OVERVIEW_PATH,
+  ADMIN_PROFILE_COMPLETION_PATH,
   ADMIN_PATH,
   ADMIN_SCHEDULE_PATH,
   ADMIN_SERVICES_PATH,
@@ -134,6 +135,7 @@ export const ADMIN_HUB_PATH = HUB_PATH;
 
 export const ADMIN_PAGE_TITLES: Record<string, string> = {
   [ADMIN_PATH]: 'Профиль мастера',
+  [ADMIN_PROFILE_COMPLETION_PATH]: 'Заполненность профиля',
   [ADMIN_OVERVIEW_PATH]: 'Сводка',
   [ADMIN_SERVICES_PATH]: 'Услуги',
   [ADMIN_SCHEDULE_PATH]: 'Окна записи',

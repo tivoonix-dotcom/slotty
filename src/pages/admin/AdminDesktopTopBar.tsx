@@ -18,8 +18,8 @@ export function AdminDesktopTopBar() {
           <p className="mt-0.5 text-[13px] text-[#6B7280]">SLOTTY · кабинет мастера</p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
-          <ProfileCompletionHeaderCard variant="header" />
+        <div className="flex shrink-0 items-center gap-4">
+          <ProfileCompletionHeaderCard variant="header" className="max-w-[14rem]" />
 
           <Link
             to={ADMIN_NOTIFICATIONS_PATH}

@@ -6,6 +6,15 @@ export const profileDashboardCard =
 
 export const profileDashboardCardPad = 'p-6';
 
+/** Desktop: без второй «карточки» внутри layout (плоский контент). */
+export const profileDesktopFlatSection =
+  'lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none';
+
+export const profileDesktopStack =
+  'space-y-4 lg:space-y-0 lg:divide-y lg:divide-[#EEF0F5]';
+
+export const profileDesktopStackItem = 'lg:py-8 lg:first:pt-0 lg:last:pb-0';
+
 export const profileDashboardPink = '#ff6f88';
 
 export const profileDashboardPinkText = 'text-[#ff5f7a]';

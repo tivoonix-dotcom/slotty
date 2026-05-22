@@ -28,6 +28,9 @@ import {
   profileDashboardCard,
   profileDashboardCardPad,
   profileDashboardEditBtn,
+  profileDesktopFlatSection,
+  profileDesktopStack,
+  profileDesktopStackItem,
 } from './adminProfileDashboardTheme';
 
 function profileCityDisplay(loc: MasterLocation | undefined): string {
@@ -219,7 +222,7 @@ function InfoRow({
 
 function ServicePreviewRow({ service }: { service: ManagedService }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[16px] bg-[#f6f7fb] px-4 py-3.5">
+    <div className="flex items-center justify-between gap-4 border-b border-[#EEF0F5] py-3.5 last:border-0 lg:rounded-none lg:bg-transparent lg:px-0">
       <div className="min-w-0">
         <p className="truncate text-[14px] font-semibold text-[#111827]">{service.title}</p>
         <p className="mt-0.5 text-[12px] text-[#6B7280]">{formatDurationRu(service.durationMin)}</p>
@@ -246,16 +249,16 @@ export function AdminProfileDesktopMainGrid({
   const description = draft.description?.trim() || '—';
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section className={`${profileDashboardCard} ${profileDashboardCardPad}`}>
+    <div className={profileDesktopStack}>
+      <div className={`grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-10 ${profileDesktopStackItem}`}>
+        <section className={`${profileDashboardCard} ${profileDashboardCardPad} ${profileDesktopFlatSection}`}>
           <h3 className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">О себе</h3>
           <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-[#6B7280]">
             {description}
           </p>
         </section>
 
-        <section className={`${profileDashboardCard} ${profileDashboardCardPad}`}>
+        <section className={`${profileDashboardCard} ${profileDashboardCardPad} ${profileDesktopFlatSection}`}>
           <h3 className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">Информация</h3>
           <div className="mt-2 space-y-1">
             <InfoRow label="Дата регистрации" value={formatRegistrationDate(draft.createdAt)} />
@@ -292,7 +295,7 @@ export function AdminProfileDesktopMainGrid({
         </section>
       </div>
 
-      <section className={`${profileDashboardCard} ${profileDashboardCardPad}`}>
+      <section className={`${profileDashboardCard} ${profileDashboardCardPad} ${profileDesktopFlatSection} ${profileDesktopStackItem}`}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <HiBriefcase className="h-5 w-5 text-[#ff5f7a]" aria-hidden />
@@ -306,11 +309,11 @@ export function AdminProfileDesktopMainGrid({
             <HiArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>
-        <div className="mt-4 space-y-2.5">
+        <div className="mt-4 space-y-0 lg:divide-y lg:divide-[#EEF0F5]">
           {services.length > 0 ? (
             services.map((s) => <ServicePreviewRow key={s.id} service={s as ManagedService} />)
           ) : (
-            <p className="rounded-[16px] bg-[#f6f7fb] px-4 py-6 text-center text-[14px] text-[#6B7280]">
+            <p className="py-6 text-center text-[14px] text-[#6B7280] lg:rounded-none lg:bg-transparent">
               Услуги пока не добавлены
             </p>
           )}
@@ -352,11 +355,11 @@ export function AdminProfileDesktopShell({
           <ProfileCompletionBlock
             draft={draft}
             handlers={completionHandlers}
-            surfaceClassName={`${profileDashboardCard} ${profileDashboardCardPad}`}
+            surfaceClassName={`${profileDashboardCard} ${profileDashboardCardPad} ${profileDesktopFlatSection} ${profileDesktopStackItem}`}
           />
         </>
       ) : section ? (
-        <div className={`${profileDashboardCard} ${profileDashboardCardPad}`}>{section}</div>
+        <div className={profileDesktopStackItem}>{section}</div>
       ) : null}
     </div>
   );

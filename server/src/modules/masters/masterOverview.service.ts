@@ -76,6 +76,35 @@ async function loadMasterReviews(masterId: string): Promise<MasterOverviewReview
   });
 }
 
+export type MasterOverviewBundle = {
+  summary: Awaited<ReturnType<typeof computeOverviewSummary>>;
+  revenue: Awaited<ReturnType<typeof computeOverviewRevenue>>;
+  clients: Awaited<ReturnType<typeof computeOverviewClients>>;
+  reputation: Awaited<ReturnType<typeof computeOverviewReputation>>;
+  periodStart: string;
+  periodEnd: string;
+};
+
+/** Одна загрузка записей и отзывов — без 4× повторных запросов к БД. */
+export async function getMasterOverviewBundle(
+  masterId: string,
+  preset: OverviewPeriodPreset,
+): Promise<MasterOverviewBundle> {
+  const [appointments, reviews] = await Promise.all([
+    loadOverviewAppointments(masterId),
+    loadMasterReviews(masterId),
+  ]);
+  const { start, end } = resolveOverviewPeriodRange(preset, appointments);
+  return {
+    summary: computeOverviewSummary(appointments, start, end),
+    revenue: computeOverviewRevenue(appointments, start, end),
+    clients: computeOverviewClients(appointments, start, end),
+    reputation: computeOverviewReputation(reviews, start, end),
+    periodStart: start,
+    periodEnd: end,
+  };
+}
+
 export async function getMasterOverviewSummary(masterId: string, preset: OverviewPeriodPreset) {
   const appointments = await loadOverviewAppointments(masterId);
   const { start, end } = resolveOverviewPeriodRange(preset, appointments);

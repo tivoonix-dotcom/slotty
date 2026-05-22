@@ -8,6 +8,7 @@ import {
   type MasterVisitType,
 } from '../../../features/profile/model/masterLocation';
 import { cabinetCard, cabinetCardPad, cabinetIconCircle } from './adminProfileCabinetTheme';
+import { profileDesktopFlatSection } from './adminProfileDashboardTheme';
 import {
   addressDetailIconName,
   AddressDetailIcon,
@@ -163,7 +164,7 @@ export function AddressSection({
   const hasAfterBooking = detailRows.length > 0;
 
   return (
-    <section className={`${cabinetCard} ${cabinetCardPad}`}>
+    <section className={`${cabinetCard} ${cabinetCardPad} ${profileDesktopFlatSection}`}>
         <div className="flex items-center justify-between gap-3">
           <h2 className="min-w-0 flex-1 text-[18px] font-semibold leading-tight tracking-[-0.03em] text-[#111827]">
             Адрес

@@ -11,6 +11,7 @@ import {
 import { CabinetIcon, type CabinetIconName } from './cabinetIcons';
 import { decodePaymentNote } from '../../../features/admin/lib/paymentNoteCodec';
 import { SheetFooter } from './AdminProfileEditSheets';
+import { profileDesktopFlatSection } from './adminProfileDashboardTheme';
 
 export const PAYMENT_OPTIONS = ['Наличные', 'Карта', 'Перевод', 'Онлайн позже'] as const;
 export type PaymentOption = (typeof PAYMENT_OPTIONS)[number];
@@ -79,9 +80,9 @@ function RulesReadCard({
   const text = value?.trim() ?? '';
 
   return (
-    <div className="rounded-[18px] bg-[#F7F7F8] p-3.5">
+    <div className="rounded-[18px] bg-[#F7F7F8] p-3.5 lg:rounded-none lg:border-b lg:border-[#EEF0F5] lg:bg-transparent lg:px-0 lg:py-4 lg:last:border-0">
       <div className="flex items-start gap-2.5">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C]">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C] lg:bg-transparent lg:ring-1 lg:ring-[#FFE1E8]">
           <CabinetIcon name={iconName} size={18} />
         </span>
         <div className="min-w-0 flex-1">
@@ -117,7 +118,7 @@ export function RulesSection({
   const filled = hasRulesContent(draft);
 
   return (
-    <section className={`${cabinetCard} ${cabinetCardPad}`}>
+    <section className={`${cabinetCard} ${cabinetCardPad} ${profileDesktopFlatSection}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Правила записи</h2>
@@ -133,7 +134,7 @@ export function RulesSection({
         </div>
 
         {filled ? (
-          <div className="mt-4 space-y-2.5">
+          <div className="mt-4 space-y-2.5 lg:space-y-0 lg:divide-y lg:divide-[#EEF0F5]">
             <RulesReadCard
               iconName="calendar"
               title="Запись"
@@ -147,9 +148,9 @@ export function RulesSection({
               value={draft.cancellationPolicy}
             />
 
-            <div className="rounded-[18px] bg-[#F7F7F8] p-3.5">
+            <div className="rounded-[18px] bg-[#F7F7F8] p-3.5 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-0 lg:py-4">
               <div className="flex items-start gap-2.5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C]">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C] lg:bg-transparent lg:ring-1 lg:ring-[#FFE1E8]">
                   <CabinetIcon name="card" size={18} />
                 </span>
                 <div className="min-w-0 flex-1">

@@ -30,6 +30,21 @@ function overviewQuery(period: OverviewPeriodPreset): string {
   return `?period=${encodeURIComponent(period)}`;
 }
 
+export type OverviewBundleApiDto = {
+  summary: OverviewSummaryApiDto;
+  revenue: RevenueAnalytics;
+  clients: ClientAnalytics;
+  reputation: ReputationAnalyticsPayload;
+  periodStart: string;
+  periodEnd: string;
+};
+
+export async function fetchOverviewBundle(period: OverviewPeriodPreset): Promise<OverviewBundleApiDto> {
+  const res = await apiFetch(`/api/masters/me/overview/bundle${overviewQuery(period)}`);
+  if (!res.ok) throw new Error(await readApiError(res));
+  return (await res.json()) as OverviewBundleApiDto;
+}
+
 export async function fetchOverviewSummary(period: OverviewPeriodPreset): Promise<OverviewSummaryApiDto> {
   const res = await apiFetch(`/api/masters/me/overview/summary${overviewQuery(period)}`);
   if (!res.ok) throw new Error(await readApiError(res));

@@ -4,6 +4,7 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { authMiddleware } from '../../middlewares/auth.js';
 import { requireMasterDbAccess } from '../../middlewares/requireMasterAccess.js';
 import {
+  getMasterOverviewBundle,
   getMasterOverviewClients,
   getMasterOverviewReputation,
   getMasterOverviewRevenue,
@@ -22,6 +23,15 @@ const periodQuery = z.object({
 const replyBody = z.object({
   text: z.string().max(4000),
 });
+
+masterOverviewRouter.get(
+  '/bundle',
+  asyncHandler(async (req, res) => {
+    const q = periodQuery.parse(req.query);
+    const data = await getMasterOverviewBundle(req.user!.id, q.period);
+    res.json(data);
+  }),
+);
 
 masterOverviewRouter.get(
   '/summary',

@@ -8,6 +8,7 @@ import {
   ADMIN_LOGIN_METHODS_PATH,
   ADMIN_NOTIFICATIONS_PATH,
   ADMIN_OVERVIEW_PATH,
+  ADMIN_PROFILE_COMPLETION_PATH,
   ADMIN_PATH,
   ADMIN_SCHEDULE_PATH,
   ADMIN_SERVICES_PATH,
@@ -104,6 +105,7 @@ function AdminLayoutInner() {
   const stickyShellRef = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
   const isProfileHome = pathname === ADMIN_PATH;
+  const isProfileCompletion = pathname === ADMIN_PROFILE_COMPLETION_PATH;
   const isOverview = pathname === ADMIN_OVERVIEW_PATH;
   const isServices = pathname === ADMIN_SERVICES_PATH;
   const isSchedule = pathname === ADMIN_SCHEDULE_PATH;
@@ -132,7 +134,7 @@ function AdminLayoutInner() {
     v.load();
   }, []);
 
-  const shellPadBottom = isProfileHome || isOverview
+  const shellPadBottom = isProfileHome || isOverview || isProfileCompletion
     ? 'pb-6 lg:pb-0'
     : isServices
         ? `pb-[calc(${SERVICES_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1.25rem)] lg:pb-0`
@@ -143,16 +145,14 @@ function AdminLayoutInner() {
             : 'lg:pb-8';
 
   const pageShellBg =
-    isOverview || isServices || isSchedule || isAppointments
+    isOverview || isServices || isSchedule || isAppointments || isProfileCompletion
       ? SERVICES_PAGE_BG
-      : isProfileHome
-        ? 'bg-white'
-        : 'bg-white';
+      : 'bg-white';
 
   const desktopCanvasBg =
     isProfileHome
       ? 'lg:bg-[#f6f7fb]'
-      : isOverview || isServices || isSchedule || isAppointments
+      : isOverview || isServices || isSchedule || isAppointments || isProfileCompletion
         ? 'lg:bg-white'
         : 'lg:bg-[#f6f7fb]';
 
@@ -191,7 +191,8 @@ function AdminLayoutInner() {
                     className="h-20 w-auto max-w-[min(20rem,70vw)] object-contain object-left sm:h-[5.5rem] sm:max-w-[22rem]"
                   />
                 </Link>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                  <ProfileCompletionHeaderCard variant="header" className="hidden min-[380px]:flex" />
                   <Link
                     to={ADMIN_NOTIFICATIONS_PATH}
                     className={`relative flex h-11 w-11 items-center justify-center rounded-2xl transition active:scale-[0.97] ${
@@ -224,7 +225,7 @@ function AdminLayoutInner() {
                   </button>
                 </div>
               </div>
-            <div className={`mx-auto w-full min-w-0 px-4 pb-2 ${ADMIN_CABINET_SHELL_MAX}`}>
+            <div className={`mx-auto w-full min-w-0 px-4 pb-2 min-[380px]:hidden ${ADMIN_CABINET_SHELL_MAX}`}>
               <ProfileCompletionHeaderCard variant="header" className="max-w-none w-full" />
             </div>
             <div className="w-full border-b-2 border-[#F47C8C]" aria-hidden />
@@ -237,7 +238,7 @@ function AdminLayoutInner() {
           <div className={`mx-auto w-full min-w-0 flex-1 ${ADMIN_CABINET_SHELL_MAX} ${shellPadBottom}`}>
             <div
               className={`w-full min-w-0 px-4 pt-4 lg:mx-auto lg:max-w-6xl lg:px-8 lg:pb-8 lg:pt-6 ${
-                isProfileHome || isOverview
+                isProfileHome || isOverview || isProfileCompletion
                   ? 'lg:bg-transparent lg:shadow-none lg:ring-0'
                   : 'lg:rounded-[24px] lg:bg-white lg:shadow-[0_4px_24px_rgba(17,24,39,0.06)] lg:ring-1 lg:ring-[#EAECEF]'
               }`}
