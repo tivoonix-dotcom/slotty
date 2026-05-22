@@ -30,6 +30,7 @@ import {
 } from './adminCabinetNav';
 import { AdminDesktopSidebar } from './AdminDesktopSidebar';
 import { AdminDesktopTopBar } from './AdminDesktopTopBar';
+import { ProfileCompletionHeaderCard } from './profile/ProfileCompletionHeaderCard';
 import { SERVICES_PAGE_BG, SERVICES_TAB_BAR_HEIGHT } from './services/adminServicesTheme';
 import { APPOINTMENTS_TAB_BAR_HEIGHT } from './appointments/adminAppointmentsTheme';
 import { SCHEDULE_TAB_BAR_HEIGHT } from './schedule/adminScheduleTheme';
@@ -223,6 +224,9 @@ function AdminLayoutInner() {
                   </button>
                 </div>
               </div>
+            <div className={`mx-auto w-full min-w-0 px-4 pb-2 ${ADMIN_CABINET_SHELL_MAX}`}>
+              <ProfileCompletionHeaderCard variant="header" className="max-w-none w-full" />
+            </div>
             <div className="w-full border-b-2 border-[#F47C8C]" aria-hidden />
           </div>
 

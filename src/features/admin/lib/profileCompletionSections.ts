@@ -32,6 +32,7 @@ export type ProfileCompletionSectionTarget =
 export type ProfileCompletionSectionItem = {
   id: ProfileCompletionSectionId;
   label: string;
+  description: string;
   done: boolean;
   target: ProfileCompletionSectionTarget;
 };
@@ -149,60 +150,70 @@ export function computeProfileCompletionSections(
     {
       id: 'basic',
       label: 'Основная информация',
+      description: 'Имя мастера и категория услуг',
       done: isBasicInfoDone(draft),
       target: { kind: 'profile', section: 'main', sheet: 'main' },
     },
     {
       id: 'photo',
       label: 'Фото профиля',
+      description: 'Аватар в шапке и каталоге',
       done: isPhotoDone(draft),
       target: { kind: 'profile', section: 'main', sheet: 'main' },
     },
     {
       id: 'description',
       label: 'Описание',
+      description: 'Кратко о вас и вашем опыте',
       done: isDescriptionDone(draft),
       target: { kind: 'profile', section: 'main', sheet: 'main' },
     },
     {
       id: 'contacts',
       label: 'Контакты',
+      description: 'Телефон и мессенджер для связи',
       done: isContactsDone(draft),
       target: { kind: 'profile', section: 'main', sheet: 'main' },
     },
     {
       id: 'address',
       label: 'Адрес',
+      description: 'Город и адрес приёма клиентов',
       done: isAddressDone(draft),
       target: { kind: 'profile', section: 'address', sheet: 'address' },
     },
     {
       id: 'portfolio',
       label: 'Портфолио',
+      description: 'Фото работ в галерее',
       done: isPortfolioDone(draft),
       target: { kind: 'profile', section: 'portfolio' },
     },
     {
       id: 'services',
       label: 'Услуги',
+      description: 'Цены и длительность услуг',
       done: isServicesDone(draft),
       target: { kind: 'path', path: ADMIN_SERVICES_PATH },
     },
     {
       id: 'schedule',
       label: 'График работы',
+      description: 'Окна для онлайн-записи',
       done: isScheduleDone(input),
       target: { kind: 'path', path: ADMIN_SCHEDULE_PATH },
     },
     {
       id: 'rules',
       label: 'Правила',
+      description: 'Запись, отмена и оплата',
       done: isRulesDone(draft),
       target: { kind: 'profile', section: 'rules', sheet: 'rules' },
     },
     {
       id: 'documents',
       label: 'Документы',
+      description: 'Сертификаты или согласия',
       done: isDocumentsDone(draft, authProfile),
       target: { kind: 'profile', section: 'portfolio' },
     },

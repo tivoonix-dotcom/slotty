@@ -1,10 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
-import {
-  HiArrowRight,
-  HiCheckCircle,
-  HiEllipsisHorizontal,
-  HiSparkles,
-} from 'react-icons/hi2';
+import { HiEllipsisHorizontal, HiSparkles } from 'react-icons/hi2';
 import { HEADER_LOGO_SRC } from '../../app/headerLogo';
 import { planBadgeLabel } from '../../features/billing/model/masterPlans';
 import { useMasterPlanEntitlements } from '../../features/billing/useMasterPlanEntitlements';
@@ -21,9 +16,7 @@ import {
   IconNavDocuments,
   IconNavSupport,
 } from './adminCabinetNav';
-import { ADMIN_PROFILE_COMPLETION_PATH } from '../../app/paths';
 import { ADMIN_SIDEBAR_WIDTH, adminDesktopNavItemClass } from './adminCabinetLayout';
-import { useProfileCompletionOverview } from './profile/useProfileCompletionOverview';
 
 type Props = {
   onSupport: () => void;
@@ -40,62 +33,6 @@ function SidebarUnreadBadge({ count }: { count: number }) {
   );
 }
 
-function ProfileCompletionButton({
-  percent,
-  loading,
-  isDone,
-}: {
-  percent: number;
-  loading?: boolean;
-  isDone?: boolean;
-}) {
-  const completed = isDone ?? (!loading && percent >= 100);
-
-  return (
-    <Link
-      to={ADMIN_PROFILE_COMPLETION_PATH}
-      className="mb-4 block overflow-hidden rounded-[22px] bg-white no-underline shadow-[0_14px_40px_rgba(255,95,122,0.14)] ring-1 ring-[#FFE1E8] transition hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(255,95,122,0.2)]"
-    >
-      <div className="relative p-4">
-        <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#ff5f7a]/10 blur-2xl" />
-        <div className="absolute -bottom-10 left-6 h-20 w-20 rounded-full bg-[#ff9aad]/15 blur-2xl" />
-
-        <div className="relative flex items-center gap-3">
-          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ff5f7a] to-[#ff8aa0] text-white shadow-[0_10px_24px_rgba(255,95,122,0.35)]">
-            {completed ? (
-              <HiCheckCircle className="h-7 w-7" aria-hidden />
-            ) : (
-              <span className="text-[14px] font-black">{loading ? '…' : `${percent}%`}</span>
-            )}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-extrabold text-[#111827]">
-              Профиль заполнен
-            </p>
-            <p className="mt-0.5 text-[11px] font-semibold text-[#ff5f7a]">
-              {loading ? 'Загрузка…' : `${percent}% готово`}
-            </p>
-          </div>
-
-          <HiArrowRight className="h-5 w-5 shrink-0 text-[#ff5f7a]" aria-hidden />
-        </div>
-
-        <div className="relative mt-3 h-2 overflow-hidden rounded-full bg-[#FFE8EE]">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-[#ff5f7a] to-[#ff8aa0] transition-all duration-500"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-
-        <p className="relative mt-2 text-[11px] leading-snug text-[#6B7280]">
-          Нажми, чтобы посмотреть, какие разделы уже готовы.
-        </p>
-      </div>
-    </Link>
-  );
-}
-
 export function AdminDesktopSidebar({ onSupport, onDocuments }: Props) {
   const { planId } = useMasterPlanEntitlements();
   const { hasUnread, unreadCount } = useAdminNotifications();
@@ -107,12 +44,6 @@ export function AdminDesktopSidebar({ onSupport, onDocuments }: Props) {
     profile?.header_avatar_url?.trim() ||
     draft.photoUrl?.trim() ||
     defaultMasterAvatarUrl(displayName);
-
-  const {
-    percent: completionPercent,
-    showLoading: completionLoading,
-    isComplete: profileComplete,
-  } = useProfileCompletionOverview();
 
   return (
     <aside
@@ -212,12 +143,6 @@ export function AdminDesktopSidebar({ onSupport, onDocuments }: Props) {
       </nav>
 
       <div className="border-t border-[#eef0f5] p-4">
-        <ProfileCompletionButton
-          percent={completionPercent}
-          loading={completionLoading}
-          isDone={profileComplete}
-        />
-
         <Link
           to={ADMIN_BILLING_NAV.to}
           className="mb-4 block rounded-[20px] bg-gradient-to-br from-[#FFF1F4] via-[#FFE8ED] to-[#FFF1F4] p-4 no-underline ring-1 ring-[#FDE8ED]"
