@@ -1,6 +1,12 @@
 /** Общие классы кабинета мастера: мобильная колонка + десктопный дашборд. */
 export const ADMIN_SIDEBAR_WIDTH = 'w-[260px]';
 
+/** Ширина sidebar в px (для порталов модалок на desktop). */
+export const ADMIN_SIDEBAR_PX = 260;
+
+/** Сдвиг fixed-overlay под sidebar (Tailwind, не интерполировать). */
+export const ADMIN_SIDEBAR_OVERLAY_INSET = 'lg:left-[260px]';
+
 export const ADMIN_CABINET_SHELL_MAX = 'w-full max-w-[460px] lg:max-w-none';
 
 export const ADMIN_CABINET_MAIN =

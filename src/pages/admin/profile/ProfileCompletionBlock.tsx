@@ -210,9 +210,14 @@ export type ProfileCompletionHandlers = {
 type Props = {
   draft: MasterDraft;
   handlers: ProfileCompletionHandlers;
+  /** Классы оболочки карточки (desktop dashboard и т.п.). */
+  surfaceClassName?: string;
 };
 
-export function ProfileCompletionBlock({ draft, handlers }: Props) {
+const defaultSurfaceClass = `${cabinetCard} ${cabinetCardPad}`;
+
+export function ProfileCompletionBlock({ draft, handlers, surfaceClassName }: Props) {
+  const surface = surfaceClassName ?? defaultSurfaceClass;
   const navigate = useNavigate();
   const {
     useCabinetApi,
@@ -360,7 +365,7 @@ export function ProfileCompletionBlock({ draft, handlers }: Props) {
 
   if (cabinetError && useCabinetApi) {
     return (
-      <section className={`${cabinetCard} ${cabinetCardPad}`}>
+      <section className={surface}>
         <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Завершение профиля</h2>
         <p className="mt-2 text-[14px] leading-snug text-[#6B7280]">
           Не удалось загрузить данные кабинета. Обновите страницу или проверьте подключение к серверу.
@@ -371,7 +376,7 @@ export function ProfileCompletionBlock({ draft, handlers }: Props) {
 
   if (completion.isFullyReady) {
     return (
-      <section className={`${cabinetCard} ${cabinetCardPad}`}>
+      <section className={surface}>
         <CompletionHeaderInner percent={100} loading={false} />
         <CelebrationImageContent />
         <p className="mt-3 text-center text-[15px] font-semibold text-[#111827]">Профиль готов</p>
@@ -417,7 +422,7 @@ export function ProfileCompletionBlock({ draft, handlers }: Props) {
   const progressPercent = showLoading ? Math.min(clamped, 99) : clamped;
 
   return (
-    <section className={`${cabinetCard} ${cabinetCardPad}`}>
+    <section className={surface}>
       <CompletionHeaderInner percent={progressPercent} loading={showLoading} />
       <CompletionProgressBar percent={progressPercent} />
 

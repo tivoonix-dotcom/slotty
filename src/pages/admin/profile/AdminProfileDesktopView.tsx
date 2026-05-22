@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import type { ProfileCompletionHandlers } from './ProfileCompletionBlock';
+import { ProfileCompletionBlock } from './ProfileCompletionBlock';
 import { Link } from 'react-router-dom';
 import {
   HiArrowRight,
@@ -6,7 +8,6 @@ import {
   HiCheckBadge,
   HiEnvelope,
   HiStar,
-  HiTrophy,
 } from 'react-icons/hi2';
 import { BY } from 'country-flag-icons/react/1x1';
 import { ADMIN_SERVICES_PATH } from '../../../app/paths';
@@ -19,25 +20,14 @@ import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import { formatDurationRu, formatServicePrice, type ManagedService } from '../services/servicesFormat';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { CabinetIcon } from './cabinetIcons';
-import {
-  buildProfileStats,
-  type ProfileSectionId,
-  type ProfileStatsRatingMeta,
-} from './AdminProfileCabinetUi';
+import { buildProfileStats, type ProfileStatsRatingMeta } from './AdminProfileCabinetUi';
+import { ProfileSectionTabs } from './ProfileSectionTabs';
 import { useProfileTabs } from './profileTabContext';
 import {
   profileDashboardCard,
   profileDashboardCardPad,
   profileDashboardEditBtn,
-  profileDashboardPinkText,
 } from './adminProfileDashboardTheme';
-
-const PROFILE_TABS: Array<{ id: ProfileSectionId; label: string }> = [
-  { id: 'main', label: 'Профиль' },
-  { id: 'portfolio', label: 'Портфолио' },
-  { id: 'address', label: 'Адрес' },
-  { id: 'rules', label: 'Правила' },
-];
 
 function profileCityDisplay(loc: MasterLocation | undefined): string {
   const c = loc?.city?.trim();
@@ -82,43 +72,6 @@ function formatRegistrationDate(iso: string): string {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function ProfileInlineTabs({
-  active,
-  onChange,
-}: {
-  active: ProfileSectionId;
-  onChange: (id: ProfileSectionId) => void;
-}) {
-  return (
-    <nav
-      className="flex gap-6 border-b border-[#eef0f5] px-6 md:px-8"
-      aria-label="Разделы профиля"
-    >
-      {PROFILE_TABS.map((tab) => {
-        const selected = active === tab.id;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onChange(tab.id)}
-            className={`relative -mb-px pb-3.5 pt-4 text-[14px] font-semibold transition ${
-              selected ? profileDashboardPinkText : 'text-[#6B7280] hover:text-[#374151]'
-            }`}
-          >
-            {tab.label}
-            {selected ? (
-              <span
-                className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a]"
-                aria-hidden
-              />
-            ) : null}
-          </button>
-        );
-      })}
-    </nav>
-  );
-}
-
 function ProfileDashboardHeroWrapper({
   draft,
   onEditMain,
@@ -131,7 +84,11 @@ function ProfileDashboardHeroWrapper({
     <section className={`${profileDashboardCard} overflow-hidden`}>
       <HeroCoverBlock draft={draft} />
       <HeroInfoBlock draft={draft} onEditMain={onEditMain} />
-      <ProfileInlineTabs active={tabs.activeSection} onChange={tabs.setActiveSection} />
+      <ProfileSectionTabs
+        active={tabs.activeSection}
+        onChange={tabs.setActiveSection}
+        className="px-1 md:px-2"
+      />
     </section>
   );
 }
@@ -248,7 +205,7 @@ function InfoRow({
   valueNode?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-[#eef0f5] py-3.5 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-3.5">
       <span className="text-[13px] font-medium text-[#6B7280]">{label}</span>
       {valueNode ?? (
         <span className="text-right text-[14px] font-semibold text-[#111827]">{value}</span>
@@ -257,37 +214,9 @@ function InfoRow({
   );
 }
 
-function AchievementsInnerCard({ draft, appointments }: { draft: MasterDraft; appointments: DemoMasterAppointment[] }) {
-  const career = draft.careerItems?.length ?? 0;
-  const certs = draft.certificates?.length ?? 0;
-  const portfolio = draft.portfolio?.length ?? 0;
-  const completed = appointments.filter((a) => a.status === 'completed').length;
-
-  const headline =
-    completed >= 100
-      ? 'Более 100 довольных клиентов'
-      : completed > 0
-        ? `${completed} выполненных записей`
-        : portfolio > 0 || certs > 0 || career > 0
-          ? 'Портфолио и опыт заполнены'
-          : 'Добавьте портфолио и опыт работы';
-
-  return (
-    <div className="mt-5 flex gap-3 rounded-[18px] bg-[#f6f7fb] p-4 ring-1 ring-[#eef0f5]">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFF8E8]">
-        <HiTrophy className="h-5 w-5 text-[#E8A317]" aria-hidden />
-      </span>
-      <div className="min-w-0">
-        <p className="text-[13px] font-semibold text-[#111827]">Достижения</p>
-        <p className="mt-0.5 text-[13px] leading-relaxed text-[#6B7280]">{headline}</p>
-      </div>
-    </div>
-  );
-}
-
 function ServicePreviewRow({ service }: { service: ManagedService }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[16px] bg-[#f6f7fb] px-4 py-3.5 ring-1 ring-[#eef0f5]">
+    <div className="flex items-center justify-between gap-4 rounded-[16px] bg-[#f6f7fb] px-4 py-3.5">
       <div className="min-w-0">
         <p className="truncate text-[14px] font-semibold text-[#111827]">{service.title}</p>
         <p className="mt-0.5 text-[12px] text-[#6B7280]">{formatDurationRu(service.durationMin)}</p>
@@ -321,12 +250,11 @@ export function AdminProfileDesktopMainGrid({
           <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-[#6B7280]">
             {description}
           </p>
-          <AchievementsInnerCard draft={draft} appointments={appointments} />
         </section>
 
         <section className={`${profileDashboardCard} ${profileDashboardCardPad}`}>
           <h3 className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">Информация</h3>
-          <div className="mt-2">
+          <div className="mt-2 space-y-1">
             <InfoRow label="Дата регистрации" value={formatRegistrationDate(draft.createdAt)} />
             <InfoRow
               label="Статус"
@@ -379,7 +307,7 @@ export function AdminProfileDesktopMainGrid({
           {services.length > 0 ? (
             services.map((s) => <ServicePreviewRow key={s.id} service={s as ManagedService} />)
           ) : (
-            <p className="rounded-[16px] bg-[#f6f7fb] px-4 py-6 text-center text-[14px] text-[#6B7280] ring-1 ring-[#eef0f5]">
+            <p className="rounded-[16px] bg-[#f6f7fb] px-4 py-6 text-center text-[14px] text-[#6B7280]">
               Услуги пока не добавлены
             </p>
           )}
@@ -395,6 +323,7 @@ type DesktopShellProps = {
   ratingMeta?: ProfileStatsRatingMeta;
   onEditMain: () => void;
   section: ReactNode;
+  completionHandlers: ProfileCompletionHandlers;
 };
 
 export function AdminProfileDesktopShell({
@@ -403,6 +332,7 @@ export function AdminProfileDesktopShell({
   ratingMeta,
   onEditMain,
   section,
+  completionHandlers,
 }: DesktopShellProps) {
   const { activeSection } = useProfileTabs();
 
@@ -415,6 +345,11 @@ export function AdminProfileDesktopShell({
             draft={draft}
             appointments={appointments}
             ratingMeta={ratingMeta}
+          />
+          <ProfileCompletionBlock
+            draft={draft}
+            handlers={completionHandlers}
+            surfaceClassName={`${profileDashboardCard} ${profileDashboardCardPad}`}
           />
         </>
       ) : section ? (

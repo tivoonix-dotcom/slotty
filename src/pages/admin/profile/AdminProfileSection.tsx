@@ -53,6 +53,7 @@ import {
   ScheduleWorkCard,
 } from './AdminProfileCabinetUi';
 import { ProfileCompletionBlock } from './ProfileCompletionBlock';
+import { ProfileSectionTabs } from './ProfileSectionTabs';
 import { useProfileTabs } from './profileTabContext';
 import { AdminProfileDesktopShell } from './AdminProfileDesktopView';
 
@@ -363,7 +364,8 @@ function AdminProfileReadView({
   onSetPortfolioCover: (portfolioItemId: string) => void;
   actionsDisabled?: boolean;
 }) {
-  const { activeSection } = useProfileTabs();
+  const navigate = useNavigate();
+  const { activeSection, setActiveSection } = useProfileTabs();
   const { cabinetProfileMeta } = useAdminMasterCabinet();
   const stats = useMemo(
     () =>
@@ -433,7 +435,13 @@ function AdminProfileReadView({
   return (
     <>
       <div className="lg:hidden">
-        <CabinetProfileHero draft={draft} stats={stats} />
+        <CabinetProfileHero
+          draft={draft}
+          stats={stats}
+          bottomSlot={
+            <ProfileSectionTabs active={activeSection} onChange={setActiveSection} />
+          }
+        />
         <AdminCabinetStatusBanner />
         <div className="space-y-4 px-4 pt-4">{section}</div>
       </div>
@@ -444,6 +452,14 @@ function AdminProfileReadView({
         ratingMeta={ratingMeta}
         onEditMain={onEditMain}
         section={activeSection === 'main' ? null : section}
+        completionHandlers={{
+          onEditMain,
+          onGoServices,
+          onGoSchedule: () => navigate(ADMIN_SCHEDULE_PATH),
+          onGoAddress: () => setActiveSection('address'),
+          onGoPortfolio: () => setActiveSection('portfolio'),
+          onGoRules: () => setActiveSection('rules'),
+        }}
       />
       <div className="hidden lg:block">
         <AdminCabinetStatusBanner />

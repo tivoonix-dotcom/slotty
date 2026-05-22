@@ -120,7 +120,15 @@ function StatMiniCard({ icon, label, value, empty }: StatMiniDisplay & { icon: R
   );
 }
 
-export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: ProfileStats }) {
+export function AdminProfileHero({
+  draft,
+  stats,
+  bottomSlot,
+}: {
+  draft: MasterDraft;
+  stats: ProfileStats;
+  bottomSlot?: ReactNode;
+}) {
   const photoSrc = (draft.photoUrl && draft.photoUrl.trim()) || defaultMasterAvatarUrl(draft.name || 'Мастер');
   const displayName = draft.name.trim() || 'Мастер';
 
@@ -170,11 +178,13 @@ export function AdminProfileHero({ draft, stats }: { draft: MasterDraft; stats: 
           <StatMiniCard icon={<CabinetIcon name="heart" size={18} />} {...stats.happy} />
         </div>
       </div>
+      {bottomSlot}
     </section>
   );
 }
 
-export type ProfileSectionId = 'main' | 'address' | 'portfolio' | 'rules';
+export type { ProfileSectionId } from './ProfileSectionTabs';
+export { ProfileSectionTabs } from './ProfileSectionTabs';
 
 /**
  * Нижний край шапки: pt + min-h + pb + border-b-2 (см. AdminLayout).
@@ -182,53 +192,6 @@ export type ProfileSectionId = 'main' | 'address' | 'portfolio' | 'rules';
  */
 /** Совпадает с реальной высотой шапки (AdminLayout + ResizeObserver). */
 export const CABINET_HEADER_STICKY_TOP = 'var(--slotty-admin-header-h, 4.5rem)';
-
-export function SectionTabs({
-  active,
-  onChange,
-}: {
-  active: ProfileSectionId;
-  onChange: (section: ProfileSectionId) => void;
-}) {
-  const tabs: Array<{ id: ProfileSectionId; label: string; icon: ReactNode }> = [
-    { id: 'main', label: 'Профиль', icon: <CabinetIcon name="user" size={22} /> },
-    { id: 'portfolio', label: 'Портфолио', icon: <CabinetIcon name="photo" size={22} /> },
-    { id: 'address', label: 'Адрес', icon: <CabinetIcon name="map-pin" size={22} /> },
-    { id: 'rules', label: 'Правила', icon: <CabinetIcon name="rules" size={22} /> },
-  ];
-
-  return (
-    <nav
-      className="flex h-[68px] w-full items-stretch gap-0.5 rounded-[24px] border border-[#EAECEF]/80 bg-white px-1.5 py-1.5 shadow-[0_12px_40px_rgba(17,24,39,0.12)]"
-      aria-label="Разделы профиля"
-    >
-      {tabs.map((tab) => {
-        const selected = active === tab.id;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onChange(tab.id)}
-            className={`relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[18px] px-1 py-1.5 transition duration-200 active:scale-[0.96] ${
-              selected
-                ? 'bg-[#FFF1F4] text-[#F47C8C]'
-                : 'text-[#9CA3AF] hover:bg-[#FFF1F4]/60'
-            }`}
-          >
-            {tab.icon}
-            <span
-              className={`max-w-full truncate text-[10px] font-semibold leading-none sm:text-[11px] ${
-                selected ? 'text-[#F47C8C]' : ''
-              }`}
-            >
-              {tab.label}
-            </span>
-          </button>
-        );
-      })}
-    </nav>
-  );
-}
 
 function InfoGridCell({
   label,

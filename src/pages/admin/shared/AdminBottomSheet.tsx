@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { ADMIN_SIDEBAR_OVERLAY_INSET } from '../adminCabinetLayout';
 
 type Props = {
   open: boolean;
@@ -32,9 +33,11 @@ export function AdminBottomSheet({ open, onClose, title, children }: Props) {
 
   if (!open || typeof document === 'undefined') return null;
 
-  /** Портал в body: иначе fixed внутри max-w-lg + sticky шапка дают «полоску» без затемнения сверху. */
+  /** Портал в body: на lg+ сдвигаем вправо на ширину sidebar, чтобы модалка была по центру контента. */
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex min-h-dvh w-full flex-col justify-end md:items-center md:justify-center md:p-4">
+    <div
+      className={`fixed inset-0 z-[200] flex min-h-dvh w-full flex-col justify-end md:items-center md:justify-center md:p-4 ${ADMIN_SIDEBAR_OVERLAY_INSET}`}
+    >
       <button
         type="button"
         className="absolute inset-0 min-h-dvh w-full bg-black/30"
@@ -45,7 +48,7 @@ export function AdminBottomSheet({ open, onClose, title, children }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'admin-sheet-title' : undefined}
-        className="relative z-10 mx-auto mt-auto w-full max-w-lg md:mt-0 rounded-t-[28px] md:rounded-[24px] shadow-[0_-12px_40px_rgba(17,24,39,0.1)] md:shadow-[0_18px_48px_rgba(17,24,39,0.1)]"
+        className="relative z-10 mx-auto mt-auto w-full max-w-lg md:mt-0 lg:max-w-xl rounded-t-[28px] md:rounded-[24px] shadow-[0_-12px_40px_rgba(17,24,39,0.1)] md:shadow-[0_18px_48px_rgba(17,24,39,0.1)]"
       >
         <div className="overflow-hidden rounded-t-[28px] bg-white md:rounded-[24px]">
           <div className="max-h-[min(88dvh,640px)] overflow-y-auto overflow-x-hidden overscroll-contain px-[18px] pb-5 pt-3 md:max-h-[85vh]">

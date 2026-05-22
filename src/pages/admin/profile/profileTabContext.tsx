@@ -1,10 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
-import { ADMIN_PATH } from '../../../app/paths';
-import { SectionTabs, type ProfileSectionId } from './AdminProfileCabinetUi';
+import type { ProfileSectionId } from './ProfileSectionTabs';
 
-/** Высота нижней панели вкладок (для отступа контента). */
-export const PROFILE_TAB_BAR_HEIGHT = '5.75rem';
+export type { ProfileSectionId };
 
 type ProfileTabContextValue = {
   activeSection: ProfileSectionId;
@@ -31,24 +28,7 @@ export function useProfileTabs(): ProfileTabContextValue {
   return ctx;
 }
 
-/** Табы профиля: снизу на мобиле, сверху контента на десктопе. */
-export function ProfileSectionTabsBar({ placement = 'mobile' }: { placement?: 'mobile' | 'desktop' }) {
-  const { pathname } = useLocation();
-  const isProfileHome = pathname === ADMIN_PATH;
-
-  if (!isProfileHome) return null;
-
-  const { activeSection, setActiveSection } = useProfileTabs();
-
-  if (placement === 'desktop') {
-    return null;
-  }
-
-  return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-[max(12px,env(safe-area-inset-bottom,0px))] lg:hidden">
-      <div className="pointer-events-auto w-full max-w-[460px]">
-        <SectionTabs active={activeSection} onChange={setActiveSection} />
-      </div>
-    </div>
-  );
+/** Табы встроены в карточку профиля (desktop + mobile). */
+export function ProfileSectionTabsBar() {
+  return null;
 }

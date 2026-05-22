@@ -17,7 +17,7 @@ import { AdminNotificationsProvider, useAdminNotifications } from './notificatio
 import { planBadgeLabel } from '../../features/billing/model/masterPlans';
 import { useMasterPlanEntitlements } from '../../features/billing/useMasterPlanEntitlements';
 import { AdminMasterCabinetProvider, useAdminMasterCabinet } from './AdminMasterCabinetContext';
-import { ProfileSectionTabsBar, ProfileTabProvider, PROFILE_TAB_BAR_HEIGHT } from './profile/profileTabContext';
+import { ProfileSectionTabsBar, ProfileTabProvider } from './profile/profileTabContext';
 import { ADMIN_CABINET_SHELL_MAX, OVERVIEW_TAB_BAR_HEIGHT } from './overview/adminOverviewTheme';
 import { ADMIN_DESKTOP_CANVAS } from './adminCabinetLayout';
 import {
@@ -135,7 +135,7 @@ function AdminLayoutInner() {
   }, []);
 
   const shellPadBottom = isProfileHome
-    ? 'pb-[calc(var(--slotty-profile-tab-bar-h)+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-0'
+    ? 'pb-6 lg:pb-0'
     : isOverview
       ? `pb-[calc(${OVERVIEW_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-0`
       : isServices
@@ -174,7 +174,6 @@ function AdminLayoutInner() {
             style={
               {
                 '--slotty-admin-header-h': '5.25rem',
-                '--slotty-profile-tab-bar-h': PROFILE_TAB_BAR_HEIGHT,
               } as CSSProperties
             }
           >
@@ -244,7 +243,7 @@ function AdminLayoutInner() {
             >
               <AdminRouteTransitionOutlet />
             </div>
-            <ProfileSectionTabsBar placement="mobile" />
+            <ProfileSectionTabsBar />
           </div>
         </ProfileTabProvider>
 
