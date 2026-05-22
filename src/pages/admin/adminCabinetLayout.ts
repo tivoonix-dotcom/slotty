@@ -14,8 +14,8 @@ export const ADMIN_DESKTOP_PAGE =
 export const adminDesktopNavItemClass = (active: boolean): string =>
   `flex min-h-11 w-full items-center gap-3 rounded-[14px] px-3.5 text-left text-[14px] font-semibold transition active:scale-[0.99] ${
     active
-      ? 'bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] text-white shadow-[0_8px_24px_rgba(255,95,122,0.28)]'
-      : 'text-[#6B7280] hover:bg-[#FFF1F4]/80 hover:text-[#111827]'
+      ? 'bg-[#FFF1F4] text-[#ff5f7a] shadow-[0_2px_12px_rgba(255,95,122,0.08)]'
+      : 'text-[#6B7280] hover:bg-[#F7F7F8] hover:text-[#111827]'
   }`;
 
 export const ADMIN_SEGMENT_NAV_DESKTOP =

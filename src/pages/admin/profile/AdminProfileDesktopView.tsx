@@ -1,6 +1,13 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { HiCheckBadge, HiEnvelope } from 'react-icons/hi2';
+import {
+  HiArrowRight,
+  HiBriefcase,
+  HiCheckBadge,
+  HiEnvelope,
+  HiStar,
+  HiTrophy,
+} from 'react-icons/hi2';
 import { BY } from 'country-flag-icons/react/1x1';
 import { ADMIN_SERVICES_PATH } from '../../../app/paths';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
@@ -21,7 +28,7 @@ import { useProfileTabs } from './profileTabContext';
 import {
   profileDashboardCard,
   profileDashboardCardPad,
-  profileDashboardPinkBtn,
+  profileDashboardEditBtn,
   profileDashboardPinkText,
 } from './adminProfileDashboardTheme';
 
@@ -53,16 +60,19 @@ function resolveCoverUrl(draft: MasterDraft): string | null {
   return photo || null;
 }
 
-function publicationStatusLabel(status: MasterPublicationStatus | null): string {
+function publicationStatusDisplay(status: MasterPublicationStatus | null): {
+  label: string;
+  tone: 'green' | 'muted' | 'warn';
+} {
   switch (status) {
     case 'published':
-      return 'Опубликован';
+      return { label: 'Активен', tone: 'green' };
     case 'hidden':
-      return 'Скрыт';
+      return { label: 'Скрыт', tone: 'muted' };
     case 'blocked':
-      return 'Заблокирован';
+      return { label: 'Заблокирован', tone: 'warn' };
     default:
-      return 'Черновик';
+      return { label: 'Черновик', tone: 'muted' };
   }
 }
 
@@ -132,7 +142,7 @@ function HeroCoverBlock({ draft }: { draft: MasterDraft }) {
   const useBlur = !resolveCoverUrl(draft);
 
   return (
-    <div className="relative h-[min(340px,32vw)] min-h-[280px] w-full overflow-hidden bg-[#f0f1f5]">
+    <div className="relative h-[300px] w-full overflow-hidden bg-[#f0f1f5] sm:h-[320px]">
       <ImageReveal
         src={coverSrc}
         alt=""
@@ -166,10 +176,10 @@ function HeroInfoBlock({
   const isPublished = publicationStatus === 'published';
 
   return (
-    <div className="relative px-6 pb-0 pt-0 md:px-8">
-      <div className="-mt-14 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex min-w-0 flex-1 items-end gap-4">
-          <div className="relative h-[112px] w-[112px] shrink-0 overflow-hidden rounded-full bg-white ring-4 ring-white shadow-[0_12px_32px_rgba(17,24,39,0.12)]">
+    <div className="relative bg-white px-6 pb-2 pt-0 md:px-8">
+      <div className="-mt-[4.5rem] flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-1 items-start gap-5">
+          <div className="relative h-[120px] w-[120px] shrink-0 overflow-hidden rounded-full bg-white ring-4 ring-white shadow-[0_12px_32px_rgba(17,24,39,0.12)]">
             <ImageReveal
               src={photoSrc}
               alt=""
@@ -183,9 +193,9 @@ function HeroInfoBlock({
               }}
             />
           </div>
-          <div className="min-w-0 pb-1">
+          <div className="min-w-0 pt-14 sm:pt-16">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-[clamp(22px,2.5vw,28px)] font-bold tracking-[-0.04em] text-[#111827]">
+              <h2 className="text-[clamp(20px,2.2vw,26px)] font-bold tracking-[-0.04em] text-[#111827]">
                 {displayName}
               </h2>
               {isPublished ? (
@@ -196,9 +206,9 @@ function HeroInfoBlock({
               ) : null}
             </div>
             <p className="mt-1 text-[14px] font-medium text-[#6B7280]">Кабинет мастера</p>
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-[#6B7280]">
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px] text-[#6B7280]">
               <span className="inline-flex items-center gap-1.5">
-                <CabinetIcon name="phone" size={16} />
+                <CabinetIcon name="phone" size={16} className="text-[#9CA3AF]" />
                 {phone !== '—' ? (
                   <span className="inline-flex items-center gap-1">
                     <BY title="Беларусь" className="h-3.5 w-3.5 rounded-full object-cover" />
@@ -208,18 +218,19 @@ function HeroInfoBlock({
                   phone
                 )}
               </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <HiEnvelope className="h-4 w-4 shrink-0" aria-hidden />
-                  —
-                </span>
               <span className="inline-flex items-center gap-1.5">
-                <CabinetIcon name="map-pin" size={16} />
+                <HiEnvelope className="h-4 w-4 shrink-0 text-[#9CA3AF]" aria-hidden />
+                —
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CabinetIcon name="map-pin" size={16} className="text-[#9CA3AF]" />
                 {city}
               </span>
             </div>
           </div>
         </div>
-        <button type="button" onClick={onEditMain} className={`${profileDashboardPinkBtn} shrink-0`}>
+        <button type="button" onClick={onEditMain} className={`${profileDashboardEditBtn} sm:mt-14`}>
+          <CabinetIcon name="pencil" size={16} />
           Редактировать профиль
         </button>
       </div>
@@ -227,29 +238,49 @@ function HeroInfoBlock({
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({
+  label,
+  value,
+  valueNode,
+}: {
+  label: string;
+  value?: string;
+  valueNode?: ReactNode;
+}) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-[#eef0f5] py-3.5 last:border-0">
       <span className="text-[13px] font-medium text-[#6B7280]">{label}</span>
-      <span className="text-right text-[14px] font-semibold text-[#111827]">{value}</span>
+      {valueNode ?? (
+        <span className="text-right text-[14px] font-semibold text-[#111827]">{value}</span>
+      )}
     </div>
   );
 }
 
-function AchievementsInnerCard({ draft }: { draft: MasterDraft }) {
+function AchievementsInnerCard({ draft, appointments }: { draft: MasterDraft; appointments: DemoMasterAppointment[] }) {
   const career = draft.careerItems?.length ?? 0;
   const certs = draft.certificates?.length ?? 0;
   const portfolio = draft.portfolio?.length ?? 0;
-  const total = career + certs + portfolio;
+  const completed = appointments.filter((a) => a.status === 'completed').length;
+
+  const headline =
+    completed >= 100
+      ? 'Более 100 довольных клиентов'
+      : completed > 0
+        ? `${completed} выполненных записей`
+        : portfolio > 0 || certs > 0 || career > 0
+          ? 'Портфолио и опыт заполнены'
+          : 'Добавьте портфолио и опыт работы';
 
   return (
-    <div className="mt-4 rounded-[18px] bg-[#f6f7fb] p-4 ring-1 ring-[#eef0f5]">
-      <p className="text-[13px] font-semibold text-[#111827]">Достижения</p>
-      <p className="mt-1 text-[13px] leading-relaxed text-[#6B7280]">
-        {total > 0
-          ? `${career} в образовании и опыте · ${certs} сертификатов · ${portfolio} работ в портфолио`
-          : 'Добавьте опыт, сертификаты и работы во вкладке «Портфолио»'}
-      </p>
+    <div className="mt-5 flex gap-3 rounded-[18px] bg-[#f6f7fb] p-4 ring-1 ring-[#eef0f5]">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFF8E8]">
+        <HiTrophy className="h-5 w-5 text-[#E8A317]" aria-hidden />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[13px] font-semibold text-[#111827]">Достижения</p>
+        <p className="mt-0.5 text-[13px] leading-relaxed text-[#6B7280]">{headline}</p>
+      </div>
     </div>
   );
 }
@@ -270,12 +301,10 @@ export function AdminProfileDesktopMainGrid({
   draft,
   appointments,
   ratingMeta,
-  children,
 }: {
   draft: MasterDraft;
   appointments: DemoMasterAppointment[];
   ratingMeta?: ProfileStatsRatingMeta;
-  children?: ReactNode;
 }) {
   const { publicationStatus } = useAdminMasterCabinet();
   const stats = buildProfileStats(appointments, ratingMeta);
@@ -286,23 +315,45 @@ export function AdminProfileDesktopMainGrid({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-1 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className={`${profileDashboardCard} ${profileDashboardCardPad}`}>
           <h3 className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">О себе</h3>
           <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-[#6B7280]">
             {description}
           </p>
-          <AchievementsInnerCard draft={draft} />
+          <AchievementsInnerCard draft={draft} appointments={appointments} />
         </section>
 
         <section className={`${profileDashboardCard} ${profileDashboardCardPad}`}>
           <h3 className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">Информация</h3>
           <div className="mt-2">
             <InfoRow label="Дата регистрации" value={formatRegistrationDate(draft.createdAt)} />
-            <InfoRow label="Статус" value={publicationStatusLabel(publicationStatus)} />
+            <InfoRow
+              label="Статус"
+              valueNode={
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-bold ${
+                    publicationStatusDisplay(publicationStatus).tone === 'green'
+                      ? 'bg-[#ECFDF3] text-[#16A34A]'
+                      : 'bg-[#F3F4F6] text-[#6B7280]'
+                  }`}
+                >
+                  {publicationStatusDisplay(publicationStatus).label}
+                </span>
+              }
+            />
             <InfoRow
               label="Рейтинг"
-              value={stats.rating.empty ? stats.rating.value : stats.rating.value}
+              valueNode={
+                stats.rating.empty ? (
+                  <span className="text-[14px] font-semibold text-[#9CA3AF]">{stats.rating.value}</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[14px] font-bold text-[#111827]">
+                    <HiStar className="h-4 w-4 text-[#E8A317]" aria-hidden />
+                    {stats.rating.value}
+                  </span>
+                )
+              }
             />
             <InfoRow label="Выполнено заказов" value={String(completed)} />
             <InfoRow label="Отзывов" value={String(reviews)} />
@@ -312,12 +363,16 @@ export function AdminProfileDesktopMainGrid({
 
       <section className={`${profileDashboardCard} ${profileDashboardCardPad}`}>
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">Мои услуги</h3>
+          <div className="flex items-center gap-2">
+            <HiBriefcase className="h-5 w-5 text-[#ff5f7a]" aria-hidden />
+            <h3 className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">Мои услуги</h3>
+          </div>
           <Link
             to={ADMIN_SERVICES_PATH}
-            className="text-[13px] font-semibold text-[#ff5f7a] no-underline transition hover:text-[#ff6f88]"
+            className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#ff5f7a] no-underline transition hover:text-[#ff6f88]"
           >
             Смотреть все
+            <HiArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>
         <div className="mt-4 space-y-2.5">
@@ -330,8 +385,6 @@ export function AdminProfileDesktopMainGrid({
           )}
         </div>
       </section>
-
-      {children}
     </div>
   );
 }
@@ -342,7 +395,6 @@ type DesktopShellProps = {
   ratingMeta?: ProfileStatsRatingMeta;
   onEditMain: () => void;
   section: ReactNode;
-  extraMain?: ReactNode;
 };
 
 export function AdminProfileDesktopShell({
@@ -351,7 +403,6 @@ export function AdminProfileDesktopShell({
   ratingMeta,
   onEditMain,
   section,
-  extraMain,
 }: DesktopShellProps) {
   const { activeSection } = useProfileTabs();
 
@@ -364,9 +415,7 @@ export function AdminProfileDesktopShell({
             draft={draft}
             appointments={appointments}
             ratingMeta={ratingMeta}
-          >
-            {extraMain}
-          </AdminProfileDesktopMainGrid>
+          />
         </>
       ) : section ? (
         <div className={`${profileDashboardCard} ${profileDashboardCardPad}`}>{section}</div>

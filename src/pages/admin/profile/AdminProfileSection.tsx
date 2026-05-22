@@ -363,8 +363,7 @@ function AdminProfileReadView({
   onSetPortfolioCover: (portfolioItemId: string) => void;
   actionsDisabled?: boolean;
 }) {
-  const navigate = useNavigate();
-  const { activeSection, setActiveSection } = useProfileTabs();
+  const { activeSection } = useProfileTabs();
   const { cabinetProfileMeta } = useAdminMasterCabinet();
   const stats = useMemo(
     () =>
@@ -431,29 +430,6 @@ function AdminProfileReadView({
     actionsDisabled,
   ]);
 
-  const desktopExtras =
-    activeSection === 'main' ? (
-      <div className="space-y-6">
-        <MasterBookingLinkCard
-          draft={draft}
-          cabinetLoading={cabinetLoading}
-          useCabinetApi={useCabinetApi}
-        />
-        <ProfileCompletionBlock
-          draft={draft}
-          handlers={{
-            onEditMain,
-            onGoServices,
-            onGoSchedule: () => navigate(ADMIN_SCHEDULE_PATH),
-            onGoAddress: () => setActiveSection('address'),
-            onGoPortfolio: () => setActiveSection('portfolio'),
-            onGoRules: () => setActiveSection('rules'),
-          }}
-        />
-        <ScheduleWorkCard draft={draft} onEditSchedule={onEditSchedule} />
-      </div>
-    ) : null;
-
   return (
     <>
       <div className="lg:hidden">
@@ -468,7 +444,6 @@ function AdminProfileReadView({
         ratingMeta={ratingMeta}
         onEditMain={onEditMain}
         section={activeSection === 'main' ? null : section}
-        extraMain={desktopExtras}
       />
       <div className="hidden lg:block">
         <AdminCabinetStatusBanner />
