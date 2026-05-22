@@ -136,7 +136,7 @@ export function AdminDesktopSidebar({ onSupport, onDocuments }: Props) {
       <div className="border-t border-[#F3F4F6] p-4">
         <Link
           to={ADMIN_BILLING_NAV.to}
-          className="mb-4 block rounded-[18px] bg-gradient-to-br from-[#F47C8C] to-[#F26D83] p-4 text-white no-underline shadow-[0_12px_32px_rgba(244,124,140,0.35)]"
+          className="mb-4 block rounded-[20px] bg-gradient-to-br from-[#ff6f88] to-[#ff5f7a] p-4 text-white no-underline shadow-[0_12px_32px_rgba(255,95,122,0.35)]"
         >
           <p className="text-[13px] font-bold leading-snug">Тариф {planBadgeLabel(planId)}</p>
           <p className="mt-1 text-[11px] leading-relaxed text-white/85">Управление подпиской и лимитами</p>

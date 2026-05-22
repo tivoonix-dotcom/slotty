@@ -25,7 +25,7 @@ function CabinetSectionIcon({ name, size = 18 }: { name: CabinetIconName; size?:
 
 export function CabinetPageShell({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-[460px] bg-white pb-[calc(2rem+env(safe-area-inset-bottom,0px))] text-[#111827] lg:max-w-none lg:rounded-none lg:bg-transparent lg:pb-0 lg:shadow-none">
+    <div className="mx-auto w-full max-w-[460px] bg-white pb-[calc(2rem+env(safe-area-inset-bottom,0px))] text-[#111827] lg:max-w-none lg:bg-transparent lg:pb-0 lg:shadow-none">
       {children}
     </div>
   );

@@ -10,7 +10,7 @@ export function AdminDesktopTopBar() {
   const isNotifications = pathname === ADMIN_NOTIFICATIONS_PATH;
 
   return (
-    <header className="sticky top-0 z-30 hidden shrink-0 border-b border-[#EAECEF] bg-[#F5F6FA]/95 px-8 py-4 backdrop-blur-sm lg:block">
+    <header className="sticky top-0 z-30 hidden shrink-0 border-b border-[#EAECEF] bg-white/95 px-8 py-4 backdrop-blur-sm lg:block">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-[22px] font-bold tracking-[-0.04em] text-[#111827]">{title}</h1>

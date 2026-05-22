@@ -54,6 +54,7 @@ import {
 } from './AdminProfileCabinetUi';
 import { ProfileCompletionBlock } from './ProfileCompletionBlock';
 import { useProfileTabs } from './profileTabContext';
+import { AdminProfileDesktopShell } from './AdminProfileDesktopView';
 
 type CareerItemType = MasterCareerItemType;
 
@@ -362,8 +363,15 @@ function AdminProfileReadView({
   onSetPortfolioCover: (portfolioItemId: string) => void;
   actionsDisabled?: boolean;
 }) {
-  const { activeSection } = useProfileTabs();
-  const stats = useMemo(() => buildProfileStats(appointments), [appointments]);
+  const navigate = useNavigate();
+  const { activeSection, setActiveSection } = useProfileTabs();
+  const { cabinetProfileMeta } = useAdminMasterCabinet();
+  const stats = useMemo(
+    () =>
+      buildProfileStats(appointments, cabinetProfileMeta ?? undefined),
+    [appointments, cabinetProfileMeta],
+  );
+  const ratingMeta = cabinetProfileMeta ?? undefined;
 
   const section = useMemo(() => {
     if (activeSection === 'address') {
@@ -423,11 +431,48 @@ function AdminProfileReadView({
     actionsDisabled,
   ]);
 
+  const desktopExtras =
+    activeSection === 'main' ? (
+      <div className="space-y-6">
+        <MasterBookingLinkCard
+          draft={draft}
+          cabinetLoading={cabinetLoading}
+          useCabinetApi={useCabinetApi}
+        />
+        <ProfileCompletionBlock
+          draft={draft}
+          handlers={{
+            onEditMain,
+            onGoServices,
+            onGoSchedule: () => navigate(ADMIN_SCHEDULE_PATH),
+            onGoAddress: () => setActiveSection('address'),
+            onGoPortfolio: () => setActiveSection('portfolio'),
+            onGoRules: () => setActiveSection('rules'),
+          }}
+        />
+        <ScheduleWorkCard draft={draft} onEditSchedule={onEditSchedule} />
+      </div>
+    ) : null;
+
   return (
     <>
-      <CabinetProfileHero draft={draft} stats={stats} />
-      <AdminCabinetStatusBanner />
-      <div className="space-y-4 px-4 pt-4">{section}</div>
+      <div className="lg:hidden">
+        <CabinetProfileHero draft={draft} stats={stats} />
+        <AdminCabinetStatusBanner />
+        <div className="space-y-4 px-4 pt-4">{section}</div>
+      </div>
+
+      <AdminProfileDesktopShell
+        draft={draft}
+        appointments={appointments}
+        ratingMeta={ratingMeta}
+        onEditMain={onEditMain}
+        section={activeSection === 'main' ? null : section}
+        extraMain={desktopExtras}
+      />
+      <div className="hidden lg:block">
+        <AdminCabinetStatusBanner />
+      </div>
     </>
   );
 }

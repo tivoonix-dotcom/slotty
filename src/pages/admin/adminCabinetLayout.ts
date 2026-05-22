@@ -6,7 +6,7 @@ export const ADMIN_CABINET_SHELL_MAX = 'w-full max-w-[460px] lg:max-w-none';
 export const ADMIN_CABINET_MAIN =
   'mx-auto w-full min-w-0 flex-1 lg:mx-0 lg:flex lg:flex-col lg:px-8 lg:py-6';
 
-export const ADMIN_DESKTOP_CANVAS = 'lg:bg-[#F5F6FA]';
+export const ADMIN_DESKTOP_CANVAS = 'lg:bg-[#f6f7fb]';
 
 export const ADMIN_DESKTOP_PAGE =
   'lg:rounded-[24px] lg:bg-white lg:shadow-[0_4px_24px_rgba(17,24,39,0.06)] lg:ring-1 lg:ring-[#EAECEF]';
@@ -14,8 +14,8 @@ export const ADMIN_DESKTOP_PAGE =
 export const adminDesktopNavItemClass = (active: boolean): string =>
   `flex min-h-11 w-full items-center gap-3 rounded-[14px] px-3.5 text-left text-[14px] font-semibold transition active:scale-[0.99] ${
     active
-      ? 'bg-[#F47C8C] text-white shadow-[0_8px_24px_rgba(244,124,140,0.28)]'
-      : 'text-[#6B7280] hover:bg-[#F7F7F8] hover:text-[#111827]'
+      ? 'bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] text-white shadow-[0_8px_24px_rgba(255,95,122,0.28)]'
+      : 'text-[#6B7280] hover:bg-[#FFF1F4]/80 hover:text-[#111827]'
   }`;
 
 export const ADMIN_SEGMENT_NAV_DESKTOP =

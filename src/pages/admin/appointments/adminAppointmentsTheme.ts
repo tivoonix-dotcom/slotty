@@ -1,4 +1,4 @@
-export const APPOINTMENTS_PAGE_BG = 'bg-[#F7F7F8]';
+export const APPOINTMENTS_PAGE_BG = 'bg-white';
 
 const appointmentsTabPhotosDir = '/photos/' + encodeURIComponent('заявки') + '/';
 

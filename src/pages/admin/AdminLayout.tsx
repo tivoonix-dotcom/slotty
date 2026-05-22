@@ -147,10 +147,20 @@ function AdminLayoutInner() {
             : 'lg:pb-8';
 
   const pageShellBg =
-    isOverview || isServices || isSchedule || isAppointments ? SERVICES_PAGE_BG : 'bg-white';
+    isOverview || isServices || isSchedule || isAppointments
+      ? SERVICES_PAGE_BG
+      : isProfileHome
+        ? 'bg-white'
+        : 'bg-white';
+
+  const desktopCanvasBg = isProfileHome
+    ? 'lg:bg-[#f6f7fb]'
+    : isOverview || isServices || isSchedule || isAppointments
+      ? 'lg:bg-white'
+      : 'lg:bg-[#f6f7fb]';
 
   return (
-    <div className={`flex min-h-dvh text-[#111827] ${pageShellBg} lg:bg-[#F5F6FA]`}>
+    <div className={`flex min-h-dvh text-[#111827] ${pageShellBg} ${desktopCanvasBg}`}>
       <AdminDesktopSidebar
         onSupport={() => setSettingsSheet('support')}
         onDocuments={() => setSettingsSheet('documents')}
@@ -225,8 +235,13 @@ function AdminLayoutInner() {
           {!isProfileHome ? <AdminCabinetStatusBanner /> : null}
 
           <div className={`mx-auto w-full min-w-0 flex-1 ${ADMIN_CABINET_SHELL_MAX} ${shellPadBottom}`}>
-            <div className="w-full min-w-0 px-4 pt-4 lg:mx-auto lg:max-w-6xl lg:rounded-[24px] lg:bg-white lg:px-8 lg:pb-8 lg:pt-6 lg:shadow-[0_4px_24px_rgba(17,24,39,0.06)] lg:ring-1 lg:ring-[#EAECEF]">
-              {isProfileHome ? <ProfileSectionTabsBar placement="desktop" /> : null}
+            <div
+              className={`w-full min-w-0 px-4 pt-4 lg:mx-auto lg:max-w-6xl lg:px-8 lg:pb-8 lg:pt-6 ${
+                isProfileHome
+                  ? 'lg:bg-transparent lg:shadow-none lg:ring-0'
+                  : 'lg:rounded-[24px] lg:bg-white lg:shadow-[0_4px_24px_rgba(17,24,39,0.06)] lg:ring-1 lg:ring-[#EAECEF]'
+              }`}
+            >
               <AdminRouteTransitionOutlet />
             </div>
             <ProfileSectionTabsBar placement="mobile" />

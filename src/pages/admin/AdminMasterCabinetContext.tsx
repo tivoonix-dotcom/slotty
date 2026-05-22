@@ -80,6 +80,8 @@ type Ctx = {
   refreshSubscription: () => Promise<void>;
   publicationStatus: MasterPublicationStatus | null;
   setPublicationStatus: (status: MasterPublicationStatus) => void;
+  /** Рейтинг и отзывы из API кабинета (без отдельного запроса). */
+  cabinetProfileMeta: { rating: number; reviewsCount: number } | null;
 };
 
 const AdminCabinetCtx = createContext<Ctx | null>(null);
@@ -115,6 +117,10 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
   const [cabinetError, setCabinetError] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<MasterSubscriptionDto | null>(null);
   const [publicationStatus, setPublicationStatus] = useState<MasterPublicationStatus | null>(null);
+  const [cabinetProfileMeta, setCabinetProfileMeta] = useState<{
+    rating: number;
+    reviewsCount: number;
+  } | null>(null);
 
   const appointmentsRef = useRef(appointments);
   appointmentsRef.current = appointments;
@@ -132,6 +138,10 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       setPublicationStatus(
         (cabinet.profile.publicationStatus as MasterPublicationStatus) || 'draft',
       );
+      setCabinetProfileMeta({
+        rating: cabinet.profile.rating,
+        reviewsCount: cabinet.profile.reviewsCount,
+      });
       lastSyncedSnapshotRef.current = cloneDraft(mapped);
       setAppointments(rows.map(mapMasterAppointmentRowToDemo));
       try {
@@ -158,6 +168,10 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       setPublicationStatus(
         (cabinet.profile.publicationStatus as MasterPublicationStatus) || 'draft',
       );
+      setCabinetProfileMeta({
+        rating: cabinet.profile.rating,
+        reviewsCount: cabinet.profile.reviewsCount,
+      });
       setDraft((prev) => {
         const coverId = prev.portfolioCoverId?.trim();
         const keepCover =
@@ -177,6 +191,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       setCabinetLoading(false);
       setSubscription(null);
       setPublicationStatus('draft');
+      setCabinetProfileMeta(null);
       if (!getStoredMasterDraft()) {
         persistMasterDraft(getMasterDraft());
         setDraft(getMasterDraft());
@@ -552,6 +567,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       refreshSubscription,
       publicationStatus,
       setPublicationStatus,
+      cabinetProfileMeta,
     }),
     [
       draft,
@@ -569,6 +585,7 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
       subscription,
       refreshSubscription,
       publicationStatus,
+      cabinetProfileMeta,
     ],
   );
 

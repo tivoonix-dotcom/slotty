@@ -6,7 +6,7 @@ export default {
       colors: {
         brand: {
           primary: '#E29595',
-          bg: '#FDFCFB',
+          bg: '#FFFFFF',
           text: '#1C1C1E',
         },
       },

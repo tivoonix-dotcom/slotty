@@ -2,7 +2,7 @@
 import { SERVICES_PAGE_BG } from '../services/adminServicesTheme';
 
 /** Фон страницы — как у «Услуг» и других разделов с карточками. */
-export const OVERVIEW_CANVAS_HEX = '#F7F7F8';
+export const OVERVIEW_CANVAS_HEX = '#FFFFFF';
 export const overviewPageBg = SERVICES_PAGE_BG;
 export const overviewInsetBg = 'bg-[#F3F4F6]';
 

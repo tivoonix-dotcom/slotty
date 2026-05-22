@@ -1,4 +1,4 @@
-export const SERVICES_PAGE_BG = 'bg-[#F7F7F8]';
+export const SERVICES_PAGE_BG = 'bg-white';
 
 const servicesTabPhotosDir = '/photos/' + encodeURIComponent('услуги') + '/';
 

@@ -41,11 +41,7 @@ export function ProfileSectionTabsBar({ placement = 'mobile' }: { placement?: 'm
   const { activeSection, setActiveSection } = useProfileTabs();
 
   if (placement === 'desktop') {
-    return (
-      <div className="mb-5 hidden lg:block">
-        <SectionTabs active={activeSection} onChange={setActiveSection} />
-      </div>
-    );
+    return null;
   }
 
   return (

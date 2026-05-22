@@ -71,7 +71,7 @@ export function Home() {
   }
 
   return (
-    <div className="min-h-dvh bg-[#FFFCFC] text-neutral-900">
+    <div className="min-h-dvh bg-white text-neutral-900">
       <HomeHeader isDemoMaster={isMasterUser} onProfileTab={onProfileTab} />
 
       <HomeHeroStack
