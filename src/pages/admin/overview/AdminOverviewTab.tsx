@@ -14,6 +14,7 @@ import {
   OverviewSummaryPanel,
 } from './OverviewTabPanels';
 import { useOverviewTabData } from './useOverviewTabData';
+import { overviewShellCard } from './adminOverviewTheme';
 import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
 import { LoadingPanel } from '../../../shared/ui/LoadingVideo';
 
@@ -59,7 +60,12 @@ export function AdminOverviewTab({
 
   const panel = useMemo(() => {
     if (loading) {
-      return <LoadingPanel className="border-[#F3F4F6]" />;
+      return (
+        <LoadingPanel
+          className="border-0 shadow-none"
+          minHeight="min-h-[min(56vh,28rem)]"
+        />
+      );
     }
 
     if (error) {
@@ -93,6 +99,7 @@ export function AdminOverviewTab({
       default:
         return (
           <OverviewSummaryPanel
+            draft={draft}
             metrics={summary}
             serviceCount={serviceCount}
             appointmentsPath={appointmentsPath}
@@ -108,6 +115,7 @@ export function AdminOverviewTab({
     appointmentsPath,
     clients,
     dayStats,
+    draft,
     error,
     loading,
     onOpenAppointment,
@@ -120,24 +128,26 @@ export function AdminOverviewTab({
     useCabinetApi,
   ]);
 
+  const showTabIntro = !error && activeTab !== 'summary';
+
   return (
-    <>
-      <OverviewAnalyticsTabBar active={activeTab} onChange={setActiveTab} />
+    <div className="w-full min-w-0 pb-6 lg:pb-0">
+      <div className={`${overviewShellCard} overflow-hidden`}>
+        <OverviewAnalyticsTabBar active={activeTab} onChange={setActiveTab} />
 
-      <section
-        className="w-full min-w-0 space-y-4 overflow-x-hidden pb-[calc(5.75rem+1.25rem)] lg:pb-0"
-      >
-        <OverviewPeriodFilter value={periodPreset} onChange={setPeriodPreset} />
+        <div className="space-y-4 px-4 py-4 lg:space-y-5 lg:px-6 lg:py-6">
+          <OverviewPeriodFilter value={periodPreset} onChange={setPeriodPreset} />
 
-        {!error ? <OverviewTabIntro tab={activeTab} /> : null}
+          {showTabIntro ? <OverviewTabIntro tab={activeTab} /> : null}
 
-        <AdminTabContentTransition
-          activeKey={`${activeTab}-${periodPreset}-${useCabinetApi ? 'api' : 'local'}`}
-          className="min-w-0 space-y-4"
-        >
-          {panel}
-        </AdminTabContentTransition>
-      </section>
-    </>
+          <AdminTabContentTransition
+            activeKey={`${activeTab}-${periodPreset}-${useCabinetApi ? 'api' : 'local'}`}
+            className="min-w-0"
+          >
+            {panel}
+          </AdminTabContentTransition>
+        </div>
+      </div>
+    </div>
   );
 }

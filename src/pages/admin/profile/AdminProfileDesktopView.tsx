@@ -18,6 +18,7 @@ import type { MasterLocation } from '../../../features/profile/model/masterLocat
 import type { MasterPublicationStatus } from '../../../features/admin/lib/profileCompletion';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import { formatDurationRu, formatServicePrice, type ManagedService } from '../services/servicesFormat';
+import { useAuth } from '../../../features/auth/AuthProvider';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { CabinetIcon } from './cabinetIcons';
 import { buildProfileStats, type ProfileStatsRatingMeta } from './AdminProfileCabinetUi';
@@ -126,10 +127,12 @@ function HeroInfoBlock({
   onEditMain: () => void;
 }) {
   const { publicationStatus } = useAdminMasterCabinet();
+  const { profile: authProfile } = useAuth();
   const photoSrc = draft.photoUrl?.trim() || defaultMasterAvatarUrl(draft.name || 'Мастер');
   const displayName = draft.name.trim() || 'Мастер';
   const city = valueOrDash(profileCityDisplay(draft.location));
   const phone = valueOrDash(draft.phone);
+  const email = valueOrDash(authProfile?.account_email);
   const isPublished = publicationStatus === 'published';
 
   return (
@@ -177,7 +180,7 @@ function HeroInfoBlock({
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <HiEnvelope className="h-4 w-4 shrink-0 text-[#9CA3AF]" aria-hidden />
-                —
+                {email}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <CabinetIcon name="map-pin" size={16} className="text-[#9CA3AF]" />

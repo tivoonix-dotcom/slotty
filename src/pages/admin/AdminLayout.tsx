@@ -18,7 +18,7 @@ import { planBadgeLabel } from '../../features/billing/model/masterPlans';
 import { useMasterPlanEntitlements } from '../../features/billing/useMasterPlanEntitlements';
 import { AdminMasterCabinetProvider, useAdminMasterCabinet } from './AdminMasterCabinetContext';
 import { ProfileSectionTabsBar, ProfileTabProvider } from './profile/profileTabContext';
-import { ADMIN_CABINET_SHELL_MAX, OVERVIEW_TAB_BAR_HEIGHT } from './overview/adminOverviewTheme';
+import { ADMIN_CABINET_SHELL_MAX } from './overview/adminOverviewTheme';
 import { ADMIN_DESKTOP_CANVAS } from './adminCabinetLayout';
 import {
   ADMIN_LOGIN_METHODS_NAV,
@@ -36,7 +36,7 @@ import { SCHEDULE_TAB_BAR_HEIGHT } from './schedule/adminScheduleTheme';
 import { ClientSettingsSheet } from '../profile/components/ClientSettingsSheet';
 import { AdminBottomSheet } from './shared/AdminBottomSheet';
 import { AdminRouteTransitionOutlet } from './shared/AdminRouteTransitionOutlet';
-import { LoadingVideo } from '../../shared/ui/LoadingVideo';
+import { AdminContentLoadingOverlay } from './shared/AdminContentLoadingOverlay';
 import { LOADING_VIDEO_SRC } from '../../shared/ui/loadingVideoSrc';
 
 function UnreadBadge({ count, inverted }: { count: number; inverted?: boolean }) {
@@ -67,23 +67,20 @@ function navClass(active: boolean): string {
 }
 
 export function AdminCabinetStatusBanner() {
-  const { cabinetLoading, cabinetError, useCabinetApi } = useAdminMasterCabinet();
-  if (!useCabinetApi) return null;
-  if (!cabinetLoading && !cabinetError) return null;
+  const { cabinetError, useCabinetApi } = useAdminMasterCabinet();
+  if (!useCabinetApi || !cabinetError) return null;
   return (
     <div className={`mx-auto w-full min-w-0 px-4 pb-2 pt-2 lg:max-w-none lg:px-8 ${ADMIN_CABINET_SHELL_MAX}`}>
-      {cabinetLoading ? (
-        <div className="rounded-2xl bg-white px-4 py-3 shadow-[0_8px_24px_rgba(17,17,17,0.04)]">
-          <LoadingVideo size="md" />
-        </div>
-      ) : null}
-      {cabinetError ? (
-        <p className="mt-2 rounded-2xl bg-[#FFF0F0] px-4 py-2 text-center text-[13px] font-semibold text-[#9B2C2C] shadow-[0_8px_24px_rgba(17,17,17,0.04)]">
-          {cabinetError}
-        </p>
-      ) : null}
+      <p className="rounded-2xl bg-[#FFF0F0] px-4 py-2 text-center text-[13px] font-semibold text-[#9B2C2C] shadow-[0_8px_24px_rgba(17,17,17,0.04)]">
+        {cabinetError}
+      </p>
     </div>
   );
+}
+
+function AdminCabinetLoadingGate() {
+  const { cabinetLoading, useCabinetApi } = useAdminMasterCabinet();
+  return <AdminContentLoadingOverlay show={Boolean(useCabinetApi && cabinetLoading)} />;
 }
 
 type SettingsSheetView = 'support' | 'documents' | null;
@@ -134,11 +131,9 @@ function AdminLayoutInner() {
     v.load();
   }, []);
 
-  const shellPadBottom = isProfileHome
+  const shellPadBottom = isProfileHome || isOverview
     ? 'pb-6 lg:pb-0'
-    : isOverview
-      ? `pb-[calc(${OVERVIEW_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-0`
-      : isServices
+    : isServices
         ? `pb-[calc(${SERVICES_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1.25rem)] lg:pb-0`
         : isSchedule
           ? `pb-[calc(${SCHEDULE_TAB_BAR_HEIGHT}+env(safe-area-inset-bottom,0px)+1.25rem)] lg:pb-0`
@@ -153,11 +148,12 @@ function AdminLayoutInner() {
         ? 'bg-white'
         : 'bg-white';
 
-  const desktopCanvasBg = isProfileHome
-    ? 'lg:bg-[#f6f7fb]'
-    : isOverview || isServices || isSchedule || isAppointments
-      ? 'lg:bg-white'
-      : 'lg:bg-[#f6f7fb]';
+  const desktopCanvasBg =
+    isProfileHome
+      ? 'lg:bg-[#f6f7fb]'
+      : isOverview || isServices || isSchedule || isAppointments
+        ? 'lg:bg-white'
+        : 'lg:bg-[#f6f7fb]';
 
   return (
     <div className={`flex min-h-dvh text-[#111827] ${pageShellBg} ${desktopCanvasBg}`}>
@@ -166,7 +162,8 @@ function AdminLayoutInner() {
         onDocuments={() => setSettingsSheet('documents')}
       />
 
-      <div className={`flex min-h-dvh min-w-0 flex-1 flex-col ${ADMIN_DESKTOP_CANVAS}`}>
+      <div className={`relative flex min-h-dvh min-w-0 flex-1 flex-col ${ADMIN_DESKTOP_CANVAS}`}>
+        <AdminCabinetLoadingGate />
         <ProfileTabProvider>
           <div
             ref={stickyShellRef}
@@ -236,7 +233,7 @@ function AdminLayoutInner() {
           <div className={`mx-auto w-full min-w-0 flex-1 ${ADMIN_CABINET_SHELL_MAX} ${shellPadBottom}`}>
             <div
               className={`w-full min-w-0 px-4 pt-4 lg:mx-auto lg:max-w-6xl lg:px-8 lg:pb-8 lg:pt-6 ${
-                isProfileHome
+                isProfileHome || isOverview
                   ? 'lg:bg-transparent lg:shadow-none lg:ring-0'
                   : 'lg:rounded-[24px] lg:bg-white lg:shadow-[0_4px_24px_rgba(17,24,39,0.06)] lg:ring-1 lg:ring-[#EAECEF]'
               }`}

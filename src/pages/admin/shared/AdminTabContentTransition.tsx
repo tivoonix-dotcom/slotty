@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { LoadingVideo } from '../../../shared/ui/LoadingVideo';
 import { useRouteTransitionPulse } from './useRouteTransitionPulse';
+import { AdminContentLoadingOverlay } from './AdminContentLoadingOverlay';
 
 type Props = {
   activeKey: string;
@@ -19,7 +19,7 @@ export function AdminTabContentTransition({
   const busy = useRouteTransitionPulse(activeKey, minMs);
 
   return (
-    <div className={`relative min-h-[10rem] ${className}`.trim()}>
+    <div className={`relative min-w-0 ${className}`.trim()}>
       <div
         className={`transition-opacity duration-200 ease-out ${
           busy ? 'pointer-events-none opacity-0' : 'opacity-100'
@@ -28,16 +28,7 @@ export function AdminTabContentTransition({
       >
         {children}
       </div>
-      {busy ? (
-        <div
-          className="absolute inset-0 z-10 flex items-center justify-center py-10"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <LoadingVideo size="lg" />
-        </div>
-      ) : null}
+      <AdminContentLoadingOverlay show={busy} />
     </div>
   );
 }

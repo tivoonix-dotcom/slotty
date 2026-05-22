@@ -8,6 +8,8 @@ export type BackendProfile = {
   role: string;
   phone?: string | null;
   address?: string | null;
+  /** Email из привязки email или Google. */
+  account_email?: string | null;
   privacy_consent_accepted_at?: string | null;
   terms_accepted_at?: string | null;
 };

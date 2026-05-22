@@ -12,6 +12,8 @@ export interface ProfileDto {
   role: string;
   phone: string | null;
   address: string | null;
+  /** Email из привязки email или Google (для отображения в кабинете). */
+  account_email: string | null;
   privacy_consent_accepted_at: string | null;
   terms_accepted_at: string | null;
 }
@@ -28,6 +30,21 @@ async function fetchMasterCabinetPhotoUrl(profileId: string): Promise<string | n
   );
   const photo = r.rows[0]?.photo_url?.trim();
   return photo || null;
+}
+
+export async function resolveAccountEmail(profileId: string): Promise<string | null> {
+  const r = await query<{ email: string }>(
+    `select email from public.auth_identities
+      where profile_id = $1
+        and email is not null
+        and trim(email) <> ''
+      order by case provider::text when 'email' then 0 when 'google' then 1 else 2 end,
+               created_at asc
+      limit 1`,
+    [profileId],
+  );
+  const email = r.rows[0]?.email?.trim();
+  return email || null;
 }
 
 export async function resolveHeaderAvatarUrl(
@@ -78,7 +95,10 @@ export async function getProfileById(profileId: string): Promise<ProfileDto> {
   if (!row) {
     throw ApiError.notFound('Profile not found');
   }
-  const header_avatar_url = await resolveHeaderAvatarUrl(profileId, row.role, row.avatar_url);
+  const [header_avatar_url, account_email] = await Promise.all([
+    resolveHeaderAvatarUrl(profileId, row.role, row.avatar_url),
+    resolveAccountEmail(profileId),
+  ]);
   return {
     id: row.id,
     telegram_user_id: toTelegramUserIdNumber(row.telegram_user_id),
@@ -89,6 +109,7 @@ export async function getProfileById(profileId: string): Promise<ProfileDto> {
     role: row.role,
     phone: row.phone,
     address: row.address,
+    account_email,
     privacy_consent_accepted_at:
       row.privacy_consent_accepted_at == null ? null : String(row.privacy_consent_accepted_at),
     terms_accepted_at: row.terms_accepted_at == null ? null : String(row.terms_accepted_at),

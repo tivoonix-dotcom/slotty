@@ -18,6 +18,8 @@ const PERIOD_INCOME_LABEL: Record<OverviewPeriodPreset, string> = {
   all: 'Доход за всё время',
 };
 
+const revenueSectionDivider = 'border-t border-[#EEF0F5] pt-6';
+
 function formatTrendPercent(value: number | null): string | null {
   if (value === null) return null;
   const sign = value > 0 ? '+' : '';
@@ -48,7 +50,7 @@ function TrendLine({
   return <p className={className}>{value}</p>;
 }
 
-function RevenueHeroCard({
+function RevenueHeroSection({
   periodPreset,
   totalRevenue,
   revenueTrendPercent,
@@ -60,7 +62,7 @@ function RevenueHeroCard({
   const trend = trendSubtext(revenueTrendPercent, periodPreset);
 
   return (
-    <div className={`${overviewCard} ${overviewCardPad}`}>
+    <section>
       <p className="flex items-center gap-1 text-[14px] font-semibold text-[#6B7280]">
         {PERIOD_INCOME_LABEL[periodPreset]}
         <HiChevronDown className="h-4 w-4 shrink-0 opacity-40" aria-hidden />
@@ -68,8 +70,12 @@ function RevenueHeroCard({
       <p className="mt-2 text-[32px] font-bold tabular-nums tracking-[-0.07em] text-[#111827]">
         {formatBynRu(totalRevenue)}
       </p>
-      {trend ? <div className="mt-1.5"><TrendLine value={trend} /></div> : null}
-    </div>
+      {trend ? (
+        <div className="mt-1.5">
+          <TrendLine value={trend} />
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -79,15 +85,19 @@ function RevenueMetricTile({
   trend,
   trendTone = 'positive',
   icon,
+  withDivider,
 }: {
   label: string;
   value: string;
   trend: string;
   trendTone?: 'positive' | 'warning';
   icon: ReactNode;
+  withDivider?: boolean;
 }) {
   return (
-    <div className={`${overviewCard} flex w-full min-w-0 items-center gap-3 p-4`}>
+    <div
+      className={`flex w-full min-w-0 items-center gap-3 py-4 ${withDivider ? 'border-t border-[#EEF0F5]' : ''}`}
+    >
       <span className={`${overviewIconCircle} h-11 w-11 shrink-0`}>{icon}</span>
       <div className="min-w-0 flex-1">
         <p className="flex min-w-0 items-center gap-0.5 text-[12px] font-semibold leading-snug text-[#6B7280] sm:text-[13px]">
@@ -113,12 +123,12 @@ function RevenueChartSection({
   chartIsTruncated: boolean;
 }) {
   return (
-    <section className={`${overviewCard} ${overviewCardPad}`}>
+    <section>
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-[17px] font-bold tracking-[-0.04em] text-[#111827]">График дохода</h2>
         <button
           type="button"
-          className="flex shrink-0 items-center gap-1 rounded-full border border-[#EAECEF] bg-[#F3F4F6] px-3 py-1.5 text-[12px] font-semibold text-[#6B7280]"
+          className="flex shrink-0 items-center gap-1 rounded-full border border-[#EAECEF] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6B7280]"
         >
           Все источники
           <HiChevronDown className="h-3.5 w-3.5 opacity-50" aria-hidden />
@@ -140,7 +150,7 @@ function RevenueChartSection({
 
 function RevenueDailyBarsSection({ dayStats }: { dayStats: RevenueAnalytics['dayStats'] }) {
   return (
-    <section className={`${overviewCard} ${overviewCardPad}`}>
+    <section>
       <h2 className="text-[17px] font-bold tracking-[-0.04em] text-[#111827]">Доход по дням</h2>
       <div className="mt-4">
         <OverviewRevenueBarChart stats={dayStats} />
@@ -153,7 +163,7 @@ function RevenueMetricsGrid({ data }: { data: RevenueAnalytics }) {
   const avgTrend = formatTrendPercent(data.avgCheckTrendPercent) ?? '—';
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-2.5">
+    <section>
       <RevenueMetricTile
         label="Средний чек"
         value={data.completedCount > 0 ? formatBynRu(data.avgCheck) : '0 BYN'}
@@ -165,6 +175,7 @@ function RevenueMetricsGrid({ data }: { data: RevenueAnalytics }) {
         value={formatBynRu(data.paidAmount)}
         trend={`${data.paidSharePercent}%`}
         icon={<HiReceiptPercent className="h-5 w-5" aria-hidden />}
+        withDivider
       />
       <RevenueMetricTile
         label="Не оплачено"
@@ -172,8 +183,9 @@ function RevenueMetricsGrid({ data }: { data: RevenueAnalytics }) {
         trend={`${data.unpaidSharePercent}%`}
         trendTone="warning"
         icon={<HiStop className="h-5 w-5" aria-hidden />}
+        withDivider
       />
-    </div>
+    </section>
   );
 }
 
@@ -185,18 +197,24 @@ export function OverviewRevenuePanel({
   periodPreset: OverviewPeriodPreset;
 }) {
   return (
-    <div className="min-w-0 space-y-4 overflow-x-hidden">
-      <RevenueHeroCard
+    <div className={`${overviewCard} ${overviewCardPad} min-w-0 overflow-x-hidden bg-white`}>
+      <RevenueHeroSection
         periodPreset={periodPreset}
         totalRevenue={data.totalRevenue}
         revenueTrendPercent={data.revenueTrendPercent}
       />
 
-      <RevenueChartSection dayStats={data.dayStats} chartIsTruncated={data.chartIsTruncated} />
+      <div className={revenueSectionDivider}>
+        <RevenueChartSection dayStats={data.dayStats} chartIsTruncated={data.chartIsTruncated} />
+      </div>
 
-      <RevenueMetricsGrid data={data} />
+      <div className={revenueSectionDivider}>
+        <RevenueMetricsGrid data={data} />
+      </div>
 
-      <RevenueDailyBarsSection dayStats={data.dayStats} />
+      <div className={revenueSectionDivider}>
+        <RevenueDailyBarsSection dayStats={data.dayStats} />
+      </div>
     </div>
   );
 }

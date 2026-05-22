@@ -10,6 +10,7 @@ import {
 } from 'react-icons/hi2';
 import type { OverviewDayStat } from '../../../features/master/model/demoMasterAppointments';
 import {
+  OVERVIEW_WELCOME_IMAGE_SRC,
   overviewCard,
   overviewCardPad,
   overviewEmptyIllustrationSrc,
@@ -35,6 +36,102 @@ function chartValues(stats: OverviewDayStat[], mode: 'revenue' | 'visits') {
 }
 
 /** Компактная KPI-карточка для узкой сетки 3×1 (экран «Обзор»). */
+export function OverviewWelcomeBanner({ displayName }: { displayName: string }) {
+  const first = displayName.trim().split(/\s+/)[0] || 'Мастер';
+
+  return (
+    <div
+      className={`${overviewCard} relative overflow-hidden p-5 sm:p-6`}
+    >
+      <div className="relative z-10 max-w-[min(100%,28rem)]">
+        <p className="text-[18px] font-bold tracking-[-0.03em] text-[#111827] sm:text-[20px]">
+          Привет, {first}! 👋
+        </p>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#6B7280]">
+          У вас всё под контролем. Вот ваша сводка на сегодня.
+        </p>
+      </div>
+      <img
+        src={OVERVIEW_WELCOME_IMAGE_SRC}
+        alt=""
+        width={280}
+        height={200}
+        decoding="async"
+        className="pointer-events-none absolute -bottom-2 right-0 hidden h-[140px] w-auto max-w-[45%] object-contain object-bottom sm:block lg:h-[160px]"
+      />
+    </div>
+  );
+}
+
+export function OverviewLatestActivity({
+  items,
+}: {
+  items: Array<{ icon: ReactNode; text: string }>;
+}) {
+  return (
+    <section className={`${overviewCard} ${overviewCardPad}`}>
+      <h2 className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">Последняя активность</h2>
+      <ul className="mt-4 space-y-3">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-center gap-3">
+            <span className={overviewIconCircle}>{item.icon}</span>
+            <span className="text-[14px] font-medium text-[#6B7280]">{item.text}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function OverviewScheduleFillCard({ percent }: { percent: number }) {
+  return (
+    <div className={`${overviewCard} ${overviewCardPad} flex h-full flex-col justify-between`}>
+      <div>
+        <p className="text-[13px] font-semibold text-[#6B7280]">Заполненность расписания</p>
+        <p className="mt-1 text-[15px] font-bold text-[#111827]">Сегодня {percent}%</p>
+      </div>
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#f6f7fb]">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] transition-[width] duration-500"
+          style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export function OverviewIncomeSummaryCard({
+  totalRevenue,
+  totalVisits,
+  serviceCount,
+  avgCheck,
+}: {
+  totalRevenue: string;
+  totalVisits: number;
+  serviceCount: number;
+  avgCheck: string;
+}) {
+  return (
+    <div className={`${overviewCard} ${overviewCardPad} flex h-full flex-col`}>
+      <p className="text-[13px] font-semibold text-[#6B7280]">Доход за период</p>
+      <p className="mt-1 text-[26px] font-bold tabular-nums tracking-[-0.04em] text-[#111827] lg:text-[28px]">
+        {totalRevenue}
+      </p>
+      <div className="mt-auto space-y-2 pt-4 text-[13px] text-[#6B7280]">
+        <p>
+          <span className="font-semibold text-[#111827]">Записей:</span> {totalVisits}
+        </p>
+        <p>
+          <span className="font-semibold text-[#111827]">Услуг:</span> {serviceCount}
+        </p>
+        <p>
+          <span className="font-semibold text-[#111827]">Средний чек:</span> {avgCheck}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function OverviewCompactMetricCard({
   icon,
   label,

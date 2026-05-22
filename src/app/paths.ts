@@ -47,6 +47,7 @@ export const ADMIN_OVERVIEW_PATH = '/admin/overview';
 export const ADMIN_BILLING_PATH = '/admin/billing';
 export const ADMIN_NOTIFICATIONS_PATH = '/admin/notifications';
 export const ADMIN_LOGIN_METHODS_PATH = '/admin/login-methods';
+export const ADMIN_PROFILE_COMPLETION_PATH = '/admin/profile/completion';
 
 /** Политика обработки персональных данных (страница). */
 export const LEGAL_PRIVACY_PATH = '/legal/privacy';

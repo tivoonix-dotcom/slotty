@@ -6,6 +6,7 @@ import { getApiBaseUrl } from '../../shared/api/backendClient';
 import { AdminAppointmentsPage } from './appointments/AdminAppointmentsPage';
 import { AdminBillingPage } from './billing/AdminBillingPage';
 import { AdminHomePage } from './profile/AdminHomePage';
+import { ProfileCompletionPage } from './profile/ProfileCompletionPage';
 import { AdminLayout } from './AdminLayout';
 import { AdminOverviewPage } from './overview/AdminOverviewPage';
 import { AdminSchedulePage } from './schedule/AdminSchedulePage';
@@ -61,6 +62,7 @@ export function AdminPage() {
         <Route path="billing" element={<AdminBillingPage />} />
         <Route path="notifications" element={<AdminNotificationsPage />} />
         <Route path="login-methods" element={<AdminLoginMethodsPage />} />
+        <Route path="profile/completion" element={<ProfileCompletionPage />} />
         <Route path="profile" element={<Navigate to={ADMIN_PATH} replace />} />
       </Route>
       <Route path="*" element={<Navigate to={ADMIN_PATH} replace />} />

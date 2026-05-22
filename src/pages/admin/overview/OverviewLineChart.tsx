@@ -151,7 +151,7 @@ export function OverviewLineChart({
     <div className="min-w-0">
       <div
         ref={chartRef}
-        className={`relative ${chartBoxClass} w-full min-w-0 touch-none select-none overflow-hidden rounded-[20px] bg-gradient-to-b from-[#FFF5F7] to-white ${
+        className={`relative ${chartBoxClass} w-full min-w-0 touch-none select-none overflow-hidden rounded-[20px] border border-[#EEF0F5] bg-white ${
           hasData ? 'cursor-crosshair' : ''
         }`}
         onPointerMove={onPointerMove}

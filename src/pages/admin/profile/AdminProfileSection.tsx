@@ -1,5 +1,5 @@
-﻿import { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ADMIN_SCHEDULE_PATH, ADMIN_SERVICES_PATH } from '../../../app/paths';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import type { MasterCareerItemType, MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
@@ -494,6 +494,8 @@ export function AdminProfileSection() {
     refreshDraft,
   } = useAdminMasterDraft();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { setActiveSection } = useProfileTabs();
   const { useCabinetApi, cabinetLoading, appointments } = useAdminMasterCabinet();
   const [sheet, setSheet] = useState<ProfileSheet>(null);
   const [sheetApiError, setSheetApiError] = useState<string | null>(null);
@@ -522,6 +524,27 @@ export function AdminProfileSection() {
     },
     [cabinetLoading, sheetPersisting],
   );
+
+  useEffect(() => {
+    const section = searchParams.get('section');
+    if (
+      section === 'main' ||
+      section === 'address' ||
+      section === 'portfolio' ||
+      section === 'rules'
+    ) {
+      setActiveSection(section);
+    }
+  }, [searchParams, setActiveSection]);
+
+  useEffect(() => {
+    if (cabinetLoading || sheetPersisting) return;
+    const sheetParam = searchParams.get('sheet');
+    if (sheetParam === 'main') openSheet('main');
+    else if (sheetParam === 'address') openSheet('address');
+    else if (sheetParam === 'rules') openSheet('rules');
+    else if (sheetParam === 'schedule') openSheet('schedule');
+  }, [cabinetLoading, openSheet, searchParams, sheetPersisting]);
 
   const saveMain = useCallback(
     async (patch: Partial<MasterDraft>) => {

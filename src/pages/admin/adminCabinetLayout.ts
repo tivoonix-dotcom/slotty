@@ -7,6 +7,10 @@ export const ADMIN_SIDEBAR_PX = 260;
 /** Сдвиг fixed-overlay под sidebar (Tailwind, не интерполировать). */
 export const ADMIN_SIDEBAR_OVERLAY_INSET = 'lg:left-[260px]';
 
+/** Ширина правой панели редактирования на desktop (AdminBottomSheet). */
+export const ADMIN_DESKTOP_DRAWER_PANEL =
+  'lg:w-[min(640px,48vw)] lg:min-w-[480px] lg:max-w-[640px]';
+
 export const ADMIN_CABINET_SHELL_MAX = 'w-full max-w-[460px] lg:max-w-none';
 
 export const ADMIN_CABINET_MAIN =
