@@ -53,7 +53,6 @@ export function ServicesBundlesTab({
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ServiceBundle | null>(null);
   const [menuTarget, setMenuTarget] = useState<ServiceBundle | null>(null);
-  const [saving, setSaving] = useState(false);
 
   const connectPro = onConnectPro ?? onExtrasLocked ?? (() => {});
 

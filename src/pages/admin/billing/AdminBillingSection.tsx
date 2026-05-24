@@ -1,4 +1,4 @@
-import { homeShell, homeSectionSubtitle } from './adminBillingLandingTheme';
+import { homeShell } from './adminBillingLandingTheme';
 import { AdminBillingTab } from './AdminBillingTab';
 
 export function AdminBillingSection() {

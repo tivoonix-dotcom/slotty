@@ -43,7 +43,7 @@ function NotificationsListBody({
     return (
       <div className="space-y-3">
         <p className="rounded-[10px] bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800">{error}</p>
-        <button type="button" onClick={onReload} className={catalogPrimaryBtn}>
+        <button type="button" onClick={() => onReload()} className={catalogPrimaryBtn}>
           Повторить
         </button>
       </div>

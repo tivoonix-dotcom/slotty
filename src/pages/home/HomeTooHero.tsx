@@ -58,7 +58,7 @@ export const HomeTooHero: FC = () => {
               alt=""
               decoding="async"
               loading={i === 0 ? 'eager' : 'lazy'}
-              fetchpriority={i === 0 ? 'high' : 'low'}
+              fetchPriority={i === 0 ? 'high' : 'low'}
               draggable={false}
               className={`absolute inset-0 h-full w-full object-contain object-center transition-opacity ease-in-out motion-reduce:transition-none ${
                 isActive ? 'z-10 opacity-100' : 'z-0 opacity-0'

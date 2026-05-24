@@ -30,7 +30,7 @@ import {
 import { AdminDesktopSidebar } from './AdminDesktopSidebar';
 import { AdminDesktopTopBar } from './AdminDesktopTopBar';
 import { ProfileCompletionHeaderCard } from './profile/ProfileCompletionHeaderCard';
-import { SERVICES_PAGE_BG, SERVICES_TAB_BAR_HEIGHT } from './services/adminServicesTheme';
+import { SERVICES_TAB_BAR_HEIGHT } from './services/adminServicesTheme';
 import { APPOINTMENTS_TAB_BAR_HEIGHT } from './appointments/adminAppointmentsTheme';
 import { SCHEDULE_TAB_BAR_HEIGHT } from './schedule/adminScheduleTheme';
 import { AdminBottomSheet } from './shared/AdminBottomSheet';
@@ -187,7 +187,7 @@ function AdminLayoutInner() {
                     src={HEADER_LOGO_SRC}
                     alt=""
                     decoding="async"
-                    fetchpriority="low"
+                    fetchPriority="low"
                     className="h-20 w-auto max-w-[min(20rem,70vw)] object-contain object-left sm:h-[5.5rem] sm:max-w-[22rem]"
                   />
                 </Link>

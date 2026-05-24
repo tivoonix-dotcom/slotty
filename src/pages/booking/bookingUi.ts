@@ -1,5 +1,4 @@
 import {
-  catalogDesktopPanel,
   catalogFilterChipActive,
   catalogFilterChipIdle,
   catalogListCardClass,
