@@ -297,7 +297,7 @@ export function ClientProfileDesktop({
                 ) : !authLoading && hasApiBackend && !isAuthenticated ? (
                   <NothingFoundCard
                     title="Войдите в аккаунт"
-                    text="Избранные мастера сохраняются на сервере. Откройте SLOTTY через Telegram."
+                    text="Войдите в аккаунт — избранные мастера сохранятся на сервере и будут доступны на всех устройствах."
                   />
                 ) : favoritesError ? (
                   <p className="rounded-[10px] bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800">

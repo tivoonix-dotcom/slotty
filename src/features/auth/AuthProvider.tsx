@@ -8,7 +8,10 @@ import {
   type ReactNode,
 } from 'react';
 import { syncMasterFlagFromProfile } from '../profile/lib/demoMasterStorage';
-import { syncLocalFavoritesToServer } from '../profile/lib/favoriteMastersResolve';
+import {
+  preloadFavoriteMasterIds,
+  syncLocalFavoritesToServer,
+} from '../profile/lib/favoriteMastersResolve';
 import { apiFetch, getApiBaseUrl, getStoredAuthToken, setStoredAuthToken } from '../../shared/api/backendClient';
 import { useTelegram } from '../../shared/hooks/useTelegram';
 import type { AuthSessionResponse, BackendProfile } from './types';
@@ -45,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStoredAuthToken(session.token);
     setToken(session.token);
     setProfile(session.profile);
-    void syncLocalFavoritesToServer();
+    void syncLocalFavoritesToServer().then(() => preloadFavoriteMasterIds());
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -101,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setProfile(me);
             }
             await syncLocalFavoritesToServer();
+            preloadFavoriteMasterIds();
             return;
           }
           setStoredAuthToken(null);
@@ -128,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile(data.profile);
           }
           await syncLocalFavoritesToServer();
+          preloadFavoriteMasterIds();
           return;
         }
 

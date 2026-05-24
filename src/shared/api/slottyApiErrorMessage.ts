@@ -37,6 +37,7 @@ const REVIEW_MESSAGES: Record<string, string> = {
 
 const FAVORITE_MESSAGES: Record<string, string> = {
   SELF_FAVORITE: 'Нельзя добавить себя в избранное.',
+  MASTER_NOT_FOUND: 'Мастер не найден или недоступен.',
 };
 
 const LIMIT_MESSAGES: Record<string, string> = {

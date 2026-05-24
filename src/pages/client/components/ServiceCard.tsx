@@ -4,7 +4,6 @@ import {
   HiCalendarDays,
   HiChevronRight,
   HiClock,
-  HiHeart,
   HiStar,
   HiUserGroup,
   HiWallet,
@@ -161,20 +160,7 @@ export function ServiceCard({ service, layout = 'stack', surface = 'card' }: Pro
 
         <div className="relative flex min-w-0 flex-1 flex-col p-5 lg:min-h-[148px] lg:p-4 lg:pr-[184px]">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[12px] font-medium text-[#8E8E93]">{service.categoryName}</p>
-              <button
-                type="button"
-                aria-label="В избранное"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F5F5F5] text-[#9CA3AF] transition hover:bg-[#EBEBEB] hover:text-[#F47C8C]"
-              >
-                <HiHeart className="block h-[18px] w-[18px] translate-x-px" aria-hidden />
-              </button>
-            </div>
+            <p className="text-[12px] font-medium text-[#8E8E93]">{service.categoryName}</p>
             <h3 className="mt-1 text-[18px] font-bold leading-snug tracking-[-0.02em] text-[#111827]">
               {service.title}
             </h3>

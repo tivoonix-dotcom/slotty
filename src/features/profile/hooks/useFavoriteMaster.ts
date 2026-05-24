@@ -2,11 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
 import {
   addMyFavoriteMaster,
-  fetchMyFavorites,
   removeMyFavoriteMaster,
 } from '../api/clientFavorites';
 import {
-  favoritesRequireTelegramAuth,
+  favoritesRequireAuth,
   hasApiBackend,
   isPersistableMasterId,
 } from '../lib/favoriteMastersPolicy';
@@ -21,8 +20,7 @@ import {
 type FavoriteErrorHandler = (message: string) => void;
 
 /**
- * Избранное мастера: при VITE_API_URL — только сервер (после входа в Telegram).
- * Без API — localStorage (локальная разработка).
+ * Избранное мастера: при VITE_API_URL — сервер + JWT; без API — localStorage.
  */
 export function useFavoriteMaster(
   masterId: string | undefined,
@@ -46,18 +44,8 @@ export function useFavoriteMaster(
         setFav(false);
         return;
       }
-      let cancelled = false;
-      void (async () => {
-        try {
-          const list = await fetchMyFavorites();
-          if (!cancelled) setFav(list.some((f) => f.masterId === id));
-        } catch {
-          if (!cancelled) setFav(false);
-        }
-      })();
-      return () => {
-        cancelled = true;
-      };
+      setFav(isFavoriteMasterId(id));
+      return subscribeFavoriteMasterIds(() => setFav(isFavoriteMasterId(id)));
     }
 
     setFav(isFavoriteMasterId(id));
@@ -77,8 +65,8 @@ export function useFavoriteMaster(
       return;
     }
 
-    if (favoritesRequireTelegramAuth() && !isAuthenticated) {
-      onError('Войдите через Telegram, чтобы сохранять избранное.');
+    if (favoritesRequireAuth() && !isAuthenticated) {
+      onError('Войдите в аккаунт, чтобы сохранять избранное.');
       return;
     }
 
@@ -86,12 +74,13 @@ export function useFavoriteMaster(
       const wasFavorite = fav;
       const next = !wasFavorite;
       setFav(next);
+      setFavoriteMasterId(id, next);
       try {
         if (next) await addMyFavoriteMaster(id);
         else await removeMyFavoriteMaster(id);
-        setFavoriteMasterId(id, next);
         notifyFavoritesChanged();
       } catch (e) {
+        setFavoriteMasterId(id, wasFavorite);
         setFav(wasFavorite);
         onError(e instanceof Error ? e.message : 'Не удалось обновить избранное');
       }
@@ -113,13 +102,13 @@ export function useFavoriteMaster(
   );
 
   const favoriteDisabled =
-    !persistable || (favoritesRequireTelegramAuth() && (authLoading || !isAuthenticated));
+    !persistable || (favoritesRequireAuth() && (authLoading || !isAuthenticated));
 
   return {
     isFavorite: fav,
     toggleFavorite,
     toggleFavoriteFromEvent,
     favoriteDisabled,
-    favoritesRequireAuth: favoritesRequireTelegramAuth() && !isAuthenticated,
+    favoritesRequireAuth: favoritesRequireAuth() && !isAuthenticated,
   };
 }

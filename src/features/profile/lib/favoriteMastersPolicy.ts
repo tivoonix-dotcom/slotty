@@ -12,10 +12,13 @@ export function canSyncFavoritesWithApi(): boolean {
   return hasApiBackend() && Boolean(getStoredAuthToken());
 }
 
-/** В production (VITE_API_URL) избранное только через API + Telegram. */
-export function favoritesRequireTelegramAuth(): boolean {
+/** При VITE_API_URL избранное хранится на сервере после входа в аккаунт. */
+export function favoritesRequireAuth(): boolean {
   return hasApiBackend();
 }
+
+/** @deprecated Используйте favoritesRequireAuth */
+export const favoritesRequireTelegramAuth = favoritesRequireAuth;
 
 export function isPersistableMasterId(masterId: string | undefined | null): boolean {
   const id = typeof masterId === 'string' ? masterId.trim() : '';

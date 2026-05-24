@@ -25,13 +25,9 @@ import {
   type ServerClientAppointment,
 } from '../../features/appointments/api/clientAppointments';
 import { masterLocationDetailRows } from '../../features/profile/model/masterLocation';
+import { removeMyFavoriteMaster, type FavoriteMasterDto } from '../../features/profile/api/clientFavorites';
 import {
-  fetchMyFavorites,
-  removeMyFavoriteMaster,
-  type FavoriteMasterDto,
-} from '../../features/profile/api/clientFavorites';
-import {
-  mirrorApiFavoritesToLocalCache,
+  fetchFavoritesForDisplay,
   resolveLocalFavoritesForDisplay,
   syncLocalFavoritesToServer,
 } from '../../features/profile/lib/favoriteMastersResolve';
@@ -685,9 +681,7 @@ export function ProfilePage() {
       setFavoritesError(null);
       try {
         await syncLocalFavoritesToServer();
-        const rows = await fetchMyFavorites();
-        mirrorApiFavoritesToLocalCache(rows);
-        setFavorites(rows);
+        setFavorites(await fetchFavoritesForDisplay());
       } catch (e) {
         setFavorites([]);
         setFavoritesError(e instanceof Error ? e.message : 'Не удалось загрузить избранное.');
@@ -752,7 +746,7 @@ export function ProfilePage() {
       try {
         if (hasApiBackend()) {
           if (!isAuthenticated) {
-            showError('Войдите через Telegram, чтобы изменить избранное.', { title: 'Избранное' });
+            showError('Войдите в аккаунт, чтобы изменить избранное.', { title: 'Избранное' });
             return;
           }
           await removeMyFavoriteMaster(masterId);
@@ -1235,7 +1229,7 @@ export function ProfilePage() {
             ) : !authLoading && hasApiBackend() && !isAuthenticated ? (
               <NothingFoundCard
                 title="Войдите в аккаунт"
-                text="Избранные мастера сохраняются на сервере. Откройте SLOTTY через Telegram."
+                text="Войдите в аккаунт — избранные мастера сохранятся на сервере и будут доступны на всех устройствах."
               />
             ) : favoritesError ? (
               <p className="rounded-2xl bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800">{favoritesError}</p>
