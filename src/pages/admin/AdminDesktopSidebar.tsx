@@ -1,6 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
 import { HiEllipsisHorizontal, HiSparkles } from 'react-icons/hi2';
-import { HEADER_LOGO_SRC } from '../../app/headerLogo';
+import { ADMIN_DESKTOP_LOGO_SRC } from '../../app/headerLogo';
 import { planBadgeLabel } from '../../features/billing/model/masterPlans';
 import { useMasterPlanEntitlements } from '../../features/billing/useMasterPlanEntitlements';
 import { defaultMasterAvatarUrl } from '../../features/master/model/masterDraftStorage';
@@ -10,18 +10,11 @@ import { useAdminMasterCabinet } from './AdminMasterCabinetContext';
 import {
   ADMIN_BILLING_NAV,
   ADMIN_HUB_PATH,
-  ADMIN_LOGIN_METHODS_NAV,
   ADMIN_MAIN_NAV,
   ADMIN_NOTIFICATIONS_NAV,
-  IconNavDocuments,
-  IconNavSupport,
+  ADMIN_SETTINGS_NAV,
 } from './adminCabinetNav';
 import { ADMIN_SIDEBAR_WIDTH, adminDesktopNavItemClass } from './adminCabinetLayout';
-
-type Props = {
-  onSupport: () => void;
-  onDocuments: () => void;
-};
 
 function SidebarUnreadBadge({ count }: { count: number }) {
   const label = count > 9 ? '9+' : String(count);
@@ -33,7 +26,7 @@ function SidebarUnreadBadge({ count }: { count: number }) {
   );
 }
 
-export function AdminDesktopSidebar({ onSupport, onDocuments }: Props) {
+export function AdminDesktopSidebar() {
   const { planId } = useMasterPlanEntitlements();
   const { hasUnread, unreadCount } = useAdminNotifications();
   const { draft } = useAdminMasterCabinet();
@@ -51,7 +44,7 @@ export function AdminDesktopSidebar({ onSupport, onDocuments }: Props) {
     >
       <div className="flex items-center gap-2.5 border-b border-[#eef0f5] px-5 py-5">
         <Link to={ADMIN_HUB_PATH} className="inline-flex items-center gap-2.5 no-underline">
-          <img src={HEADER_LOGO_SRC} alt="SLOTTY" className="h-9 w-auto object-contain" />
+          <img src={ADMIN_DESKTOP_LOGO_SRC} alt="SLOTTY" className="h-9 w-auto object-contain" />
         </Link>
       </div>
 
@@ -118,28 +111,19 @@ export function AdminDesktopSidebar({ onSupport, onDocuments }: Props) {
         </NavLink>
 
         <NavLink
-          to={ADMIN_LOGIN_METHODS_NAV.to}
+          to={ADMIN_SETTINGS_NAV.to}
           className={({ isActive }) => adminDesktopNavItemClass(isActive)}
         >
-          {({ isActive }) => (
-            <>
-              <ADMIN_LOGIN_METHODS_NAV.icon
-                className={`shrink-0 ${isActive ? 'text-[#ff5f7a]' : ''}`}
-              />
-              <span className="truncate">{ADMIN_LOGIN_METHODS_NAV.label}</span>
-            </>
-          )}
+          {({ isActive }) => {
+            const Icon = ADMIN_SETTINGS_NAV.icon;
+            return (
+              <>
+                <Icon className={`shrink-0 ${isActive ? 'text-[#ff5f7a]' : ''}`} />
+                <span className="truncate">{ADMIN_SETTINGS_NAV.label}</span>
+              </>
+            );
+          }}
         </NavLink>
-
-        <button type="button" onClick={onSupport} className={adminDesktopNavItemClass(false)}>
-          <IconNavSupport className="shrink-0" />
-          <span className="truncate">Поддержка</span>
-        </button>
-
-        <button type="button" onClick={onDocuments} className={adminDesktopNavItemClass(false)}>
-          <IconNavDocuments className="shrink-0" />
-          <span className="truncate">Документы</span>
-        </button>
       </nav>
 
       <div className="border-t border-[#eef0f5] p-4">

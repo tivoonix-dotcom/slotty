@@ -1,5 +1,6 @@
 import type { MasterOnboardingService } from '../../../features/profile/lib/demoMasterStorage';
-import type { PlannedSlot, PlannedSlotRejectReason, RepeatKind, WindowTemplate } from './scheduleTypes';
+import type { RepeatSettingsValue } from './repeatSettingsConfig';
+import type { PlannedSlot, PlannedSlotRejectReason, WindowTemplate } from './scheduleTypes';
 
 export function pad2(value: number): string {
   return value < 10 ? `0${value}` : String(value);
@@ -95,6 +96,23 @@ export function formatPreviewLine(dateIso: string, startTime: string, endTime: s
   return `${wd}, ${datePart} · ${startTime}–${endTime}`;
 }
 
+/** Для карточки в превью списка окон (без дубля даты в строке). */
+export function formatSlotDayParts(dateIso: string): {
+  weekday: string;
+  day: string;
+  month: string;
+  isToday: boolean;
+} {
+  const d = parseIsoDate(dateIso);
+  const today = startOfLocalDay(new Date()).getTime() === startOfLocalDay(d).getTime();
+  return {
+    weekday: formatWeekdayShort(d),
+    day: String(d.getDate()),
+    month: new Intl.DateTimeFormat('ru-RU', { month: 'short' }).format(d).replace('.', ''),
+    isToday: today,
+  };
+}
+
 export function formatGroupHeader(d: Date, todayStart: Date): string {
   const ds = startOfLocalDay(d).getTime();
   const ts = todayStart.getTime();
@@ -154,15 +172,17 @@ export type DayWindowStats = {
   total: number;
   booked: number;
   free: number;
+  blocked: number;
 };
 
 export function indexWindowsByDate(windows: { dateIso: string; status: string }[]): Map<string, DayWindowStats> {
   const map = new Map<string, DayWindowStats>();
   for (const w of windows) {
-    const cur = map.get(w.dateIso) ?? { total: 0, booked: 0, free: 0 };
+    const cur = map.get(w.dateIso) ?? { total: 0, booked: 0, free: 0, blocked: 0 };
     cur.total += 1;
     if (w.status === 'booked') cur.booked += 1;
     else if (w.status === 'free') cur.free += 1;
+    else if (w.status === 'blocked') cur.blocked += 1;
     map.set(w.dateIso, cur);
   }
   return map;
@@ -211,13 +231,15 @@ export function isHorizonLimitErrorMessage(message: string): boolean {
   return /горизонт|тариф/i.test(message);
 }
 
-export function expandRepeatDates(
-  anchorIso: string,
-  kind: RepeatKind,
-  weeklyCount: 4 | 8 | 12,
-  biweeklyCount: 4 | 8 | 12,
-  weekdayWeeks: 4 | 8 | 12,
-): string[] {
+export function expandRepeatDates(anchorIso: string, settings: RepeatSettingsValue): string[] {
+  const {
+    kind,
+    weeklyCount,
+    biweeklyCount,
+    weekdaySpanWeeks,
+    pickWeekdayMask,
+    pickWeekdaysSpanWeeks,
+  } = settings;
   const anchor = startOfLocalDay(parseIsoDate(anchorIso));
   const out: string[] = [];
   const pushUnique = (iso: string) => {
@@ -237,26 +259,85 @@ export function expandRepeatDates(
     return out;
   }
   if (kind === 'weekdays') {
-    const span = weekdayWeeks * 7;
+    const span = weekdaySpanWeeks * 7;
     for (let d = 0; d < span; d += 1) {
       const day = addDays(anchor, d);
       if (getWeekdayIndex(day) <= 4) pushUnique(toIsoDate(day));
     }
     return out;
   }
+  if (kind === 'pick_weekdays') {
+    if (!pickWeekdayMask.some(Boolean)) return [];
+    const span = pickWeekdaysSpanWeeks * 7;
+    for (let d = 0; d < span; d += 1) {
+      const day = addDays(anchor, d);
+      const wd = getWeekdayIndex(day);
+      if (pickWeekdayMask[wd]) pushUnique(toIsoDate(day));
+    }
+    return out;
+  }
   return [anchorIso];
 }
+
+export function countRepeatDates(anchorIso: string, settings: RepeatSettingsValue): number {
+  if (!anchorIso.trim()) return 0;
+  return expandRepeatDates(anchorIso, settings).length;
+}
+
+export type BuildPlannedSlotsOptions = {
+  /** Несколько времён начала в день (режим шаблона). */
+  templateStartTimes?: string[];
+  durationMinutes?: number;
+};
 
 export function buildPlannedSlots(
   dateIso: string,
   startTime: string,
   endTime: string,
   serviceId: string | null,
-  repeatKind: RepeatKind,
-  weeklyCount: 4 | 8 | 12,
-  biweeklyCount: 4 | 8 | 12,
-  weekdayWeeks: 4 | 8 | 12,
+  repeat: RepeatSettingsValue,
+  options?: BuildPlannedSlotsOptions,
 ): PlannedSlot[] {
-  const dates = expandRepeatDates(dateIso, repeatKind, weeklyCount, biweeklyCount, weekdayWeeks);
+  const dates = expandRepeatDates(dateIso, repeat);
+  const multi = options?.templateStartTimes?.filter(Boolean) ?? [];
+  const duration = options?.durationMinutes ?? 0;
+
+  if (multi.length > 0 && duration > 0) {
+    const times = [...multi].sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+    const slots: PlannedSlot[] = [];
+    for (const d of dates) {
+      for (const st of times) {
+        const et = addMinutesToTime(st, duration);
+        if (timeToMinutes(et) <= timeToMinutes(st)) continue;
+        slots.push({ dateIso: d, startTime: st, endTime: et, serviceId });
+      }
+    }
+    return slots;
+  }
+
   return dates.map((d) => ({ dateIso: d, startTime, endTime, serviceId }));
+}
+
+const TEMPLATE_DAY_START_MIN = 6 * 60;
+const TEMPLATE_DAY_END_MIN = 23 * 60 + 45;
+
+/** Старты с шагом = длительности шаблона (2 ч → 12:00, 14:00, 16:00…). */
+export function buildTemplateStartTimeOptions(durationMinutes: number): string[] {
+  if (durationMinutes <= 0) return [];
+  const out: string[] = [];
+  for (let start = TEMPLATE_DAY_START_MIN; start + durationMinutes <= TEMPLATE_DAY_END_MIN; start += durationMinutes) {
+    out.push(`${pad2(Math.floor(start / 60))}:${pad2(start % 60)}`);
+  }
+  return out;
+}
+
+export function isValidTemplateStartTime(time: string, durationMinutes: number): boolean {
+  return buildTemplateStartTimeOptions(durationMinutes).includes(time);
+}
+
+export function filterValidTemplateStartTimes(times: string[], durationMinutes: number): string[] {
+  const allowed = new Set(buildTemplateStartTimeOptions(durationMinutes));
+  return [...times]
+    .filter((t) => allowed.has(t))
+    .sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
 }

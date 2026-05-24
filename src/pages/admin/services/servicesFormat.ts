@@ -1,3 +1,7 @@
+import {
+  getCategoryWorkPhotoUrl,
+  resolveCategoryWorkCode,
+} from '../../../features/catalog/categoryWorkPhotos';
 import type { MasterDraft, MasterOnboardingService } from '../../../features/profile/lib/demoMasterStorage';
 import type { ServicePromotion, ServicePromotionStatus } from './servicesTypes';
 
@@ -39,27 +43,16 @@ export function formatDurationRu(minutes: number): string {
   return `${h} ч ${m}м`;
 }
 
-/** Как на главной и в онбординге — фото работ по категории мастера. */
-const CATEGORY_WORK_IMAGES: Record<string, string> = {
-  manicure: '/photos/work/manicure.webp',
-  barbers: '/photos/work/barbers.webp',
-  'brows-lashes': '/photos/work/brows_lashes.webp',
-  brows_lashes: '/photos/work/brows_lashes.webp',
-  massage: '/photos/work/massage.webp',
-  fitness: '/photos/work/fitness.webp',
-  tattoo: '/photos/work/tattoo.webp',
-};
-
 function portfolioImageUrls(draft: MasterDraft): string[] {
   return (draft.portfolio ?? [])
     .map((p) => p.imageUrl?.trim())
     .filter((url): url is string => Boolean(url));
 }
 
-export function draftCategoryWorkImageUrl(draft: MasterDraft): string | null {
-  const code = draft.primaryCategoryCode;
-  if (!code) return null;
-  return CATEGORY_WORK_IMAGES[code] ?? CATEGORY_WORK_IMAGES[code.replace(/_/g, '-')] ?? null;
+/** Фото категории мастера (`public/photos/каталог_услуги/`). */
+export function draftCategoryWorkImageUrl(draft: MasterDraft): string {
+  const code = resolveCategoryWorkCode(draft.primaryCategoryCode ?? draft.category);
+  return getCategoryWorkPhotoUrl(code);
 }
 
 function portfolioImageForService(
@@ -74,6 +67,15 @@ function portfolioImageForService(
     idx = (idx + serviceId.charCodeAt(i)) % urls.length;
   }
   return urls[idx] ?? urls[0];
+}
+
+/** Превью в каталоге услуг: своё фото услуги или фото категории мастера. */
+export function serviceCatalogThumbnailUrl(
+  service: ManagedService,
+  draft: MasterDraft,
+): string {
+  if (service.imageUrl?.trim()) return service.imageUrl.trim();
+  return draftCategoryWorkImageUrl(draft);
 }
 
 /** Превью услуги: своё фото → работа из портфолио → фото категории. */

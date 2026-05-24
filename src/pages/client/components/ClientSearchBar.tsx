@@ -32,7 +32,7 @@ export function ClientSearchBar({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`h-12 w-full ${fieldBase} border-0 pl-11 pr-4 text-[15px] text-[#111827] placeholder:text-[#9CA3AF] focus:bg-white focus:shadow-[0_6px_24px_rgba(244,124,140,0.14)]`}
+          className={`h-12 w-full ${fieldBase} border-0 pl-11 pr-4 text-[15px] text-[#111827] placeholder:text-[#9CA3AF] focus:bg-[#EBEBEB] focus:shadow-none`}
         />
       </label>
       {showFilter && onFilterClick ? (

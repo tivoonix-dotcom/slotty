@@ -16,11 +16,11 @@ import { readTelegramWebAppStartParam } from '../shared/lib/telegramWebApp';
 import { HomeForMasters } from './home/HomeForMasters';
 import { HomeHeroStack } from './home/HomeHeroStack';
 import { HomeHowItWorks } from './home/HomeHowItWorks';
+import { homeShell } from './home/homeLayout';
 import { HomeCategories } from './HomeCategories';
 import { HomeFaq } from './HomeFaq';
 import { HomeFooter } from './HomeFooter';
 import { HomeHeader } from './HomeHeader';
-import { HomeQuickSlots } from './HomeQuickSlots';
 import { HomeTariffs } from './HomeTariffs';
 import { HomeTelegramShowcase } from './HomeTelegramShowcase';
 import { HomeTopMasters } from './HomeTopMasters';
@@ -80,10 +80,8 @@ export function Home() {
         masterCtaLabel={masterCtaLabel}
       />
 
-      <main className="relative z-10 mx-auto max-w-[1100px] px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-0 sm:px-6">
+      <main className={`relative z-10 ${homeShell} pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-0`}>
         <HomeCategories onCategory={onCategory} />
-
-        <HomeQuickSlots />
 
         <HomeTopMasters masters={masters} isLoading={isLoading} />
 
@@ -91,7 +89,11 @@ export function Home() {
 
         <HomeTelegramShowcase />
 
-        <HomeForMasters masterCtaPath={masterNavPath} masterCtaLabel={isMasterUser ? 'Открыть кабинет' : 'Стать мастером'} />
+        <HomeForMasters
+          masterCtaPath={masterNavPath}
+          masterCtaLabel={isMasterUser ? 'Открыть кабинет' : 'Стать мастером'}
+          isMasterUser={isMasterUser}
+        />
 
         <HomeTariffs />
 

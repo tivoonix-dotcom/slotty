@@ -12,7 +12,10 @@ import { AdminOverviewPage } from './overview/AdminOverviewPage';
 import { AdminSchedulePage } from './schedule/AdminSchedulePage';
 import { AdminServicesPage } from './services/AdminServicesPage';
 import { AdminNotificationsPage } from './notifications/AdminNotificationsPage';
+import { AdminSettingsLayout } from './settings/AdminSettingsLayout';
 import { AdminLoginMethodsPage } from './settings/AdminLoginMethodsPage';
+import { SettingsHelpSection } from './settings/SettingsHelpSection';
+import { SettingsLoginMethodsSection } from './settings/SettingsLoginMethodsSection';
 import { LoadingScreen } from '../../shared/ui/LoadingVideo';
 
 export function AdminPage() {
@@ -61,6 +64,12 @@ export function AdminPage() {
         <Route path="appointments" element={<AdminAppointmentsPage />} />
         <Route path="billing" element={<AdminBillingPage />} />
         <Route path="notifications" element={<AdminNotificationsPage />} />
+        <Route path="settings" element={<AdminSettingsLayout />}>
+          <Route index element={<Navigate to="login-methods" replace />} />
+          <Route path="login-methods" element={<SettingsLoginMethodsSection />} />
+          <Route path="support" element={<SettingsHelpSection />} />
+          <Route path="documents" element={<Navigate to="../support" replace />} />
+        </Route>
         <Route path="login-methods" element={<AdminLoginMethodsPage />} />
         <Route path="profile/completion" element={<ProfileCompletionPage />} />
         <Route path="profile" element={<Navigate to={ADMIN_PATH} replace />} />

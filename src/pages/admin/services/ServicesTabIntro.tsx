@@ -37,7 +37,9 @@ export function ServicesTabIntro({ tab }: Props) {
     <div className="space-y-3 pb-4" role="region" aria-label={title}>
       <AdminTabIntroBanner title={title} imageSrc={imageSrc} />
       {description ? (
-        <p className="px-0.5 text-[14px] font-medium leading-relaxed text-[#6B7280]">{description}</p>
+        <p className="px-0.5 text-[14px] font-medium leading-relaxed text-[#6B7280] lg:hidden">
+          {description}
+        </p>
       ) : null}
     </div>
   );

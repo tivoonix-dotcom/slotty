@@ -1,12 +1,13 @@
 import type { AggregatedServiceCard } from './aggregateServices';
 
-export type ServiceCatalogChip = 'popular' | 'promo' | 'today';
+export type ServiceCatalogChip = 'popular' | 'promo' | 'today' | 'new';
 
 export function filterServicesForCatalog(
   services: AggregatedServiceCard[],
   opts: {
     search: string;
     chips: Set<ServiceCatalogChip>;
+    onlineBookingOnly?: boolean;
   },
 ): AggregatedServiceCard[] {
   let list = services;
@@ -29,6 +30,12 @@ export function filterServicesForCatalog(
   }
   if (opts.chips.has('promo')) {
     list = list.filter((s) => s.badge === 'sale' || s.promotionOnly);
+  }
+  if (opts.chips.has('new')) {
+    list = list.filter((s) => s.isNew);
+  }
+  if (opts.onlineBookingOnly) {
+    list = list.filter((s) => Boolean(s.nearestSlotIso));
   }
 
   return list;

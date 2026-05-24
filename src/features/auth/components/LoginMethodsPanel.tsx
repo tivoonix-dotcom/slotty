@@ -27,18 +27,16 @@ import { openTelegramOrBrowserUrl } from '../../../shared/lib/telegramWebApp';
 import { GoogleIcon } from '../../../shared/ui/GoogleIcon';
 import { useAuth } from '../AuthProvider';
 import {
-  cabinetIconCircle,
   sheetFieldClass,
   sheetHintClass,
   sheetPrimaryBtnClass,
-  sheetOutlineBtnClass,
 } from '../../../pages/admin/profile/adminProfileCabinetTheme';
 
 type Props = {
   /** settings = привязка способов входа; login = вход на сайте */
   mode?: 'settings' | 'login';
-  /** page = /login; sheet = bottom sheet кабинета */
-  appearance?: 'default' | 'page' | 'sheet';
+  /** page = /login; sheet = bottom sheet кабинета; okx = список строк в настройках клиента */
+  appearance?: 'default' | 'page' | 'sheet' | 'okx';
   /** Вызывается после успешного входа или привязки; для входа передаётся актуальный profile. */
   onLinked?: (profile?: BackendProfile) => void;
 };
@@ -56,7 +54,13 @@ const socialOutlineBtn =
   'flex w-full min-h-12 items-center justify-center gap-3 rounded-full border border-[#E5E7EB] bg-white px-5 text-[15px] font-semibold text-[#111827] transition hover:bg-[#FAFAFA] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50';
 
 const settingsActionBtn =
-  'shrink-0 rounded-full bg-[#E29595] px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-50';
+  'shrink-0 rounded-full bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_6px_16px_rgba(255,95,122,0.28)] disabled:opacity-50';
+
+const settingsPrimaryBtn =
+  'flex min-h-12 w-full items-center justify-center rounded-[16px] bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] px-4 text-[15px] font-bold text-white shadow-[0_8px_22px_rgba(255,95,122,0.32)] transition hover:opacity-95 active:scale-[0.98] disabled:opacity-50';
+
+const settingsOutlineBtn =
+  'flex min-h-12 w-full items-center justify-center rounded-[16px] border border-[#FDE8ED] bg-white px-4 text-[14px] font-semibold text-[#ff5f7a] transition hover:bg-[#FFF9FB] active:scale-[0.98] disabled:opacity-50';
 
 function TelegramMark() {
   return (
@@ -236,6 +240,9 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
   const isSettings = mode === 'settings' && isAuthenticated;
   const pageStyle = appearance === 'page';
   const sheetStyle = appearance === 'sheet';
+  const okxStyle = appearance === 'okx';
+  /** Кабинет: карточки с иконками и прогрессом (страница «Настройки» или bottom sheet). */
+  const settingsCardsLayout = isSettings && (sheetStyle || pageStyle);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
   const telegramLoginUrl = useTelegramLoginUrl(loginReturnPath);
   const inTelegramApp = Boolean(initDataRaw && isTelegramWebApp);
@@ -618,8 +625,165 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
     );
   }
 
-  /* ——— Способы входа: bottom sheet (кабинет) ——— */
-  if (sheetStyle && isSettings) {
+  /* ——— Способы входа: OKX-стиль (клиентские настройки) ——— */
+  if (isSettings && okxStyle) {
+    const connectedCount = [
+      linked.telegram,
+      linked.google,
+      linked.email && linked.emailVerified,
+    ].filter(Boolean).length;
+    const okxBtn =
+      'shrink-0 rounded-[10px] bg-[#F5F5F5] px-4 py-2 text-[14px] font-semibold text-[#111827] transition hover:bg-[#EBEBEB] disabled:opacity-50';
+
+    return (
+      <div className="space-y-5">
+        <div className="flex items-start gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#FFF1F4] text-[15px] font-bold text-[#F47C8C]">
+            {loading ? '…' : `${connectedCount}/3`}
+          </span>
+          <div>
+            <h2 className="text-[18px] font-bold text-[#111827]">Защита аккаунта</h2>
+            <p className="mt-1 text-[14px] text-[#6B7280]">
+              {connectedCount >= 3
+                ? 'Все способы входа подключены'
+                : 'Подключите ещё способы — так не потеряете доступ'}
+            </p>
+          </div>
+        </div>
+
+        {error ? <ErrorBanner message={error} pageStyle={false} /> : null}
+        {emailNotice ? (
+          <p className="rounded-[12px] bg-[#F0FDF4] px-4 py-3 text-[13px] text-[#166534]">{emailNotice}</p>
+        ) : null}
+
+        <section>
+          <h3 className="mb-3 text-[16px] font-bold text-[#111827]">Способы аутентификации</h3>
+          <div className="overflow-hidden rounded-[16px] bg-white divide-y divide-[#EBEBEB]">
+            <OkxAuthRow
+              icon={<TelegramMark />}
+              title="Telegram"
+              subtitle={linked.telegram ? 'Подключён — вход через Mini App' : 'Откройте SLOTTY в Telegram'}
+              action={
+                linked.telegram ? (
+                  <span className="text-[13px] font-semibold text-[#16A34A]">✓</span>
+                ) : inTelegramApp ? (
+                  <button type="button" disabled={busy} onClick={() => void handleLinkTelegram()} className={okxBtn}>
+                    Настроить
+                  </button>
+                ) : telegramLoginUrl ? (
+                  <a href={telegramLoginUrl} className={`${okxBtn} no-underline`}>
+                    Открыть
+                  </a>
+                ) : null
+              }
+            />
+
+            <OkxAuthRow
+              icon={<GoogleIcon size={20} />}
+              title="Google"
+              subtitle={linked.google ? 'Почта Google подключена' : 'Вход с телефона и компьютера'}
+              action={
+                linked.google ? (
+                  <span className="text-[13px] font-semibold text-[#16A34A]">✓</span>
+                ) : googleClientId ? (
+                  <GoogleLoginPill
+                    busy={busy}
+                    googleClientId={googleClientId}
+                    label="Настроить"
+                    pageStyle={false}
+                    variant="cabinet"
+                    isTelegramWebApp={inTelegramApp}
+                    oauthPurpose="link"
+                    onCredential={(t) => void handleGoogleCredential(t)}
+                    onError={(m) => setError(m)}
+                  />
+                ) : (
+                  <span className="text-[12px] text-[#9CA3AF]">—</span>
+                )
+              }
+            />
+
+            <OkxAuthRow
+              icon={<EmailMethodIcon />}
+              title="Email"
+              subtitle={
+                linked.email
+                  ? linked.emailVerified
+                    ? (linkedEmailLabel ?? 'Почта подтверждена')
+                    : 'Подтвердите почту по ссылке из письма'
+                  : 'Резервный вход, если нет Telegram'
+              }
+              action={
+                linked.email && linked.emailVerified ? (
+                  <span className="text-[13px] font-semibold text-[#16A34A]">✓</span>
+                ) : linked.email && !linked.emailVerified ? (
+                  <button type="button" disabled={busy} onClick={() => void handleResendVerification()} className={okxBtn}>
+                    Подтвердить
+                  </button>
+                ) : !showEmailForm ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setShowEmailForm(true);
+                      setEmailMode('link');
+                    }}
+                    className={okxBtn}
+                  >
+                    Настроить
+                  </button>
+                ) : null
+              }
+            />
+          </div>
+        </section>
+
+        {!linked.email && showEmailForm ? (
+          <div className="space-y-3 rounded-[16px] bg-white p-5">
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email@example.com"
+              className="w-full rounded-[10px] bg-[#F5F5F5] px-4 py-3 text-[15px] outline-none"
+            />
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Пароль (мин. 8 символов)"
+              className="w-full rounded-[10px] bg-[#F5F5F5] px-4 py-3 text-[15px] outline-none"
+            />
+            <button
+              type="button"
+              disabled={busy || !email.trim() || password.length < 8}
+              onClick={() => void handleEmailSubmit()}
+              className="w-full rounded-[10px] bg-[#111827] py-3 text-[14px] font-semibold text-white disabled:opacity-50"
+            >
+              Сохранить
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setShowEmailForm(false);
+                setEmail('');
+                setPassword('');
+              }}
+              className="w-full text-[13px] font-semibold text-[#6B7280]"
+            >
+              Отмена
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  /* ——— Способы входа: кабинет (настройки / sheet) ——— */
+  if (settingsCardsLayout) {
     const connectedCount = [
       linked.telegram,
       linked.google,
@@ -655,7 +819,7 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
                   type="button"
                   disabled={busy}
                   onClick={() => void handleLinkTelegram()}
-                  className={sheetPrimaryBtnClass}
+                  className={settingsPrimaryBtn}
                 >
                   Подключить Telegram
                 </button>
@@ -665,7 +829,7 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
                     В браузере сначала откройте бота — затем вернитесь сюда и подключите аккаунт.
                   </p>
                   {telegramLoginUrl ? (
-                    <a href={telegramLoginUrl} className={`${sheetOutlineBtnClass} no-underline`}>
+                    <a href={telegramLoginUrl} className={`${settingsOutlineBtn} no-underline`}>
                       Открыть бота в Telegram
                     </a>
                   ) : null}
@@ -723,7 +887,7 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
               type="button"
               disabled={busy}
               onClick={() => void handleResendVerification()}
-              className={sheetOutlineBtnClass}
+              className={settingsOutlineBtn}
             >
               Отправить письмо подтверждения снова
             </button>
@@ -737,7 +901,7 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
                 setShowEmailForm(true);
                 setEmailMode('link');
               }}
-              className={sheetPrimaryBtnClass}
+              className={settingsPrimaryBtn}
             >
               Добавить email
             </button>
@@ -771,7 +935,7 @@ export function LoginMethodsPanel({ mode = 'settings', appearance = 'default', o
                 type="button"
                 disabled={busy || !email.trim() || password.length < 8}
                 onClick={() => void handleEmailSubmit()}
-                className={sheetPrimaryBtnClass}
+                className={settingsPrimaryBtn}
               >
                 Сохранить email
               </button>
@@ -982,37 +1146,84 @@ function LoginMethodsProgressCard({
   onRefresh: () => void;
 }) {
   const total = 3;
+  const pct = Math.round((connectedCount / total) * 100);
+  const complete = connectedCount >= total;
+
   return (
-    <div className="rounded-[20px] bg-[#F7F7F8] px-4 py-3.5 ring-1 ring-[#EAECEF]">
-      <div className="flex gap-1.5" aria-hidden>
-        {Array.from({ length: total }, (_, i) => (
-          <span
-            key={i}
-            className={`h-1.5 flex-1 rounded-full transition-colors ${
-              i < connectedCount ? 'bg-[#F47C8C]' : 'bg-[#E5E7EB]'
-            }`}
-          />
-        ))}
-      </div>
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="text-[13px] text-[#6B7280]">
-          <span className="font-semibold text-[#111827]">
-            {loading ? '…' : connectedCount}
-          </span>
-          {' '}
-          из {total} подключено
-        </p>
-        <button
-          type="button"
-          disabled={loading || busy}
-          onClick={onRefresh}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-[13px] font-semibold text-[#111827] ring-1 ring-[#EAECEF] transition hover:bg-[#FAFAFA] active:scale-[0.98] disabled:opacity-50"
+    <div className="rounded-[22px] border border-[#FDE8ED] bg-gradient-to-br from-[#FFF9FB] via-white to-[#f6f7fb] px-4 py-4 shadow-[0_6px_24px_rgba(255,95,122,0.08)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#ff5f7a]">
+            Безопасность входа
+          </p>
+          <p className="mt-1 text-[15px] font-bold text-[#111827]">
+            {loading ? 'Загрузка…' : `${connectedCount} из ${total} способов`}
+          </p>
+          <p className="mt-0.5 text-[13px] text-[#6B7280]">
+            {complete
+              ? 'Отлично — все способы подключены'
+              : 'Подключите ещё — так не потеряете доступ'}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-black tabular-nums ${
+            complete
+              ? 'bg-[#ECFDF5] text-[#16A34A] ring-1 ring-[#BBF7D0]'
+              : 'bg-[#FFF1F4] text-[#ff5f7a] ring-1 ring-[#FDE8ED]'
+          }`}
         >
-          <HiArrowPath className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden />
-          {loading ? '…' : 'Обновить'}
-        </button>
+          {loading ? '…' : `${pct}%`}
+        </span>
       </div>
+
+      <div
+        className="mt-4 h-2 overflow-hidden rounded-full bg-[#EAECEF]/80"
+        role="progressbar"
+        aria-valuenow={connectedCount}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-label={`Подключено ${connectedCount} из ${total}`}
+      >
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] transition-all duration-500"
+          style={{ width: `${loading ? 0 : pct}%` }}
+        />
+      </div>
+
+      <button
+        type="button"
+        disabled={loading || busy}
+        onClick={onRefresh}
+        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-white py-2.5 text-[13px] font-semibold text-[#374151] ring-1 ring-[#EAECEF] transition hover:border-[#FDE8ED] hover:text-[#ff5f7a] active:scale-[0.98] disabled:opacity-50 sm:w-auto sm:px-4"
+      >
+        <HiArrowPath className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden />
+        {loading ? 'Обновляем…' : 'Обновить статус'}
+      </button>
     </div>
+  );
+}
+
+function MethodIconWrap({
+  connected,
+  pending,
+  children,
+}: {
+  connected?: boolean;
+  pending?: boolean;
+  children: ReactNode;
+}) {
+  const wrapClass = connected
+    ? 'bg-[#ECFDF5] text-[#16A34A] ring-[#BBF7D0]'
+    : pending
+      ? 'bg-[#FFFBEB] text-[#D97706] ring-[#FDE68A]'
+      : 'bg-[#FFF1F4] text-[#ff5f7a] ring-[#FDE8ED]';
+
+  return (
+    <span
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ring-1 shadow-[0_4px_12px_rgba(17,24,39,0.04)] ${wrapClass}`}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -1034,29 +1245,38 @@ function LoginMethodSheetCard({
   const hasActions = Boolean(children);
 
   return (
-    <div className="rounded-[20px] bg-white p-4 ring-1 ring-[#EAECEF]">
-      <div className="flex items-center gap-3">
-        <div className={cabinetIconCircle}>{icon}</div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold leading-tight text-[#111827]">{title}</p>
-          <p className="mt-0.5 text-[12px] leading-snug text-[#6B7280]">{subtitle}</p>
-          {pending && !connected ? (
-            <div className="mt-2">
-              <MethodStatusBadge tone="pending">Ждёт письмо</MethodStatusBadge>
-            </div>
-          ) : null}
+    <div
+      className={`rounded-[20px] bg-white p-4 shadow-[0_6px_22px_rgba(17,24,39,0.05)] ring-1 ${
+        connected ? 'ring-[#BBF7D0]/80' : pending ? 'ring-[#FDE68A]/90' : 'ring-[#EAECEF]'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <MethodIconWrap connected={connected} pending={pending}>
+          {icon}
+        </MethodIconWrap>
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[16px] font-bold leading-tight text-[#111827]">{title}</p>
+            {connected ? <MethodStatusBadge tone="ok">Подключён</MethodStatusBadge> : null}
+            {pending && !connected ? (
+              <MethodStatusBadge tone="pending">Ждёт подтверждение</MethodStatusBadge>
+            ) : null}
+            {!connected && !pending ? (
+              <MethodStatusBadge tone="idle">Не подключён</MethodStatusBadge>
+            ) : null}
+          </div>
+          <p className="mt-1 text-[13px] leading-snug text-[#6B7280]">{subtitle}</p>
         </div>
         {connected ? (
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ECFDF5] text-[#16A34A] ring-1 ring-[#BBF7D0]"
-            aria-label="Подключён"
-            title="Подключён"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ff6f88] to-[#ff5f7a] text-white shadow-[0_6px_16px_rgba(255,95,122,0.28)]"
+            aria-hidden
           >
-            <HiCheck className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+            <HiCheck className="h-5 w-5" strokeWidth={2.5} />
           </span>
         ) : null}
       </div>
-      {hasActions ? <div className="mt-3 border-t border-[#F3F4F6] pt-3">{children}</div> : null}
+      {hasActions ? <div className="mt-4 border-t border-[#F3F4F6] pt-4">{children}</div> : null}
     </div>
   );
 }
@@ -1066,20 +1286,55 @@ function MethodStatusBadge({
   tone,
 }: {
   children?: ReactNode;
-  tone: 'ok' | 'pending';
+  tone: 'ok' | 'pending' | 'idle';
 }) {
   const cls =
     tone === 'ok'
       ? 'bg-[#ECFDF5] text-[#15803D] ring-[#BBF7D0]'
-      : 'bg-[#FFFBEB] text-[#B45309] ring-[#FDE68A]';
+      : tone === 'pending'
+        ? 'bg-[#FFFBEB] text-[#B45309] ring-[#FDE68A]'
+        : 'bg-[#f6f7fb] text-[#6B7280] ring-[#EAECEF]';
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${cls}`}>{children}</span>
+    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ${cls}`}>{children}</span>
+  );
+}
+
+function OkxAuthRow({
+  icon,
+  title,
+  subtitle,
+  action,
+}: {
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-4 px-5 py-4">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#F5F5F5]">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[15px] font-bold text-[#111827]">{title}</p>
+        <p className="mt-0.5 text-[13px] leading-snug text-[#6B7280]">{subtitle}</p>
+      </div>
+      {action ? <div className="flex shrink-0 items-center">{action}</div> : null}
+    </div>
   );
 }
 
 function EmailMethodIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+    <svg
+      className="h-5 w-5"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      aria-hidden
+    >
       <path
         strokeWidth="1.75"
         strokeLinecap="round"

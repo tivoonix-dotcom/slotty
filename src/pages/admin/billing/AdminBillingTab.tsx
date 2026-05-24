@@ -15,11 +15,14 @@ import { ensureDemoAppointmentsSeeded } from '../../../features/master/model/dem
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import { LoadingVideo } from '../../../shared/ui/LoadingVideo';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
+import { BillingLandingFreeCard } from './BillingLandingFreeCard';
+import { BillingLandingProCard } from './BillingLandingProCard';
+import { billingLandingPanel, homeOutlineBtn, homePinkBtn } from './adminBillingLandingTheme';
 
 function progressClass(ratio: number): string {
-  if (ratio >= 1) return 'bg-[#E29595]';
+  if (ratio >= 1) return 'bg-[#EF4444]';
   if (ratio >= 0.85) return 'bg-amber-400';
-  return 'bg-[#E29595]/80';
+  return 'bg-gradient-to-r from-[#F47C8C] to-[#F26D83]';
 }
 
 function planCodeToPlanId(code: string): PlanId {
@@ -33,6 +36,12 @@ function formatPriceFromPlans(plans: BillingPlanDto[], planId: PlanId, period: B
   const n = period === 'year' ? p.priceYear : p.priceMonth;
   const unit = period === 'year' ? 'год' : 'месяц';
   return `${n} BYN / ${unit}`;
+}
+
+function splitPlanPrice(line: string): { value: string; unit: string } {
+  const idx = line.indexOf(' / ');
+  if (idx === -1) return { value: line, unit: '' };
+  return { value: line.slice(0, idx), unit: line.slice(idx + 1) };
 }
 
 const PLAN_UI: Record<
@@ -231,10 +240,22 @@ export function AdminBillingTab() {
   const maxSvc = Math.max(1, limits.maxServices ?? 3);
   const maxAppt = Math.max(1, limits.maxMonthlyAppointments ?? 20);
 
+  const freePriceLine =
+    useLiveBilling && apiPlans
+      ? formatPriceFromPlans(apiPlans, 'free', billingPeriodView)
+      : formatPlanPrice('free', billingPeriodView);
+
+  const proPriceLine =
+    useLiveBilling && apiPlans
+      ? formatPriceFromPlans(apiPlans, 'pro', billingPeriodView)
+      : formatPlanPrice('pro', billingPeriodView);
+
+  const proPriceParts = splitPlanPrice(proPriceLine);
+
   return (
-    <div className="space-y-4">
+    <div className="mt-8 space-y-6 sm:mt-10">
       {toast ? (
-        <div className="rounded-full bg-[#EAFBF2] px-5 py-3 text-center text-[14px] font-semibold text-[#2F8A5B] shadow-[0_10px_28px_rgba(17,17,17,0.04)]">
+        <div className="rounded-full bg-[#FFF1F4] px-5 py-3 text-center text-[14px] font-semibold text-[#F47C8C] ring-1 ring-[#FDE8ED]">
           {toast}
         </div>
       ) : null}
@@ -244,82 +265,41 @@ export function AdminBillingTab() {
       ) : null}
 
       {useCabinetApi && !cabinetLoading && !subscription ? (
-        <p className="rounded-2xl bg-[#FFF0F0] px-4 py-3 text-center text-[14px] font-semibold text-[#9B2C2C]">
+        <p className="rounded-[20px] border border-[#FECACA] bg-[#FFF0F0] px-4 py-3 text-center text-[14px] font-semibold text-[#9B2C2C]">
           Не удалось загрузить подписку. Обновите страницу или повторите позже.
         </p>
       ) : null}
 
       {plansError ? (
-        <p className="rounded-2xl bg-[#FFF0F0] px-4 py-3 text-center text-[14px] font-semibold text-[#9B2C2C]">
+        <p className="rounded-[20px] border border-[#FECACA] bg-[#FFF0F0] px-4 py-3 text-center text-[14px] font-semibold text-[#9B2C2C]">
           Не удалось загрузить список тарифов.
         </p>
       ) : null}
 
-      <section className="rounded-[36px] bg-[#F1EFEF] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)]">
-        <div className="rounded-[30px] bg-white p-5 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-400">Сейчас</p>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-[34px] font-semibold leading-none tracking-[-0.065em] text-neutral-950">
-                {planBadgeLabel(planStateView.plan)}
-              </p>
-              <p className="mt-2 text-[15px] font-semibold text-[#E29595]">Активен сейчас</p>
-            </div>
-            <span className="rounded-full bg-[#F1EFEF] px-3 py-1.5 text-[12px] font-semibold text-neutral-600">
-              {planStateView.billingPeriod === 'year' ? 'Год' : 'Месяц'}
-            </span>
-          </div>
-          <p className="mt-4 text-[15px] leading-relaxed text-neutral-600">
-            {planStateView.plan === 'free'
-              ? 'Вы можете пользоваться SLOTTY бесплатно. Когда понадобится больше услуг и записей — откройте Pro.'
-              : 'У вас открыт полный доступ для одного мастера.'}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <section className={billingLandingPanel}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9CA3AF]">Сейчас</p>
+          <p className="mt-2 text-[32px] font-bold leading-none tracking-[-0.05em] text-[#111827] lg:text-[36px]">
+            {planBadgeLabel(planStateView.plan)}
           </p>
-        </div>
-      </section>
+          <p className="mt-2 text-[14px] font-semibold text-[#F47C8C]">Активен · {billingPeriodView === 'year' ? 'год' : 'месяц'}</p>
+          <p className="mt-3 text-[14px] leading-relaxed text-[#6B7280]">
+            {planStateView.plan === 'free'
+              ? 'Бесплатный старт — перейдите на Pro, когда понадобится больше услуг и записей.'
+              : 'Полный доступ для одного мастера — все разделы кабинета открыты.'}
+          </p>
+        </section>
 
-      <section className="rounded-[36px] bg-[#F1EFEF] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)]">
-        <div className="rounded-[30px] bg-white p-5 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
-          <h2 className="text-[20px] font-semibold tracking-[-0.04em] text-neutral-950">Использование</h2>
-
-          {planStateView.plan === 'free' ? (
-            <>
-              <UsageRow label="Услуги" value={`${servicesLen} / ${maxSvc}`} />
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#F1EFEF]">
-                <div
-                  className={`h-full rounded-full transition-all ${progressClass(servicesLen / maxSvc)}`}
-                  style={{ width: `${Math.min(100, (servicesLen / maxSvc) * 100)}%` }}
-                />
-              </div>
-              <UsageRow label="Записи в этом месяце" value={`${monthlyCount} / ${maxAppt}`} />
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#F1EFEF]">
-                <div
-                  className={`h-full rounded-full transition-all ${progressClass(monthlyCount / maxAppt)}`}
-                  style={{ width: `${Math.min(100, (monthlyCount / maxAppt) * 100)}%` }}
-                />
-              </div>
-              <UsageRow label="График работы" value={`${limits.scheduleHorizonDays} дней`} />
-            </>
-          ) : null}
-
-          {planStateView.plan === 'pro' ? (
-            <>
-              <UsageRow label="Услуги" value="безлимит" />
-              <UsageRow label="Записи" value="безлимит" />
-              <UsageRow label="График работы" value={`${limits.scheduleHorizonDays} дней`} />
-            </>
-          ) : null}
-        </div>
-      </section>
-
-      <section className="rounded-[36px] bg-[#F1EFEF] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)]">
-        <div className="rounded-[30px] bg-white p-4 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
-          <p className="text-[13px] font-semibold text-neutral-500">Период оплаты</p>
+        <section className={billingLandingPanel}>
+          <p className="text-[13px] font-semibold text-[#6B7280]">Период оплаты</p>
           <div className="mt-3 flex rounded-full bg-[#F1EFEF] p-1">
             <button
               type="button"
               onClick={() => void persistPeriod('month')}
               className={`min-h-11 flex-1 rounded-full px-3 text-[14px] font-semibold transition active:scale-[0.98] ${
-                billingPeriodView === 'month' ? 'bg-white text-neutral-950 shadow-[0_8px_20px_rgba(17,17,17,0.06)]' : 'text-neutral-500'
+                billingPeriodView === 'month'
+                  ? 'bg-white text-[#111827] shadow-[0_8px_20px_rgba(17,17,17,0.06)]'
+                  : 'text-[#6B7280]'
               }`}
             >
               Месяц
@@ -328,41 +308,69 @@ export function AdminBillingTab() {
               type="button"
               onClick={() => void persistPeriod('year')}
               className={`min-h-11 flex-1 rounded-full px-3 text-[14px] font-semibold transition active:scale-[0.98] ${
-                billingPeriodView === 'year' ? 'bg-white text-neutral-950 shadow-[0_8px_20px_rgba(17,17,17,0.06)]' : 'text-neutral-500'
+                billingPeriodView === 'year'
+                  ? 'bg-white text-[#111827] shadow-[0_8px_20px_rgba(17,17,17,0.06)]'
+                  : 'text-[#6B7280]'
               }`}
             >
               Год
             </button>
           </div>
-          <p className="mt-3 text-center text-[13px] font-medium leading-snug text-neutral-500">
-            2 месяца бесплатно при оплате за год
-          </p>
-        </div>
-      </section>
+          <p className="mt-3 text-center text-[13px] font-medium text-[#9CA3AF]">2 месяца бесплатно при оплате за год</p>
+        </section>
+      </div>
 
-      <div className="flex flex-col gap-3">
-        <PlanCard
-          planId="free"
+      {planStateView.plan === 'free' ? (
+        <section className={billingLandingPanel}>
+          <h2 className="text-[18px] font-semibold tracking-tight text-[#111827]">Использование на Free</h2>
+          <UsageRow label="Услуги" value={`${servicesLen} / ${maxSvc}`} />
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#F1EFEF]">
+            <div
+              className={`h-full rounded-full transition-all ${progressClass(servicesLen / maxSvc)}`}
+              style={{ width: `${Math.min(100, (servicesLen / maxSvc) * 100)}%` }}
+            />
+          </div>
+          <UsageRow label="Записи в этом месяце" value={`${monthlyCount} / ${maxAppt}`} />
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#F1EFEF]">
+            <div
+              className={`h-full rounded-full transition-all ${progressClass(monthlyCount / maxAppt)}`}
+              style={{ width: `${Math.min(100, (monthlyCount / maxAppt) * 100)}%` }}
+            />
+          </div>
+          <UsageRow label="График работы" value={`${limits.scheduleHorizonDays} дней`} />
+        </section>
+      ) : (
+        <section className={billingLandingPanel}>
+          <h2 className="text-[18px] font-semibold tracking-tight text-[#111827]">Ваш Pro</h2>
+          <UsageRow label="Услуги" value="безлимит" />
+          <UsageRow label="Записи" value="безлимит" />
+          <UsageRow label="График работы" value={`${limits.scheduleHorizonDays} дней`} />
+        </section>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <BillingLandingFreeCard
+          name={PLAN_UI.free.name}
+          priceLine={freePriceLine}
+          tagline={PLAN_UI.free.tagline}
+          includes={PLAN_UI.free.includes}
+          limits={PLAN_UI.free.limits}
           active={planStateView.plan === 'free'}
-          billingPeriod={billingPeriodView}
-          priceLineOverride={useLiveBilling && apiPlans ? formatPriceFromPlans(apiPlans, 'free', billingPeriodView) : undefined}
-          recommended={false}
-          onPrimary={() => void applyPlan('free')}
+          onSelect={() => void applyPlan('free')}
         />
-        <PlanCard
-          planId="pro"
+        <BillingLandingProCard
+          priceValue={proPriceParts.value}
+          priceUnit={proPriceParts.unit || '/ месяц'}
+          includes={PLAN_UI.pro.includes}
           active={planStateView.plan === 'pro'}
-          billingPeriod={billingPeriodView}
-          priceLineOverride={useLiveBilling && apiPlans ? formatPriceFromPlans(apiPlans, 'pro', billingPeriodView) : undefined}
-          recommended
-          onPrimary={() => setMockProOpen(true)}
+          onSelect={() => setMockProOpen(true)}
         />
       </div>
 
       <AdminBottomSheet open={mockProOpen} onClose={() => setMockProOpen(false)} title="Подключить Pro">
         <MockPaymentBody
           billingPeriod={billingPeriodView}
-          proPrice={useLiveBilling && apiPlans ? formatPriceFromPlans(apiPlans, 'pro', billingPeriodView) : null}
+          proPrice={proPriceLine}
           onBack={() => setMockProOpen(false)}
           onDemo={confirmMock}
         />
@@ -374,104 +382,9 @@ export function AdminBillingTab() {
 function UsageRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="mt-4 flex items-center justify-between gap-3 text-[15px] first:mt-3">
-      <span className="font-medium text-neutral-500">{label}</span>
-      <span className="font-semibold tabular-nums text-neutral-950">{value}</span>
+      <span className="font-medium text-[#6B7280]">{label}</span>
+      <span className="font-semibold tabular-nums text-[#111827]">{value}</span>
     </div>
-  );
-}
-
-function PlanCard({
-  planId,
-  active,
-  billingPeriod,
-  priceLineOverride,
-  recommended,
-  onPrimary,
-}: {
-  planId: PlanId;
-  active: boolean;
-  billingPeriod: BillingPeriod;
-  priceLineOverride?: string;
-  recommended?: boolean;
-  onPrimary: () => void;
-}) {
-  const meta = PLAN_UI[planId];
-  const priceLine = priceLineOverride ?? formatPlanPrice(planId, billingPeriod);
-
-  const label =
-    planId === 'free'
-      ? active
-        ? 'Текущий тариф'
-        : 'Перейти на Free'
-      : active
-        ? 'Текущий тариф'
-        : 'Открыть Pro';
-
-  return (
-    <section
-      className={`rounded-[36px] p-3 shadow-[0_18px_55px_rgba(17,17,17,0.05)] ${
-        active ? 'bg-[#E29595]/18 ring-2 ring-[#E29595]/35' : 'bg-[#F1EFEF]'
-      }`}
-    >
-      <div className="rounded-[30px] bg-white p-5 shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <p className="text-[22px] font-semibold tracking-[-0.05em] text-neutral-950">{meta.name}</p>
-            <p className="mt-1 text-[15px] font-semibold text-neutral-800">{priceLine}</p>
-            <p className="mt-2 text-[14px] leading-relaxed text-neutral-500">{meta.tagline}</p>
-          </div>
-          <div className="flex flex-col items-end gap-1.5">
-            {active ? (
-              <span className="rounded-full bg-[#E29595] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-                Активен
-              </span>
-            ) : null}
-            {recommended ? (
-              <span className="rounded-full bg-[#F1EFEF] px-2.5 py-1 text-[11px] font-semibold text-neutral-700">
-                Рекомендуем
-              </span>
-            ) : null}
-          </div>
-        </div>
-
-        <ul className="mt-4 space-y-2 text-[14px] leading-snug text-neutral-700">
-          {meta.includes.map((line) => (
-            <li key={line} className="flex gap-2">
-              <span className="text-[#E29595]" aria-hidden>
-                •
-              </span>
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-
-        {meta.limits.length ? (
-          <div className="mt-4 rounded-[22px] bg-[#F1EFEF] px-4 py-3">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Ограничения</p>
-            <ul className="mt-2 space-y-1.5 text-[13px] text-neutral-600">
-              {meta.limits.map((line) => (
-                <li key={line}>— {line}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        <button
-          type="button"
-          onClick={() => {
-            if (!active) onPrimary();
-          }}
-          disabled={active}
-          className={`mt-5 flex min-h-[3.1rem] w-full items-center justify-center rounded-full px-4 text-[15px] font-semibold transition active:scale-[0.98] ${
-            active
-              ? 'cursor-default bg-[#F1EFEF] text-neutral-500'
-              : 'bg-[#E29595] text-white shadow-[0_12px_30px_rgba(226,149,149,0.24)]'
-          }`}
-        >
-          {label}
-        </button>
-      </div>
-    </section>
   );
 }
 
@@ -482,42 +395,39 @@ function MockPaymentBody({
   onDemo,
 }: {
   billingPeriod: BillingPeriod;
-  proPrice: string | null;
+  proPrice: string;
   onBack: () => void;
   onDemo: () => void | Promise<void>;
 }) {
   const meta = PLAN_UI.pro;
-  const amountLabel = proPrice ?? `${priceForPlan('pro', billingPeriod)} BYN`;
+  const amountLabel = proPrice || `${priceForPlan('pro', billingPeriod)} BYN`;
   return (
     <div className="space-y-4">
-      <p className="text-[16px] font-semibold text-neutral-950">{meta.name}</p>
-      <p className="text-[14px] text-neutral-600">
+      <p className="text-[16px] font-semibold text-[#111827]">{meta.name}</p>
+      <p className="text-[14px] text-[#6B7280]">
         Период:{' '}
-        <span className="font-semibold text-neutral-900">{billingPeriod === 'year' ? 'год' : 'месяц'}</span>
+        <span className="font-semibold text-[#111827]">{billingPeriod === 'year' ? 'год' : 'месяц'}</span>
         {' · '}
-        <span className="font-semibold text-neutral-900">{amountLabel}</span>
+        <span className="font-semibold text-[#111827]">{amountLabel}</span>
       </p>
-      <ul className="space-y-1.5 text-[14px] text-neutral-700">
+      <ul className="space-y-1.5 text-[14px] text-[#374151]">
         {meta.includes.slice(0, 6).map((x) => (
-          <li key={x}>— {x}</li>
+          <li key={x} className="flex gap-2">
+            <span className="text-[#F47C8C]" aria-hidden>
+              •
+            </span>
+            <span>{x}</span>
+          </li>
         ))}
       </ul>
-      <p className="rounded-[20px] bg-[#F1EFEF] px-4 py-3 text-[13px] leading-relaxed text-neutral-600">
+      <p className="rounded-[18px] bg-[#F9FAFB] px-4 py-3 text-[13px] leading-relaxed text-[#6B7280] ring-1 ring-[#F3F4F6]">
         Оплата будет подключена позже. Сейчас тариф активируется в demo-режиме.
       </p>
       <div className="flex gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#F1EFEF] px-4 text-[15px] font-semibold text-neutral-900 transition active:scale-[0.98]"
-        >
+        <button type="button" onClick={onBack} className={`min-h-12 flex-1 ${homeOutlineBtn}`}>
           Назад
         </button>
-        <button
-          type="button"
-          onClick={() => void Promise.resolve(onDemo())}
-          className="flex min-h-12 flex-[1.15] items-center justify-center rounded-full bg-[#E29595] px-4 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
-        >
+        <button type="button" onClick={() => void Promise.resolve(onDemo())} className={`min-h-12 flex-[1.15] ${homePinkBtn}`}>
           Подключить в demo
         </button>
       </div>

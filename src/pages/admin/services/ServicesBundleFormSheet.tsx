@@ -9,15 +9,29 @@ import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorag
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import {
+  AdminFormSheetLayout,
+  AdminFormSheetMetrics,
+  AdminFormSheetSection,
+} from '../shared/AdminFormSheetLayout';
+import {
+  adminSheetPinkBtn,
+  adminSheetGhostBtn,
+  adminSheetSecondaryBtn,
+} from '../shared/adminCabinetSheetTheme';
+import {
+  adminFormSheetInsetTray,
+  adminFormSheetSuccessHighlight,
+} from '../shared/adminFormSheetTheme';
+import {
   calcBundleDiscount,
   generateBundleTitle,
   resolveBundleDisplayImage,
   sumServicesDuration,
   sumServicesPrice,
 } from './bundleUtils';
-import { servicesInput, servicesPinkBtn } from './adminServicesTheme';
+import { servicesInput } from './adminServicesTheme';
 import { ServicesBundleCard } from './ServicesBundleCard';
-import { BUNDLE_FORM_STEPS, ServicesBundleStepper } from './ServicesBundleStepper';
+import { BUNDLE_FORM_STEPS } from './ServicesBundleStepper';
 import type { ManagedService } from './servicesFormat';
 import { formatDurationRu, formatServicePrice } from './servicesFormat';
 import { newBundleId } from './servicesStorage';
@@ -267,23 +281,67 @@ export function ServicesBundleFormSheet({
     if (step > 0) setStep((s) => s - 1);
   };
 
+  const footer = (
+    <div className="flex flex-col gap-2">
+      {step < BUNDLE_FORM_STEPS.length - 1 ? (
+        <>
+          <button
+            type="button"
+            disabled={!canNext}
+            onClick={handleNext}
+            className={adminSheetPinkBtn}
+          >
+            Далее
+          </button>
+          {step > 0 ? (
+            <button type="button" onClick={handleBack} className={adminSheetGhostBtn}>
+              Назад
+            </button>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            disabled={!canNext}
+            onClick={() => onSave(buildBundle(visibleToClients ? 'visible' : 'hidden'))}
+            className={adminSheetPinkBtn}
+          >
+            Опубликовать
+          </button>
+          <button
+            type="button"
+            onClick={() => onSave(buildBundle('draft'))}
+            className={adminSheetSecondaryBtn}
+          >
+            Сохранить черновик
+          </button>
+          {step > 0 ? (
+            <button type="button" onClick={handleBack} className={adminSheetGhostBtn}>
+              Назад
+            </button>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+
   return (
     <AdminBottomSheet
       open={open}
       onClose={onClose}
       title={initial ? 'Редактирование набора' : 'Создание набора'}
+      subtitle="Комбо из услуг со скидкой — клиенты увидят выгоду в каталоге"
+      badge={`${BUNDLE_FORM_STEPS[step]} · шаг ${step + 1} из ${BUNDLE_FORM_STEPS.length}`}
+      footer={footer}
     >
-      <div className="pb-2">
-          <ServicesBundleStepper step={step} />
-          <p className="mb-4 text-[12px] font-semibold text-[#9CA3AF]">
-            Шаг {step + 1} из {BUNDLE_FORM_STEPS.length}: {BUNDLE_FORM_STEPS[step]}
-          </p>
-
+      <AdminFormSheetLayout step={step} steps={BUNDLE_FORM_STEPS}>
           {step === 0 ? (
-            <div className="space-y-3">
-              <p className="text-[15px] font-bold text-[#111827]">Выберите услуги</p>
-              <p className="text-[13px] text-[#6B7280]">Минимум 2 услуги для набора</p>
-
+            <AdminFormSheetSection
+              title="Выберите услуги"
+              description="Минимум 2 позиции — набор соберётся автоматически"
+            >
+              <div className="space-y-3">
               <label className="relative block">
                 <HiMagnifyingGlass
                   className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9CA3AF]"
@@ -339,31 +397,38 @@ export function ServicesBundleFormSheet({
               </ul>
 
               {selectedIds.length >= 2 ? (
-                <div className="rounded-[18px] border border-[#FDE8ED] bg-[#FFF9FB] p-4">
-                  <p className="text-[13px] font-semibold text-[#6B7280]">
-                    Выбрано услуг:{' '}
-                    <span className="text-[#111827]">{selectedIds.length}</span>
-                  </p>
-                  <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
-                    Обычная цена:{' '}
-                    <span className="text-[#111827]">{originalPrice} BYN</span>
-                  </p>
-                  <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
-                    Общее время:{' '}
-                    <span className="text-[#111827]">
-                      {formatDurationRu(sumServicesDuration(services, selectedIds))}
-                    </span>
-                  </p>
+                <div className="mt-4">
+                  <AdminFormSheetMetrics
+                    items={[
+                      { label: 'Услуг в наборе', value: selectedIds.length },
+                      {
+                        label: 'Обычная цена',
+                        value: (
+                          <>
+                            {originalPrice}{' '}
+                            <span className="text-[14px] font-bold">BYN</span>
+                          </>
+                        ),
+                      },
+                      {
+                        label: 'Общее время',
+                        value: formatDurationRu(sumServicesDuration(services, selectedIds)),
+                      },
+                    ]}
+                  />
                 </div>
               ) : null}
-            </div>
+              </div>
+            </AdminFormSheetSection>
           ) : null}
 
           {step === 1 ? (
-            <div className="space-y-3">
-              <p className="text-[15px] font-bold text-[#111827]">Цена и выгода</p>
-
-              <label className="block">
+            <AdminFormSheetSection
+              title="Цена и выгода"
+              description="Название, описание и цена набора — клиент увидит экономию"
+            >
+              <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+              <label className="block lg:col-span-2">
                 <span className="text-[13px] font-semibold text-[#6B7280]">Название набора</span>
                 <input
                   value={title}
@@ -409,17 +474,20 @@ export function ServicesBundleFormSheet({
               </label>
 
               {bundlePrice > 0 && originalPrice > bundlePrice ? (
-                <div className="rounded-[18px] bg-[#ECFDF5] px-4 py-3">
-                  <p className="text-[14px] font-bold text-[#16A34A]">
-                    Экономия {discountAmount} BYN
+                <div className={`lg:col-span-2 ${adminFormSheetSuccessHighlight}`}>
+                  <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#16A34A]">
+                    Выгода для клиента
                   </p>
-                  <p className="mt-0.5 text-[13px] font-semibold text-[#22C55E]">
-                    Выгода {discountPercent}%
+                  <p className="mt-2 text-[28px] font-black tabular-nums tracking-[-0.05em] text-[#16A34A] lg:text-[36px]">
+                    −{discountPercent}%
+                  </p>
+                  <p className="mt-1 text-[15px] font-bold text-[#15803D]">
+                    Экономия {discountAmount} BYN
                   </p>
                 </div>
               ) : null}
 
-              <label className="block">
+              <label className="block lg:col-span-2">
                 <span className="text-[13px] font-semibold text-[#6B7280]">Длительность</span>
                 <input
                   value={String(durationMinutes)}
@@ -434,14 +502,16 @@ export function ServicesBundleFormSheet({
                   По умолчанию: {formatDurationRu(sumServicesDuration(services, selectedIds))}
                 </p>
               </label>
-            </div>
+              </div>
+            </AdminFormSheetSection>
           ) : null}
 
           {step === 2 ? (
-            <div className="space-y-3">
-              <p className="text-[15px] font-bold text-[#111827]">Фото набора</p>
-
-              <div className="overflow-hidden rounded-[22px] bg-[#FFF1F4]">
+            <AdminFormSheetSection
+              title="Фото набора"
+              description="Обложка в каталоге — можно загрузить своё фото"
+            >
+              <div className="overflow-hidden rounded-[24px] bg-[#FFF1F4] shadow-[0_8px_28px_rgba(255,95,122,0.12)]">
                 {displayImage ? (
                   <img src={displayImage} alt="" className="aspect-[16/10] w-full object-cover" />
                 ) : (
@@ -481,20 +551,24 @@ export function ServicesBundleFormSheet({
               {uploadErr ? (
                 <p className="text-center text-[12px] font-medium text-red-600">{uploadErr}</p>
               ) : null}
-            </div>
+            </AdminFormSheetSection>
           ) : null}
 
           {step === 3 ? (
-            <div className="space-y-4">
-              <p className="text-[15px] font-bold text-[#111827]">Превью и публикация</p>
+            <>
+            <AdminFormSheetSection title="Как увидит клиент" description="Проверьте карточку перед публикацией">
+              <div className={adminFormSheetInsetTray}>
               <ServicesBundleCard
                 bundle={previewBundle}
                 services={services}
                 draft={draft}
                 serviceTitleById={serviceTitleById}
               />
+              </div>
+            </AdminFormSheetSection>
 
-              <label className="flex items-center justify-between gap-3 rounded-[18px] border border-[#EAECEF] bg-[#FAFAFA] px-4 py-3.5">
+            <AdminFormSheetSection title="Публикация">
+              <label className="flex items-center justify-between gap-3 rounded-[20px] border border-[#EAECEF] bg-[#FAFAFA] px-5 py-4 lg:py-5">
                 <span className="text-[14px] font-semibold text-[#111827]">Показывать клиентам</span>
                 <button
                   type="button"
@@ -512,60 +586,10 @@ export function ServicesBundleFormSheet({
                   />
                 </button>
               </label>
-            </div>
+            </AdminFormSheetSection>
+            </>
           ) : null}
-
-        <div className="mt-5 flex flex-col gap-2 border-t border-[#F3F4F6] pt-4 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
-          {step < BUNDLE_FORM_STEPS.length - 1 ? (
-            <>
-              <button
-                type="button"
-                disabled={!canNext}
-                onClick={handleNext}
-                className={servicesPinkBtn}
-              >
-                Далее
-              </button>
-              {step > 0 ? (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="mt-2 flex min-h-12 w-full items-center justify-center rounded-[18px] border border-[#EAECEF] bg-white text-[15px] font-semibold text-[#374151]"
-                >
-                  Назад
-                </button>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                disabled={!canNext}
-                onClick={() => onSave(buildBundle(visibleToClients ? 'visible' : 'hidden'))}
-                className={servicesPinkBtn}
-              >
-                Опубликовать
-              </button>
-              <button
-                type="button"
-                onClick={() => onSave(buildBundle('draft'))}
-                className="mt-2 flex min-h-12 w-full items-center justify-center rounded-[18px] border border-[#FDE8ED] bg-[#FFF1F4] text-[15px] font-bold text-[#F47C8C] transition active:scale-[0.98]"
-              >
-                Сохранить черновик
-              </button>
-              {step > 0 ? (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="mt-2 flex min-h-12 w-full items-center justify-center rounded-[18px] border border-[#EAECEF] bg-white text-[15px] font-semibold text-[#374151]"
-                >
-                  Назад
-                </button>
-              ) : null}
-            </>
-          )}
-        </div>
-      </div>
+      </AdminFormSheetLayout>
     </AdminBottomSheet>
   );
 }

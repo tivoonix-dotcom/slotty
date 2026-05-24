@@ -3,21 +3,30 @@ import { HiChevronDown } from 'react-icons/hi2';
 import { MasterAddressBlock } from './MasterAddressBlock';
 import { MasterPaymentMethodsBlock } from './MasterPaymentMethodsBlock';
 import type { ExtendedMasterProfile } from './types';
+import { catalogDesktopPanel } from './masterProfileTheme';
 
-type Props = { master: ExtendedMasterProfile };
+type Props = { master: ExtendedMasterProfile; layout?: 'stack' | 'desktop' };
 
 function Accordion({
   title,
   children,
   defaultOpen = false,
+  desktop = false,
 }: {
   title: string;
   children: ReactNode;
   defaultOpen?: boolean;
+  desktop?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(defaultOpen || desktop);
   return (
-    <div className="overflow-hidden rounded-[20px] bg-white shadow-[0_4px_20px_rgba(17,24,39,0.05)] ring-1 ring-[#F3F4F6]/80">
+    <div
+      className={
+        desktop
+          ? 'overflow-hidden rounded-[16px] bg-white'
+          : 'overflow-hidden bg-white'
+      }
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -36,10 +45,11 @@ function Accordion({
   );
 }
 
-export function MasterExtraSections({ master }: Props) {
+export function MasterExtraSections({ master, layout = 'stack' }: Props) {
   const [bioExpanded, setBioExpanded] = useState(false);
   const bio = master.bio?.trim();
   const paymentMethods = master.paymentMethods ?? [];
+  const isDesktop = layout === 'desktop';
   const hasRulesContent = Boolean(
     master.bookingRules?.trim() ||
       master.cancellationPolicy?.trim() ||
@@ -48,9 +58,9 @@ export function MasterExtraSections({ master }: Props) {
   );
 
   return (
-    <section className="mt-8 space-y-2.5">
+    <section className={`${isDesktop ? '' : 'mt-0'} space-y-2.5 ${isDesktop ? 'divide-y divide-[#EEEEEE] rounded-[16px] bg-white' : `${catalogDesktopPanel} divide-y divide-[#EEEEEE]`}`}>
       {bio ? (
-        <Accordion title="О мастере">
+        <Accordion title="О мастере" desktop={isDesktop}>
           <p
             className={`text-[14px] leading-relaxed text-[#4B5563] ${
               bioExpanded ? '' : 'line-clamp-4'
@@ -70,12 +80,12 @@ export function MasterExtraSections({ master }: Props) {
         </Accordion>
       ) : null}
 
-      <Accordion title="Адрес и формат" defaultOpen>
+      <Accordion title="Адрес и формат" defaultOpen desktop={isDesktop}>
         <MasterAddressBlock location={master.location} />
       </Accordion>
 
       {hasRulesContent ? (
-        <Accordion title="Правила записи">
+        <Accordion title="Правила записи" desktop={isDesktop}>
           <div className="space-y-3">
             {master.bookingRules?.trim() ? (
               <div>

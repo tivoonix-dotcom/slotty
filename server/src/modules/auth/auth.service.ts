@@ -5,7 +5,8 @@ import {
   linkEmailToProfile,
   linkGoogleToProfile,
   linkTelegramToProfile,
-  loginOrRegisterWithEmail,
+  loginWithEmailIdentity,
+  registerWithEmailIdentity,
   loginOrRegisterWithGoogle,
   loginOrRegisterWithTelegram,
 } from './authIdentities.service.js';
@@ -84,7 +85,11 @@ export async function linkGoogle(idToken: string, profileId: string) {
 }
 
 export async function loginWithEmail(email: string, password: string) {
-  const { session, isNewRegistration } = await loginOrRegisterWithEmail(email, password);
+  return loginWithEmailIdentity(email, password);
+}
+
+export async function registerWithEmail(email: string, password: string) {
+  const { session, isNewRegistration } = await registerWithEmailIdentity(email, password);
   if (isNewRegistration) {
     scheduleVerificationEmail(session.profile.id);
   }

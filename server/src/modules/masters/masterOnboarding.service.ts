@@ -1,5 +1,6 @@
 import { query } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { syncUserProfileFromMasterCabinet } from '../profiles/profiles.service.js';
 
 export type PrimaryLocationInput = {
   visitType: 'studio' | 'at_home';
@@ -56,6 +57,10 @@ export async function upsertPrimaryLocation(masterId: string, loc: PrimaryLocati
       loc.showExactAddressAfterBooking === true,
     ],
   );
+
+  await syncUserProfileFromMasterCabinet(masterId, {
+    address: loc.publicAddress.trim() || null,
+  });
 }
 
 export type ScheduleRuleInput = {

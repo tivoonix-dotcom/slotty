@@ -1,6 +1,6 @@
 import { HiCheck, HiChevronRight, HiXMark } from 'react-icons/hi2';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
-import { apptCard } from './adminAppointmentsTheme';
+import { apptCardInteractive, apptChevron, apptPriceAccent } from './adminAppointmentsTheme';
 import { AppointmentsClientAvatar } from './AppointmentsClientAvatar';
 import { formatAppointmentPrice, formatCardDateTime, historyStatusLabel } from './appointmentsFormat';
 
@@ -12,14 +12,14 @@ type Props = {
 function StatusBadge({ status }: { status: DemoMasterAppointment['status'] }) {
   if (status === 'completed') {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#ECFDF5] px-2.5 py-1 text-[11px] font-bold text-[#16A34A]">
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#ECFDF5] px-2.5 py-1 text-[11px] font-bold text-[#16A34A] ring-1 ring-[#BBF7D0]/80">
         <HiCheck className="h-3 w-3" aria-hidden />
         {historyStatusLabel(status)}
       </span>
     );
   }
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#FEF2F2] px-2.5 py-1 text-[11px] font-bold text-[#EF4444]">
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#FEF2F2] px-2.5 py-1 text-[11px] font-bold text-[#EF4444] ring-1 ring-[#FECACA]/80">
       <HiXMark className="h-3 w-3" aria-hidden />
       {historyStatusLabel(status)}
     </span>
@@ -27,11 +27,14 @@ function StatusBadge({ status }: { status: DemoMasterAppointment['status'] }) {
 }
 
 export function AppointmentsHistoryRow({ appointment, onOpen }: Props) {
+  const priceClass =
+    appointment.status === 'completed' ? apptPriceAccent : 'font-bold tabular-nums text-[#111827]';
+
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={`${apptCard} flex w-full items-center gap-3 p-4 text-left transition active:scale-[0.99]`}
+      className={`${apptCardInteractive} flex w-full items-center gap-3 p-4 text-left`}
     >
       <AppointmentsClientAvatar name={appointment.clientName} />
       <div className="min-w-0 flex-1">
@@ -45,11 +48,11 @@ export function AppointmentsHistoryRow({ appointment, onOpen }: Props) {
         <p className="mt-1.5 text-[13px] font-semibold text-[#9CA3AF]">
           {formatCardDateTime(appointment.date, appointment.time)}
         </p>
-        <p className="mt-1 text-[15px] font-bold tabular-nums text-[#111827]">
+        <p className={`mt-1 text-[15px] ${priceClass}`}>
           {formatAppointmentPrice(appointment.priceByn)}
         </p>
       </div>
-      <HiChevronRight className="h-5 w-5 shrink-0 text-[#9CA3AF]" aria-hidden />
+      <HiChevronRight className={apptChevron} aria-hidden />
     </button>
   );
 }

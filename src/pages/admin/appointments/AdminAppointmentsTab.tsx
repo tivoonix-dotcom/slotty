@@ -10,7 +10,22 @@ import type {
   DemoMasterAppointment,
 } from '../../../features/master/model/demoMasterAppointments';
 import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
-import { APPOINTMENTS_PAGE_BG, apptPinkBtn } from './adminAppointmentsTheme';
+import { AdminToast } from '../shared/AdminToast';
+import { useAdminToast } from '../shared/useAdminToast';
+import {
+  APPOINTMENTS_PAGE_BG,
+  apptBillingBanner,
+  apptEmptyIcon,
+  apptGroupLabel,
+  apptListTray,
+  apptMonthLabel,
+  apptPinkBtn,
+  appointmentsDesktopCard,
+  appointmentsDesktopTabsSticky,
+  appointmentsShellCard,
+} from './adminAppointmentsTheme';
+import { AppointmentsPageHeader } from './AppointmentsPageHeader';
+import { AppointmentsSectionTabs } from './AppointmentsSectionTabs';
 import {
   AppointmentsActionSheet,
   type AppointmentActionConfig,
@@ -22,7 +37,7 @@ import { AppointmentsQuickFilters } from './AppointmentsQuickFilters';
 import { AppointmentsHistoryRow } from './AppointmentsHistoryRow';
 import { AppointmentsHistorySummary } from './AppointmentsHistorySummary';
 import { AppointmentsNearestCard } from './AppointmentsNearestCard';
-import { APPOINTMENTS_TAB_INTRO_IMAGES, AppointmentsTabIntro } from './AppointmentsTabIntro';
+import { APPOINTMENTS_TAB_INTRO_IMAGES } from './AppointmentsTabIntro';
 import { AppointmentsRequestCard } from './AppointmentsRequestCard';
 import { AppointmentsStatsCard } from './AppointmentsStatsCard';
 import { AppointmentsUpcomingRow } from './AppointmentsUpcomingRow';
@@ -64,7 +79,7 @@ function updateStatus(
 function apptLimitProgressClass(ratio: number): string {
   if (ratio >= 1) return 'bg-[#EF4444]';
   if (ratio >= 0.85) return 'bg-amber-400';
-  return 'bg-gradient-to-r from-[#F47C8C] to-[#F26D83]';
+  return 'bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a]';
 }
 
 export function AdminAppointmentsTab({
@@ -75,7 +90,7 @@ export function AdminAppointmentsTab({
   const [tab, setTab] = useState<AppointmentsTabId>('requests');
   const [actionConfig, setActionConfig] = useState<AppointmentActionConfig | null>(null);
   const [actionApiError, setActionApiError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, showToast, showErrorToast, clearToast } = useAdminToast();
 
   const [requestsService, setRequestsService] = useState('all');
   const [requestsSort, setRequestsSort] = useState<RequestsSort>('newest');
@@ -199,11 +214,6 @@ export function AdminAppointmentsTab({
   const freeApptCap = billingLimits.maxMonthlyAppointments ?? 20;
   const apptUsageRatio = Math.min(1, monthlyApptCount / freeApptCap);
 
-  const showToast = useCallback((message: string) => {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 2200);
-  }, []);
-
   const openAction = useCallback((config: AppointmentActionConfig) => {
     setActionApiError(null);
     setActionConfig(config);
@@ -237,10 +247,10 @@ export function AdminAppointmentsTab({
         }
         setActionConfig(null);
       } catch (e) {
-        setActionApiError(e instanceof Error ? e.message : 'Не удалось обновить запись');
+        showErrorToast(e instanceof Error ? e.message : 'Не удалось обновить запись');
       }
     },
-    [actionConfig, appointments, onChangeAppointments, showToast],
+    [actionConfig, appointments, onChangeAppointments, showErrorToast, showToast],
   );
 
   const servicePills = (rows: DemoMasterAppointment[]) => [
@@ -290,7 +300,7 @@ export function AdminAppointmentsTab({
           text="Когда клиент отправит заявку на запись, она появится здесь"
           hint="Заявку можно будет подтвердить или отклонить"
           icon={
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FFF1F4] text-[#F47C8C]">
+            <span className={apptEmptyIcon}>
               <HiInbox className="h-8 w-8" aria-hidden />
             </span>
           }
@@ -351,9 +361,7 @@ export function AdminAppointmentsTab({
         {nearest ? <AppointmentsNearestCard appointment={nearest} onOpen={() => onOpenDetail(nearest)} /> : null}
         {upcomingGroups.map((group) => (
           <section key={group.dayIso}>
-            <h3 className="mb-2 px-0.5 text-[13px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-              {group.label}
-            </h3>
+            <h3 className={`mb-2 px-0.5 ${apptGroupLabel}`}>{group.label}</h3>
             <ul className="flex flex-col gap-3">
               {group.items.map((a) => (
                 <li key={a.id}>
@@ -393,7 +401,7 @@ export function AdminAppointmentsTab({
         />
         {historyGroups.map((group) => (
           <section key={group.monthKey}>
-            <h3 className="mb-2 px-0.5 text-[15px] font-bold text-[#111827]">{group.label}</h3>
+            <h3 className={apptMonthLabel}>{group.label}</h3>
             <ul className="flex flex-col gap-3">
               {group.items.map((a) => (
                 <li key={a.id}>
@@ -407,140 +415,165 @@ export function AdminAppointmentsTab({
     );
   };
 
+  const billingBanner =
+    billingPlanId === 'free' ? (
+      <section
+        className={`${apptBillingBanner} ${
+          atFreeApptLimit ? 'border-amber-300 ring-amber-100' : almostFreeAppt ? 'border-amber-200' : ''
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="min-w-0 flex-1 text-[14px] font-semibold text-[#374151]">
+            {planBadgeLabel(billingPlanId)} · {monthlyApptCount} / {freeApptCap} записей в месяце
+          </p>
+          <Link
+            to={ADMIN_BILLING_PATH}
+            className="inline-flex shrink-0 rounded-full bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] px-3 py-1.5 text-[12px] font-bold text-white shadow-[0_6px_16px_rgba(255,95,122,0.28)]"
+          >
+            Мой тариф
+          </Link>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#FFF1F4] ring-1 ring-[#FDE8ED]/80">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${apptLimitProgressClass(apptUsageRatio)}`}
+            style={{ width: `${apptUsageRatio * 100}%` }}
+            role="progressbar"
+            aria-valuenow={monthlyApptCount}
+            aria-valuemin={0}
+            aria-valuemax={freeApptCap}
+            aria-label={`Записей в месяце: ${monthlyApptCount} из ${freeApptCap}`}
+          />
+        </div>
+        {atFreeApptLimit || almostFreeAppt ? (
+          <p className="mt-1.5 text-[12px] font-semibold text-amber-800/85">
+            {atFreeApptLimit
+              ? 'Лимит Free исчерпан — откройте Pro в тарифах.'
+              : 'Почти достигнут лимит Free на этот месяц.'}
+          </p>
+        ) : null}
+      </section>
+    ) : null;
+
+  const filterSheets = (
+    <>
+      {tab === 'requests' ? (
+        <AppointmentsFiltersSheet
+          open={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          mode="requests"
+          serviceOptions={servicePills(pendingRows)}
+          service={requestsService}
+          onService={setRequestsService}
+          sort={requestsSort}
+          onSort={setRequestsSort}
+          onReset={resetFilters}
+        />
+      ) : null}
+      {tab === 'upcoming' ? (
+        <AppointmentsFiltersSheet
+          open={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          mode="upcoming"
+          serviceOptions={servicePills(upcomingRows)}
+          service={upcomingService}
+          onService={setUpcomingService}
+          sort={upcomingSort}
+          onSort={setUpcomingSort}
+          onReset={resetFilters}
+        />
+      ) : null}
+      {tab === 'history' ? (
+        <AppointmentsFiltersSheet
+          open={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          mode="history"
+          serviceOptions={servicePills(historyRows)}
+          service={historyService}
+          onService={setHistoryService}
+          sort={historySort}
+          onSort={setHistorySort}
+          status={historyStatus}
+          onStatus={setHistoryStatus}
+          period={historyPeriod}
+          onPeriod={setHistoryPeriod}
+          onReset={resetFilters}
+        />
+      ) : null}
+    </>
+  );
+
+  const toolbar = (
+    <div className={apptListTray}>
+      <AppointmentsQuickFilters
+        tab={tab}
+        sheetActive={sheetFilterActive}
+        sheetOpen={filterOpen}
+        onOpenSheet={() => setFilterOpen(true)}
+        sheetAriaLabel={sheetAriaLabel}
+        requestsSort={requestsSort}
+        onRequestsSort={setRequestsSort}
+        upcomingSort={upcomingSort}
+        onUpcomingSort={setUpcomingSort}
+        historySort={historySort}
+        onHistorySort={setHistorySort}
+        historyStatus={historyStatus}
+        onHistoryStatus={setHistoryStatus}
+        historyPeriod={historyPeriod}
+        onHistoryPeriod={setHistoryPeriod}
+      />
+    </div>
+  );
+
+  const tabPanels = (
+    <AdminTabContentTransition activeKey={tab} className="min-w-0">
+      {tab === 'requests' ? renderRequests() : null}
+      {tab === 'upcoming' ? renderUpcoming() : null}
+      {tab === 'history' ? renderHistory() : null}
+    </AdminTabContentTransition>
+  );
+
+  const mobileBody = (
+    <section
+      className={`-mx-4 min-w-0 space-y-4 overflow-x-hidden px-4 pb-[calc(5.75rem+1.25rem)] lg:hidden ${APPOINTMENTS_PAGE_BG}`}
+    >
+      <div className="relative z-0">
+        <AppointmentsPageHeader tab={tab} stats={stats} />
+        <div className="relative z-10 -mt-7 lg:hidden">
+          <AppointmentsStatsCard
+            requests={stats.requests}
+            upcoming={stats.upcoming}
+            history={stats.history}
+            className="border-[#FDE8ED] shadow-[0_14px_40px_rgba(255,95,122,0.12)]"
+          />
+        </div>
+      </div>
+      {billingBanner}
+      {toolbar}
+      {tabPanels}
+    </section>
+  );
+
+  const desktopBody = (
+    <div className={`${appointmentsShellCard} space-y-6`}>
+      <div className={`${appointmentsDesktopCard} ${appointmentsDesktopTabsSticky}`}>
+        <AppointmentsSectionTabs active={tab} onChange={setTab} counts={stats} />
+      </div>
+      <div className="min-w-0 space-y-6">
+        <AppointmentsPageHeader tab={tab} stats={stats} />
+        {billingBanner}
+        {toolbar}
+        {tabPanels}
+      </div>
+    </div>
+  );
+
   return (
     <>
-      <AppointmentsBottomTabBar active={tab} onChange={setTab} />
-
-      <div
-        className={`-mx-4 min-w-0 space-y-4 overflow-x-hidden px-4 pb-[calc(5.75rem+1.25rem)] lg:mx-0 lg:pb-0 lg:px-0 ${APPOINTMENTS_PAGE_BG}`}
-      >
-        <div className="relative z-0">
-          <AppointmentsTabIntro tab={tab} />
-          <div className="relative z-10 -mt-7">
-            <AppointmentsStatsCard
-              requests={stats.requests}
-              upcoming={stats.upcoming}
-              history={stats.history}
-              className="shadow-[0_14px_40px_rgba(17,24,39,0.12)]"
-            />
-          </div>
-        </div>
-
-        {toast ? (
-          <div className="rounded-full bg-[#ECFDF5] px-5 py-3 text-center text-[14px] font-semibold text-[#16A34A] shadow-[0_8px_24px_rgba(17,24,39,0.06)]">
-            {toast}
-          </div>
-        ) : null}
-
-        {billingPlanId === 'free' ? (
-          <section
-            className={`rounded-[22px] border bg-white px-4 py-3 shadow-[0_8px_28px_rgba(17,24,39,0.05)] ${
-              atFreeApptLimit ? 'border-amber-200' : almostFreeAppt ? 'border-amber-100' : 'border-[#EAECEF]'
-            }`}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="min-w-0 flex-1 text-[14px] font-medium text-[#374151]">
-                {planBadgeLabel(billingPlanId)} · {monthlyApptCount} / {freeApptCap} записей в месяце
-              </p>
-              <Link
-                to={ADMIN_BILLING_PATH}
-                className="inline-flex shrink-0 rounded-full bg-gradient-to-r from-[#F47C8C] to-[#F26D83] px-3 py-1.5 text-[12px] font-bold text-white shadow-[0_6px_16px_rgba(244,124,140,0.28)]"
-              >
-                Мой тариф
-              </Link>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#F3F4F6]">
-              <div
-                className={`h-full rounded-full transition-all duration-300 ${apptLimitProgressClass(apptUsageRatio)}`}
-                style={{ width: `${apptUsageRatio * 100}%` }}
-                role="progressbar"
-                aria-valuenow={monthlyApptCount}
-                aria-valuemin={0}
-                aria-valuemax={freeApptCap}
-                aria-label={`Записей в месяце: ${monthlyApptCount} из ${freeApptCap}`}
-              />
-            </div>
-            {atFreeApptLimit || almostFreeAppt ? (
-              <p className="mt-1.5 text-[12px] font-medium text-amber-800/85">
-                {atFreeApptLimit
-                  ? 'Лимит Free исчерпан — откройте Pro в тарифах.'
-                  : 'Почти достигнут лимит Free на этот месяц.'}
-              </p>
-            ) : null}
-          </section>
-        ) : null}
-
-        <AppointmentsQuickFilters
-          tab={tab}
-          sheetActive={sheetFilterActive}
-          sheetOpen={filterOpen}
-          onOpenSheet={() => setFilterOpen(true)}
-          sheetAriaLabel={sheetAriaLabel}
-          requestsSort={requestsSort}
-          onRequestsSort={setRequestsSort}
-          upcomingSort={upcomingSort}
-          onUpcomingSort={setUpcomingSort}
-          historySort={historySort}
-          onHistorySort={setHistorySort}
-          historyStatus={historyStatus}
-          onHistoryStatus={setHistoryStatus}
-          historyPeriod={historyPeriod}
-          onHistoryPeriod={setHistoryPeriod}
-        />
-
-        {tab === 'requests' ? (
-          <AppointmentsFiltersSheet
-            open={filterOpen}
-            onClose={() => setFilterOpen(false)}
-            mode="requests"
-            serviceOptions={servicePills(pendingRows)}
-            service={requestsService}
-            onService={setRequestsService}
-            sort={requestsSort}
-            onSort={setRequestsSort}
-            onReset={resetFilters}
-          />
-        ) : null}
-
-        {tab === 'upcoming' ? (
-          <AppointmentsFiltersSheet
-            open={filterOpen}
-            onClose={() => setFilterOpen(false)}
-            mode="upcoming"
-            serviceOptions={servicePills(upcomingRows)}
-            service={upcomingService}
-            onService={setUpcomingService}
-            sort={upcomingSort}
-            onSort={setUpcomingSort}
-            onReset={resetFilters}
-          />
-        ) : null}
-
-        {tab === 'history' ? (
-          <AppointmentsFiltersSheet
-            open={filterOpen}
-            onClose={() => setFilterOpen(false)}
-            mode="history"
-            serviceOptions={servicePills(historyRows)}
-            service={historyService}
-            onService={setHistoryService}
-            sort={historySort}
-            onSort={setHistorySort}
-            status={historyStatus}
-            onStatus={setHistoryStatus}
-            period={historyPeriod}
-            onPeriod={setHistoryPeriod}
-            onReset={resetFilters}
-          />
-        ) : null}
-
-        <AdminTabContentTransition activeKey={tab} className="min-w-0 -mt-1">
-          {tab === 'requests' ? renderRequests() : null}
-          {tab === 'upcoming' ? renderUpcoming() : null}
-          {tab === 'history' ? renderHistory() : null}
-        </AdminTabContentTransition>
-      </div>
-
+      <AppointmentsBottomTabBar active={tab} onChange={setTab} variant="mobile" />
+      {mobileBody}
+      {desktopBody}
+      <AdminToast toast={toast} onDismiss={clearToast} />
+      {filterSheets}
       <AppointmentsActionSheet
         config={actionConfig}
         apiError={actionApiError}

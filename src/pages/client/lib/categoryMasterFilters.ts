@@ -1,4 +1,5 @@
 import type { CatalogListingsParams } from '../../../features/services/api/catalogListingsApi';
+import { normalizeCategoryCode } from '../../../features/catalog/serviceCategoryLabels';
 
 export type CategoryMasterFilters = {
   /** Категория услуг (только каталог мастеров). */
@@ -160,7 +161,7 @@ export function categoryFiltersToApiParams(
 ): CatalogListingsParams {
   const p: CatalogListingsParams = { ...base };
   if (base.search?.trim()) p.search = base.search.trim();
-  if (f.categoryCode) p.category = f.categoryCode;
+  if (f.categoryCode) p.category = normalizeCategoryCode(f.categoryCode);
 
   if (f.dateRange !== 'any') p.dateRange = f.dateRange;
   if (f.timeOfDay !== 'any') p.timeOfDay = f.timeOfDay;
@@ -195,4 +196,95 @@ export function categoryFiltersToApiParams(
 /** Есть ли отличия от дефолта (для flatMode каталога). */
 export function hasActiveCatalogFilters(f: CategoryMasterFilters): boolean {
   return countActiveCategoryFilters(f) > 0;
+}
+
+export const MASTER_SORT_OPTIONS: Array<{
+  value: CategoryMasterFilters['sortBy'];
+  label: string;
+}> = [
+  { value: 'recommended', label: 'Сначала популярные' },
+  { value: 'soonest', label: 'Ближайшее время' },
+  { value: 'rating', label: 'По рейтингу' },
+  { value: 'reviews', label: 'Больше отзывов' },
+  { value: 'price_asc', label: 'Сначала дешевле' },
+  { value: 'price_desc', label: 'Сначала дороже' },
+];
+
+export type MastersViewTab = 'all' | 'near' | 'today' | 'top';
+
+export const MASTERS_VIEW_TABS: Array<{ id: MastersViewTab; label: string }> = [
+  { id: 'all', label: 'Все мастера' },
+  { id: 'near', label: 'Рядом' },
+  { id: 'today', label: 'Сегодня' },
+  { id: 'top', label: 'Топ рейтинг' },
+];
+
+export function getMastersViewTab(filters: CategoryMasterFilters): MastersViewTab {
+  if (filtersToMastersQuickChips(filters).has('top')) return 'top';
+  if (filtersToMastersQuickChips(filters).has('near')) return 'near';
+  if (filtersToMastersQuickChips(filters).has('today')) return 'today';
+  return 'all';
+}
+
+export function setMastersViewTab(
+  filters: CategoryMasterFilters,
+  tab: MastersViewTab,
+): CategoryMasterFilters {
+  if (tab === 'all') {
+    return {
+      ...filters,
+      dateRange: 'any',
+      sortBy: filters.sortBy === 'soonest' || filters.sortBy === 'rating' ? 'recommended' : filters.sortBy,
+      minRating: null,
+    };
+  }
+  return toggleMastersQuickChip(
+    {
+      ...filters,
+      dateRange: 'any',
+      sortBy: 'recommended',
+      minRating: null,
+    },
+    tab === 'top' ? 'top' : tab,
+  );
+}
+
+const MASTERS_CATALOG_SORT_VALUES = new Set<CategoryMasterFilters['sortBy']>([
+  'recommended',
+  'rating',
+  'price_asc',
+  'price_desc',
+  'reviews',
+  'soonest',
+]);
+
+/** Query-параметры из mega-menu и прямых ссылок на `/masters`. */
+export function parseMastersCatalogFiltersFromSearch(
+  searchParams: URLSearchParams,
+): CategoryMasterFilters {
+  const f: CategoryMasterFilters = { ...DEFAULT_CATEGORY_MASTER_FILTERS };
+
+  if (searchParams.get('slots') === '1') f.onlyWithSlots = true;
+  if (searchParams.get('verified') === '1') f.verifiedOnly = true;
+  if (searchParams.get('promo') === '1') f.promotionOnly = true;
+
+  const sort = searchParams.get('sort');
+  if (sort && MASTERS_CATALOG_SORT_VALUES.has(sort as CategoryMasterFilters['sortBy'])) {
+    f.sortBy = sort as CategoryMasterFilters['sortBy'];
+  }
+
+  if (searchParams.get('rating') === '1') {
+    f.sortBy = 'rating';
+    f.minRating = '45';
+  }
+
+  const reviews = searchParams.get('reviews');
+  if (reviews === '5' || reviews === '20' || reviews === '50') {
+    f.minReviews = reviews;
+  }
+
+  const category = searchParams.get('category');
+  if (category) f.categoryCode = normalizeCategoryCode(category);
+
+  return f;
 }

@@ -37,7 +37,7 @@ export function OverviewRevenueBarChart({
           ))}
         </div>
 
-        <div className="relative min-h-[11rem] flex-1 overflow-hidden rounded-[20px] border border-[#EEF0F5] bg-white p-3 pt-4">
+        <div className="relative min-h-[11rem] flex-1 overflow-hidden rounded-[20px] border border-[#EEF0F5] bg-[#f6f7fb] p-3 pt-4 lg:border-0">
           {!hasAny ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
               <HiCloud className="h-10 w-10 text-[#D1D5DB]" aria-hidden />

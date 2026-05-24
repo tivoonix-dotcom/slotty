@@ -27,3 +27,5 @@ export function formatBelarusPhoneDisplay(compact: string): string {
   const r = d.slice(3);
   return `+375 ${r.slice(0, 2)} ${r.slice(2, 5)} ${r.slice(5, 7)} ${r.slice(7)}`;
 }
+
+export { sanitizeBelarusPhoneInput } from '../../master-onboarding/model/belarusPhone';

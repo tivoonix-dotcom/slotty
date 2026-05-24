@@ -23,9 +23,23 @@ export const allowedOrigins: string[] = [
   ),
 ];
 
+function isLocalDevOrigin(origin: string): boolean {
+  if (env.NODE_ENV === 'production') return false;
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
 export const corsOptions: CorsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(normalizeOrigin(origin))) {
+    if (!origin) {
+      return callback(null, true);
+    }
+    const normalized = normalizeOrigin(origin);
+    if (allowedOrigins.includes(normalized) || isLocalDevOrigin(origin)) {
       return callback(null, true);
     }
 

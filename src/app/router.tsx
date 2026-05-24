@@ -9,6 +9,8 @@ import {
   LEGAL_TERMS_PATH,
   MASTERS_PATH,
   PROFILE_PATH,
+  PROFILE_NOTIFICATIONS_PATH,
+  PROFILE_SETTINGS_PATH,
   SERVICES_PATH,
 } from './paths';
 import { AdminPage } from '../pages/admin/AdminPage';
@@ -17,6 +19,8 @@ import { Home } from '../pages/Home';
 import { BecomeMasterPage } from '../pages/master-onboarding/BecomeMasterPage';
 import { MasterProfilePage } from '../pages/master/MasterProfilePage';
 import { ProfilePage } from '../pages/profile/ProfilePage';
+import { ClientNotificationsPage } from '../pages/profile/notifications/ClientNotificationsPage';
+import { ClientSettingsPage } from '../pages/profile/settings/ClientSettingsPage';
 import { ClientLayout } from '../pages/client/ClientLayout';
 import { MastersCatalogPage } from '../pages/client/pages/MastersCatalogPage';
 import { ServiceCategoryPage } from '../pages/client/pages/ServiceCategoryPage';
@@ -24,7 +28,6 @@ import { ServicesCatalogPage } from '../pages/client/pages/ServicesCatalogPage';
 import { PersonalDataConsentPage } from '../pages/legal/PersonalDataConsentPage';
 import { PrivacyPolicyPage } from '../pages/legal/PrivacyPolicyPage';
 import { UserAgreementPage } from '../pages/legal/UserAgreementPage';
-import { SettingsPage } from '../pages/settings/SettingsPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { MasterLoginPage } from '../pages/auth/MasterLoginPage';
@@ -62,6 +65,8 @@ export {
   MASTER_PATH,
   MASTERS_PATH,
   PROFILE_PATH,
+  PROFILE_NOTIFICATIONS_PATH,
+  PROFILE_SETTINGS_PATH,
   SERVICES_PATH,
 } from './paths';
 
@@ -76,6 +81,8 @@ export function AppRouter() {
           <Route path={`${SERVICES_PATH}/category/:categoryCode`} element={<ServiceCategoryPage />} />
           <Route path={MASTERS_PATH} element={<MastersCatalogPage />} />
           <Route path={PROFILE_PATH} element={<ProfilePage />} />
+          <Route path={PROFILE_NOTIFICATIONS_PATH} element={<ClientNotificationsPage />} />
+          <Route path={`${PROFILE_SETTINGS_PATH}/*`} element={<ClientSettingsPage />} />
           <Route path="/master/:id" element={<MasterProfilePage />} />
           <Route path={BOOKING_PATH} element={<BookingPage />} />
         </Route>
@@ -89,7 +96,7 @@ export function AppRouter() {
         <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordPage />} />
         <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordPage />} />
         <Route path={BECOME_MASTER_PATH} element={<BecomeMasterPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings" element={<Navigate to={PROFILE_SETTINGS_PATH} replace />} />
         <Route path={LEGAL_PRIVACY_PATH} element={<PrivacyPolicyPage />} />
         <Route path={LEGAL_PD_CONSENT_PATH} element={<PersonalDataConsentPage />} />
         <Route path={LEGAL_TERMS_PATH} element={<UserAgreementPage />} />

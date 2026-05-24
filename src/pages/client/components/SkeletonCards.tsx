@@ -1,21 +1,23 @@
+import { catalogInnerDivider, catalogListCardClass } from '../servicesCatalog/servicesCatalogTheme';
+
 export function SkeletonServiceCard() {
   return (
-    <div className="w-full overflow-hidden rounded-[24px] bg-white shadow-[0_10px_36px_rgba(17,24,39,0.07)] ring-1 ring-[#f2f2f2]">
+    <div className={`w-full ${catalogListCardClass}`}>
       <div className="space-y-4 p-4">
         <div className="flex gap-3.5">
-          <div className="h-[5.5rem] w-[5.5rem] shrink-0 animate-pulse rounded-[20px] bg-neutral-200/80" />
+          <div className="h-[5.5rem] w-[5.5rem] shrink-0 animate-pulse rounded-[20px] bg-[#EEEEF0]" />
           <div className="min-w-0 flex-1 space-y-2.5 pt-1">
-            <div className="h-6 w-3/4 animate-pulse rounded-full bg-neutral-200/80" />
-            <div className="h-4 w-full animate-pulse rounded-full bg-neutral-200/60" />
-            <div className="h-4 w-1/2 animate-pulse rounded-full bg-neutral-200/50" />
+            <div className="h-6 w-3/4 animate-pulse rounded-full bg-[#EEEEF0]" />
+            <div className="h-4 w-full animate-pulse rounded-full bg-[#EEEEF0]/80" />
+            <div className="h-4 w-1/2 animate-pulse rounded-full bg-[#EEEEF0]/70" />
           </div>
         </div>
-        <div className="space-y-2 border-t border-[#F3F4F6] pt-3">
-          <div className="h-10 animate-pulse rounded-[14px] bg-neutral-200/50" />
-          <div className="h-10 animate-pulse rounded-[14px] bg-neutral-200/50" />
-          <div className="h-10 animate-pulse rounded-[14px] bg-neutral-200/50" />
+        <div className={`space-y-2 pt-3 ${catalogInnerDivider}`}>
+          <div className="h-10 animate-pulse rounded-[14px] bg-[#F6F7FB]" />
+          <div className="h-10 animate-pulse rounded-[14px] bg-[#F6F7FB]" />
+          <div className="h-10 animate-pulse rounded-[14px] bg-[#F6F7FB]" />
         </div>
-        <div className="h-[7.5rem] animate-pulse rounded-[18px] bg-[#F1EFEF]" />
+        <div className="h-[7.5rem] animate-pulse rounded-[18px] bg-[#F6F7FB]" />
       </div>
     </div>
   );

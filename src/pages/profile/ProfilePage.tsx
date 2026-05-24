@@ -9,12 +9,11 @@ import {
 } from 'react';
 import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { HEADER_LOGO_SRC } from '../../app/headerLogo';
-import { ADMIN_PATH, BECOME_MASTER_PATH, getMasterPath, getProfilePath, SERVICES_PATH } from '../../app/paths';
+import { ADMIN_PATH, BECOME_MASTER_PATH, getMasterPath, getProfilePath, PROFILE_NOTIFICATIONS_PATH, PROFILE_SETTINGS_PATH, SERVICES_PATH } from '../../app/paths';
 import { setProfileRole } from '../../features/profile/lib/setProfileRole';
 import { useIsMasterUser } from '../../features/profile/hooks/useIsMasterUser';
 import {
   type DemoAppointmentRecord,
-  type DemoAppointmentStatus,
   type DemoAppointmentTab,
   buildYandexMapWidgetUrl,
   buildYandexMapsRouteUrl,
@@ -41,11 +40,7 @@ import {
   FAVORITE_MASTERS_CHANGED,
   removeFavoriteMasterId,
 } from '../../features/profile/lib/favoriteMastersStorage';
-import {
-  fetchMyNotifications,
-  markNotificationReadApi,
-  type MeNotificationRow,
-} from '../../features/profile/api/clientNotifications';
+import { useMyNotifications } from '../../features/notifications/useMyNotifications';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { openBookingVoucherPrint } from '../../features/booking/lib/bookingConfirmationVoucherPrint';
 import { NothingFoundCard } from '../../shared/ui/NothingFoundCard';
@@ -55,14 +50,27 @@ import { apiFetch, getApiBaseUrl } from '../../shared/api/backendClient';
 import { readSlottyApiErrorMessage } from '../../shared/api/slottyApiErrorMessage';
 import { postClientReview } from '../../features/profile/api/clientReviews';
 import { useClientErrorModal } from '../client/ClientErrorModalContext';
+import { profileDisplayAvatarUrl } from '../../features/profile/lib/profileDisplayAvatar';
 import { optimizeAvatarUrl } from '../../shared/lib/optimizeAvatarUrl';
 import { ImageReveal } from '../../shared/ui/ImageReveal';
 import { HomeHeader } from '../HomeHeader';
 import type { ClientOutletContext } from '../client/clientOutletContext';
-import { CLIENT_CONTENT_PAD_BOTTOM, CLIENT_HEADER_OFFSET } from '../client/clientNavConstants';
-import { formatBelarusPhoneDisplay } from '../../features/profile/lib/belarusPhone';
-import { ClientSettingsSheet } from './components/ClientSettingsSheet';
+import { CLIENT_CONTENT_PAD_BOTTOM, CLIENT_HEADER_OFFSET, CLIENT_STICKY_BELOW_MOBILE_HEADER } from '../client/clientNavConstants';
+import { BelarusPhoneInline } from './components/BelarusPhoneInline';
 import { ProfileEditModal } from './components/ProfileEditModal';
+import { ClientProfileDesktop } from './clientProfile/ClientProfileDesktop';
+import {
+  clientProfileSectionTitle,
+  clientProfileSubTabActive,
+  clientProfileSubTabIdle,
+  clientProfileSubTabTrack,
+} from './clientProfile/clientProfileTheme';
+import {
+  formatPriceByn,
+  statusClassName,
+  statusDetailsRu,
+  statusLabelRu,
+} from './profileFormat';
 
 function IconChevronRight({ className }: { className?: string }) {
   return (
@@ -204,75 +212,10 @@ function IconRouteYandex({ className }: { className?: string }) {
 
 type MainTab = 'appointments' | 'favorites' | 'profile';
 
-function formatNotificationListTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const now = new Date();
-  const sameDay =
-    d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-  const timePart = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  if (sameDay) return `Сегодня, ${timePart}`;
-  const yest = new Date(now);
-  yest.setDate(yest.getDate() - 1);
-  const ySame =
-    d.getFullYear() === yest.getFullYear() && d.getMonth() === yest.getMonth() && d.getDate() === yest.getDate();
-  if (ySame) return `Вчера, ${timePart}`;
-  return d.toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-}
-
 function parseMainTab(tabParam: string | null): MainTab {
   if (tabParam === 'appointments') return 'appointments';
   if (tabParam === 'favorites') return 'favorites';
   return 'profile';
-}
-
-function statusLabelRu(status: DemoAppointmentStatus): string {
-  switch (status) {
-    case 'confirmed':
-      return 'Подтверждена';
-    case 'pending':
-      return 'Ожидает';
-    case 'completed':
-      return 'Завершена';
-    case 'cancelled':
-      return 'Отменена';
-    default:
-      return status;
-  }
-}
-
-function statusClassName(status: DemoAppointmentStatus): string {
-  switch (status) {
-    case 'confirmed':
-      return 'bg-[#EAFBF2] text-[#2F8A5B]';
-    case 'pending':
-      return 'bg-[#FFF4E8] text-[#B66A24]';
-    case 'completed':
-      return 'bg-[#EEF2FF] text-[#5B63B7]';
-    case 'cancelled':
-      return 'bg-[#F3F1F1] text-neutral-500';
-    default:
-      return 'bg-[#F3F1F1] text-neutral-500';
-  }
-}
-
-function formatPriceByn(price: number): string {
-  return `${price} BYN`;
-}
-
-function statusDetailsRu(status: DemoAppointmentStatus): string {
-  switch (status) {
-    case 'confirmed':
-      return 'Подтверждена';
-    case 'pending':
-      return 'Ожидает подтверждения';
-    case 'completed':
-      return 'Завершена';
-    case 'cancelled':
-      return 'Отменена';
-    default:
-      return status;
-  }
 }
 
 function demoAppointmentToVoucherPayload(row: DemoAppointmentRecord) {
@@ -398,75 +341,6 @@ function AppointmentCard({
             {row.status === 'cancelled' ? 'Отменена' : 'Завершена'}
           </span>
         )}
-      </div>
-    </article>
-  );
-}
-
-function NotificationCard({
-  item,
-  index = 0,
-  onAfterRead,
-}: {
-  item: MeNotificationRow;
-  index?: number;
-  onAfterRead?: () => void;
-}) {
-  const isNew = !item.read_at;
-
-  const onClick = useCallback(() => {
-    if (item.read_at) return;
-    void (async () => {
-      try {
-        await markNotificationReadApi(item.id);
-        onAfterRead?.();
-      } catch {
-        /* ignore */
-      }
-    })();
-  }, [item.id, item.read_at, onAfterRead]);
-
-  return (
-    <article
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-      className={`animate-fade-enter rounded-[26px] px-4 py-3.5 ring-1 ${
-        isNew
-          ? 'bg-white ring-[#E29595]/18 shadow-[0_10px_30px_rgba(226,149,149,0.1)]'
-          : 'bg-white ring-black/[0.03] shadow-[0_6px_22px_rgba(17,17,17,0.04)]'
-      }`}
-      style={{ animationDelay: `${index * 52}ms` }}
-    >
-      <div className="flex gap-3">
-        <span
-          className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${
-            isNew ? 'bg-[#FDF8F8] text-[#E29595]' : 'bg-[#F1EFEF] text-neutral-500'
-          }`}
-          aria-hidden
-        >
-          <IconBell className="h-[18px] w-[18px] shrink-0" />
-        </span>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="min-w-0 flex-1 text-[16px] font-semibold leading-snug tracking-[-0.035em] text-neutral-950">
-              {item.title}
-            </p>
-
-            <time className="shrink-0 pt-0.5 text-right text-[12px] font-medium leading-tight text-neutral-400 tabular-nums">
-              {formatNotificationListTime(item.created_at)}
-            </time>
-          </div>
-
-          <p className="mt-2 text-[14px] leading-[1.5] text-neutral-500">{item.body}</p>
-        </div>
       </div>
     </article>
   );
@@ -608,19 +482,17 @@ export function ProfilePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [apptSubTab, setApptSubTab] = useState<DemoAppointmentTab>('upcoming');
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarErr, setAvatarErr] = useState<string | null>(null);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
-  const closeNotifications = useCallback(() => {
-    setIsNotificationsOpen(false);
-  }, []);
+  const { hasUnread: hasNewNotifications } = useMyNotifications(isAuthenticated && backendConfigured, {
+    pollIntervalMs: 60_000,
+  });
 
-  const sheetBlocksScroll = isNotificationsOpen || editProfileOpen || settingsOpen;
+  const sheetBlocksScroll = editProfileOpen;
 
   useEffect(() => {
     if (!sheetBlocksScroll) return undefined;
@@ -629,9 +501,7 @@ export function ProfilePage() {
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      closeNotifications();
       setEditProfileOpen(false);
-      setSettingsOpen(false);
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -640,7 +510,7 @@ export function ProfilePage() {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [sheetBlocksScroll, closeNotifications]);
+  }, [sheetBlocksScroll]);
 
   useEffect(() => {
     return () => {
@@ -727,6 +597,8 @@ export function ProfilePage() {
     return { displayName: 'Гость', roleSubtitle: 'Войдите через Telegram', initialLetter: '?' };
   }, [profile, telegramUserPreview]);
 
+  const profileAvatarUrl = useMemo(() => profileDisplayAvatarUrl(profile), [profile]);
+
   const selectMainTab = useCallback(
     (tab: MainTab) => {
       if (tab === 'profile') {
@@ -761,10 +633,6 @@ export function ProfilePage() {
   const [favorites, setFavorites] = useState<FavoriteMasterDto[]>([]);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [favoritesError, setFavoritesError] = useState<string | null>(null);
-
-  const [notifications, setNotifications] = useState<MeNotificationRow[]>([]);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const [notificationsError, setNotificationsError] = useState<string | null>(null);
 
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [cancelModal, setCancelModal] = useState<CancelModalState>({ open: false });
@@ -841,34 +709,20 @@ export function ProfilePage() {
     }
   }, [isAuthenticated]);
 
-  const loadNotifications = useCallback(async () => {
-    if (!isAuthenticated || !getApiBaseUrl()) {
-      setNotifications([]);
-      setNotificationsError(null);
-      return;
-    }
-    setNotificationsLoading(true);
-    setNotificationsError(null);
-    try {
-      setNotifications(await fetchMyNotifications());
-    } catch (e) {
-      setNotifications([]);
-      setNotificationsError(e instanceof Error ? e.message : 'Не удалось загрузить уведомления.');
-    } finally {
-      setNotificationsLoading(false);
-    }
-  }, [isAuthenticated]);
-
   useEffect(() => {
     void loadClientAppointments();
     void loadFavorites();
-    void loadNotifications();
-  }, [loadClientAppointments, loadFavorites, loadNotifications, searchParams]);
+  }, [loadClientAppointments, loadFavorites, searchParams]);
 
   useEffect(() => {
     if (mainTab !== 'favorites') return;
     void loadFavorites();
   }, [mainTab, loadFavorites]);
+
+  useEffect(() => {
+    if (mainTab !== 'profile') return;
+    void refreshProfile();
+  }, [mainTab, refreshProfile]);
 
   useEffect(() => {
     if (isAuthenticated) void loadFavorites();
@@ -891,11 +745,6 @@ export function ProfilePage() {
     if (!favoritesError) return;
     showError(favoritesError, { title: 'Избранное', onRetry: () => void loadFavorites() });
   }, [favoritesError, loadFavorites, showError]);
-
-  useEffect(() => {
-    if (!notificationsError) return;
-    showError(notificationsError, { title: 'Уведомления', onRetry: () => void loadNotifications() });
-  }, [notificationsError, loadNotifications, showError]);
 
   const handleRemoveFavorite = useCallback(
     async (masterId: string) => {
@@ -1004,13 +853,12 @@ export function ProfilePage() {
     try {
       await postClientReview(reviewRow.id, reviewRating, body);
       closeReview();
-      void loadNotifications();
     } catch (e) {
       showError(e instanceof Error ? e.message : 'Не удалось отправить отзыв', { title: 'Отзыв' });
     } finally {
       setReviewSubmitting(false);
     }
-  }, [closeReview, loadNotifications, reviewBody, reviewRating, reviewRow, showError]);
+  }, [closeReview, reviewBody, reviewRating, reviewRow, showError]);
 
   const openDownloadPdf = useCallback((row: DemoAppointmentRecord) => {
     openBookingVoucherPrint(demoAppointmentToVoucherPayload(row), HEADER_LOGO_SRC);
@@ -1024,20 +872,60 @@ export function ProfilePage() {
 
   const apptRows = apptSubTab === 'upcoming' ? apptState.upcoming : apptState.past;
   const showApptList = apptRows.length > 0;
-  const hasNewNotifications = notifications.some((n) => !n.read_at);
 
   return (
     <div
-      className={`min-h-dvh overflow-x-hidden bg-white pt-0 text-neutral-900 ${
-        clientShell
-          ? CLIENT_CONTENT_PAD_BOTTOM
-          : 'pb-[calc(2rem+env(safe-area-inset-bottom,0px))]'
-      }`}
+      className={`min-h-dvh overflow-x-hidden text-neutral-900 lg:bg-[#F5F5F5] ${
+        clientShell ? `${CLIENT_CONTENT_PAD_BOTTOM} lg:pb-0` : 'pb-[calc(2rem+env(safe-area-inset-bottom,0px))] lg:pb-0'
+      } bg-white`}
     >
       {!clientShell ? (
         <HomeHeader isDemoMaster={isMasterCabinet} onProfileTab={onProfileTab} />
       ) : null}
 
+      <ClientProfileDesktop
+        mainTab={mainTab}
+        onSelectTab={selectMainTab}
+        displayName={displayName}
+        roleSubtitle={roleSubtitle}
+        initialLetter={initialLetter}
+        authLoading={authLoading}
+        isAuthenticated={isAuthenticated}
+        backendConfigured={backendConfigured}
+        profile={profile}
+        isTelegramWebApp={isTelegramWebApp}
+        telegramUsername={telegramUserPreview?.username ?? null}
+        avatarPreviewUrl={avatarPreviewUrl}
+        profileAvatarUrl={profileAvatarUrl}
+        telegramPhotoUrl={telegramUserPreview?.photoUrl ?? null}
+        avatarBusy={avatarBusy}
+        avatarErr={avatarErr}
+        avatarFileInputRef={avatarFileInputRef}
+        onAvatarFileChange={onAvatarFileChange}
+        telegramUserPhotoUrl={telegramUserPhotoUrl ?? null}
+        onApplyTelegramAvatar={() => void applyTelegramAvatar()}
+        hasNewNotifications={hasNewNotifications}
+        onEditProfile={() => setEditProfileOpen(true)}
+        isMasterCabinet={isMasterCabinet}
+        clientShell={clientShell}
+        apptSubTab={apptSubTab}
+        onApptSubTabChange={setApptSubTab}
+        apptRows={apptRows}
+        apptListLoading={apptListLoading}
+        apptError={apptError}
+        upcomingCount={apptState.upcoming.length}
+        favorites={favorites}
+        favoritesLoading={favoritesLoading}
+        favoritesError={favoritesError}
+        hasApiBackend={hasApiBackend()}
+        onOpenDetails={openDetails}
+        onCancel={openCancel}
+        onReview={openReview}
+        onDownloadPdf={openDownloadPdf}
+        onRemoveFavorite={handleRemoveFavorite}
+      />
+
+      <div className="lg:hidden">
       <div className="mx-auto w-full max-w-lg px-4 sm:px-5">
         <div
           className={`bg-white pb-5 ${
@@ -1111,8 +999,8 @@ export function ProfilePage() {
                 >
                   {avatarPreviewUrl ? (
                     <ImageReveal src={avatarPreviewUrl} alt="" className="h-full w-full object-cover" loading="eager" />
-                  ) : profile?.avatar_url ? (
-                    <ImageReveal src={profile.avatar_url} alt="" className="h-full w-full object-cover" loading="eager" />
+                  ) : profileAvatarUrl ? (
+                    <ImageReveal src={profileAvatarUrl} alt="" className="h-full w-full object-cover" loading="eager" />
                   ) : telegramUserPreview?.photoUrl ? (
                     <ImageReveal
                       src={telegramUserPreview.photoUrl}
@@ -1146,12 +1034,8 @@ export function ProfilePage() {
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsNotificationsOpen(true);
-                    void loadNotifications();
-                  }}
+                <Link
+                  to={PROFILE_NOTIFICATIONS_PATH}
                   aria-label="Уведомления"
                   className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F1EFEF] text-neutral-800 shadow-[0_8px_24px_rgba(17,17,17,0.06)] transition hover:bg-[#ebe8e8] active:scale-[0.97]"
                 >
@@ -1163,16 +1047,15 @@ export function ProfilePage() {
                       aria-hidden
                     />
                   ) : null}
-                </button>
+                </Link>
 
-                <button
-                  type="button"
-                  onClick={() => setSettingsOpen(true)}
+                <Link
+                  to={PROFILE_SETTINGS_PATH}
                   aria-label="Настройки"
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F1EFEF] text-neutral-800 shadow-[0_8px_24px_rgba(17,17,17,0.06)] transition hover:bg-[#ebe8e8] active:scale-[0.97]"
                 >
                   <IconGear className="h-[22px] w-[22px] shrink-0" />
-                </button>
+                </Link>
                 </div>
               </div>
 
@@ -1240,34 +1123,22 @@ export function ProfilePage() {
           </section>
         </div>
 
-        <div className="scrollbar-hidden w-full min-w-0">
+        <div className="w-full min-w-0">
         {mainTab === 'appointments' ? (
-          <section className="mt-7">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="whitespace-nowrap text-[26px] font-semibold tracking-[-0.055em] text-neutral-950">
-                Мои записи
-              </h2>
+          <section className="mt-7 flex flex-col gap-3">
+            <div
+              className={`sticky z-20 -mx-4 bg-white px-4 pb-3 sm:-mx-5 sm:px-5 ${CLIENT_STICKY_BELOW_MOBILE_HEADER}`}
+            >
+              <div className="flex flex-col gap-3 rounded-[16px] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className={clientProfileSectionTitle}>Мои записи</h2>
 
-              <div className="flex w-full shrink-0 rounded-full border border-neutral-200/70 bg-white p-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)] sm:w-auto">
+                <div className={clientProfileSubTabTrack} role="tablist" aria-label="Тип записей">
                 <button
                   type="button"
                   onClick={() => setApptSubTab('upcoming')}
-                  className={`
-                    min-h-11
-                    flex-1
-                    rounded-full
-                    px-4
-                    py-2.5
-                    text-[13px]
-                    font-semibold
-                    transition
-                    active:scale-[0.98]
-                    ${
-                      apptSubTab === 'upcoming'
-                        ? 'bg-white text-neutral-950 shadow-[0_8px_20px_rgba(17,17,17,0.05)]'
-                        : 'text-neutral-500'
-                    }
-                  `}
+                  className={`min-h-9 rounded-[8px] px-4 text-[13px] transition ${
+                    apptSubTab === 'upcoming' ? clientProfileSubTabActive : clientProfileSubTabIdle
+                  }`}
                 >
                   Предстоящие
                 </button>
@@ -1275,25 +1146,13 @@ export function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setApptSubTab('past')}
-                  className={`
-                    min-h-11
-                    flex-1
-                    rounded-full
-                    px-4
-                    py-2.5
-                    text-[13px]
-                    font-semibold
-                    transition
-                    active:scale-[0.98]
-                    ${
-                      apptSubTab === 'past'
-                        ? 'bg-white text-neutral-950 shadow-[0_8px_20px_rgba(17,17,17,0.05)]'
-                        : 'text-neutral-500'
-                    }
-                  `}
+                  className={`min-h-9 rounded-[8px] px-4 text-[13px] transition ${
+                    apptSubTab === 'past' ? clientProfileSubTabActive : clientProfileSubTabIdle
+                  }`}
                 >
                   История
                 </button>
+              </div>
               </div>
             </div>
 
@@ -1360,7 +1219,15 @@ export function ProfilePage() {
         ) : null}
 
         {mainTab === 'favorites' ? (
-          <section className="mt-7">
+          <section className="mt-7 flex flex-col gap-3">
+            <div
+              className={`sticky z-20 -mx-4 bg-white px-4 pb-3 sm:-mx-5 sm:px-5 ${CLIENT_STICKY_BELOW_MOBILE_HEADER}`}
+            >
+              <div className="flex items-center rounded-[16px] bg-white px-4 py-4">
+                <h2 className={clientProfileSectionTitle}>Избранное</h2>
+              </div>
+            </div>
+
             {!authLoading && !backendConfigured ? (
               <p className="rounded-2xl bg-amber-50 px-4 py-3 text-[14px] font-medium text-amber-950">
                 Укажите VITE_API_URL, чтобы загрузить избранное.
@@ -1442,7 +1309,7 @@ export function ProfilePage() {
                   </p>
 
                   <p className="mt-1 text-[17px] font-semibold text-neutral-950">
-                    {profile?.phone ? formatBelarusPhoneDisplay(profile.phone) : 'Не указан'}
+                    <BelarusPhoneInline phone={profile?.phone} flagClassName="h-4 w-4 shrink-0 rounded-full object-cover" />
                   </p>
                 </div>
 
@@ -1489,6 +1356,7 @@ export function ProfilePage() {
           </section>
         ) : null}
         </div>
+      </div>
       </div>
 
       {selectedAppointment ? (
@@ -1709,74 +1577,6 @@ export function ProfilePage() {
         </AppointmentBottomSheet>
       ) : null}
 
-      {isNotificationsOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-[max(2.5rem,env(safe-area-inset-top,0px))] sm:items-center sm:px-4 sm:py-8">
-          <button
-            type="button"
-            className="animate-notif-backdrop absolute inset-0 bg-black/35 backdrop-blur-[2px]"
-            aria-label="Закрыть уведомления"
-            onClick={closeNotifications}
-          />
-
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="notifications-title"
-            className="animate-notif-sheet relative flex max-h-[min(88dvh,calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem))] w-full max-w-lg flex-col overflow-hidden rounded-t-[38px] bg-white shadow-[0_24px_90px_rgba(0,0,0,0.22)] sm:rounded-[38px]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mt-2.5 h-1 w-9 shrink-0 rounded-full bg-neutral-300/90 sm:hidden" aria-hidden />
-
-            <div className="flex shrink-0 items-start justify-between gap-4 px-4 pb-3 pt-0.5 sm:px-5 sm:pb-4 sm:pt-2">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-400">SLOTTY</p>
-
-                <h2
-                  id="notifications-title"
-                  className="mt-1.5 text-[26px] font-semibold tracking-[-0.055em] text-neutral-950"
-                >
-                  Уведомления
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                onClick={closeNotifications}
-                aria-label="Закрыть уведомления"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F1EFEF] text-neutral-800 transition hover:bg-[#e8e4e4] active:scale-[0.96]"
-              >
-                <IconClose />
-              </button>
-            </div>
-
-            <div className="scrollbar-hidden min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:px-4">
-              {notificationsError ? (
-                <p className="rounded-2xl bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800">{notificationsError}</p>
-              ) : notificationsLoading ? (
-                <div className="space-y-2">
-                  <div className="h-20 animate-pulse rounded-[26px] bg-neutral-100" />
-                  <div className="h-20 animate-pulse rounded-[26px] bg-neutral-100" />
-                </div>
-              ) : notifications.length === 0 ? (
-                <NothingFoundCard title="Пока тихо" text="Когда появятся новости о записях, они окажутся здесь." />
-              ) : (
-                <ul className="flex flex-col gap-2.5 [-webkit-overflow-scrolling:touch] sm:gap-3">
-                  {notifications.map((item, index) => (
-                    <li key={item.id}>
-                      <NotificationCard
-                        item={item}
-                        index={index}
-                        onAfterRead={() => void loadNotifications()}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       <ProfileEditModal
         open={editProfileOpen}
         onClose={() => setEditProfileOpen(false)}
@@ -1785,7 +1585,6 @@ export function ProfilePage() {
         refreshProfile={refreshProfile}
         telegramUserPhotoUrl={telegramUserPhotoUrl ?? null}
       />
-      <ClientSettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

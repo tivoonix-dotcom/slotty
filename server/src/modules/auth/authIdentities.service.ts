@@ -296,35 +296,129 @@ export async function verifyEmailPassword(password: string, hash: string | null)
   return bcrypt.compare(password, hash);
 }
 
-export async function loginOrRegisterWithEmail(emailRaw: string, password: string) {
-  const email = normalizeAuthEmail(emailRaw);
-  const existingProfileId = await findProfileIdByIdentity('email', email);
+/** All profiles tied to this email (email provider id or identity.email column). */
+async function findProfileIdsMatchingEmail(email: string): Promise<string[]> {
+  const r = await query<{ profile_id: string }>(
+    `select distinct profile_id from public.auth_identities
+      where (provider = 'email'::public.auth_provider and provider_user_id = $1)
+         or (lower(trim(coalesce(email, ''))) = $1)`,
+    [email],
+  );
+  return r.rows.map((row) => row.profile_id);
+}
 
-  if (existingProfileId) {
-    const r = await query<{ credential_hash: string | null }>(
-      `select credential_hash from public.auth_identities
-        where profile_id = $1 and provider = 'email'::public.auth_provider`,
-      [existingProfileId],
-    );
-    const ok = await verifyEmailPassword(password, r.rows[0]?.credential_hash ?? null);
-    if (!ok) {
-      throw ApiError.unauthorized('Неверный email или пароль', 'EMAIL_LOGIN_FAILED');
+/** Prefer Google-linked master profile when the same email exists on several accounts. */
+async function pickPreferredProfileIdForEmail(profileIds: string[]): Promise<string | null> {
+  if (profileIds.length === 0) return null;
+  if (profileIds.length === 1) return profileIds[0];
+
+  const r = await query<{ id: string }>(
+    `select p.id
+       from public.profiles p
+      where p.id = any($1::uuid[])
+      order by
+        (exists (
+          select 1 from public.auth_identities ai
+           where ai.profile_id = p.id and ai.provider = 'google'::public.auth_provider
+        )) desc,
+        case p.role when 'master' then 0 when 'client' then 1 else 2 end,
+        p.created_at asc
+      limit 1`,
+    [profileIds],
+  );
+  return r.rows[0]?.id ?? profileIds[0];
+}
+
+async function getEmailCredentialHash(profileId: string): Promise<string | null> {
+  const r = await query<{ credential_hash: string | null }>(
+    `select credential_hash from public.auth_identities
+      where profile_id = $1 and provider = 'email'::public.auth_provider`,
+    [profileId],
+  );
+  return r.rows[0]?.credential_hash ?? null;
+}
+
+async function assignEmailIdentityToProfile(
+  client: PoolClient,
+  profileId: string,
+  email: string,
+  credentialHash: string,
+) {
+  await upsertIdentity(client, {
+    profileId,
+    provider: 'email',
+    providerUserId: email,
+    email,
+    credentialHash,
+  });
+}
+
+/** Login only: verify password and open the preferred (Google/master) account when email is shared. */
+export async function loginWithEmailIdentity(emailRaw: string, password: string) {
+  const email = normalizeAuthEmail(emailRaw);
+  const matchingProfileIds = await findProfileIdsMatchingEmail(email);
+  const preferredProfileId = await pickPreferredProfileIdForEmail(matchingProfileIds);
+
+  let hadEmailPassword = false;
+  for (const profileId of matchingProfileIds) {
+    const credentialHash = await getEmailCredentialHash(profileId);
+    if (!credentialHash) continue;
+    hadEmailPassword = true;
+    if (!(await verifyEmailPassword(password, credentialHash))) continue;
+
+    const targetProfileId = preferredProfileId ?? profileId;
+    if (profileId !== targetProfileId) {
+      await withTransaction(async (client) => {
+        await assignEmailIdentityToProfile(client, targetProfileId, email, credentialHash);
+      });
     }
-    const session = await issueSessionForProfile(existingProfileId);
-    return { session, isNewRegistration: false as const };
+    return issueSessionForProfile(targetProfileId);
+  }
+
+  if (hadEmailPassword) {
+    throw ApiError.unauthorized('Неверный email или пароль', 'EMAIL_LOGIN_FAILED');
+  }
+
+  if (matchingProfileIds.length > 0) {
+    throw ApiError.unauthorized(
+      'Для этого email войдите через Google или задайте пароль в кабинете в разделе «Способы входа»',
+      'EMAIL_PASSWORD_NOT_SET',
+    );
+  }
+
+  throw ApiError.unauthorized('Неверный email или пароль', 'EMAIL_LOGIN_FAILED');
+}
+
+/** Register only: attach email+password to an existing Google/master profile or create a new one. */
+export async function registerWithEmailIdentity(emailRaw: string, password: string) {
+  const email = normalizeAuthEmail(emailRaw);
+  const matchingProfileIds = await findProfileIdsMatchingEmail(email);
+  const preferredProfileId = await pickPreferredProfileIdForEmail(matchingProfileIds);
+
+  if (preferredProfileId) {
+    const existingHash = await getEmailCredentialHash(preferredProfileId);
+    if (existingHash) {
+      throw ApiError.conflict('Этот email уже зарегистрирован. Войдите или восстановите пароль.', 'EMAIL_ALREADY_REGISTERED');
+    }
+
+    const hash = await hashEmailPassword(password);
+    await withTransaction(async (client) => {
+      await assignEmailIdentityToProfile(client, preferredProfileId, email, hash);
+    });
+    const session = await issueSessionForProfile(preferredProfileId);
+    return { session, isNewRegistration: true as const };
+  }
+
+  const existingEmailProfileId = await findProfileIdByIdentity('email', email);
+  if (existingEmailProfileId) {
+    throw ApiError.conflict('Этот email уже зарегистрирован. Войдите или восстановите пароль.', 'EMAIL_ALREADY_REGISTERED');
   }
 
   const hash = await hashEmailPassword(password);
   const displayName = email.split('@')[0] || 'User';
   const profileId = await withTransaction(async (client) => {
     const id = await createProfileRow(client, { fullName: displayName });
-    await upsertIdentity(client, {
-      profileId: id,
-      provider: 'email',
-      providerUserId: email,
-      email,
-      credentialHash: hash,
-    });
+    await assignEmailIdentityToProfile(client, id, email, hash);
     return id;
   });
 
@@ -336,14 +430,7 @@ export async function linkEmailToProfile(profileId: string, emailRaw: string, pa
   const email = normalizeAuthEmail(emailRaw);
   const hash = await hashEmailPassword(password);
   await withTransaction(async (client) => {
-    await assertIdentityNotLinkedToOtherProfile(client, 'email', email, profileId);
-    await upsertIdentity(client, {
-      profileId,
-      provider: 'email',
-      providerUserId: email,
-      email,
-      credentialHash: hash,
-    });
+    await assignEmailIdentityToProfile(client, profileId, email, hash);
   });
   return listAuthIdentitiesForProfile(profileId);
 }

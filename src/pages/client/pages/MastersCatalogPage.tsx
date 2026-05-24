@@ -1,9 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCatalogErrorModal } from '../hooks/useCatalogErrorModal';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import type { ClientOutletContext } from '../clientOutletContext';
-import { ClientPageShell } from '../components/ClientPageShell';
-import { ClientSearchBar } from '../components/ClientSearchBar';
 import { QuickChips } from '../components/QuickChips';
 import { MasterCard } from '../components/MasterCard';
 import { MasterSectionRail } from '../components/MasterSectionRail';
@@ -23,9 +21,14 @@ import {
   DEFAULT_CATEGORY_MASTER_FILTERS,
   filtersToMastersQuickChips,
   hasActiveCatalogFilters,
+  parseMastersCatalogFiltersFromSearch,
   toggleMastersQuickChip,
   type CategoryMasterFilters,
 } from '../lib/categoryMasterFilters';
+import { MastersCatalogDesktop } from '../mastersCatalog/MastersCatalogDesktop';
+import { CatalogStickyToolbar } from '../servicesCatalog/CatalogStickyToolbar';
+import { catalogCanvasClass } from '../servicesCatalog/servicesCatalogTheme';
+import { CLIENT_CONTENT_PAD_BOTTOM, CLIENT_HEADER_OFFSET } from '../clientNavConstants';
 
 const QUICK_CHIPS = [
   { id: 'near', label: 'Рядом' },
@@ -37,10 +40,20 @@ const QUICK_CHIPS = [
 
 export function MastersCatalogPage() {
   const { hasGeo, requestGeo, userLat, userLng } = useOutletContext<ClientOutletContext>();
+  const [searchParams] = useSearchParams();
+  const initialFilters = useMemo(
+    () => parseMastersCatalogFiltersFromSearch(searchParams),
+    [searchParams],
+  );
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState<CategoryMasterFilters>(DEFAULT_CATEGORY_MASTER_FILTERS);
-  const [filterDraft, setFilterDraft] = useState<CategoryMasterFilters>(DEFAULT_CATEGORY_MASTER_FILTERS);
+  const [filters, setFilters] = useState<CategoryMasterFilters>(initialFilters);
+  const [filterDraft, setFilterDraft] = useState<CategoryMasterFilters>(initialFilters);
   const [filterOpen, setFilterOpen] = useState(false);
+
+  useEffect(() => {
+    setFilters(initialFilters);
+    setFilterDraft(initialFilters);
+  }, [initialFilters]);
 
   const activeFilterCount = countActiveCategoryFilters(filters);
   const quickChipIds = useMemo(() => filtersToMastersQuickChips(filters), [filters]);
@@ -91,91 +104,128 @@ export function MastersCatalogPage() {
     [categories],
   );
 
-  return (
-    <ClientPageShell>
-      <div className="space-y-6 pb-6">
-        <ClientSearchBar
-          value={search}
-          onChange={setSearch}
-          placeholder="Найти мастера или услугу"
-          onFilterClick={openFilters}
-          activeFilterCount={activeFilterCount}
+  const resultCount = loading || error ? null : feed.total;
+
+  const quickChipsRow = (
+    <QuickChips chips={[...QUICK_CHIPS]} activeIds={quickChipIds} onToggle={toggleChip} />
+  );
+
+  const catalogBody = (
+    <>
+      {quickChipIds.has('near') && !hasGeo ? (
+        <GeoPromptCard onAllow={requestGeo} />
+      ) : null}
+      {!hasGeo && !flatMode ? <GeoPromptCard onAllow={requestGeo} /> : null}
+
+      {loading ? (
+        <div className="space-y-3">
+          <SkeletonMasterCard />
+          <SkeletonMasterCard />
+        </div>
+      ) : error ? (
+        <CatalogError message={error} onRetry={() => void reload()} />
+      ) : feed.total === 0 ? (
+        <EmptyState
+          title="Мастеров пока нет"
+          description="Попробуйте изменить фильтры или зайдите позже"
+          actionLabel="Сбросить фильтры"
+          onAction={() => setFilters({ ...DEFAULT_CATEGORY_MASTER_FILTERS })}
         />
-
-        <QuickChips chips={[...QUICK_CHIPS]} activeIds={quickChipIds} onToggle={toggleChip} />
-
-        {quickChipIds.has('near') && !hasGeo ? (
-          <GeoPromptCard onAllow={requestGeo} />
-        ) : null}
-        {!hasGeo && !flatMode ? <GeoPromptCard onAllow={requestGeo} /> : null}
-
-        {loading ? (
-          <div className="space-y-3">
-            <SkeletonMasterCard />
-            <SkeletonMasterCard />
-          </div>
-        ) : error ? (
-          <CatalogError message={error} onRetry={() => void reload()} />
-        ) : feed.total === 0 ? (
-          <EmptyState
-            title="Мастеров пока нет"
-            description="Попробуйте изменить фильтры или зайдите позже"
-            actionLabel="Сбросить фильтры"
-            onAction={() => setFilters({ ...DEFAULT_CATEGORY_MASTER_FILTERS })}
-          />
-        ) : feed.singleMaster ? (
-          <MasterCard
-            listing={feed.singleMaster}
-            userLat={userLat}
-            userLng={userLng}
-            layout="featured"
-          />
-        ) : (
-          <div className="space-y-8">
-            {feed.sections.map((section) => {
-              if (section.id === 'top') {
-                return (
-                  <TopMastersSection
-                    key={section.id}
-                    items={section.items}
-                    userLat={userLat}
-                    userLng={userLng}
-                  />
-                );
-              }
-
-              if (section.layout === 'carousel') {
-                return (
-                  <MasterSectionRail
-                    key={section.id}
-                    title={section.title}
-                    subtitle={section.subtitle}
-                    items={section.items}
-                    userLat={userLat}
-                    userLng={userLng}
-                  />
-                );
-              }
-
+      ) : feed.singleMaster ? (
+        <MasterCard
+          listing={feed.singleMaster}
+          userLat={userLat}
+          userLng={userLng}
+          layout="featured"
+        />
+      ) : (
+        <div className="space-y-8">
+          {feed.sections.map((section) => {
+            if (section.id === 'top') {
               return (
-                <section key={section.id}>
-                  <SectionHeading title={section.title} subtitle={section.subtitle} />
-                  <div className="space-y-2.5">
-                    {section.items.map((m) => (
-                      <MasterCard
-                        key={m.masterId}
-                        listing={m}
-                        userLat={userLat}
-                        userLng={userLng}
-                        layout="list"
-                      />
-                    ))}
-                  </div>
-                </section>
+                <TopMastersSection
+                  key={section.id}
+                  items={section.items}
+                  userLat={userLat}
+                  userLng={userLng}
+                />
               );
-            })}
+            }
+
+            if (section.layout === 'carousel') {
+              return (
+                <MasterSectionRail
+                  key={section.id}
+                  title={section.title}
+                  subtitle={section.subtitle}
+                  items={section.items}
+                  userLat={userLat}
+                  userLng={userLng}
+                />
+              );
+            }
+
+            return (
+              <section key={section.id}>
+                <SectionHeading title={section.title} subtitle={section.subtitle} />
+                <div className="space-y-2.5">
+                  {section.items.map((m) => (
+                    <MasterCard
+                      key={m.masterId}
+                      listing={m}
+                      userLat={userLat}
+                      userLng={userLng}
+                      layout="list"
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <>
+      <MastersCatalogDesktop
+        search={search}
+        onSearchChange={setSearch}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onResetFilters={() => setFilters({ ...DEFAULT_CATEGORY_MASTER_FILTERS })}
+        categories={categories}
+        loading={loading}
+        error={error}
+        onRetry={() => void reload()}
+        masters={masters}
+        userLat={userLat}
+        userLng={userLng}
+        hasGeo={hasGeo}
+        onRequestGeo={requestGeo}
+        showGeoPrompt={quickChipIds.has('near')}
+      />
+
+      <div className={`relative z-0 lg:hidden min-h-dvh ${catalogCanvasClass} ${CLIENT_HEADER_OFFSET}`}>
+        <div className="mx-auto w-full max-w-lg px-4 pt-1 sm:px-5">
+          <CatalogStickyToolbar
+            compact
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Имя мастера, услуга, район…"
+            resultCount={resultCount}
+            loading={loading}
+            onFilterClick={openFilters}
+            activeFilterCount={activeFilterCount}
+          >
+            {quickChipsRow}
+          </CatalogStickyToolbar>
+
+          <div className={`flex flex-col gap-6 ${CLIENT_CONTENT_PAD_BOTTOM} pb-6`}>
+            {catalogBody}
           </div>
-        )}
+        </div>
       </div>
 
       <CategoryMasterFilterSheet
@@ -191,6 +241,6 @@ export function MastersCatalogPage() {
           void reload();
         }}
       />
-    </ClientPageShell>
+    </>
   );
 }

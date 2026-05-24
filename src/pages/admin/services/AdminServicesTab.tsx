@@ -16,11 +16,26 @@ import {
 import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
+import { AdminFormSheetSection } from '../shared/AdminFormSheetLayout';
+import {
+  adminSheetBodyPad,
+  adminSheetPinkBtn,
+  adminSheetSegmentActive,
+  adminSheetSegmentIdle,
+  adminSheetSegmentWrap,
+} from '../shared/adminCabinetSheetTheme';
 import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
 import { LoadingVideo } from '../../../shared/ui/LoadingVideo';
-import { SERVICES_PAGE_BG } from './adminServicesTheme';
+import {
+  SERVICES_PAGE_BG,
+  servicesDesktopCard,
+  servicesDesktopTabsSticky,
+  servicesInput,
+  servicesShellCard,
+} from './adminServicesTheme';
+import { ServicesSectionTabs } from './ServicesSectionTabs';
+import { computeServicesTabMetrics } from './servicesTabMetrics';
 import { ServicesBundlesTab } from './ServicesBundlesTab';
-import { ServicesExtrasProBlock } from './ServicesExtrasProBlock';
 import { ServicesCatalogTab } from './ServicesCatalogTab';
 import { ServicesPageHeader } from './ServicesPageHeader';
 import { SERVICES_TAB_INTRO_IMAGES } from './ServicesTabIntro';
@@ -66,7 +81,7 @@ function newServiceId(): string {
 }
 
 function fieldClass(): string {
-  return 'mt-1.5 w-full rounded-[22px] bg-[#F1EFEF] px-4 py-3.5 text-[16px] font-semibold text-neutral-900 outline-none ring-0 placeholder:text-neutral-400 transition focus:bg-white focus:shadow-[0_10px_28px_rgba(17,17,17,0.05)]';
+  return `${servicesInput} mt-1.5`;
 }
 
 function normalizeService(service: MasterOnboardingService, index: number): ManagedService {
@@ -731,78 +746,102 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
 
   const menuIndex = menuTarget ? services.findIndex((s) => s.id === menuTarget.id) : -1;
 
-  return (
+  const tabMetrics = useMemo(
+    () => computeServicesTabMetrics(services, bundles, promotions),
+    [bundles, promotions, services],
+  );
+
+  const statusAlerts = (
     <>
-      <ServicesTabBar active={activeTab} onChange={setActiveTab} />
-
-      <div
-        className={`-mx-4 min-w-0 space-y-4 overflow-x-hidden px-4 pb-[calc(5.75rem+1.25rem)] lg:mx-0 lg:pb-0 lg:px-0 ${SERVICES_PAGE_BG}`}
-      >
-      <ServicesPageHeader activeTab={activeTab} />
-
       {listError || extrasError ? (
-        <p className="mb-4 rounded-[16px] border border-[#FDE8ED] bg-[#FFF1F4] px-4 py-3 text-[14px] font-semibold text-[#B45309]">
+        <p className="rounded-[16px] border border-[#FDE8ED] bg-[#FFF1F4] px-4 py-3 text-[14px] font-semibold text-[#B45309] lg:rounded-[20px]">
           {listError ?? extrasError}
         </p>
       ) : null}
 
       {toast ? (
-        <div className="mb-4 rounded-full bg-[#ECFDF5] px-5 py-3 text-center text-[14px] font-semibold text-[#16A34A] shadow-sm">
+        <div className="rounded-full bg-[#ECFDF5] px-5 py-3 text-center text-[14px] font-semibold text-[#16A34A] shadow-sm">
           {toast}
         </div>
       ) : null}
+    </>
+  );
 
-      <AdminTabContentTransition activeKey={activeTab}>
-        {activeTab === 'catalog' ? (
-          <ServicesCatalogTab
+  const tabPanels = (
+    <>
+      {activeTab === 'catalog' ? (
+        <ServicesCatalogTab
+            draft={draft}
             services={services}
             onAdd={openCreate}
             onOpenMenu={setMenuTarget}
           />
-        ) : null}
-        {activeTab === 'price' ? (
-          <ServicesPriceTab
+      ) : null}
+      {activeTab === 'price' ? (
+        <ServicesPriceTab
+            draft={draft}
             services={services}
             onEditPrice={openEditPrice}
             onEditDuration={openEditDuration}
           />
-        ) : null}
-        {activeTab === 'bundles' ? (
-          <div className="space-y-4">
-            {extrasLocked ? <ServicesExtrasProBlock variant="bundles" /> : null}
-            <ServicesBundlesTab
-              draft={draft}
-              services={services}
-              bundles={bundles}
-              loading={useCabinetApi && extrasLoading}
-              extrasLocked={extrasLocked}
-              onExtrasLocked={() => setExtrasProOpen(true)}
-              onSave={saveBundle}
-              onDelete={deleteBundle}
-            />
+      ) : null}
+      {activeTab === 'bundles' ? (
+        <ServicesBundlesTab
+          draft={draft}
+          services={services}
+          bundles={bundles}
+          loading={useCabinetApi && extrasLoading}
+          extrasLocked={extrasLocked}
+          onConnectPro={() => setExtrasProOpen(true)}
+          onSave={saveBundle}
+          onDelete={deleteBundle}
+        />
+      ) : null}
+      {activeTab === 'promotions' ? (
+        extrasLoading && useCabinetApi ? (
+          <div className="flex min-h-[14rem] items-center justify-center py-8">
+            <LoadingVideo size="lg" />
           </div>
-        ) : null}
-        {activeTab === 'promotions' ? (
-          <div className="space-y-4">
-            {extrasLocked ? <ServicesExtrasProBlock variant="promotions" /> : null}
-            {extrasLoading && useCabinetApi ? (
-              <div className="flex min-h-[14rem] items-center justify-center py-8">
-                <LoadingVideo size="lg" />
-              </div>
-            ) : (
-              <ServicesPromotionsTab
-                services={services}
-                promotions={promotions}
-                extrasLocked={extrasLocked}
-                onExtrasLocked={() => setExtrasProOpen(true)}
-                onCreate={openPromoCreate}
-                onEdit={openPromoEdit}
-                onDelete={(id) => void deletePromo(id)}
-              />
-            )}
-          </div>
-        ) : null}
-      </AdminTabContentTransition>
+        ) : (
+          <ServicesPromotionsTab
+            draft={draft}
+            services={services}
+            promotions={promotions}
+            extrasLocked={extrasLocked}
+            onConnectPro={() => setExtrasProOpen(true)}
+            onCreate={openPromoCreate}
+            onEdit={openPromoEdit}
+            onDelete={(id) => void deletePromo(id)}
+          />
+        )
+      ) : null}
+    </>
+  );
+
+  return (
+    <>
+      <ServicesTabBar active={activeTab} onChange={setActiveTab} variant="mobile" />
+
+      <section
+        className={`-mx-4 min-w-0 space-y-4 overflow-x-hidden px-4 pb-[calc(5.75rem+1.25rem)] lg:hidden ${SERVICES_PAGE_BG}`}
+      >
+        <ServicesPageHeader activeTab={activeTab} metrics={tabMetrics} />
+        {statusAlerts}
+        <AdminTabContentTransition activeKey={activeTab}>{tabPanels}</AdminTabContentTransition>
+      </section>
+
+      <div className={`${servicesShellCard} space-y-6`}>
+        <div className={`${servicesDesktopCard} ${servicesDesktopTabsSticky}`}>
+          <ServicesSectionTabs active={activeTab} onChange={setActiveTab} />
+        </div>
+
+        <div className="min-w-0 space-y-6">
+          <ServicesPageHeader activeTab={activeTab} metrics={tabMetrics} />
+          {statusAlerts}
+          <AdminTabContentTransition activeKey={activeTab} className="min-w-0 space-y-6">
+            {tabPanels}
+          </AdminTabContentTransition>
+        </div>
       </div>
 
       <ServicesServiceMenuSheet
@@ -869,15 +908,52 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
                   ? 'Редактировать услугу'
                   : 'Новая услуга'
         }
+        subtitle={
+          sheetMode === 'price'
+            ? 'Быстрое изменение — сразу попадёт в каталог и запись'
+            : sheetMode === 'duration'
+              ? 'Длительность влияет на свободные слоты в календаре'
+              : sheetMode === 'create'
+                ? 'Заполните основное — карточку можно донастроить позже'
+                : 'Изменения сразу отобразятся в каталоге'
+        }
+        badge={
+          sheetMode === 'price'
+            ? 'Прайс'
+            : sheetMode === 'duration'
+              ? 'Время'
+              : sheetMode === 'create'
+                ? 'Новая услуга'
+                : 'Каталог'
+        }
+        footer={
+          <button
+            type="button"
+            disabled={serviceActionBusy}
+            onClick={() => void saveService()}
+            className={adminSheetPinkBtn}
+          >
+            {serviceActionBusy
+              ? 'Сохранение…'
+              : sheetMode === 'price'
+                ? 'Сохранить цену'
+                : sheetMode === 'duration'
+                  ? 'Сохранить длительность'
+                  : 'Сохранить'}
+          </button>
+        }
       >
-        <div className="space-y-4 pb-2">
+        <div className={`${adminSheetBodyPad} space-y-5 lg:space-y-6`}>
           {sheetMode === 'price' || sheetMode === 'duration' ? (
-            <p className="-mt-1 rounded-[16px] bg-[#F7F7F8] px-4 py-3 text-[14px] font-semibold leading-snug text-[#111827]">
-              {title}
-            </p>
+            <AdminFormSheetSection title="Услуга">
+              <p className="text-[20px] font-black tracking-[-0.05em] text-[#111827] lg:text-[24px]">
+                {title}
+              </p>
+            </AdminFormSheetSection>
           ) : null}
 
           {sheetMode === 'full' || sheetMode === 'create' ? (
+          <AdminFormSheetSection title="Основное" description="Название и параметры для клиентов">
           <label className="block">
             <span className="text-[13px] font-semibold text-neutral-500">
               Название услуги *
@@ -890,38 +966,8 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
               placeholder="Маникюр с покрытием"
             />
           </label>
-          ) : null}
 
-          {sheetMode === 'duration' ? (
-            <label className="block">
-              <span className="text-[13px] font-semibold text-neutral-500">Длительность, мин *</span>
-              <input
-                value={dur}
-                onChange={(event) => setDur(event.target.value)}
-                inputMode="numeric"
-                className={fieldClass()}
-                placeholder="60"
-                autoFocus
-              />
-            </label>
-          ) : null}
-
-          {sheetMode === 'price' ? (
-            <label className="block">
-              <span className="text-[13px] font-semibold text-neutral-500">Цена, BYN *</span>
-              <input
-                value={price}
-                onChange={(event) => setPrice(event.target.value)}
-                inputMode="decimal"
-                className={fieldClass()}
-                placeholder="45"
-                autoFocus
-              />
-            </label>
-          ) : null}
-
-          {sheetMode === 'full' || sheetMode === 'create' ? (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="mt-4 grid grid-cols-2 gap-3">
             <label className="block">
               <span className="text-[13px] font-semibold text-neutral-500">
                 Длительность *
@@ -950,15 +996,47 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
               />
             </label>
           </div>
+          </AdminFormSheetSection>
+          ) : null}
+
+          {sheetMode === 'duration' ? (
+            <AdminFormSheetSection title="Длительность">
+            <label className="block">
+              <span className="text-[13px] font-semibold text-neutral-500">Длительность, мин *</span>
+              <input
+                value={dur}
+                onChange={(event) => setDur(event.target.value)}
+                inputMode="numeric"
+                className={fieldClass()}
+                placeholder="60"
+                autoFocus
+              />
+            </label>
+            </AdminFormSheetSection>
+          ) : null}
+
+          {sheetMode === 'price' ? (
+            <AdminFormSheetSection title="Цена">
+            <label className="block">
+              <span className="text-[13px] font-semibold text-neutral-500">Цена, BYN *</span>
+              <input
+                value={price}
+                onChange={(event) => setPrice(event.target.value)}
+                inputMode="decimal"
+                className={fieldClass()}
+                placeholder="45"
+                autoFocus
+              />
+            </label>
+            </AdminFormSheetSection>
           ) : null}
 
           {sheetMode === 'full' || sheetMode === 'create' || sheetMode === 'price' ? (
-          <div>
-            <span className="text-[13px] font-semibold text-neutral-500">
-              Тип цены
-            </span>
-
-            <div className="mt-2 grid grid-cols-2 gap-2 rounded-[26px] bg-[#F1EFEF] p-1.5">
+          <AdminFormSheetSection
+            title="Тип цены"
+            description={sheetMode === 'price' ? 'Как показывать цену в каталоге' : undefined}
+          >
+            <div className={adminSheetSegmentWrap}>
               {(
                 [
                   { id: 'fixed' as const, label: 'Точная цена' },
@@ -969,34 +1047,24 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
                   key={item.id}
                   type="button"
                   onClick={() => setPriceType(item.id)}
-                  className={`min-h-11 rounded-full text-[14px] font-semibold transition active:scale-[0.98] ${
-                    priceType === item.id
-                      ? 'bg-white text-neutral-950 shadow-[0_8px_20px_rgba(17,17,17,0.05)]'
-                      : 'text-neutral-500'
-                  }`}
+                  className={
+                    priceType === item.id ? adminSheetSegmentActive : adminSheetSegmentIdle
+                  }
                 >
                   {item.label}
                 </button>
               ))}
             </div>
-          </div>
+          </AdminFormSheetSection>
           ) : null}
 
           {sheetMode === 'full' || sheetMode === 'create' ? (
-          <div>
-            <span className="text-[13px] font-semibold text-neutral-500">
-              Видимость
-            </span>
-
-            <div className="mt-2 grid grid-cols-2 gap-2 rounded-[26px] bg-[#F1EFEF] p-1.5">
+          <AdminFormSheetSection title="Видимость" description="Скрытые услуги не попадают в запись">
+            <div className={adminSheetSegmentWrap}>
               <button
                 type="button"
                 onClick={() => setIsActive(true)}
-                className={`min-h-11 rounded-full text-[14px] font-semibold transition active:scale-[0.98] ${
-                  isActive
-                    ? 'bg-white text-neutral-950 shadow-[0_8px_20px_rgba(17,17,17,0.05)]'
-                    : 'text-neutral-500'
-                }`}
+                className={isActive ? adminSheetSegmentActive : adminSheetSegmentIdle}
               >
                 Видна
               </button>
@@ -1004,21 +1072,18 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
               <button
                 type="button"
                 onClick={() => setIsActive(false)}
-                className={`min-h-11 rounded-full text-[14px] font-semibold transition active:scale-[0.98] ${
-                  !isActive
-                    ? 'bg-white text-neutral-950 shadow-[0_8px_20px_rgba(17,17,17,0.05)]'
-                    : 'text-neutral-500'
-                }`}
+                className={!isActive ? adminSheetSegmentActive : adminSheetSegmentIdle}
               >
                 Скрыта
               </button>
             </div>
-          </div>
+          </AdminFormSheetSection>
           ) : null}
 
           {sheetMode === 'full' || sheetMode === 'create' ? (
+          <AdminFormSheetSection title="Описание" description="Необязательно — помогает клиенту выбрать услугу">
           <label className="block">
-            <span className="text-[13px] font-semibold text-neutral-500">Описание</span>
+            <span className="sr-only">Описание</span>
 
             <textarea
               value={desc}
@@ -1028,6 +1093,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
               placeholder="Что входит в услугу"
             />
           </label>
+          </AdminFormSheetSection>
           ) : null}
 
           {formError ? (
@@ -1035,21 +1101,6 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
               {formError}
             </p>
           ) : null}
-
-          <button
-            type="button"
-            disabled={serviceActionBusy}
-            onClick={() => void saveService()}
-            className="flex min-h-12 w-full items-center justify-center rounded-full bg-[#E29595] text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition active:scale-[0.98] disabled:opacity-50"
-          >
-            {serviceActionBusy
-              ? 'Сохранение…'
-              : sheetMode === 'price'
-                ? 'Сохранить цену'
-                : sheetMode === 'duration'
-                  ? 'Сохранить длительность'
-                  : 'Сохранить'}
-          </button>
         </div>
       </AdminBottomSheet>
 
@@ -1057,11 +1108,23 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
         open={Boolean(previewTarget)}
         onClose={() => setPreviewTarget(null)}
         title="Как увидит клиент"
+        subtitle="Так карточка выглядит в поиске и при записи"
+        badge="Превью"
+        footer={
+          <button
+            type="button"
+            onClick={() => setPreviewTarget(null)}
+            className={adminSheetPinkBtn}
+          >
+            Понятно
+          </button>
+        }
       >
         {previewTarget ? (
-          <div className="pb-2">
-            <div className="rounded-[32px] bg-[#F1EFEF] p-3">
-              <div className="rounded-[28px] bg-white p-5 shadow-[0_12px_34px_rgba(17,17,17,0.045)]">
+          <div className={adminSheetBodyPad}>
+          <AdminFormSheetSection>
+            <div className="rounded-[24px] bg-[#f6f7fb] p-4 lg:p-5">
+            <div className="rounded-[22px] bg-white p-5 shadow-[0_8px_28px_rgba(17,24,39,0.06)] lg:p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-[20px] font-semibold tracking-[-0.045em] text-neutral-950">
@@ -1095,20 +1158,10 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
                     {formatPrice(previewTarget)}
                   </p>
 
-                  <p className="shrink-0 rounded-full bg-[#F1EFEF] px-5 py-3 text-center text-[13px] font-semibold text-neutral-600">
-                    Так карточку увидит клиент в поиске
-                  </p>
                 </div>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setPreviewTarget(null)}
-              className="mt-4 flex min-h-12 w-full items-center justify-center rounded-full bg-[#F1EFEF] text-[15px] font-semibold text-neutral-900 transition active:scale-[0.98]"
-            >
-              Закрыть
-            </button>
+          </AdminFormSheetSection>
           </div>
         ) : null}
       </AdminBottomSheet>

@@ -1,23 +1,38 @@
-export function SkeletonMasterProfile() {
-  return (
-    <div className="animate-pulse space-y-6 px-4 pt-[calc(4.5rem+env(safe-area-inset-top))]">
-      <div className="flex gap-4">
-        <div className="h-[7.5rem] w-[7.5rem] rounded-[24px] bg-[#F1EFEF]" />
-        <div className="flex-1 space-y-3 pt-2">
-          <div className="h-6 w-3/4 rounded-lg bg-[#F1EFEF]" />
-          <div className="h-4 w-1/2 rounded-lg bg-[#F1EFEF]" />
-          <div className="h-12 w-full rounded-xl bg-[#F1EFEF]" />
+import { CLIENT_DESKTOP_SHELL_CLASS } from '../../../shared/layout/clientShellLayout';
+import { catalogDesktopPanel } from './masterProfileTheme';
+
+type Props = {
+  desktop?: boolean;
+};
+
+export function SkeletonMasterProfile({ desktop = false }: Props) {
+  if (desktop) {
+    return (
+      <div className={`${CLIENT_DESKTOP_SHELL_CLASS} animate-pulse space-y-4 pb-12 pt-6`}>
+        <div className={`${catalogDesktopPanel} h-64 bg-[#EBEBEB]`} />
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-4">
+            <div className={`${catalogDesktopPanel} h-40 bg-[#EBEBEB]`} />
+            <div className={`${catalogDesktopPanel} h-72 bg-[#EBEBEB]`} />
+            <div className={`${catalogDesktopPanel} h-28 bg-[#EBEBEB]`} />
+          </div>
+          <div className={`${catalogDesktopPanel} h-72 bg-[#EBEBEB]`} />
         </div>
       </div>
-      <div className="h-16 rounded-[22px] bg-[#FFF1F4]" />
-      <div className="flex gap-2">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-[7.5rem] w-[7.5rem] shrink-0 rounded-[18px] bg-[#F1EFEF]" />
+    );
+  }
+
+  return (
+    <div className="animate-pulse space-y-4 px-4 pb-6 pt-3 sm:px-5">
+      <div className={`${catalogDesktopPanel} h-52 bg-[#EBEBEB]`} />
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className={`${catalogDesktopPanel} h-20 bg-[#EBEBEB]`} />
         ))}
       </div>
-      <div className="space-y-2">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 rounded-[20px] bg-[#F1EFEF]" />
+      <div className="flex gap-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-[7.5rem] w-[7.5rem] shrink-0 rounded-[12px] bg-[#EBEBEB]" />
         ))}
       </div>
     </div>

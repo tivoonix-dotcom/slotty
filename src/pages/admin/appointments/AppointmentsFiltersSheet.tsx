@@ -18,7 +18,7 @@ const optionRow = (selected: boolean) =>
 
 function OptionCheck({ selected }: { selected: boolean }) {
   return selected ? (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F47C8C] text-white">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] text-white">
       <HiCheck className="h-5 w-5" aria-hidden />
     </span>
   ) : (
@@ -242,7 +242,7 @@ export function AppointmentsFiltersSheet(props: Props) {
           {hasActive ? (
             <button
               type="button"
-              className="text-[14px] font-semibold text-[#F47C8C]"
+              className="text-[14px] font-semibold text-[#ff5f7a]"
               onClick={() => {
                 props.onReset();
                 onClose();

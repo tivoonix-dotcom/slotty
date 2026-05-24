@@ -1,26 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router-dom';
-import { MASTERS_PATH } from '../../../app/paths';
+import { MASTERS_PATH, getBookingPath } from '../../../app/paths';
 import type { ClientOutletContext } from '../clientOutletContext';
 import { useFavoriteMaster } from '../../../features/profile/hooks/useFavoriteMaster';
 import { useClientErrorModal } from '../ClientErrorModalContext';
 import type { DemoMasterService } from '../../../features/services/model/demoMasters';
 import { EmptyState } from '../components/EmptyState';
-import { BookingTimeSheet } from './BookingTimeSheet';
 import { MasterExtraSections } from './MasterExtraSections';
 import { MasterHeroCard } from './MasterHeroCard';
 import { MasterPortfolioRail } from './MasterPortfolioRail';
-import { MasterProfileHeader } from './MasterProfileHeader';
+import { MasterProfileMobileToolbar } from './MasterProfileMobileToolbar';
 import { MasterReviewsSection } from './MasterReviewsSection';
 import { MasterServicesList } from './MasterServicesList';
 import { MasterStickyActions } from './MasterStickyActions';
 import { MasterTrustStats } from './MasterTrustStats';
 import { PortfolioImagePreview } from './PortfolioImagePreview';
 import { ServiceDetailSheet } from './ServiceDetailSheet';
-import { CLIENT_MASTER_PROFILE_PAD_BOTTOM } from '../clientNavConstants';
+import { CLIENT_HEADER_OFFSET, CLIENT_MASTER_PROFILE_PAD_BOTTOM } from '../clientNavConstants';
 import { SkeletonMasterProfile } from './SkeletonMasterProfile';
+import { MasterProfileDesktop } from './MasterProfileDesktop';
 import { shareMasterProfile } from './masterProfileUtils';
 import { useMasterNearestSlot } from './useMasterNearestSlot';
+import { catalogCanvasClass } from './masterProfileTheme';
 import { useMasterPublicProfile } from './useMasterPublicProfile';
 
 export function MasterPublicPage() {
@@ -47,8 +48,6 @@ export function MasterPublicPage() {
   }, [error, reload, showError]);
 
   const [toast, setToast] = useState<string | null>(null);
-  const [bookingOpen, setBookingOpen] = useState(false);
-  const [bookingServiceId, setBookingServiceId] = useState<string | null>(null);
   const [serviceSheet, setServiceSheet] = useState<DemoMasterService | null>(null);
   const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
@@ -72,14 +71,18 @@ export function MasterPublicPage() {
     }
   }, [master]);
 
-  const openBooking = (serviceId?: string | null) => {
-    setBookingServiceId(serviceId ?? highlightServiceId ?? nearest?.serviceId ?? null);
-    setBookingOpen(true);
-  };
+  const goToBooking = useCallback(
+    (serviceId?: string | null) => {
+      const resolvedServiceId =
+        serviceId ?? highlightServiceId ?? nearest?.serviceId ?? master?.services[0]?.id ?? null;
+      navigate(getBookingPath(masterId, resolvedServiceId));
+    },
+    [navigate, masterId, highlightServiceId, nearest?.serviceId, master?.services],
+  );
 
   if (!masterId) {
     return (
-      <div className="min-h-dvh bg-white px-4 pb-32 pt-20">
+      <div className={`min-h-dvh ${catalogCanvasClass} px-4 sm:px-5 ${CLIENT_HEADER_OFFSET} ${CLIENT_MASTER_PROFILE_PAD_BOTTOM}`}>
         <EmptyState
           title="Мастер не найден"
           description="Попробуйте вернуться к каталогу"
@@ -92,15 +95,20 @@ export function MasterPublicPage() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-white pb-32">
-        <SkeletonMasterProfile />
-      </div>
+      <>
+        <div className={`hidden min-h-dvh lg:block ${catalogCanvasClass}`}>
+          <SkeletonMasterProfile desktop />
+        </div>
+        <div className={`min-h-dvh lg:hidden ${catalogCanvasClass} ${CLIENT_HEADER_OFFSET}`}>
+          <SkeletonMasterProfile />
+        </div>
+      </>
     );
   }
 
   if (error || !master) {
     return (
-      <div className="min-h-dvh bg-white px-4 pb-32 pt-20">
+      <div className={`min-h-dvh ${catalogCanvasClass} px-4 sm:px-5 ${CLIENT_HEADER_OFFSET} ${CLIENT_MASTER_PROFILE_PAD_BOTTOM}`}>
         <EmptyState
           title={error ? 'Не получилось загрузить профиль мастера' : 'Мастер не найден'}
           description={error ? 'Проверьте соединение' : undefined}
@@ -112,67 +120,89 @@ export function MasterPublicPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-white text-[#111827]">
-      <MasterProfileHeader
+    <>
+      <MasterProfileDesktop
+        master={master}
+        userLat={userLat}
+        userLng={userLng}
+        nearest={nearest}
+        nearestLoading={nearestLoading}
         isFavorite={isFavorite}
-        onFavoriteToggle={() => void toggleFavorite()}
         favoriteDisabled={favoriteDisabled}
+        onFavoriteToggle={() => void toggleFavorite()}
         onShare={() => void onShare()}
-      />
-
-      <main
-        className={`mx-auto max-w-lg px-4 pt-[calc(4.25rem+env(safe-area-inset-top,0px))] ${CLIENT_MASTER_PROFILE_PAD_BOTTOM}`}
-      >
-        <MasterHeroCard
-          master={master}
-          userLat={userLat}
-          userLng={userLng}
-          nearest={nearest}
-          nearestLoading={nearestLoading}
-          onChooseTime={() => openBooking(nearest?.serviceId)}
-        />
-
-        {portfolioUrls.length > 0 ? (
-          <MasterPortfolioRail
-            items={master.portfolio ?? []}
-            onOpenGallery={setGalleryIndex}
-            onViewAll={() => setGalleryIndex(0)}
-          />
-        ) : null}
-
-        <MasterServicesList
-          services={master.services}
-          categoryCode={master.categoryCode}
-          categoryLabel={master.category}
-          highlightServiceId={highlightServiceId}
-          onSelect={setServiceSheet}
-          onViewAll={() => openBooking()}
-        />
-
-        <MasterTrustStats master={master} />
-        <MasterReviewsSection reviews={master.reviews} />
-        <MasterExtraSections master={master} />
-      </main>
-
-      <MasterStickyActions
-        onChooseTime={() => openBooking()}
-        phone={master.phone}
-        contact={master.contact}
+        onChooseTime={goToBooking}
         onPhoneUnavailable={() =>
           showToast(
             master.phone || master.contact
               ? 'Не удалось открыть набор номера. Попробуйте скопировать телефон из профиля.'
-              : 'Телефон мастера не указан. Запишитесь онлайн или напишите в мессенджер из контактов.',
+              : 'Телефон мастера не указан. Запишитесь онлайн или напишите в мессенджer из контактов.',
           )
         }
+        highlightServiceId={highlightServiceId}
+        onSelectService={setServiceSheet}
+        onOpenGallery={setGalleryIndex}
+        portfolioItems={master.portfolio ?? []}
       />
 
-      <BookingTimeSheet
-        open={bookingOpen}
-        onClose={() => setBookingOpen(false)}
-        master={master}
-        initialServiceId={bookingServiceId}
-      />
+      <div className={`relative z-0 lg:hidden min-h-dvh ${catalogCanvasClass} ${CLIENT_HEADER_OFFSET} text-[#111827]`}>
+        <div className="mx-auto w-full max-w-lg px-4 pt-1">
+          <MasterProfileMobileToolbar
+            masterName={master.masterName}
+            isFavorite={isFavorite}
+            onFavoriteToggle={() => void toggleFavorite()}
+            favoriteDisabled={favoriteDisabled}
+            onShare={() => void onShare()}
+          />
+
+          <main className={`space-y-4 pb-6 ${CLIENT_MASTER_PROFILE_PAD_BOTTOM}`}>
+            <MasterHeroCard
+              master={master}
+              userLat={userLat}
+              userLng={userLng}
+              nearest={nearest}
+              nearestLoading={nearestLoading}
+              onChooseTime={() => goToBooking(nearest?.serviceId)}
+            />
+
+            <MasterServicesList
+              services={master.services}
+              categoryCode={master.categoryCode}
+              categoryLabel={master.category}
+              highlightServiceId={highlightServiceId}
+              onSelect={setServiceSheet}
+              onViewAll={() => goToBooking()}
+            />
+
+            {portfolioUrls.length > 0 ? (
+              <MasterPortfolioRail
+                items={master.portfolio ?? []}
+                onOpenGallery={setGalleryIndex}
+                onViewAll={() => setGalleryIndex(0)}
+              />
+            ) : null}
+
+            <MasterTrustStats master={master} />
+            <MasterReviewsSection reviews={master.reviews} />
+            <MasterExtraSections master={master} />
+          </main>
+
+          <MasterStickyActions
+            onChooseTime={() => goToBooking()}
+            phone={master.phone}
+            contact={master.contact}
+            nearest={nearest}
+            nearestLoading={nearestLoading}
+            onPhoneUnavailable={() =>
+              showToast(
+                master.phone || master.contact
+                  ? 'Не удалось открыть набор номера. Попробуйте скопировать телефон из профиля.'
+                  : 'Телефон мастера не указан. Запишитесь онлайн или напишите в мессенджer из контактов.',
+              )
+            }
+          />
+        </div>
+      </div>
 
       <ServiceDetailSheet
         open={Boolean(serviceSheet)}
@@ -180,7 +210,7 @@ export function MasterPublicPage() {
         paymentMethods={master.paymentMethods}
         paymentNote={master.paymentNote}
         onClose={() => setServiceSheet(null)}
-        onChooseTime={() => openBooking(serviceSheet?.id)}
+        onChooseTime={() => goToBooking(serviceSheet?.id)}
       />
 
       {galleryIndex != null && portfolioUrls.length > 0 ? (
@@ -194,12 +224,12 @@ export function MasterPublicPage() {
 
       {toast ? (
         <div
-          className="fixed left-1/2 top-[calc(5rem+env(safe-area-inset-top))] z-[80] -translate-x-1/2 rounded-full bg-[#111827]/90 px-4 py-2 text-[13px] font-medium text-white shadow-lg"
+          className="fixed left-1/2 top-[calc(5rem+env(safe-area-inset-top))] z-[80] -translate-x-1/2 rounded-full bg-[#111827]/90 px-4 py-2 text-[13px] font-medium text-white shadow-lg lg:top-24"
           role="status"
         >
           {toast}
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

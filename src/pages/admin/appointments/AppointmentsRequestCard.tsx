@@ -1,6 +1,13 @@
 import { HiCheck, HiXMark } from 'react-icons/hi2';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
-import { apptCard, apptOutlineBtn, apptPinkBtn } from './adminAppointmentsTheme';
+import {
+  apptBadgeNew,
+  apptMetaAccent,
+  apptOutlineBtn,
+  apptPinkBtn,
+  apptPriceAccent,
+  apptRequestCard,
+} from './adminAppointmentsTheme';
 import { AppointmentsClientAvatar } from './AppointmentsClientAvatar';
 import { formatAppointmentPrice, formatCardDateTime } from './appointmentsFormat';
 
@@ -12,25 +19,23 @@ type Props = {
 
 export function AppointmentsRequestCard({ appointment, onConfirm, onReject }: Props) {
   return (
-    <article className={`${apptCard} p-4`}>
+    <article className={`${apptRequestCard} p-4 pl-5`}>
       <div className="flex items-start gap-3">
-        <AppointmentsClientAvatar name={appointment.clientName} />
+        <AppointmentsClientAvatar name={appointment.clientName} variant="gradient" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <p className="truncate text-[17px] font-bold tracking-[-0.03em] text-[#111827]">
+            <p className="truncate text-[17px] font-black tracking-[-0.03em] text-[#111827]">
               {appointment.clientName}
             </p>
-            <span className="shrink-0 rounded-full bg-[#FFF1F4] px-2.5 py-1 text-[11px] font-bold text-[#F47C8C]">
-              Новая заявка
-            </span>
+            <span className={`shrink-0 ${apptBadgeNew}`}>Новая</span>
           </div>
-          <p className="mt-1 text-[14px] font-medium leading-snug text-[#6B7280]">
+          <p className="mt-1 text-[14px] font-semibold leading-snug text-[#6B7280]">
             {appointment.serviceTitle}
           </p>
-          <p className="mt-2 text-[13px] font-semibold text-[#374151]">
+          <p className={`mt-2 text-[13px] ${apptMetaAccent}`}>
             {formatCardDateTime(appointment.date, appointment.time)}
           </p>
-          <p className="mt-2 text-[17px] font-bold tabular-nums text-[#111827]">
+          <p className={`mt-2 text-[17px] ${apptPriceAccent}`}>
             {formatAppointmentPrice(appointment.priceByn)}
           </p>
         </div>

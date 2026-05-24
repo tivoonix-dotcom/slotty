@@ -134,6 +134,66 @@ export function computeRevenueAnalytics(
   };
 }
 
+/** Ключ «все услуги» в фильтре графика дохода. */
+export const REVENUE_SOURCE_ALL_KEY = '__all__';
+
+export type RevenueServiceSource = {
+  key: string;
+  label: string;
+  revenue: number;
+};
+
+function revenueServiceSourceKey(serviceTitle: string | undefined): string {
+  return (serviceTitle?.trim() || 'Без услуги').toLowerCase();
+}
+
+/** Доход по услугам за период (только завершённые записи). */
+export function computeRevenueServiceSources(
+  appointments: DemoMasterAppointment[],
+  start: string,
+  end: string,
+): RevenueServiceSource[] {
+  const byKey = new Map<string, RevenueServiceSource>();
+
+  for (const row of appointments) {
+    if (row.status !== 'completed' || row.date < start || row.date > end) continue;
+    const label = row.serviceTitle?.trim() || 'Без услуги';
+    const key = revenueServiceSourceKey(row.serviceTitle);
+    const amount = Number.isFinite(row.priceByn) ? row.priceByn : 0;
+    const prev = byKey.get(key);
+    if (prev) {
+      prev.revenue += amount;
+    } else {
+      byKey.set(key, { key, label, revenue: amount });
+    }
+  }
+
+  return [...byKey.values()].sort((a, b) => b.revenue - a.revenue);
+}
+
+export function filterAppointmentsByRevenueSource(
+  appointments: DemoMasterAppointment[],
+  sourceKey: string,
+): DemoMasterAppointment[] {
+  if (sourceKey === REVENUE_SOURCE_ALL_KEY) return appointments;
+  return appointments.filter((r) => revenueServiceSourceKey(r.serviceTitle) === sourceKey);
+}
+
+/** Те же даты, что у базового графика, но доход только по выбранной услуге. */
+export function revenueChartDayStatsForSource(
+  appointments: DemoMasterAppointment[],
+  baseDayStats: OverviewDayStat[],
+  sourceKey: string,
+): OverviewDayStat[] {
+  if (sourceKey === REVENUE_SOURCE_ALL_KEY || !baseDayStats.length) {
+    return baseDayStats;
+  }
+  const chartStart = baseDayStats[0]!.date;
+  const chartEnd = baseDayStats[baseDayStats.length - 1]!.date;
+  const filtered = filterAppointmentsByRevenueSource(appointments, sourceKey);
+  return aggregateOverviewByDay(filtered, chartStart, chartEnd);
+}
+
 export type ClientDayStat = {
   date: string;
   newClients: number;

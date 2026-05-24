@@ -27,6 +27,10 @@ export type AggregatedServiceCard = {
   promotionOnly: boolean;
   badge: 'popular' | 'hit' | 'sale' | null;
   promoText: string | null;
+  avgRating: number;
+  totalReviews: number;
+  tags: string[];
+  isNew: boolean;
 };
 
 function medianDuration(values: number[]): number {
@@ -114,6 +118,10 @@ export function aggregateServicesByCategory(
       promotionOnly: badge === 'sale',
       badge,
       promoText,
+      avgRating: Math.round(topRating * 10) / 10,
+      totalReviews,
+      tags: subtitle.split(/,\s*/).filter(Boolean).slice(0, 4),
+      isNew: totalReviews < 40 && masterIds.size >= 2,
     });
   }
 

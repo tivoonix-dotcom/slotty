@@ -11,10 +11,19 @@ const TABS = [
 type Props = {
   active: AppointmentsTabId;
   onChange: (tab: AppointmentsTabId) => void;
+  variant?: 'mobile' | 'desktop';
 };
 
-export function AppointmentsBottomTabBar({ active, onChange }: Props) {
+export function AppointmentsBottomTabBar({ active, onChange, variant = 'mobile' }: Props) {
+  if (variant === 'desktop') return null;
+
   return (
-    <AdminSegmentTabNav tabs={TABS} active={active} onChange={onChange} ariaLabel="Разделы записей" />
+    <AdminSegmentTabNav
+      tabs={TABS}
+      active={active}
+      onChange={onChange}
+      ariaLabel="Разделы записей"
+      mode="mobile"
+    />
   );
 }

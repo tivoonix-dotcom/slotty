@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useRef, useState, type FocusEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type LegacyRef, type ReactNode, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   HiBell,
-  HiChevronDown,
   HiSquares2X2,
   HiUser,
 } from 'react-icons/hi2';
 
 import { HEADER_LOGO_SRC } from '../../../app/headerLogo';
 import {
-  ADMIN_LOGIN_METHODS_PATH,
+  ADMIN_SETTINGS_PATH,
   ADMIN_NOTIFICATIONS_PATH,
   ADMIN_PATH,
   BECOME_MASTER_PATH,
@@ -24,6 +24,8 @@ import { useAuth } from '../../../features/auth/AuthProvider';
 import { resolveMasterEntryPath } from '../../../features/auth/lib/resolveMasterEntryPath';
 import { useIsMasterUser } from '../../../features/profile/hooks/useIsMasterUser';
 import { setProfileRole } from '../../../features/profile/lib/setProfileRole';
+import { CLIENT_DESKTOP_SHELL_CLASS } from '../clientShellLayout';
+import { catalogPrimaryBtn } from '../../../pages/client/servicesCatalog/servicesCatalogTheme';
 import { useTelegram } from '../../hooks/useTelegram';
 import { HeaderProfileAvatar } from './HeaderProfileAvatar';
 import {
@@ -32,18 +34,60 @@ import {
   LANDING_ANCHOR_FOR_MASTERS,
   LANDING_ANCHOR_HOW,
   LANDING_ANCHOR_TARIFFS,
+  isLandingHowTab,
+  isLandingMastersTab,
+  parseLandingHowTab,
+  parseLandingMastersTab,
   SLOTTY_NAV_CATALOG,
   SLOTTY_NAV_MASTERS,
 } from './headerNav';
+import { resolveMegaMenuGroup, type MegaMenuKey, type MegaMenuGroup, type MegaMenuItem } from './megaMenuConfig';
 
 const iconBtn =
   'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F1EFEF] text-[#374151] transition hover:bg-[#E9E6E6] hover:text-[#F47C8C] active:scale-[0.97]';
 
-const masterCtaClass =
-  'inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-[#F47C8C] to-[#F26D83] px-4 text-[14px] font-semibold text-white shadow-[0_8px_24px_rgba(244,124,140,0.28)] transition hover:opacity-95 active:scale-[0.98]';
+const masterCtaClass = `${catalogPrimaryBtn} h-10 rounded-full px-4 text-[14px]`;
+
+const HEADER_LOGO_IMG_CLASS = 'block h-[72px] w-auto object-contain object-center sm:h-20';
+
+const HEADER_LOGO_COMPACT_CLASS = 'block h-10 w-auto object-contain object-center lg:h-11';
+
+const HEADER_LANDING_ROW_CLASS =
+  'relative flex h-20 items-center justify-between gap-4 px-4 sm:px-5 lg:h-[5.5rem] lg:px-5 xl:px-6';
+
+const HEADER_BAR_ROW_CLASS =
+  'relative flex h-14 items-center justify-between gap-4 px-4 sm:px-5 lg:h-[4.25rem] lg:px-0';
+
+function HeaderLogoLink({
+  className = '',
+  onClick,
+  size = 'large',
+}: {
+  className?: string;
+  onClick?: () => void;
+  size?: 'large' | 'compact';
+}) {
+  return (
+    <Link
+      to={HUB_PATH}
+      aria-label="SLOTTY — на главную"
+      className={`inline-flex shrink-0 items-center justify-center outline-none transition hover:opacity-60 ${className}`}
+      onClick={onClick}
+    >
+      <img
+        src={HEADER_LOGO_SRC}
+        alt=""
+        decoding="async"
+        loading="eager"
+        fetchPriority="high"
+        className={size === 'compact' ? HEADER_LOGO_COMPACT_CLASS : HEADER_LOGO_IMG_CLASS}
+      />
+    </Link>
+  );
+}
 
 const navTriggerClass =
-  'inline-flex items-center gap-1.5 rounded-full px-1 py-2 text-[15px] font-semibold text-[#374151] transition hover:text-[#F47C8C] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F47C8C]/40';
+  'inline-flex h-10 items-center rounded-full px-2 text-[15px] font-semibold leading-none text-[#374151] transition hover:text-[#F47C8C] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F47C8C]/40';
 
 const activeNavTriggerClass = 'text-[#F47C8C]';
 
@@ -53,216 +97,35 @@ export type SlottyHeaderProps = {
   variant?: Variant;
 };
 
-type MegaMenuKey = 'catalog' | 'masters' | 'how' | 'mastersFor' | 'tariffs';
-type MegaMenuItem = {
-  title: string;
-  description: string;
-  badge?: string;
-  to?: string;
-  anchor?: string;
-  accent?: 'pink' | 'violet' | 'blue' | 'green' | 'orange';
-};
+function useSyncHeaderHeight(headerRef: RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
 
-type MegaMenuGroup = {
-  label: string;
-  to?: string;
-  anchor?: string;
-  items: MegaMenuItem[];
-};
+    const mq = window.matchMedia('(min-width: 1024px)');
 
-const MEGA_MENU: Record<MegaMenuKey, MegaMenuGroup> = {
-  catalog: {
-    label: 'Каталог',
-    to: SERVICES_PATH,
-    items: [
-      {
-        title: 'Маникюр',
-        badge: 'POPULAR',
-        description: 'Мастера рядом, цены, свободные окна и быстрая запись.',
-        to: SERVICES_PATH,
-        accent: 'pink',
-      },
-      {
-        title: 'Барберы',
-        description: 'Стрижки, борода, уход, портфолио мастеров и отзывы.',
-        to: SERVICES_PATH,
-        accent: 'blue',
-      },
-      {
-        title: 'Брови и ресницы',
-        description: 'Коррекция, окрашивание, ламинирование и запись без переписок.',
-        to: SERVICES_PATH,
-        accent: 'violet',
-      },
-      {
-        title: 'Массаж',
-        description: 'Подбор мастера по району, цене, рейтингу и ближайшему времени.',
-        to: SERVICES_PATH,
-        accent: 'green',
-      },
-      {
-        title: 'Фитнес и тату',
-        badge: 'NEW',
-        description: 'Категории, где важны портфолио, расписание и доверие.',
-        to: SERVICES_PATH,
-        accent: 'orange',
-      },
-    ],
-  },
+    const sync = () => {
+      if (!mq.matches) {
+        document.documentElement.style.removeProperty('--slotty-header-height');
+        return;
+      }
+      document.documentElement.style.setProperty(
+        '--slotty-header-height',
+        `${Math.ceil(el.getBoundingClientRect().height)}px`,
+      );
+    };
 
-  masters: {
-    label: 'Мастера',
-    to: MASTERS_PATH,
-    items: [
-      {
-        title: 'Лучшие мастера',
-        description: 'Карточки специалистов с рейтингом, услугами, адресом и фото работ.',
-        to: MASTERS_PATH,
-        accent: 'pink',
-      },
-      {
-        title: 'Свободные окна',
-        badge: 'FAST',
-        description: 'Показываем, когда можно записаться сегодня, завтра или на неделе.',
-        to: MASTERS_PATH,
-        accent: 'blue',
-      },
-      {
-        title: 'Портфолио',
-        description: 'Фото работ, сертификаты и визуальная проверка качества мастера.',
-        to: MASTERS_PATH,
-        accent: 'violet',
-      },
-      {
-        title: 'Отзывы клиентов',
-        description: 'Помогают выбрать мастера быстрее и повышают доверие к записи.',
-        to: MASTERS_PATH,
-        accent: 'green',
-      },
-      {
-        title: 'Запись 24/7',
-        description: 'Клиент выбирает услугу, время и отправляет заявку без звонков.',
-        to: MASTERS_PATH,
-        accent: 'orange',
-      },
-    ],
-  },
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    mq.addEventListener('change', sync);
 
-  how: {
-    label: 'Как это работает',
-    anchor: LANDING_ANCHOR_HOW,
-    items: [
-      {
-        title: 'Выбор услуги',
-        description: 'Клиент открывает каталог, выбирает категорию, мастера или услугу.',
-        anchor: LANDING_ANCHOR_HOW,
-        accent: 'pink',
-      },
-      {
-        title: 'Свободное время',
-        description: 'Система показывает реальные окна мастера и доступные даты.',
-        anchor: LANDING_ANCHOR_HOW,
-        accent: 'blue',
-      },
-      {
-        title: 'Заявка на запись',
-        description: 'Клиент оставляет заявку, а мастер видит ее в своем кабинете.',
-        anchor: LANDING_ANCHOR_HOW,
-        accent: 'violet',
-      },
-      {
-        title: 'Telegram-напоминания',
-        badge: 'AUTO',
-        description: 'Напоминания помогают не забывать о записи и уменьшают неявки.',
-        anchor: LANDING_ANCHOR_HOW,
-        accent: 'green',
-      },
-      {
-        title: 'История записей',
-        description: 'Будущие и прошлые записи хранятся в понятном интерфейсе.',
-        anchor: LANDING_ANCHOR_HOW,
-        accent: 'orange',
-      },
-    ],
-  },
-
-  mastersFor: {
-    label: 'Для мастеров',
-    anchor: LANDING_ANCHOR_FOR_MASTERS,
-    items: [
-      {
-        title: 'Профиль мастера',
-        badge: 'PRO',
-        description: 'Аватар, описание, адрес, контакты, категории, сертификаты и портфолио.',
-        anchor: LANDING_ANCHOR_FOR_MASTERS,
-        accent: 'pink',
-      },
-      {
-        title: 'Заявки клиентов',
-        description: 'Новые, предстоящие и завершенные записи в одном удобном месте.',
-        anchor: LANDING_ANCHOR_FOR_MASTERS,
-        accent: 'blue',
-      },
-      {
-        title: 'Услуги и цены',
-        description: 'Мастер сам добавляет услуги, длительность, стоимость и описание.',
-        anchor: LANDING_ANCHOR_FOR_MASTERS,
-        accent: 'violet',
-      },
-      {
-        title: 'График и окна',
-        description: 'Рабочие дни, время приема, свободные окна и управление расписанием.',
-        anchor: LANDING_ANCHOR_FOR_MASTERS,
-        accent: 'green',
-      },
-      {
-        title: 'Сводка и аналитика',
-        description: 'Записи, выручка, активность клиентов и подсказки для роста.',
-        anchor: LANDING_ANCHOR_FOR_MASTERS,
-        accent: 'orange',
-      },
-    ],
-  },
-
-  tariffs: {
-    label: 'Тарифы',
-    anchor: LANDING_ANCHOR_TARIFFS,
-    items: [
-      {
-        title: 'Free',
-        badge: 'START',
-        description: 'Базовый профиль мастера и возможность принимать первые заявки.',
-        anchor: LANDING_ANCHOR_TARIFFS,
-        accent: 'pink',
-      },
-      {
-        title: 'Pro',
-        badge: 'BEST',
-        description: 'Больше возможностей для мастера, продвижения и управления записями.',
-        anchor: LANDING_ANCHOR_TARIFFS,
-        accent: 'blue',
-      },
-      {
-        title: 'Умные акции',
-        description: 'Автоматические предложения на свободные окна, чтобы не терять время.',
-        anchor: LANDING_ANCHOR_TARIFFS,
-        accent: 'violet',
-      },
-      {
-        title: 'Приоритет',
-        description: 'Больше видимости в каталоге и лучшее оформление карточки мастера.',
-        anchor: LANDING_ANCHOR_TARIFFS,
-        accent: 'green',
-      },
-      {
-        title: 'Подключение',
-        description: 'Быстрый старт: профиль, услуги, расписание и первые клиенты.',
-        anchor: LANDING_ANCHOR_TARIFFS,
-        accent: 'orange',
-      },
-    ],
-  },
-};
+    return () => {
+      ro.disconnect();
+      mq.removeEventListener('change', sync);
+    };
+  }, [headerRef]);
+}
 
 function BurgerIcon({ open }: { open: boolean }) {
   return (
@@ -290,22 +153,34 @@ function HeaderShell({
   variant,
   children,
   innerClassName = '',
+  shellRef,
 }: {
   variant: Variant;
   children: ReactNode;
   innerClassName?: string;
+  shellRef?: RefObject<HTMLElement | null>;
 }) {
+  const headerElementRef = shellRef as LegacyRef<HTMLElement> | undefined;
+
   if (variant === 'bar') {
     return (
-      <header className="sticky top-0 z-50 hidden border-b border-[#F3F4F6] bg-[#FFFCFC]/95 backdrop-blur-md lg:block">
-        <div className={`mx-auto max-w-[1100px] px-6 ${innerClassName}`}>{children}</div>
+      <header
+        ref={headerElementRef}
+        className={`sticky top-0 z-50 hidden overflow-visible bg-[#FFFCFC]/95 backdrop-blur-md lg:block ${
+          innerClassName.includes('mega-open') ? 'border-b border-transparent' : 'border-b border-[#F3F4F6]'
+        }`}
+      >
+        <div className={`${CLIENT_DESKTOP_SHELL_CLASS} ${innerClassName}`}>{children}</div>
       </header>
     );
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
-      <div className="mx-auto max-w-[1100px] px-4 sm:px-6">
+    <header
+      ref={headerElementRef}
+      className="fixed inset-x-0 top-0 z-50 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]"
+    >
+      <div className={CLIENT_DESKTOP_SHELL_CLASS}>
         <div
           className={`overflow-visible rounded-[30px] bg-[#F1EFEF]/95 shadow-[0_1px_3px_rgba(0,0,0,0.06)] backdrop-blur-xl transition-all duration-300 ${innerClassName}`}
         >
@@ -329,14 +204,17 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
   const [megaPanelKey, setMegaPanelKey] = useState<MegaMenuKey | null>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const megaCloseTimerRef = useRef<number | null>(null);
+
+  useSyncHeaderHeight(headerRef);
 
   const masterHref = resolveMasterEntryPath({ isAuthenticated, isMasterUser });
   const masterCtaLabel = isMasterUser ? 'Кабинет мастера' : 'Стать мастером';
   const loginReturnPath = `${location.pathname}${location.search}`;
   const loginHref = getLoginPath(loginReturnPath);
   const appointmentsHref = isAuthenticated ? getProfilePath('appointments') : loginHref;
-  const loginMethodsHref = isMasterUser ? ADMIN_LOGIN_METHODS_PATH : getProfilePath('settings');
+  const loginMethodsHref = isMasterUser ? ADMIN_SETTINGS_PATH : getProfilePath('settings');
 
   const showDesktopChrome = !isTelegramWebApp && variant === 'bar';
   const showLandingDesktop = !isTelegramWebApp && variant === 'landing';
@@ -372,8 +250,25 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
       const onHub = location.pathname === HUB_PATH || location.pathname === '/';
 
       if (onHub) {
-        document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        window.history.replaceState(null, '', `${HUB_PATH}#${anchor}`);
+        const isHowTab = isLandingHowTab(anchor);
+        const isMastersTab = isLandingMastersTab(anchor);
+        const scrollTarget =
+          isHowTab || anchor === LANDING_ANCHOR_HOW
+            ? 'how-it-works'
+            : isMastersTab || anchor === LANDING_ANCHOR_FOR_MASTERS
+              ? 'for-masters'
+              : anchor;
+        document.getElementById(scrollTarget)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const hash = isHowTab
+          ? anchor
+          : isMastersTab
+            ? anchor
+            : anchor === LANDING_ANCHOR_HOW
+              ? parseLandingHowTab('')
+              : anchor === LANDING_ANCHOR_FOR_MASTERS
+                ? parseLandingMastersTab('')
+                : anchor;
+        window.history.replaceState(null, '', `${HUB_PATH}#${hash}`);
         return;
       }
 
@@ -479,7 +374,7 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
   }, [closeMegaMenu, closeMobileMenu, isAuthenticated, loginHref, navigate]);
 
   const desktopActions = (
-    <div className="hidden shrink-0 items-center gap-2 lg:flex">
+    <div className="hidden shrink-0 items-center gap-3 self-center lg:flex">
       <button
         type="button"
         onClick={() => void goCatalog()}
@@ -497,7 +392,7 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
           aria-label="Уведомления"
           title="Уведомления"
         >
-          <HiBell className="h-5 w-5" aria-hidden />
+          <HiBell className="h-5 w-5 shrink-0" aria-hidden />
         </Link>
       ) : null}
 
@@ -506,14 +401,12 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
           <button
             type="button"
             onClick={() => setProfileOpen((o) => !o)}
-            className={`${iconBtn} gap-1.5 px-2.5 pr-3`}
+            className={`${iconBtn} overflow-hidden p-0`}
             aria-expanded={profileOpen}
             aria-haspopup="menu"
             aria-label="Профиль"
           >
-            <HeaderProfileAvatar profile={profile} />
-
-            <HiChevronDown className="h-4 w-4 opacity-60" aria-hidden />
+            <HeaderProfileAvatar profile={profile} fill />
           </button>
 
           {profileOpen ? (
@@ -573,43 +466,31 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
       ) : (
         <Link
           to={loginHref}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#F1EFEF] px-3.5 text-[14px] font-semibold text-[#111827] transition hover:bg-[#E9E6E6]"
+          className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#F1EFEF] px-3.5 text-[14px] font-semibold text-[#111827] transition hover:bg-[#E9E6E6]"
         >
           <HiUser className="h-5 w-5 text-[#6B7280]" aria-hidden />
           Войти
         </Link>
       )}
 
-      <Link to={masterHref} className={masterCtaClass}>
+      <Link to={masterHref} className={`${masterCtaClass} shrink-0 self-center`}>
         {masterCtaLabel}
       </Link>
     </div>
   );
 
   const topBar = (
-    <div className="flex items-center justify-between gap-3 px-4 py-2 sm:px-5 sm:py-2.5">
-      <Link
-        to={HUB_PATH}
-        aria-label="SLOTTY — на главную"
-        className="inline-flex h-9 shrink-0 items-center overflow-visible outline-none transition hover:opacity-60 sm:h-10"
-        onClick={closeMegaMenu}
-      >
-        <img
-          src={HEADER_LOGO_SRC}
-          alt=""
-          decoding="async"
-          loading="eager"
-          fetchPriority="high"
-          className="h-9 w-auto origin-center object-contain [transform:translateY(0.25rem)_scale(1.56)] sm:h-10 sm:[transform:translateY(0.35rem)_scale(1.5)]"
+    <div className={HEADER_LANDING_ROW_CLASS}>
+      <div className="relative flex min-w-0 flex-1 items-center gap-5 xl:gap-8 lg:flex-initial">
+        <HeaderLogoLink
+          onClick={closeMegaMenu}
+          className="absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 lg:relative lg:left-auto lg:top-auto lg:translate-x-0 lg:translate-y-0"
         />
-      </Link>
 
-      {showLandingDesktop || showDesktopChrome ? (
-        <>
-          {desktopCenterNav}
-          {desktopActions}
-        </>
-      ) : null}
+        {showLandingDesktop || showDesktopChrome ? desktopCenterNav : null}
+      </div>
+
+      {showLandingDesktop || showDesktopChrome ? desktopActions : null}
 
       {compactMobile ? (
         <div className="flex shrink-0 items-center gap-2 lg:hidden">
@@ -789,20 +670,23 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
 
   if (variant === 'bar') {
     return (
-      <HeaderShell variant="bar">
-        <div className="flex flex-col" {...megaHostProps}>
-          <div className="flex h-[4.25rem] items-center gap-4">
-            <Link to={HUB_PATH} className="inline-flex shrink-0" aria-label="SLOTTY" onClick={closeMegaMenu}>
-              <img src={HEADER_LOGO_SRC} alt="" className="h-9 w-auto object-contain" decoding="async" />
-            </Link>
+      <HeaderShell variant="bar" shellRef={headerRef} innerClassName={megaMenuOpen ? 'mega-open' : ''}>
+        <div className="relative" {...megaHostProps}>
+          <div className={`${HEADER_BAR_ROW_CLASS} lg:px-0`}>
+            <div className="flex min-w-0 items-center gap-5 xl:gap-8">
+              <HeaderLogoLink onClick={closeMegaMenu} size="compact" />
 
-            {desktopCenterNav}
+              {desktopCenterNav}
+            </div>
+
             {desktopActions}
           </div>
 
           <HeaderMegaDropdown
+            variant="bar"
             isOpen={megaMenuOpen}
             panelKey={megaPanelKey}
+            isMasterUser={isMasterUser}
             onAnchorClick={scrollToLandingAnchor}
             onForceClose={closeMegaMenu}
           />
@@ -825,17 +709,20 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
 
       <HeaderShell
         variant="landing"
+        shellRef={headerRef}
         innerClassName={
           megaMenuOpen
-            ? 'shadow-[0_24px_70px_rgba(244,124,140,0.14),0_12px_40px_rgba(17,24,39,0.08)]'
+            ? 'mega-open rounded-b-none shadow-[0_24px_70px_rgba(244,124,140,0.14),0_12px_40px_rgba(17,24,39,0.08)]'
             : ''
         }
       >
         <div className="relative" {...megaHostProps}>
           {topBar}
           <HeaderMegaDropdown
+            variant="landing"
             isOpen={megaMenuOpen}
             panelKey={megaPanelKey}
+            isMasterUser={isMasterUser}
             onAnchorClick={scrollToLandingAnchor}
             onForceClose={closeMegaMenu}
           />
@@ -864,8 +751,8 @@ function DesktopMegaNav({
   };
 
   return (
-    <div className="relative hidden min-w-0 flex-1 items-center justify-center lg:flex" onBlur={handleBlur}>
-      <nav className="flex items-center justify-center gap-6 xl:gap-8" aria-label="Основное меню">
+    <div className="relative hidden lg:block" onBlur={handleBlur}>
+      <nav className="flex items-center gap-5 xl:gap-8" aria-label="Основное меню">
         <MegaTrigger
           menuKey="catalog"
           label={SLOTTY_NAV_CATALOG.label}
@@ -940,37 +827,68 @@ function useMegaCardReveal(animateIn: boolean) {
 }
 
 function HeaderMegaDropdown({
+  variant,
   isOpen,
   panelKey,
+  isMasterUser,
   onAnchorClick,
   onForceClose,
 }: {
+  variant: Variant;
   isOpen: boolean;
   panelKey: MegaMenuKey | null;
+  isMasterUser: boolean;
   onAnchorClick: (anchor: string) => void;
   onForceClose: () => void;
 }) {
-  const group = panelKey ? MEGA_MENU[panelKey] : null;
+  const group = panelKey ? resolveMegaMenuGroup(panelKey, isMasterUser) : null;
+  const panelSurfaceClass =
+    variant === 'landing'
+      ? 'bg-[#F1EFEF]/98 shadow-[0_24px_60px_rgba(17,24,39,0.10)] backdrop-blur-xl rounded-b-[30px]'
+      : 'bg-[#FFFCFC]/98 shadow-[0_24px_60px_rgba(17,24,39,0.10)] backdrop-blur-md';
+
+  const backdrop =
+    typeof document !== 'undefined'
+      ? createPortal(
+          <button
+            type="button"
+            aria-label="Закрыть меню"
+            tabIndex={isOpen ? 0 : -1}
+            className={`fixed inset-x-0 bottom-0 z-[45] hidden bg-white/25 backdrop-blur-xl backdrop-saturate-150 transition-opacity duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none lg:block ${
+              isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+            style={{ top: 'var(--slotty-header-height)' }}
+            onClick={onForceClose}
+          />,
+          document.body,
+        )
+      : null;
 
   return (
-    <div
-      className={`hidden transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none lg:grid ${
-        isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
-      }`}
-      aria-hidden={!isOpen}
-    >
-      <div className="min-h-0 overflow-hidden">
-        {group ? (
-          <MegaPanel
-            key={panelKey}
-            group={group}
-            animateIn={isOpen}
-            onAnchorClick={onAnchorClick}
-            onForceClose={onForceClose}
-          />
-        ) : null}
+    <>
+      {backdrop}
+
+      <div
+        className={`absolute inset-x-0 top-full z-[60] -mt-px hidden overflow-hidden transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none lg:block ${
+          isOpen
+            ? 'pointer-events-auto opacity-100 translate-y-0'
+            : 'pointer-events-none opacity-0 -translate-y-2'
+        }`}
+        aria-hidden={!isOpen}
+      >
+        <div className={panelSurfaceClass}>
+          {group ? (
+            <MegaPanel
+              key={panelKey}
+              group={group}
+              animateIn={isOpen}
+              onAnchorClick={onAnchorClick}
+              onForceClose={onForceClose}
+            />
+          ) : null}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1044,7 +962,11 @@ function MegaPanel({
     <div className="relative px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
       <div className="pointer-events-none absolute -bottom-16 left-1/2 h-32 w-[70%] -translate-x-1/2 rounded-full bg-[#F47C8C]/10 blur-3xl" />
 
-      <div className="relative grid grid-cols-5 gap-3">
+      <div
+        className={`relative grid gap-3 ${
+          group.items.length <= 2 ? 'mx-auto max-w-[680px] grid-cols-2' : 'grid-cols-5'
+        }`}
+      >
         {group.items.map((item, index) => (
           <MegaCard
             key={`${item.title}-${index}`}
@@ -1114,8 +1036,11 @@ function MegaCard({
 
   const className = `group relative flex min-h-[19.5rem] overflow-hidden rounded-[24px] border border-white/75 bg-[#FFFBFC] p-5 transition-[transform,opacity,border-color,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-[#F47C8C]/35 hover:bg-white hover:shadow-[0_24px_60px_rgba(244,124,140,0.16)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F47C8C] motion-reduce:transition-none ${cardMotionClass}`;
 
-  const to = item.to ?? fallbackTo;
-  const anchor = item.anchor ?? fallbackAnchor;
+  const to =
+    item.to ??
+    (item.anchor ? landingAnchorHref(item.anchor) : undefined) ??
+    (fallbackAnchor && !fallbackTo ? landingAnchorHref(fallbackAnchor) : fallbackTo);
+  const anchor = !to ? (item.anchor ?? fallbackAnchor) : undefined;
 
   const motionStyle = { transitionDelay: `${index * 55}ms` };
 

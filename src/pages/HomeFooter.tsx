@@ -8,6 +8,7 @@ import {
   LEGAL_PRIVACY_PATH,
   LEGAL_TERMS_PATH,
 } from '../app/paths';
+import { homeShell } from './home/homeLayout';
 import { TIVONIX_SITE_URL } from './legal/legalSiteInfo';
 
 const FOOTER_BG = '/photos/foooter.png';
@@ -34,7 +35,7 @@ const legalLinkClass =
 export const HomeFooter: FC = () => {
   return (
     <footer className="mt-14 pb-[max(2rem,env(safe-area-inset-bottom))] sm:mt-16">
-      <div className="mx-auto max-w-[1100px] px-4 sm:px-6">
+      <div className={homeShell}>
         <div
           className="relative overflow-hidden rounded-[28px] bg-cover bg-center bg-no-repeat px-5 py-6 shadow-[0_12px_40px_rgba(0,0,0,0.2)] sm:rounded-[32px] sm:px-7 sm:py-8"
           style={{ backgroundImage: `url('${FOOTER_BG}')` }}

@@ -57,6 +57,8 @@ import { parseHttpsCertificateImageUrl } from '../../features/master-onboarding/
 import type { MasterPlanSelection } from '../../features/master-onboarding/model/masterOnboardingPlanTypes';
 
 const TOTAL_STEPS = 8;
+const ONBOARDING_PAGE_WRAP =
+  'mx-auto w-full min-w-0 max-w-2xl px-3 sm:px-4 lg:max-w-[1320px] lg:px-6 xl:px-10';
 const ONBOARDING_CITY = 'Минск';
 const FINISH_ILLUSTRATION_SRC = '/photos/finish.webp';
 
@@ -1645,14 +1647,14 @@ export function BecomeMasterPage() {
 
   return (
     <div
-      className={`min-h-dvh overflow-x-hidden bg-white text-neutral-900 ${
+      className={`min-h-dvh overflow-x-hidden text-neutral-900 ${
         step === 1
-          ? 'pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]'
-          : 'pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))]'
+          ? 'bg-white pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:bg-[#F5F5F5]'
+          : 'bg-white pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))]'
       }`}
     >
-      <header className="sticky top-0 z-40 bg-[#F1EFEF] pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
-        <div className="mx-auto w-full min-w-0 max-w-2xl px-3 pb-3 sm:px-4">
+      <header className="sticky top-0 z-40 bg-[#F1EFEF] pt-[calc(0.75rem+env(safe-area-inset-top,0px))] lg:border-b lg:border-[#EBEBEB] lg:bg-[#FFFCFC]/95 lg:backdrop-blur-md">
+        <div className={`${ONBOARDING_PAGE_WRAP} pb-3`}>
           <div className="flex items-center justify-between gap-2 sm:gap-3">
             {step === 1 ? (
               <Link
@@ -1686,7 +1688,7 @@ export function BecomeMasterPage() {
       </header>
 
       {step >= 2 && (!backendConfigured || (!authLoading && !isAuthenticated)) ? (
-        <div className="mx-auto w-full min-w-0 max-w-2xl space-y-2 px-3 pt-3 sm:px-4">
+        <div className={`${ONBOARDING_PAGE_WRAP} space-y-2 pt-3`}>
           {!backendConfigured ? (
             <p className="rounded-[18px] bg-[#FFF4E8] px-4 py-3 text-[13px] font-semibold leading-snug text-[#B66A24]">
               Не задан <span className="font-mono text-[12px]">VITE_API_URL</span> — категории и публикация профиля не заработают, пока не подключите бэкенд.
@@ -1700,32 +1702,27 @@ export function BecomeMasterPage() {
         </div>
       ) : null}
 
-      <div className={`mx-auto w-full min-w-0 max-w-2xl px-3 sm:px-4 ${step === 1 ? 'pt-2 sm:pt-3' : 'pt-4'}`}>
+      <div className={`${ONBOARDING_PAGE_WRAP} ${step === 1 ? 'pt-2 sm:pt-3 lg:pt-6' : 'pt-4'}`}>
         <div
-          className={`min-w-0 rounded-[42px] bg-[#F1EFEF] shadow-[0_24px_70px_rgba(17,17,17,0.06)] ${
-            step === 1 ? 'p-2 sm:p-2.5' : 'p-2.5 sm:p-3'
+          className={`min-w-0 ${
+            step === 1
+              ? 'rounded-[42px] bg-[#F1EFEF] p-2 shadow-[0_24px_70px_rgba(17,17,17,0.06)] sm:p-2.5 lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none'
+              : 'rounded-[42px] bg-[#F1EFEF] p-2.5 shadow-[0_24px_70px_rgba(17,17,17,0.06)] sm:p-3'
           }`}
         >
           <div
-            className={`relative z-10 min-w-0 overflow-hidden rounded-[34px] bg-white shadow-[0_10px_30px_rgba(17,17,17,0.035)] ${
+            className={`relative z-10 min-w-0 overflow-hidden ${
               step === 1
-                ? 'px-3 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-5'
-                : step === 2
-                  ? 'px-3 py-4 sm:px-6 sm:py-5'
-                  : 'px-3 py-5 sm:px-6 sm:py-6'
+                ? 'rounded-[34px] bg-white px-3 pb-5 pt-4 shadow-[0_10px_30px_rgba(17,17,17,0.035)] sm:px-6 sm:pb-6 sm:pt-5 lg:rounded-[16px] lg:px-8 lg:pb-8 lg:pt-8 lg:shadow-[0_8px_40px_rgba(17,17,17,0.06)]'
+                : 'rounded-[34px] bg-white shadow-[0_10px_30px_rgba(17,17,17,0.035)] ' +
+                  (step === 2
+                    ? 'px-3 py-4 sm:px-6 sm:py-5'
+                    : 'px-3 py-5 sm:px-6 sm:py-6')
             }`}
           >
             {step === 1 ? (
-              <div className="mx-auto w-full max-w-md text-center sm:max-w-xl">
-                <OnboardingStep1Intro />
-
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="relative z-20 mt-6 flex min-h-[3.15rem] w-full cursor-pointer items-center justify-center rounded-full bg-[#E29595] px-5 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.26)] transition hover:opacity-90 active:scale-[0.98] sm:mt-7 sm:min-h-[3.25rem] sm:text-[16px]"
-                >
-                  Начать заполнение
-                </button>
+              <div className="w-full">
+                <OnboardingStep1Intro onStart={() => setStep(2)} />
               </div>
             ) : null}
 
@@ -3099,7 +3096,7 @@ export function BecomeMasterPage() {
 
       {step > 1 ? (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-200 bg-white px-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 sm:px-4">
-          <div className="mx-auto w-full min-w-0 max-w-2xl">
+          <div className={ONBOARDING_PAGE_WRAP}>
             {step === 5 && services.length === 0 ? (
               <p className="mb-2 text-center text-[13px] font-medium text-neutral-500">
                 Добавьте хотя бы одну услугу

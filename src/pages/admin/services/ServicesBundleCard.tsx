@@ -42,9 +42,11 @@ export function ServicesBundleCard({
   const showDeal = bundleHasDiscount(bundle.originalPrice, bundle.bundlePrice);
 
   return (
-    <article className={`${servicesCard} overflow-hidden ${className}`}>
-      <div className="flex gap-3.5 p-3.5">
-        <div className="h-[88px] w-[88px] shrink-0 overflow-hidden rounded-[18px] bg-[#FFF1F4]">
+    <article
+      className={`${servicesCard} overflow-hidden lg:rounded-[24px] lg:border-0 lg:shadow-[0_2px_16px_rgba(17,24,39,0.04)] ${className}`}
+    >
+      <div className="flex gap-3.5 p-3.5 lg:min-h-[120px] lg:items-center lg:gap-5 lg:p-6">
+        <div className="h-[88px] w-[88px] shrink-0 overflow-hidden rounded-[18px] bg-[#FFF1F4] lg:h-20 lg:w-20 lg:rounded-[20px]">
           {img ? (
             <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" />
           ) : (
@@ -80,7 +82,7 @@ export function ServicesBundleCard({
             ) : null}
           </div>
 
-          <h3 className="mt-1.5 text-[17px] font-bold leading-snug tracking-[-0.03em] text-[#111827]">
+          <h3 className="mt-1.5 text-[17px] font-bold leading-snug tracking-[-0.03em] text-[#111827] lg:mt-0 lg:text-[22px] lg:font-black lg:tracking-[-0.05em]">
             {bundle.title}
           </h3>
 
@@ -93,8 +95,8 @@ export function ServicesBundleCard({
             ))}
           </ul>
 
-          <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-[20px] font-bold tabular-nums text-[#111827]">
+          <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 lg:mt-3">
+            <span className="text-[20px] font-bold tabular-nums text-[#111827] lg:text-[32px] lg:font-black lg:tracking-[-0.06em] lg:text-[#ff5f7a]">
               {bundle.bundlePrice} BYN
             </span>
             {showDeal ? (

@@ -11,6 +11,7 @@ import {
   haversineKm,
 } from '../lib/catalogFormat';
 import { clientPinkBtn } from '../clientTheme';
+import { catalogDesktopPanel } from './masterProfileTheme';
 import type { ExtendedMasterProfile } from './types';
 import type { NearestSlotInfo } from './types';
 import { visitChipLabel } from './masterProfileUtils';
@@ -107,10 +108,10 @@ export function MasterHeroCard({
   const hasSlot = Boolean(nearest?.label);
 
   return (
-    <section className="overflow-hidden rounded-[26px] bg-white shadow-[0_10px_36px_rgba(17,24,39,0.07)] ring-1 ring-[#f2f2f2]">
+    <section className={`overflow-hidden ${catalogDesktopPanel}`}>
       <div className="flex gap-3.5 p-4">
         <div className="relative h-[8.5rem] w-[7rem] shrink-0">
-          <div className="h-full w-full overflow-hidden rounded-[22px] bg-[#FFF1F4]">
+          <div className="h-full w-full overflow-hidden rounded-[16px] bg-[#FFF1F4]">
             {master.photoUrl ? (
               <ImageReveal
                 src={optimizeAvatarUrl(master.photoUrl, 400)}
@@ -186,11 +187,11 @@ export function MasterHeroCard({
           </div>
 
           <div className="mt-2.5 flex flex-wrap gap-1.5">
-            <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 text-[11px] font-medium text-[#4B5563]">
+            <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-[#F5F5F5] px-2.5 py-1 text-[11px] font-medium text-[#4B5563]">
               <HiMapPin className="h-3.5 w-3.5 shrink-0 text-[#9CA3AF]" aria-hidden />
               <span className="truncate">{locationChip}</span>
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 text-[11px] font-medium text-[#4B5563]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#F5F5F5] px-2.5 py-1 text-[11px] font-medium text-[#4B5563]">
               <HiHomeModern className="h-3.5 w-3.5 shrink-0 text-[#9CA3AF]" aria-hidden />
               {visitChip}
             </span>
@@ -199,8 +200,8 @@ export function MasterHeroCard({
       </div>
 
       <div
-        className={`flex items-center gap-3 border-t border-[#FFF1F4] px-4 py-3 ${
-          hasSlot ? 'bg-gradient-to-r from-[#FFF5F7] to-[#FFEEF2]' : 'bg-[#FAFAFA]'
+        className={`flex items-center gap-3 border-t border-[#EEEEEE] px-4 py-3 ${
+          hasSlot ? 'bg-[#FFF1F4]' : 'bg-[#FAFAFA]'
         }`}
       >
         <HiClock

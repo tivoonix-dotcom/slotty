@@ -4,8 +4,12 @@ import { forwardRef, useLayoutEffect, useRef, useState, type ImgHTMLAttributes }
  * Показывает изображение только после полной загрузки (событие load / уже закэшировано),
  * чтобы не было видимой «полоски» progressive JPEG при скролле.
  */
-export const ImageReveal = forwardRef<HTMLImageElement, ImgHTMLAttributes<HTMLImageElement>>(function ImageReveal(
-  { className, style, onLoad, onError, src, decoding = 'sync', ...rest },
+type ImageRevealProps = ImgHTMLAttributes<HTMLImageElement> & {
+  fetchPriority?: 'high' | 'low' | 'auto';
+};
+
+export const ImageReveal = forwardRef<HTMLImageElement, ImageRevealProps>(function ImageReveal(
+  { className, style, onLoad, onError, src, decoding = 'sync', fetchPriority, ...rest },
   forwardedRef,
 ) {
   const innerRef = useRef<HTMLImageElement | null>(null);
@@ -33,6 +37,7 @@ export const ImageReveal = forwardRef<HTMLImageElement, ImgHTMLAttributes<HTMLIm
       ref={setRefs}
       src={src}
       {...rest}
+      {...(fetchPriority ? { fetchpriority: fetchPriority } : {})}
       decoding={decoding}
       style={{ ...style, opacity: shown ? 1 : 0 }}
       className={className}

@@ -1,14 +1,53 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-dotenv.config();
+const configDir = path.dirname(fileURLToPath(import.meta.url));
+const serverRoot = path.resolve(configDir, '../..');
+const repoRoot = path.resolve(serverRoot, '..');
+
+dotenv.config({ path: path.join(serverRoot, '.env') });
+dotenv.config({ path: path.join(repoRoot, '.env') });
+
+function envFirst(...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+  return undefined;
+}
+
+if (!process.env.SUPABASE_URL) {
+  const url = envFirst('SUPABASE_URL', 'VITE_SUPABASE_URL');
+  if (url) process.env.SUPABASE_URL = url;
+}
+if (!process.env.GOOGLE_CLIENT_ID) {
+  const id = envFirst('GOOGLE_CLIENT_ID', 'VITE_GOOGLE_CLIENT_ID');
+  if (id) process.env.GOOGLE_CLIENT_ID = id;
+}
+if (!process.env.DATABASE_URL) {
+  const db = envFirst('DATABASE_URL');
+  if (db) process.env.DATABASE_URL = db;
+}
+if (!process.env.JWT_SECRET) {
+  const jwt = envFirst('JWT_SECRET');
+  if (jwt) process.env.JWT_SECRET = jwt;
+}
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  const key = envFirst('SUPABASE_SERVICE_ROLE_KEY');
+  if (key) process.env.SUPABASE_SERVICE_ROLE_KEY = key;
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
-  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_BOT_TOKEN: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    z.string().min(1).optional(),
+  ),
   /** Имя бота без @ — для публичных ссылок t.me (если не задано, берётся из getMe). */
   TELEGRAM_BOT_USERNAME: z.preprocess(
     (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim().replace(/^@+/, '')),
@@ -46,9 +85,15 @@ const envSchema = z.object({
     .optional()
     .transform((v) => v === 'true'),
   /** Supabase project URL (для загрузки аватаров в Storage с сервера). */
-  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_URL: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    z.string().url().optional(),
+  ),
   /** Service role — только на сервере, не в браузере. */
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    z.string().min(1).optional(),
+  ),
   /** Имя публичного bucket для аватаров клиентов (по умолчанию `profile`). */
   SUPABASE_PROFILE_BUCKET: z.string().min(1).default('profile'),
   /** Bucket для фото мастера (портфолио, сертификаты, обложка). Пусто — тот же, что SUPABASE_PROFILE_BUCKET. */
@@ -79,6 +124,10 @@ const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   console.error('Invalid environment variables:', parsed.error.flatten().fieldErrors);
+  console.error(
+    '\nЛокально: скопируйте server/.env.example → server/.env и заполните DATABASE_URL, JWT_SECRET, SUPABASE_SERVICE_ROLE_KEY.\n' +
+      'Корневой .env (VITE_*) подхватывается автоматически для SUPABASE_URL и GOOGLE_CLIENT_ID.\n',
+  );
   process.exit(1);
 }
 

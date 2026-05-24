@@ -39,7 +39,7 @@ export function ServicesExtrasProBlock({ variant }: Props) {
 
   return (
     <section
-      className={`${servicesCard} border border-[#FDE8ED] bg-gradient-to-br from-[#FFF8F9] via-white to-[#FFF5F5] p-4 shadow-[0_10px_32px_rgba(244,124,140,0.08)]`}
+      className={`${servicesCard} border border-[#FDE8ED] bg-gradient-to-br from-[#FFF8F9] via-white to-[#FFF5F5] p-4 shadow-[0_10px_32px_rgba(244,124,140,0.08)] lg:rounded-[28px] lg:shadow-[0_2px_16px_rgba(17,24,39,0.04)]`}
       aria-labelledby={`services-extras-pro-${variant}`}
     >
       <div className="flex items-start gap-3">

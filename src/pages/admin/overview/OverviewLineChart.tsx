@@ -74,7 +74,9 @@ export function OverviewLineChart({
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const values = chartValues(stats, mode);
-  const hasData = stats.length > 0;
+  const hasStats = stats.length > 0;
+  const hasValues = values.some((v) => v > 0);
+  const showChart = hasStats && hasValues;
   const max = Math.max(1, ...values);
   const axisIdx = chartAxisIndices(stats.length);
 
@@ -133,7 +135,7 @@ export function OverviewLineChart({
   );
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!hasData) return;
+    if (!showChart) return;
     pickIndex(e.clientX);
   };
 
@@ -151,17 +153,17 @@ export function OverviewLineChart({
     <div className="min-w-0">
       <div
         ref={chartRef}
-        className={`relative ${chartBoxClass} w-full min-w-0 touch-none select-none overflow-hidden rounded-[20px] border border-[#EEF0F5] bg-white ${
-          hasData ? 'cursor-crosshair' : ''
+        className={`relative ${chartBoxClass} w-full min-w-0 touch-none select-none overflow-hidden rounded-[20px] border border-[#EEF0F5] bg-[#f6f7fb] lg:border-0 ${
+          showChart ? 'cursor-crosshair' : ''
         }`}
         onPointerMove={onPointerMove}
         onPointerDown={onPointerMove}
         onPointerLeave={onPointerLeave}
         onPointerCancel={onPointerLeave}
-        role={hasData ? 'img' : undefined}
-        aria-label={hasData ? 'График динамики' : undefined}
+        role={showChart ? 'img' : undefined}
+        aria-label={showChart ? 'График динамики' : undefined}
       >
-        {!hasData ? (
+        {!showChart ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
             <HiCloud className="h-10 w-10 text-[#D1D5DB]" aria-hidden />
             <p className="text-[13px] font-semibold text-[#6B7280]">{emptyHint}</p>
@@ -238,7 +240,7 @@ export function OverviewLineChart({
         )}
       </div>
 
-      {stats.length > 0 ? (
+      {showChart ? (
         <div className="mt-3 flex justify-between px-0.5 text-[11px] font-semibold text-[#9CA3AF]">
           {axisIdx.map((i) => (
             <span key={`${stats[i].date}-${mode}`} className="tabular-nums">

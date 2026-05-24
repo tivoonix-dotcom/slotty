@@ -1,4 +1,9 @@
 import type { OverviewPeriodPreset } from './overviewAnalytics';
+import {
+  overviewFilterChip,
+  overviewFilterChipActive,
+  overviewFilterChipIdle,
+} from './adminOverviewTheme';
 
 const PRESETS: Array<{ id: OverviewPeriodPreset; label: string }> = [
   { id: 'today', label: 'Сегодня' },
@@ -14,24 +19,26 @@ type Props = {
 
 export function OverviewPeriodFilter({ value, onChange }: Props) {
   return (
-    <div className="flex w-full gap-1" role="group" aria-label="Период данных">
-      {PRESETS.map((preset) => {
-        const selected = value === preset.id;
-        return (
-          <button
-            key={preset.id}
-            type="button"
-            onClick={() => onChange(preset.id)}
-            className={`min-h-10 flex-1 rounded-[12px] px-2 text-[13px] font-semibold transition active:scale-[0.98] ${
-              selected
-                ? 'bg-[#FFF1F4] text-[#ff5f7a]'
-                : 'bg-[#f6f7fb] text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]'
-            }`}
-          >
-            {preset.label}
-          </button>
-        );
-      })}
+    <div className="min-w-0" role="group" aria-label="Период данных">
+      <p className="mb-2.5 text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF] lg:sr-only">
+        Период
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {PRESETS.map((preset) => {
+          const selected = value === preset.id;
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => onChange(preset.id)}
+              aria-pressed={selected}
+              className={`${overviewFilterChip} ${selected ? overviewFilterChipActive : overviewFilterChipIdle}`}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

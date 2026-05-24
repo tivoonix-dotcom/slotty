@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import {
   ADMIN_APPOINTMENTS_PATH,
   ADMIN_BILLING_PATH,
-  ADMIN_LOGIN_METHODS_PATH,
+  ADMIN_SETTINGS_PATH,
   ADMIN_NOTIFICATIONS_PATH,
   ADMIN_OVERVIEW_PATH,
   ADMIN_PROFILE_COMPLETION_PATH,
@@ -125,10 +125,19 @@ export const ADMIN_BILLING_NAV = {
   icon: IconNavBilling,
 };
 
-export const ADMIN_LOGIN_METHODS_NAV = {
-  to: ADMIN_LOGIN_METHODS_PATH,
-  label: 'Способы входа',
-  icon: IconNavProfile,
+export function IconNavSettings({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden {...iconStroke}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+    </svg>
+  );
+}
+
+export const ADMIN_SETTINGS_NAV = {
+  to: ADMIN_SETTINGS_PATH,
+  label: 'Настройки',
+  icon: IconNavSettings,
 };
 
 export const ADMIN_HUB_PATH = HUB_PATH;
@@ -142,5 +151,5 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   [ADMIN_APPOINTMENTS_PATH]: 'Записи',
   [ADMIN_BILLING_PATH]: 'Мой тариф',
   [ADMIN_NOTIFICATIONS_PATH]: 'Уведомления',
-  [ADMIN_LOGIN_METHODS_PATH]: 'Способы входа',
+  [ADMIN_SETTINGS_PATH]: 'Настройки',
 };

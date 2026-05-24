@@ -8,6 +8,7 @@ import {
   linkGoogle,
   linkTelegram,
   loginWithEmail,
+  registerWithEmail,
   loginWithGoogle,
   loginWithTelegram,
 } from './auth.service.js';
@@ -103,7 +104,7 @@ authRouter.post(
   '/email/register',
   asyncHandler(async (req, res) => {
     const body = emailLoginBody.parse(req.body);
-    const out = await loginWithEmail(body.email, body.password);
+    const out = await registerWithEmail(body.email, body.password);
     res.json(out);
   }),
 );

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { BY } from 'country-flag-icons/react/1x1';
 import type { BackendProfile } from '../../../features/auth/types';
-import { formatBelarusPhoneDisplay, normalizeBelarusPhone } from '../../../features/profile/lib/belarusPhone';
+import {
+  formatBelarusPhoneDisplay,
+  normalizeBelarusPhone,
+  sanitizeBelarusPhoneInput,
+} from '../../../features/profile/lib/belarusPhone';
+import { profileDisplayAvatarUrl } from '../../../features/profile/lib/profileDisplayAvatar';
 import { apiFetch } from '../../../shared/api/backendClient';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import { ServicesFilterAddressInput } from '../../services/ServicesFilterAddressInput';
@@ -148,7 +154,7 @@ export function ProfileEditModal({
 
   if (!open) return null;
 
-  const avatarSrc = localPreview ?? profile?.avatar_url ?? null;
+  const avatarSrc = localPreview ?? profileDisplayAvatarUrl(profile);
 
   return (
     <ProfileSheetShell onClose={onClose} labelledBy="profile-edit-title">
@@ -209,17 +215,26 @@ export function ProfileEditModal({
       </label>
 
       <label className="mt-4 block">
-        <span className="text-[13px] font-semibold text-neutral-500">Телефон</span>
+        <span className="flex items-center gap-2 text-[13px] font-semibold text-neutral-500">
+          Телефон
+          <span
+            className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full border border-neutral-200 bg-white"
+            aria-hidden
+          >
+            <BY title="Беларусь" className="h-full w-full object-cover" />
+          </span>
+        </span>
         <input
           value={phone}
           onChange={(e) => {
-            setPhone(e.target.value);
+            setPhone(sanitizeBelarusPhoneInput(e.target.value));
             setPhoneErr(null);
           }}
           inputMode="tel"
           placeholder="+375 29 123 45 67"
-          className="mt-1.5 w-full rounded-[22px] bg-[#F1EFEF] px-4 py-3 text-[16px] font-semibold text-neutral-950 outline-none"
           autoComplete="tel"
+          maxLength={19}
+          className="mt-1.5 w-full rounded-[22px] bg-[#F1EFEF] px-4 py-3 text-[16px] font-semibold text-neutral-950 outline-none"
         />
         {phoneErr ? <p className="mt-1.5 text-[13px] font-medium text-red-600">{phoneErr}</p> : null}
       </label>

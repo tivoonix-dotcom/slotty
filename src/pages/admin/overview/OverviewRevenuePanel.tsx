@@ -1,24 +1,27 @@
-import { type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { HiArrowTrendingUp, HiReceiptPercent, HiStop } from 'react-icons/hi2';
+import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
+import { overviewDesktopCard, overviewDesktopCardPad } from './adminOverviewTheme';
 import {
-  HiArrowTrendingUp,
-  HiChevronDown,
-  HiReceiptPercent,
-  HiStop,
-} from 'react-icons/hi2';
-import { overviewCard, overviewCardPad, overviewIconCircle } from './adminOverviewTheme';
-import type { OverviewPeriodPreset, RevenueAnalytics } from './overviewAnalytics';
+  OverviewKpiCarousel,
+  OverviewKpiStatCard,
+  OverviewTrendBadge,
+} from './OverviewKpiBlocks';
+import {
+  computeRevenueServiceSources,
+  REVENUE_SOURCE_ALL_KEY,
+  revenueChartDayStatsForSource,
+  type OverviewPeriodPreset,
+  type RevenueAnalytics,
+} from './overviewAnalytics';
 import { formatBynRu } from './overviewFormat';
 import { OverviewRevenueBarChart } from './OverviewRevenueBarChart';
 import { OverviewLineChart } from './OverviewLineChart';
+import { OverviewRevenuePeriodMenu } from './OverviewRevenuePeriodMenu';
+import { OverviewRevenueSourcesMenu } from './OverviewRevenueSourcesMenu';
 
-const PERIOD_INCOME_LABEL: Record<OverviewPeriodPreset, string> = {
-  today: 'Доход за сегодня',
-  week: 'Доход за неделю',
-  month: 'Доход за месяц',
-  all: 'Доход за всё время',
-};
-
-const revenueSectionDivider = 'border-t border-[#EEF0F5] pt-6';
+const SLOTTY_GRADIENT =
+  'bg-gradient-to-br from-[#111827] via-[#2b2430] to-[#ff5f7a]';
 
 function formatTrendPercent(value: number | null): string | null {
   if (value === null) return null;
@@ -26,121 +29,94 @@ function formatTrendPercent(value: number | null): string | null {
   return `${sign}${value}%`;
 }
 
-function trendSubtext(value: number | null, periodPreset: OverviewPeriodPreset): string | null {
-  const trend = formatTrendPercent(value);
-  if (!trend) return null;
-  if (periodPreset === 'all') return `${trend} к прошлому периоду`;
-  if (periodPreset === 'today') return `${trend} к вчера`;
-  if (periodPreset === 'week') return `${trend} к прошлой неделе`;
-  return `${trend} к прошлому месяцу`;
-}
-
-function TrendLine({
-  value,
-  tone = 'positive',
-}: {
-  value: string;
-  tone?: 'positive' | 'warning';
-}) {
-  const className =
-    tone === 'warning'
-      ? 'text-[12px] font-bold text-[#F59E0B]'
-      : 'text-[12px] font-bold text-[#22C55E]';
-
-  return <p className={className}>{value}</p>;
-}
-
 function RevenueHeroSection({
   periodPreset,
-  totalRevenue,
-  revenueTrendPercent,
+  onPeriodChange,
+  data,
+  embedded = false,
 }: {
   periodPreset: OverviewPeriodPreset;
-  totalRevenue: number;
-  revenueTrendPercent: number | null;
-}) {
-  const trend = trendSubtext(revenueTrendPercent, periodPreset);
-
-  return (
-    <section>
-      <p className="flex items-center gap-1 text-[14px] font-semibold text-[#6B7280]">
-        {PERIOD_INCOME_LABEL[periodPreset]}
-        <HiChevronDown className="h-4 w-4 shrink-0 opacity-40" aria-hidden />
-      </p>
-      <p className="mt-2 text-[32px] font-bold tabular-nums tracking-[-0.07em] text-[#111827]">
-        {formatBynRu(totalRevenue)}
-      </p>
-      {trend ? (
-        <div className="mt-1.5">
-          <TrendLine value={trend} />
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function RevenueMetricTile({
-  label,
-  value,
-  trend,
-  trendTone = 'positive',
-  icon,
-  withDivider,
-}: {
-  label: string;
-  value: string;
-  trend: string;
-  trendTone?: 'positive' | 'warning';
-  icon: ReactNode;
-  withDivider?: boolean;
+  onPeriodChange: (preset: OverviewPeriodPreset) => void;
+  data: RevenueAnalytics;
+  embedded?: boolean;
 }) {
   return (
-    <div
-      className={`flex w-full min-w-0 items-center gap-3 py-4 ${withDivider ? 'border-t border-[#EEF0F5]' : ''}`}
+    <section
+      className={
+        embedded
+          ? `relative overflow-hidden ${SLOTTY_GRADIENT} p-6 text-white lg:p-8`
+          : `relative overflow-hidden rounded-[32px] ${SLOTTY_GRADIENT} p-6 text-white shadow-[0_22px_65px_rgba(17,24,39,0.18)] lg:p-8`
+      }
     >
-      <span className={`${overviewIconCircle} h-11 w-11 shrink-0`}>{icon}</span>
-      <div className="min-w-0 flex-1">
-        <p className="flex min-w-0 items-center gap-0.5 text-[12px] font-semibold leading-snug text-[#6B7280] sm:text-[13px]">
-          <span className="truncate">{label}</span>
-          <HiChevronDown className="h-3.5 w-3.5 shrink-0 opacity-35" aria-hidden />
+      <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[#ff8aa0]/35 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-1/3 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-[#ff5f7a]/20 blur-3xl" />
+
+      <div className="relative min-w-0">
+        <OverviewRevenuePeriodMenu value={periodPreset} onChange={onPeriodChange} />
+
+        <p className="mt-8 text-[52px] font-black leading-none tabular-nums tracking-[-0.08em] text-white lg:text-[72px]">
+          {formatBynRu(data.totalRevenue)}
         </p>
-        <p className="mt-1 break-words text-[20px] font-bold leading-tight tabular-nums tracking-[-0.04em] text-[#111827] sm:text-[22px] sm:tracking-[-0.05em]">
-          {value}
+
+        <p className="mt-6 max-w-[660px] text-[17px] font-semibold leading-8 text-white/82">
+          Общая сумма дохода по активным и завершённым записям за выбранный период.
         </p>
-        <div className="mt-1">
-          <TrendLine value={trend} tone={trendTone} />
-        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
 function RevenueChartSection({
   dayStats,
   chartIsTruncated,
+  serviceSources,
+  sourceKey,
+  onSourceChange,
 }: {
   dayStats: RevenueAnalytics['dayStats'];
   chartIsTruncated: boolean;
+  serviceSources: ReturnType<typeof computeRevenueServiceSources>;
+  sourceKey: string;
+  onSourceChange: (key: string) => void;
 }) {
+  const sourceHint =
+    sourceKey !== REVENUE_SOURCE_ALL_KEY
+      ? serviceSources.find((s) => s.key === sourceKey)?.label
+      : null;
+
   return (
-    <section>
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="text-[17px] font-bold tracking-[-0.04em] text-[#111827]">График дохода</h2>
-        <button
-          type="button"
-          className="flex shrink-0 items-center gap-1 rounded-full border border-[#EAECEF] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6B7280]"
-        >
-          Все источники
-          <HiChevronDown className="h-3.5 w-3.5 opacity-50" aria-hidden />
-        </button>
+    <section className={`${overviewDesktopCard} ${overviewDesktopCardPad}`}>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[22px] font-black tracking-[-0.05em] text-[#111827]">
+            График дохода
+          </h2>
+          <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
+            {sourceHint
+              ? `Выручка по услуге «${sourceHint}»`
+              : 'Как менялась выручка за выбранный период'}
+          </p>
+        </div>
+
+        <OverviewRevenueSourcesMenu
+          sources={serviceSources}
+          value={sourceKey}
+          onChange={onSourceChange}
+        />
       </div>
 
-      <div className="mt-4">
-        <OverviewLineChart stats={dayStats} mode="revenue" size="large" emptyHint="Дохода за период нет" />
-      </div>
+      <OverviewLineChart
+        stats={dayStats}
+        mode="revenue"
+        size="large"
+        emptyHint={
+          sourceHint ? `Нет дохода по услуге «${sourceHint}» за период` : 'Дохода за период нет'
+        }
+      />
 
       {chartIsTruncated ? (
-        <p className="mt-3 text-[11px] leading-snug text-[#9CA3AF]">
+        <p className="mt-4 text-[12px] leading-snug text-[#9CA3AF]">
           График показывает последние 90 дней, суммы — за выбранный период.
         </p>
       ) : null}
@@ -150,71 +126,111 @@ function RevenueChartSection({
 
 function RevenueDailyBarsSection({ dayStats }: { dayStats: RevenueAnalytics['dayStats'] }) {
   return (
-    <section>
-      <h2 className="text-[17px] font-bold tracking-[-0.04em] text-[#111827]">Доход по дням</h2>
-      <div className="mt-4">
-        <OverviewRevenueBarChart stats={dayStats} />
+    <section className={`${overviewDesktopCard} ${overviewDesktopCardPad}`}>
+      <div className="mb-5">
+        <h2 className="text-[22px] font-black tracking-[-0.05em] text-[#111827]">
+          Доход по дням
+        </h2>
+        <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
+          Разбивка выручки по каждому дню
+        </p>
       </div>
+
+      <OverviewRevenueBarChart stats={dayStats} />
     </section>
   );
 }
 
-function RevenueMetricsGrid({ data }: { data: RevenueAnalytics }) {
+function RevenueMetricsCarousel({ data }: { data: RevenueAnalytics }) {
   const avgTrend = formatTrendPercent(data.avgCheckTrendPercent) ?? '—';
 
   return (
-    <section>
-      <RevenueMetricTile
+    <OverviewKpiCarousel>
+      <OverviewKpiStatCard
+        surface="carousel"
         label="Средний чек"
         value={data.completedCount > 0 ? formatBynRu(data.avgCheck) : '0 BYN'}
-        trend={avgTrend}
+        hint="По завершённым записям"
         icon={<HiArrowTrendingUp className="h-5 w-5" aria-hidden />}
+        trailing={
+          <OverviewTrendBadge value={avgTrend} tone={avgTrend === '—' ? 'neutral' : 'positive'} />
+        }
       />
-      <RevenueMetricTile
+      <OverviewKpiStatCard
+        surface="carousel"
         label="Оплачено"
         value={formatBynRu(data.paidAmount)}
-        trend={`${data.paidSharePercent}%`}
+        hint={`${data.paidSharePercent}% от суммы`}
         icon={<HiReceiptPercent className="h-5 w-5" aria-hidden />}
-        withDivider
+        trailing={<OverviewTrendBadge value={`${data.paidSharePercent}%`} />}
       />
-      <RevenueMetricTile
+      <OverviewKpiStatCard
+        surface="carousel"
         label="Не оплачено"
         value={formatBynRu(data.unpaidAmount)}
-        trend={`${data.unpaidSharePercent}%`}
-        trendTone="warning"
+        hint={`${data.unpaidSharePercent}% от суммы`}
         icon={<HiStop className="h-5 w-5" aria-hidden />}
-        withDivider
+        trailing={<OverviewTrendBadge value={`${data.unpaidSharePercent}%`} tone="warning" />}
       />
-    </section>
+    </OverviewKpiCarousel>
   );
 }
 
 export function OverviewRevenuePanel({
   data,
   periodPreset,
+  onPeriodChange,
+  appointments,
+  periodStart,
+  periodEnd,
 }: {
   data: RevenueAnalytics;
   periodPreset: OverviewPeriodPreset;
+  onPeriodChange: (preset: OverviewPeriodPreset) => void;
+  appointments: DemoMasterAppointment[];
+  periodStart: string;
+  periodEnd: string;
 }) {
+  const [sourceKey, setSourceKey] = useState(REVENUE_SOURCE_ALL_KEY);
+
+  useEffect(() => {
+    setSourceKey(REVENUE_SOURCE_ALL_KEY);
+  }, [periodStart, periodEnd]);
+
+  const serviceSources = useMemo(
+    () => computeRevenueServiceSources(appointments, periodStart, periodEnd),
+    [appointments, periodEnd, periodStart],
+  );
+
+  const chartDayStats = useMemo(
+    () => revenueChartDayStatsForSource(appointments, data.dayStats, sourceKey),
+    [appointments, data.dayStats, sourceKey],
+  );
+
   return (
-    <div className={`${overviewCard} ${overviewCardPad} min-w-0 overflow-x-hidden bg-white`}>
-      <RevenueHeroSection
-        periodPreset={periodPreset}
-        totalRevenue={data.totalRevenue}
-        revenueTrendPercent={data.revenueTrendPercent}
+    <div className="min-w-0 space-y-5 overflow-x-hidden lg:space-y-6">
+      <div className={`overflow-hidden ${overviewDesktopCard}`}>
+        <RevenueHeroSection
+          embedded
+          periodPreset={periodPreset}
+          onPeriodChange={onPeriodChange}
+          data={data}
+        />
+
+        <div className="bg-white px-3 pb-4 pt-1 sm:px-4">
+          <RevenueMetricsCarousel data={data} />
+        </div>
+      </div>
+
+      <RevenueChartSection
+        dayStats={chartDayStats}
+        chartIsTruncated={data.chartIsTruncated}
+        serviceSources={serviceSources}
+        sourceKey={sourceKey}
+        onSourceChange={setSourceKey}
       />
 
-      <div className={revenueSectionDivider}>
-        <RevenueChartSection dayStats={data.dayStats} chartIsTruncated={data.chartIsTruncated} />
-      </div>
-
-      <div className={revenueSectionDivider}>
-        <RevenueMetricsGrid data={data} />
-      </div>
-
-      <div className={revenueSectionDivider}>
-        <RevenueDailyBarsSection dayStats={data.dayStats} />
-      </div>
+      <RevenueDailyBarsSection dayStats={chartDayStats} />
     </div>
   );
 }

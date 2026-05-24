@@ -5,6 +5,7 @@ import {
   apptChipIdle,
   apptFilterBtnActive,
   apptFilterBtnIdle,
+  apptTrayLabel,
 } from './adminAppointmentsTheme';
 import type {
   AppointmentsTabId,
@@ -149,7 +150,9 @@ export function AppointmentsQuickFilters({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div>
+      <p className={apptTrayLabel}>Фильтры и сортировка</p>
+      <div className="flex items-center gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {chips.map((chip) => (
           <FilterChip key={chip.id} label={chip.label} active={chip.active} onClick={chip.onClick} />
@@ -166,9 +169,10 @@ export function AppointmentsQuickFilters({
       >
         <HiFunnel className="h-4 w-4" aria-hidden />
         {sheetActive ? (
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#F47C8C]" aria-hidden />
+          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#ff5f7a]" aria-hidden />
         ) : null}
       </button>
+      </div>
     </div>
   );
 }

@@ -4,8 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:browser": "vite --open",
+    "predev": "node scripts/ensure-server-env.mjs",
+    "dev": "concurrently -k -n api,web -c blue,magenta \"npm run dev:server\" \"npm run dev:web\"",
+    "dev:web": "vite",
+    "dev:server": "npm run dev --prefix server",
+    "dev:browser": "concurrently -k -n api,web -c blue,magenta \"npm run dev:server\" \"vite --open\"",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "start:static": "node ./scripts/static-serve.mjs",
@@ -17,6 +20,7 @@
     "db:v2:smoke": "node scripts/apply-migrations-v2.mjs --smoke"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.0.1",

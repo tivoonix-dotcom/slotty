@@ -4,6 +4,7 @@
 
 @layer base {
   html {
+    --slotty-header-height: calc(4.25rem + env(safe-area-inset-top, 0px));
     -webkit-tap-highlight-color: transparent;
     @apply max-w-full overflow-x-clip bg-brand-bg;
     overscroll-behavior-x: none;
@@ -41,5 +42,15 @@
   }
   .scrollbar-hidden::-webkit-scrollbar {
     display: none;
+  }
+
+  html.catalog-desktop-scroll-lock {
+    overflow: hidden;
+  }
+
+  @media (max-width: 1023px) {
+    html.catalog-desktop-scroll-lock {
+      overflow: auto;
+    }
   }
 }

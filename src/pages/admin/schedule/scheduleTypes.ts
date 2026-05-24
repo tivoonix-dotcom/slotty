@@ -5,7 +5,7 @@ export type SchedulePageTab = 'create' | 'calendar' | 'list';
 
 export type ScheduleSlotsStatusFilter = 'all' | 'free' | 'booked' | 'blocked';
 
-export type RepeatKind = 'none' | 'weekly' | 'biweekly' | 'weekdays';
+export type RepeatKind = 'none' | 'weekly' | 'biweekly' | 'weekdays' | 'pick_weekdays';
 
 export type WindowTemplate = {
   id: string;

@@ -19,8 +19,22 @@ type Props = {
   onChange: (tab: ServicesTabId) => void;
 };
 
-export function ServicesTabBar({ active, onChange }: Props) {
+export function ServicesTabBar({
+  active,
+  onChange,
+  variant = 'mobile',
+}: Props & { variant?: 'mobile' | 'desktop' }) {
+  if (variant === 'desktop') {
+    return null;
+  }
+
   return (
-    <AdminSegmentTabNav tabs={TABS} active={active} onChange={onChange} ariaLabel="Разделы услуг" />
+    <AdminSegmentTabNav
+      tabs={TABS}
+      active={active}
+      onChange={onChange}
+      ariaLabel="Разделы услуг"
+      mode="mobile"
+    />
   );
 }

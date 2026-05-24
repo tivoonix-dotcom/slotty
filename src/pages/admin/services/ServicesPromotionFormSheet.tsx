@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { HiCheck } from 'react-icons/hi2';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
+import {
+  AdminFormSheetLayout,
+  AdminFormSheetMetrics,
+  AdminFormSheetSection,
+} from '../shared/AdminFormSheetLayout';
+import {
+  adminSheetPinkBtn,
+  adminSheetGhostBtn,
+  adminSheetSecondaryBtn,
+} from '../shared/adminCabinetSheetTheme';
+import { adminFormSheetInsetTray } from '../shared/adminFormSheetTheme';
 import { PromotionBannerCard } from './PromotionBannerCard';
 import {
   PROMOTION_TEMPLATES,
@@ -12,7 +23,7 @@ import {
 import type { PromotionTemplateId } from './promotionTemplates';
 import { SlottyDatePicker } from '../../../shared/ui/SlottyDatePicker';
 import { SlottySelect } from '../../../shared/ui/SlottySelect';
-import { servicesInput, servicesPinkBtn } from './adminServicesTheme';
+import { servicesInput } from './adminServicesTheme';
 import type { ManagedService } from './servicesFormat';
 import { derivePromotionStatus, formatDurationRu, formatServicePrice, isoDateLocal } from './servicesFormat';
 import { newPromotionId } from './servicesStorage';
@@ -204,32 +215,67 @@ export function ServicesPromotionFormSheet({ open, services, initial, onClose, o
     if (step > 0) setStep((s) => s - 1);
   };
 
+  const footer = (
+    <div className="flex flex-col gap-2">
+      {step < STEPS.length - 1 ? (
+        <>
+          <button
+            type="button"
+            disabled={!canNext}
+            onClick={handleNext}
+            className={adminSheetPinkBtn}
+          >
+            Далее
+          </button>
+          {step > 0 ? (
+            <button type="button" onClick={handleBack} className={adminSheetGhostBtn}>
+              Назад
+            </button>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            disabled={!serviceId || startsAt > endsAt}
+            onClick={() => onSave(buildPromo(true), true)}
+            className={adminSheetPinkBtn}
+          >
+            Опубликовать
+          </button>
+          <button
+            type="button"
+            onClick={() => onSave(buildPromo(false), false)}
+            className={adminSheetSecondaryBtn}
+          >
+            Сохранить черновик
+          </button>
+          {step > 0 ? (
+            <button type="button" onClick={handleBack} className={adminSheetGhostBtn}>
+              Назад
+            </button>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+
   return (
     <AdminBottomSheet
       open={open}
       onClose={onClose}
       title={initial ? 'Редактирование акции' : 'Создание акции'}
+      subtitle="Шаблон, срок и скидка — баннер появится в каталоге"
+      badge={`${STEPS[step]} · шаг ${step + 1} из ${STEPS.length}`}
+      footer={footer}
     >
-      <div className="max-h-[min(78dvh,680px)] overflow-y-auto overscroll-contain pb-2 [-webkit-overflow-scrolling:touch]">
-        <div className="mb-4 flex gap-1">
-          {STEPS.map((label, index) => (
-            <div
-              key={label}
-              className={`h-1 flex-1 rounded-full transition ${
-                index <= step ? 'bg-[#F47C8C]' : 'bg-[#EAECEF]'
-              }`}
-              title={label}
-            />
-          ))}
-        </div>
-        <p className="mb-4 text-[12px] font-semibold text-[#9CA3AF]">
-          Шаг {step + 1} из {STEPS.length}: {STEPS[step]}
-        </p>
-
+      <AdminFormSheetLayout step={step} steps={STEPS}>
         {step === 0 ? (
-          <div className="space-y-3">
-            <p className="text-[13px] font-semibold text-[#6B7280]">Выберите шаблон акции</p>
-            <div className="grid grid-cols-2 gap-2.5">
+          <AdminFormSheetSection
+            title="Шаблон акции"
+            description="Готовый дизайн и текст — можно подправить на последнем шаге"
+          >
+            <div className="grid grid-cols-2 gap-2.5 lg:gap-4">
               {PROMOTION_TEMPLATES.map((tpl) => {
                 const selected = templateId === tpl.id;
                 return (
@@ -267,11 +313,11 @@ export function ServicesPromotionFormSheet({ open, services, initial, onClose, o
                 );
               })}
             </div>
-          </div>
+          </AdminFormSheetSection>
         ) : null}
 
         {step === 1 ? (
-          <div className="space-y-3">
+          <AdminFormSheetSection title="Услуга" description="Акция привязывается к одной позиции в каталоге">
             <label className="block">
               <span className="text-[13px] font-semibold text-[#6B7280]">Услуга</span>
               <SlottySelect
@@ -285,34 +331,42 @@ export function ServicesPromotionFormSheet({ open, services, initial, onClose, o
               />
             </label>
             {selectedService ? (
-              <div className="rounded-[18px] border border-[#EAECEF] bg-[#FAFAFA] p-4">
-                <p className="text-[14px] font-bold text-[#111827]">{selectedService.title}</p>
-                <p className="mt-1 text-[13px] text-[#6B7280]">
-                  {formatDurationRu(selectedService.durationMin)}
+              <div className="mt-4 space-y-4">
+                <p className="text-[15px] font-black tracking-[-0.03em] text-[#111827] lg:text-[17px]">
+                  {selectedService.title}
                 </p>
-                <div className="mt-3 flex flex-wrap items-baseline gap-2">
-                  <span className="text-[13px] text-[#9CA3AF] line-through">
-                    {formatServicePrice(selectedService)}
-                  </span>
-                  {discountedPrice(selectedService, discountType, discountValue) != null ? (
-                    <span className="text-[16px] font-bold text-[#F47C8C]">
-                      {selectedService.priceType === 'from' ? 'от ' : ''}
-                      {discountedPrice(selectedService, discountType, discountValue)} BYN
-                    </span>
-                  ) : null}
-                </div>
+                <AdminFormSheetMetrics
+                  items={[
+                    {
+                      label: 'Длительность',
+                      value: formatDurationRu(selectedService.durationMin),
+                    },
+                    { label: 'Было', value: formatServicePrice(selectedService) },
+                    {
+                      label: 'С акцией',
+                      value:
+                        discountedPrice(selectedService, discountType, discountValue) != null ? (
+                          <span className="text-[#ff5f7a]">
+                            {selectedService.priceType === 'from' ? 'от ' : ''}
+                            {discountedPrice(selectedService, discountType, discountValue)} BYN
+                          </span>
+                        ) : (
+                          '—'
+                        ),
+                    },
+                  ]}
+                />
               </div>
             ) : (
               <p className="rounded-[16px] bg-[#FFF1F4] px-4 py-3 text-[13px] font-medium text-[#F47C8C]">
                 Сначала добавьте услуги в каталоге
               </p>
             )}
-          </div>
+          </AdminFormSheetSection>
         ) : null}
 
         {step === 2 ? (
-          <div className="space-y-3">
-            <p className="text-[13px] font-semibold text-[#6B7280]">Срок действия</p>
+          <AdminFormSheetSection title="Срок действия" description="Быстрые пресеты или свои даты">
             <div className="flex flex-wrap gap-2">
               {PERIOD_PRESETS.map((p) => (
                 <button
@@ -354,12 +408,11 @@ export function ServicesPromotionFormSheet({ open, services, initial, onClose, o
                 Дата окончания должна быть не раньше начала
               </p>
             ) : null}
-          </div>
+          </AdminFormSheetSection>
         ) : null}
 
         {step === 3 ? (
-          <div className="space-y-3">
-            <p className="text-[13px] font-semibold text-[#6B7280]">Скидка</p>
+          <AdminFormSheetSection title="Скидка" description="Значение из шаблона — меняется при выборе шаблона">
             <div className="flex gap-2">
               {(
                 [
@@ -397,19 +450,20 @@ export function ServicesPromotionFormSheet({ open, services, initial, onClose, o
                 Значение из шаблона — меняется на шаге «Шаблон»
               </p>
             </div>
-            <div className="flex items-center justify-center py-2">
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FFF1F4] text-[14px] font-bold text-[#F47C8C] ring-2 ring-[#FDE8ED]">
+            <div className="flex justify-center py-2">
+              <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[#ff6f88] to-[#ff5f7a] text-[20px] font-black text-white shadow-[0_14px_36px_rgba(255,95,122,0.4)] lg:h-28 lg:w-28 lg:text-[22px]">
                 {discountLabel}
-              </span>
+              </div>
             </div>
-          </div>
+          </AdminFormSheetSection>
         ) : null}
 
         {step === 4 ? (
-          <div className="space-y-3">
-            <p className="text-[13px] font-semibold text-[#6B7280]">Превью для клиентов</p>
+          <AdminFormSheetSection title="Превью для клиентов" description="Баннер в каталоге и запись">
+            <div className={adminFormSheetInsetTray}>
             <PromotionBannerCard promo={previewPromo} />
-            <label className="block">
+            </div>
+            <label className="mt-4 block">
               <span className="text-[12px] font-semibold text-[#6B7280]">Заголовок (необязательно)</span>
               <input
                 value={title}
@@ -417,60 +471,9 @@ export function ServicesPromotionFormSheet({ open, services, initial, onClose, o
                 className={`${servicesInput} mt-1`}
               />
             </label>
-          </div>
+          </AdminFormSheetSection>
         ) : null}
-
-        <div className="mt-5 flex flex-col gap-2 border-t border-[#F3F4F6] pt-4">
-          {step < STEPS.length - 1 ? (
-            <>
-              <button
-                type="button"
-                disabled={!canNext}
-                onClick={handleNext}
-                className={servicesPinkBtn}
-              >
-                Далее
-              </button>
-              {step > 0 ? (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="flex min-h-12 w-full items-center justify-center rounded-[18px] border border-[#EAECEF] bg-white text-[15px] font-semibold text-[#374151]"
-                >
-                  Назад
-                </button>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                disabled={!serviceId || startsAt > endsAt}
-                onClick={() => onSave(buildPromo(true), true)}
-                className={servicesPinkBtn}
-              >
-                Опубликовать
-              </button>
-              <button
-                type="button"
-                onClick={() => onSave(buildPromo(false), false)}
-                className="flex min-h-12 w-full items-center justify-center rounded-[18px] border border-[#FDE8ED] bg-[#FFF1F4] text-[15px] font-bold text-[#F47C8C] transition active:scale-[0.98]"
-              >
-                Сохранить черновик
-              </button>
-              {step > 0 ? (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="flex min-h-12 w-full items-center justify-center rounded-[18px] border border-[#EAECEF] bg-white text-[15px] font-semibold text-[#374151]"
-                >
-                  Назад
-                </button>
-              ) : null}
-            </>
-          )}
-        </div>
-      </div>
+      </AdminFormSheetLayout>
     </AdminBottomSheet>
   );
 }

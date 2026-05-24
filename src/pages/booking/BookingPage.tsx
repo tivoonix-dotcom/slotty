@@ -27,8 +27,6 @@ import { useClientErrorModal } from '../client/ClientErrorModalContext';
 import { BookingFlowView } from './BookingFlowView';
 import { BookingPageShell } from './BookingPageShell';
 import { BookingStateScreen } from './BookingStateScreen';
-import { buildCalendarMonths } from './bookingCalendar';
-
 function looksLikeBookingUuid(id: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id.trim());
 }
@@ -144,7 +142,6 @@ export function BookingPage() {
     });
   }, [apiBundle, bookingAnchorDate, isApiSlotGrid, master, service]);
 
-  const calendarMonths = useMemo(() => buildCalendarMonths(slotDays), [slotDays]);
   const quickDateDays = useMemo(() => slotDays.slice(0, 14), [slotDays]);
 
   const [selectedDateIso, setSelectedDateIso] = useState<string | null>(null);
@@ -381,12 +378,13 @@ export function BookingPage() {
   return (
     <BookingPageShell backTo={backTo}>
       <BookingFlowView
+        backTo={backTo}
         master={master}
         service={service}
         selectedDay={selectedDay}
         selectedSlot={selectedSlot}
         quickDateDays={quickDateDays}
-        calendarMonths={calendarMonths}
+        slotDays={slotDays}
         bookError={bookError}
         submitting={submitting}
         canConfirm={canConfirm}

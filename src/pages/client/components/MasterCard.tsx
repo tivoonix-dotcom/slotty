@@ -27,6 +27,11 @@ import {
   visitFormatChipLabel,
 } from '../lib/catalogFormat';
 import { clientPinkBtn } from '../clientTheme';
+import {
+  catalogListCardClass,
+  catalogPrimaryBtn,
+  catalogSecondaryBtn,
+} from '../servicesCatalog/servicesCatalogTheme';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import { useFavoriteMaster } from '../../../features/profile/hooks/useFavoriteMaster';
 import { useClientErrorModal } from '../ClientErrorModalContext';
@@ -35,7 +40,7 @@ type Props = {
   listing: ServiceListingRecord;
   userLat: number | null;
   userLng: number | null;
-  layout?: 'carousel' | 'list' | 'featured';
+  layout?: 'carousel' | 'list' | 'featured' | 'catalog';
 };
 
 function initials(name: string): string {
@@ -136,6 +141,127 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
     listing.serviceName.length > 18
       ? `${listing.serviceName.slice(0, 17)}…`
       : listing.serviceName;
+
+  if (layout === 'catalog') {
+    return (
+      <article
+        role="button"
+        tabIndex={0}
+        onClick={openProfile}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openProfile();
+          }
+        }}
+        className={`group relative flex w-full cursor-pointer ${catalogListCardClass} lg:min-h-[148px] lg:flex-row`}
+      >
+        <button
+          type="button"
+          onClick={onToggleFav}
+          disabled={favoriteDisabled}
+          aria-label={fav ? 'Убрать из избранного' : 'В избранное'}
+          className={`absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 shadow-[0_2px_8px_rgba(17,24,39,0.08)] transition hover:bg-white hover:text-[#F47C8C] active:scale-95 lg:right-4 lg:top-4 ${
+            fav ? 'text-[#F47C8C]' : 'text-[#9CA3AF]'
+          }`}
+        >
+          <HiHeart className={`block h-[18px] w-[18px] translate-x-px ${fav ? 'fill-current' : ''}`} />
+        </button>
+
+        <div className="relative h-44 w-full shrink-0 overflow-hidden bg-[#EBEBEB] lg:h-auto lg:w-[168px] lg:min-h-[148px]">
+          {listing.photoUrl ? (
+            <ImageReveal
+              src={listing.photoUrl}
+              alt=""
+              className="h-full min-h-[176px] w-full object-cover transition duration-300 group-hover:scale-[1.01] lg:min-h-[148px]"
+              loading="lazy"
+            />
+          ) : (
+            <span className="flex h-full min-h-[176px] w-full items-center justify-center bg-gradient-to-br from-[#FFF1F4] to-[#FFE4EA] text-[28px] font-bold text-[#F47C8C] lg:min-h-[148px]">
+              {initials(listing.masterName)}
+            </span>
+          )}
+          {hasSlot ? (
+            <span className="absolute left-3 top-3 rounded-[8px] bg-[#ECFDF5] px-2.5 py-1 text-[11px] font-semibold text-[#15803D]">
+              Свободна
+            </span>
+          ) : null}
+        </div>
+
+        <div className="relative flex min-w-0 flex-1 flex-col p-5 lg:min-h-[148px] lg:p-4 lg:pr-[184px]">
+          <div className="min-w-0 flex-1">
+            <p className="pr-10 text-[12px] font-medium text-[#8E8E93] lg:pr-12">
+              {formatMasterCardSpecialty(listing.category)}
+            </p>
+            <div className="mt-1 flex items-start gap-1 pr-10 lg:pr-12">
+              <h3 className="text-[18px] font-bold leading-snug tracking-[-0.02em] text-[#111827]">
+                {listing.masterName}
+              </h3>
+              {showVerified ? (
+                <HiCheckBadge className="mt-1 h-4 w-4 shrink-0 text-[#F47C8C]" aria-hidden />
+              ) : null}
+            </div>
+
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-medium text-[#374151]">
+              {isNewMaster ? (
+                <span className="font-semibold text-[#F47C8C]">Новый мастер</span>
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <HiStar className="h-4 w-4 text-[#F59E0B]" aria-hidden />
+                  {listing.rating > 0 ? listing.rating.toFixed(1) : '—'}
+                  {listing.reviewsCount > 0 ? (
+                    <span className="text-[#8E8E93]">
+                      ({formatReviewsCountLabel(listing.reviewsCount)})
+                    </span>
+                  ) : null}
+                </span>
+              )}
+              {bookingsCount != null ? <span>{bookingsCount} записей</span> : null}
+              {distanceLabel ? (
+                <span className="inline-flex items-center gap-1">
+                  <HiMapPin className="h-4 w-4 text-[#9CA3AF]" aria-hidden />
+                  {distanceLabel}
+                </span>
+              ) : null}
+              {priceLabel ? (
+                <span className="font-semibold text-[#111827]">{priceLabel}</span>
+              ) : null}
+            </div>
+
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <span className="rounded-[8px] bg-[#F5F5F5] px-2.5 py-1 text-[12px] font-medium text-[#6B7280]">
+                {locationChip}
+              </span>
+              <span className="rounded-[8px] bg-[#F5F5F5] px-2.5 py-1 text-[12px] font-medium text-[#6B7280]">
+                {visitChip}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 flex w-full flex-col items-stretch gap-2 lg:absolute lg:bottom-4 lg:right-4 lg:mt-0 lg:w-[168px]">
+            <div className="w-full rounded-[10px] bg-[#F5F5F5] px-3 py-2">
+              <p className="text-[11px] font-medium text-[#8E8E93]">Ближайшее окно</p>
+              <p
+                className={`mt-0.5 text-[13px] font-semibold leading-snug ${hasSlot ? 'text-[#111827]' : 'text-[#8E8E93]'}`}
+              >
+                {hasSlot && slotSubline ? slotSubline : 'Свободных окон пока нет'}
+              </p>
+              {hasSlot && priceLabel ? (
+                <p className="mt-0.5 text-[11px] text-[#8E8E93]">{serviceShort}</p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={openBooking}
+              className={`${hasSlot ? catalogPrimaryBtn : catalogSecondaryBtn} w-full !min-h-9 !text-[13px]`}
+            >
+              {hasSlot ? 'Записаться' : 'Открыть профиль'}
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article

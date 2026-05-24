@@ -2,6 +2,7 @@ import { isSameCalendarDay, addDays } from '../../../features/booking/lib/calend
 import type { ServiceListingRecord } from '../../../features/services/model/demoMasters';
 import { formatReviewsCountLabel } from '../../../features/services/model/demoMasters';
 import { masterVisitTypeLabel } from '../../../features/profile/model/masterLocation';
+import { getServiceCategoryLabel, isCategorySlug } from '../../../features/catalog/serviceCategoryLabels';
 
 export { formatReviewsCountLabel };
 
@@ -82,7 +83,9 @@ export function formatMasterCardSpecialty(category: string): string {
   const c = category.trim();
   if (!c || c === 'Мастер') return 'Beauty-мастер';
   if (/^мастер\s/i.test(c)) return c;
-  return `Мастер ${c.charAt(0).toLowerCase()}${c.slice(1)}`;
+  const label = isCategorySlug(c) ? getServiceCategoryLabel(c) : c;
+  if (label === 'Услуга') return 'Beauty-мастер';
+  return `Мастер ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
 }
 
 export function visitFormatChipLabel(listing: ServiceListingRecord): string {

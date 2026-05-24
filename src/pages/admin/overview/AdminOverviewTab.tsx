@@ -3,17 +3,20 @@ import { preloadTabIntroImages } from '../useTabIntroImage';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import { postOverviewReviewReply } from '../../../features/admin/api/masterOverviewApi';
-import { OVERVIEW_TAB_BAR_HEIGHT, overviewShellCard } from './adminOverviewTheme';
+import {
+  OVERVIEW_TAB_BAR_HEIGHT,
+  overviewDesktopCard,
+  overviewDesktopTabsSticky,
+  overviewShellCard,
+} from './adminOverviewTheme';
 import { OverviewAnalyticsTabBar } from './OverviewAnalyticsTabBar';
 import { OverviewPeriodFilter } from './OverviewPeriodFilter';
 import { OVERVIEW_TAB_INTRO_IMAGES, OverviewTabIntro } from './OverviewTabIntro';
 import type { OverviewAnalyticsTab, OverviewPeriodPreset } from './overviewAnalytics';
-import {
-  OverviewClientsPanel,
-  OverviewReputationPanel,
-  OverviewRevenuePanel,
-  OverviewSummaryPanel,
-} from './OverviewTabPanels';
+import { OverviewClientsPanel } from './OverviewClientsPanel';
+import { OverviewReputationPanel } from './OverviewReputationPanel';
+import { OverviewRevenuePanel } from './OverviewRevenuePanel';
+import { OverviewSummaryPanel } from './OverviewTabPanels';
 import { useOverviewTabData } from './useOverviewTabData';
 import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
 import { LoadingPanel } from '../../../shared/ui/LoadingVideo';
@@ -39,6 +42,10 @@ function OverviewPanelContent({
   clients,
   reputation,
   periodPreset,
+  onPeriodChange,
+  periodStart,
+  periodEnd,
+  appointments,
   useCabinetApi,
   onOpenNearest,
   refreshReputation,
@@ -55,6 +62,10 @@ function OverviewPanelContent({
   clients: ReturnType<typeof useOverviewTabData>['clients'];
   reputation: ReturnType<typeof useOverviewTabData>['reputation'];
   periodPreset: OverviewPeriodPreset;
+  onPeriodChange: (preset: OverviewPeriodPreset) => void;
+  periodStart: string;
+  periodEnd: string;
+  appointments: DemoMasterAppointment[];
   useCabinetApi: boolean;
   onOpenNearest: () => void;
   refreshReputation: () => void;
@@ -78,7 +89,16 @@ function OverviewPanelContent({
 
   switch (activeTab) {
     case 'revenue':
-      return <OverviewRevenuePanel data={revenue} periodPreset={periodPreset} />;
+      return (
+        <OverviewRevenuePanel
+          data={revenue}
+          periodPreset={periodPreset}
+          onPeriodChange={onPeriodChange}
+          appointments={appointments}
+          periodStart={periodStart}
+          periodEnd={periodEnd}
+        />
+      );
     case 'clients':
       return <OverviewClientsPanel data={clients} />;
     case 'reputation':
@@ -129,6 +149,7 @@ export function AdminOverviewTab({
     revenue,
     clients,
     reputation,
+    reportRange,
     refreshReputation,
   } = useOverviewTabData({
     activeTab,
@@ -154,6 +175,10 @@ export function AdminOverviewTab({
         clients={clients}
         reputation={reputation}
         periodPreset={periodPreset}
+        onPeriodChange={setPeriodPreset}
+        periodStart={reportRange.start}
+        periodEnd={reportRange.end}
+        appointments={appointments}
         useCabinetApi={useCabinetApi}
         onOpenNearest={() => {
           if (summary.nearest) onOpenAppointment(summary.nearest);
@@ -164,6 +189,7 @@ export function AdminOverviewTab({
     [
       activeTab,
       appointmentsPath,
+      appointments,
       clients,
       dayStats,
       draft,
@@ -171,6 +197,9 @@ export function AdminOverviewTab({
       loading,
       onOpenAppointment,
       periodPreset,
+      setPeriodPreset,
+      reportRange.end,
+      reportRange.start,
       refreshReputation,
       revenue,
       reputation,
@@ -197,16 +226,15 @@ export function AdminOverviewTab({
       </section>
       <OverviewAnalyticsTabBar variant="mobile" active={activeTab} onChange={setActiveTab} />
 
-      {/* Desktop: табы внутри белой карточки */}
-      <div className={`${overviewShellCard} w-full min-w-0`}>
-        <OverviewAnalyticsTabBar variant="desktop" active={activeTab} onChange={setActiveTab} />
-        <div className="space-y-5 px-6 py-6">
-          <OverviewPeriodFilter value={periodPreset} onChange={setPeriodPreset} />
-          {activeTab !== 'summary' && !error ? <OverviewTabIntro tab={activeTab} /> : null}
-          <AdminTabContentTransition activeKey={transitionKey} className="min-w-0">
-            {panel}
-          </AdminTabContentTransition>
+      {/* Desktop: как кабинет мастера — серое полотно, белые/серые блоки без ring */}
+      <div className={`${overviewShellCard} space-y-6`}>
+        <div className={`${overviewDesktopCard} ${overviewDesktopTabsSticky}`}>
+          <OverviewAnalyticsTabBar variant="desktop" active={activeTab} onChange={setActiveTab} />
         </div>
+        <OverviewPeriodFilter value={periodPreset} onChange={setPeriodPreset} />
+        <AdminTabContentTransition activeKey={transitionKey} className="min-w-0 space-y-6">
+          {panel}
+        </AdminTabContentTransition>
       </div>
     </>
   );

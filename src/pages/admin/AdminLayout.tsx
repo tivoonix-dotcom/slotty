@@ -5,7 +5,7 @@ import { HEADER_LOGO_SRC } from '../../app/headerLogo';
 import {
   ADMIN_APPOINTMENTS_PATH,
   ADMIN_BILLING_PATH,
-  ADMIN_LOGIN_METHODS_PATH,
+  ADMIN_SETTINGS_PATH,
   ADMIN_NOTIFICATIONS_PATH,
   ADMIN_OVERVIEW_PATH,
   ADMIN_PROFILE_COMPLETION_PATH,
@@ -22,12 +22,10 @@ import { ProfileSectionTabsBar, ProfileTabProvider } from './profile/profileTabC
 import { ADMIN_CABINET_SHELL_MAX } from './overview/adminOverviewTheme';
 import { ADMIN_DESKTOP_CANVAS } from './adminCabinetLayout';
 import {
-  ADMIN_LOGIN_METHODS_NAV,
   ADMIN_MAIN_NAV,
+  ADMIN_SETTINGS_NAV,
   IconNavBilling,
   IconNavNotifications,
-  IconNavSupport,
-  IconNavDocuments,
 } from './adminCabinetNav';
 import { AdminDesktopSidebar } from './AdminDesktopSidebar';
 import { AdminDesktopTopBar } from './AdminDesktopTopBar';
@@ -35,7 +33,6 @@ import { ProfileCompletionHeaderCard } from './profile/ProfileCompletionHeaderCa
 import { SERVICES_PAGE_BG, SERVICES_TAB_BAR_HEIGHT } from './services/adminServicesTheme';
 import { APPOINTMENTS_TAB_BAR_HEIGHT } from './appointments/adminAppointmentsTheme';
 import { SCHEDULE_TAB_BAR_HEIGHT } from './schedule/adminScheduleTheme';
-import { ClientSettingsSheet } from '../profile/components/ClientSettingsSheet';
 import { AdminBottomSheet } from './shared/AdminBottomSheet';
 import { AdminRouteTransitionOutlet } from './shared/AdminRouteTransitionOutlet';
 import { AdminContentLoadingOverlay } from './shared/AdminContentLoadingOverlay';
@@ -85,8 +82,6 @@ function AdminCabinetLoadingGate() {
   return <AdminContentLoadingOverlay show={Boolean(useCabinetApi && cabinetLoading)} />;
 }
 
-type SettingsSheetView = 'support' | 'documents' | null;
-
 export function AdminLayout() {
   return (
     <AdminMasterCabinetProvider>
@@ -101,7 +96,6 @@ function AdminLayoutInner() {
   const { planId } = useMasterPlanEntitlements();
   const { hasUnread, unreadCount } = useAdminNotifications();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [settingsSheet, setSettingsSheet] = useState<SettingsSheetView>(null);
   const stickyShellRef = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
   const isProfileHome = pathname === ADMIN_PATH;
@@ -111,6 +105,8 @@ function AdminLayoutInner() {
   const isSchedule = pathname === ADMIN_SCHEDULE_PATH;
   const isAppointments = pathname === ADMIN_APPOINTMENTS_PATH;
   const isNotifications = pathname === ADMIN_NOTIFICATIONS_PATH;
+  const isBilling = pathname === ADMIN_BILLING_PATH;
+  const isSettings = pathname.startsWith(ADMIN_SETTINGS_PATH);
 
   useLayoutEffect(() => {
     const el = stickyShellRef.current;
@@ -146,24 +142,28 @@ function AdminLayoutInner() {
 
   const pageShellBg =
     isOverview || isServices || isSchedule || isAppointments || isProfileCompletion
-      ? SERVICES_PAGE_BG
+      ? 'bg-white'
       : 'bg-white';
 
   const desktopCanvasBg =
-    isProfileHome
+    isProfileHome || isOverview || isServices || isSchedule || isAppointments || isNotifications || isSettings
       ? 'lg:bg-[#f6f7fb]'
-      : isOverview || isServices || isSchedule || isAppointments || isProfileCompletion
+      : isProfileCompletion || isBilling
         ? 'lg:bg-white'
         : 'lg:bg-[#f6f7fb]';
 
+  const desktopMainCanvasBg =
+    isProfileHome || isOverview || isServices || isSchedule || isAppointments || isNotifications || isSettings
+      ? ADMIN_DESKTOP_CANVAS
+      : isProfileCompletion || isBilling
+        ? 'lg:bg-white'
+        : ADMIN_DESKTOP_CANVAS;
+
   return (
     <div className={`flex min-h-dvh text-[#111827] ${pageShellBg} ${desktopCanvasBg}`}>
-      <AdminDesktopSidebar
-        onSupport={() => setSettingsSheet('support')}
-        onDocuments={() => setSettingsSheet('documents')}
-      />
+      <AdminDesktopSidebar />
 
-      <div className={`relative flex min-h-dvh min-w-0 flex-1 flex-col ${ADMIN_DESKTOP_CANVAS}`}>
+      <div className={`relative flex min-h-dvh min-w-0 flex-1 flex-col ${desktopMainCanvasBg}`}>
         <AdminCabinetLoadingGate />
         <ProfileTabProvider>
           <div
@@ -187,7 +187,7 @@ function AdminLayoutInner() {
                     src={HEADER_LOGO_SRC}
                     alt=""
                     decoding="async"
-                    fetchPriority="low"
+                    fetchpriority="low"
                     className="h-20 w-auto max-w-[min(20rem,70vw)] object-contain object-left sm:h-[5.5rem] sm:max-w-[22rem]"
                   />
                 </Link>
@@ -237,10 +237,19 @@ function AdminLayoutInner() {
 
           <div className={`mx-auto w-full min-w-0 flex-1 ${ADMIN_CABINET_SHELL_MAX} ${shellPadBottom}`}>
             <div
-              className={`w-full min-w-0 px-4 pt-4 lg:mx-auto lg:max-w-6xl lg:px-8 lg:pb-8 lg:pt-6 ${
-                isProfileHome || isOverview || isProfileCompletion
-                  ? 'lg:bg-transparent lg:shadow-none lg:ring-0'
-                  : 'lg:rounded-[24px] lg:bg-white lg:shadow-[0_4px_24px_rgba(17,24,39,0.06)] lg:ring-1 lg:ring-[#EAECEF]'
+              className={`w-full min-w-0 px-4 pt-4 lg:pb-8 lg:pt-6 ${
+                isBilling
+                  ? 'lg:mx-auto lg:max-w-[1100px] lg:bg-transparent lg:px-8 lg:shadow-none lg:ring-0'
+                  : isOverview ||
+                      isProfileHome ||
+                      isProfileCompletion ||
+                      isServices ||
+                      isSchedule ||
+                      isAppointments ||
+                      isNotifications ||
+                      isSettings
+                    ? 'lg:mx-auto lg:max-w-6xl lg:bg-transparent lg:px-8 lg:shadow-none lg:ring-0'
+                    : 'lg:mx-auto lg:max-w-6xl lg:rounded-[24px] lg:bg-white lg:px-8 lg:shadow-[0_4px_24px_rgba(17,24,39,0.06)] lg:ring-1 lg:ring-[#EAECEF]'
               }`}
             >
               <AdminRouteTransitionOutlet />
@@ -331,15 +340,15 @@ function AdminLayoutInner() {
             </NavLink>
 
             <NavLink
-              to={ADMIN_LOGIN_METHODS_PATH}
+              to={ADMIN_SETTINGS_NAV.to}
               onClick={() => setMenuOpen(false)}
               className={({ isActive }) => navClass(isActive)}
             >
               {({ isActive }) => (
                 <>
                   <span className="flex min-w-0 flex-1 items-center gap-3">
-                    <ADMIN_LOGIN_METHODS_NAV.icon className="shrink-0 opacity-95" />
-                    <span className="truncate">Способы входа</span>
+                    <ADMIN_SETTINGS_NAV.icon className="shrink-0 opacity-95" />
+                    <span className="truncate">{ADMIN_SETTINGS_NAV.label}</span>
                   </span>
                   {isActive ? (
                     <span className="shrink-0 text-[12px] font-medium text-white/90" aria-hidden>
@@ -351,46 +360,10 @@ function AdminLayoutInner() {
                 </>
               )}
             </NavLink>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpen(false);
-                setSettingsSheet('support');
-              }}
-              className={navClass(false)}
-            >
-              <span className="flex min-w-0 flex-1 items-center gap-3">
-                <IconNavSupport className="shrink-0 opacity-95" />
-                <span className="truncate">Поддержка</span>
-              </span>
-              <span className="w-3 shrink-0" aria-hidden />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpen(false);
-                setSettingsSheet('documents');
-              }}
-              className={navClass(false)}
-            >
-              <span className="flex min-w-0 flex-1 items-center gap-3">
-                <IconNavDocuments className="shrink-0 opacity-95" />
-                <span className="truncate">Все документы</span>
-              </span>
-              <span className="w-3 shrink-0" aria-hidden />
-            </button>
           </div>
         </nav>
       </AdminBottomSheet>
 
-        <ClientSettingsSheet
-          open={settingsSheet !== null}
-          initialView={settingsSheet ?? 'menu'}
-          directEntry
-          onClose={() => setSettingsSheet(null)}
-        />
       </div>
     </div>
   );

@@ -6,15 +6,27 @@ type Props = {
   href?: string;
   linkLabel?: string;
   onLinkClick?: () => void;
+  className?: string;
 };
 
-export function SectionHeading({ title, subtitle, href, linkLabel = 'Все', onLinkClick }: Props) {
+export function SectionHeading({
+  title,
+  subtitle,
+  href,
+  linkLabel = 'Все',
+  onLinkClick,
+  className = '',
+}: Props) {
   return (
-    <div className="mb-3 flex items-end justify-between gap-3">
+    <div className={`mb-3 flex items-end justify-between gap-3 ${className}`}>
       <div className="min-w-0">
-        <h2 className="text-[20px] font-semibold tracking-tight text-[#111827]">{title}</h2>
+        <h2 className="text-[20px] font-semibold tracking-tight text-[#111827] lg:text-[22px] lg:font-bold lg:tracking-[-0.03em]">
+          {title}
+        </h2>
         {subtitle ? (
-          <p className="mt-0.5 text-[13px] leading-snug text-[#9CA3AF]">{subtitle}</p>
+          <p className="mt-0.5 text-[13px] leading-snug text-[#9CA3AF] lg:mt-1 lg:text-[14px] lg:text-[#6B7280]">
+            {subtitle}
+          </p>
         ) : null}
       </div>
       {href ? (

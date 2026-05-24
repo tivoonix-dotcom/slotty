@@ -1,5 +1,6 @@
 import { query } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { syncUserProfileFromMasterCabinet } from '../profiles/profiles.service.js';
 import { listMyServices } from '../services/services.service.js';
 import { listMyScheduleRules } from './masterOnboarding.service.js';
 import { contactsToLegacyContactLine, type MasterContactPayload } from './masterContactsCodec.js';
@@ -551,6 +552,16 @@ export async function patchMyMasterProfile(
       `update public.master_profiles set ${fields.join(', ')}, updated_at = now() where master_id = $${i}`,
       vals,
     );
+  }
+
+  const syncPatch: {
+    full_name?: string | null;
+    phone?: string | null;
+  } = {};
+  if (patch.displayName !== undefined) syncPatch.full_name = patch.displayName;
+  if (patch.phone !== undefined) syncPatch.phone = patch.phone;
+  if (Object.keys(syncPatch).length > 0) {
+    await syncUserProfileFromMasterCabinet(profileId, syncPatch);
   }
 
   return getMyMasterProfile(profileId);

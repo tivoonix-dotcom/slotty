@@ -2,9 +2,15 @@ import { useMemo, useState } from 'react';
 import type { MasterOnboardingService } from '../../../features/profile/lib/demoMasterStorage';
 import { SlottySelect } from '../../../shared/ui/SlottySelect';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
-import { createTemplatePayload } from './windowTemplateStorage';
+import { AdminFormSheetSection } from '../shared/AdminFormSheetLayout';
+import { adminSheetBodyPad, adminSheetPinkBtn } from '../shared/adminCabinetSheetTheme';
+import {
+  createTemplatePayload,
+  DUPLICATE_WINDOW_TEMPLATE_MSG,
+  isDuplicateWindowTemplate,
+} from './windowTemplateStorage';
 import type { WindowTemplate } from './scheduleTypes';
-import { labelClass, primaryBtnClass } from './scheduleUi';
+import { labelClass, scheduleInput } from './scheduleUi';
 
 const DURATION_OPTIONS = [
   { value: '30', label: '30 мин' },
@@ -46,6 +52,10 @@ export function CreateTemplateModal({ open, onClose, services, templates, onSave
       setError('Укажите длительность');
       return;
     }
+    if (isDuplicateWindowTemplate(templates, { serviceId: svc.id, durationMinutes: minutes })) {
+      setError(DUPLICATE_WINDOW_TEMPLATE_MSG);
+      return;
+    }
     const tpl = createTemplatePayload(svc.id, svc.title, minutes, title, templates.length);
     onSave(tpl);
     setServiceId('');
@@ -55,44 +65,60 @@ export function CreateTemplateModal({ open, onClose, services, templates, onSave
   };
 
   return (
-    <AdminBottomSheet open={open} onClose={onClose} title="Создать шаблон">
-      <div className="space-y-4">
-        <div>
-          <p className={labelClass}>Услуга</p>
-          <SlottySelect
-            className="mt-1.5 w-full"
-            value={serviceId}
-            onChange={setServiceId}
-            options={serviceOptions.length ? serviceOptions : [{ value: '', label: 'Нет услуг' }]}
-            aria-label="Услуга"
-          />
-        </div>
-        <div>
-          <p className={labelClass}>Длительность</p>
-          <SlottySelect
-            className="mt-1.5 w-full"
-            value={duration}
-            onChange={setDuration}
-            options={DURATION_OPTIONS}
-            aria-label="Длительность"
-          />
-        </div>
-        <div>
-          <p className={labelClass}>Название шаблона (необязательно)</p>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Например: Маникюр · 2 часа"
-            className="mt-1.5 w-full rounded-[22px] bg-[#F1EFEF] px-4 py-3.5 text-[16px] text-neutral-900 outline-none placeholder:text-neutral-400"
-          />
-        </div>
-        {error ? (
-          <p className="text-[13px] font-semibold text-[#9B2C2C]">{error}</p>
-        ) : null}
-        <button type="button" className={primaryBtnClass} onClick={handleSave}>
+    <AdminBottomSheet
+      open={open}
+      onClose={onClose}
+      title="Создать шаблон"
+      subtitle="Быстро добавляйте окна для частых услуг"
+      badge="Шаблон окна"
+      footer={
+        <button type="button" className={adminSheetPinkBtn} onClick={handleSave}>
           Сохранить шаблон
         </button>
+      }
+    >
+      <div className={adminSheetBodyPad}>
+        <AdminFormSheetSection title="Параметры шаблона">
+          <div className="space-y-3">
+            <div>
+              <p className={labelClass}>Услуга</p>
+              <SlottySelect
+                className="mt-1.5 w-full"
+                tone="admin"
+                value={serviceId}
+                onChange={setServiceId}
+                options={serviceOptions.length ? serviceOptions : [{ value: '', label: 'Нет услуг' }]}
+                aria-label="Услуга"
+              />
+            </div>
+            <div>
+              <p className={labelClass}>Длительность</p>
+              <SlottySelect
+                className="mt-1.5 w-full"
+                tone="admin"
+                value={duration}
+                onChange={setDuration}
+                options={DURATION_OPTIONS}
+                aria-label="Длительность"
+              />
+            </div>
+            <div>
+              <p className={labelClass}>Название шаблона (необязательно)</p>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Например: Маникюр · 2 часа"
+                className={`${scheduleInput} mt-1.5`}
+              />
+            </div>
+            {error ? (
+              <p className="rounded-[16px] bg-[#FFF1F4] px-4 py-3 text-[13px] font-semibold text-[#DC2626]">
+                {error}
+              </p>
+            ) : null}
+          </div>
+        </AdminFormSheetSection>
       </div>
     </AdminBottomSheet>
   );

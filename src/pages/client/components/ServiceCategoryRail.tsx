@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { ServiceCategoryDto } from '../../../features/master-onboarding/api/becomeMasterApi';
 import { getCategoryWorkPhotoUrl } from '../../../features/catalog/categoryWorkPhotos';
+import { categoryCodesMatch } from '../../../features/catalog/serviceCategoryLabels';
 import { getServiceCategoryPath, SERVICES_PATH } from '../../../app/paths';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 
@@ -21,7 +22,7 @@ export function ServiceCategoryRail({ categories, activeCode, showAllLink }: Pro
           to={SERVICES_PATH}
           className="flex w-[4.75rem] shrink-0 flex-col items-center gap-2 transition active:scale-[0.97]"
         >
-          <span className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[18px] bg-[#FFF1F4] shadow-sm ring-2 ring-white">
+          <span className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[18px] bg-[#FFF1F4] shadow-[0_2px_10px_rgba(17,24,39,0.06)]">
             <span className="text-[11px] font-bold text-[#F47C8C]">Все</span>
           </span>
           <span className="max-w-full truncate px-0.5 text-center text-[11px] font-semibold leading-tight text-[#374151]">
@@ -30,7 +31,7 @@ export function ServiceCategoryRail({ categories, activeCode, showAllLink }: Pro
         </Link>
       ) : null}
       {categories.map((cat) => {
-        const on = activeCode === cat.code;
+        const on = categoryCodesMatch(activeCode, cat.code);
         const imageSrc = getCategoryWorkPhotoUrl(cat.code || cat.name);
         return (
           <Link
@@ -41,8 +42,8 @@ export function ServiceCategoryRail({ categories, activeCode, showAllLink }: Pro
             }`}
           >
             <span
-              className={`relative block h-14 w-14 overflow-hidden rounded-[18px] shadow-sm ring-2 ${
-                on ? 'ring-[#F47C8C]/50' : 'ring-white'
+              className={`relative block h-14 w-14 overflow-hidden rounded-[18px] shadow-[0_2px_10px_rgba(17,24,39,0.06)] ${
+                on ? 'shadow-[0_4px_16px_rgba(244,124,140,0.18)]' : ''
               }`}
             >
               <ImageReveal

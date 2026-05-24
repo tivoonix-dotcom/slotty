@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import { withTransaction } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { syncUserProfileFromMasterCabinet } from '../profiles/profiles.service.js';
 import { ensureMasterSubscriptionWithClient } from '../billing/billing.service.js';
 import {
   contactsToLegacyContactLine,
@@ -437,7 +438,7 @@ async function loadOnboardingResult(client: PoolClient, masterId: string) {
 }
 
 export async function completeMyMasterOnboarding(masterId: string, body: CompleteMasterOnboardingInput) {
-  return withTransaction(async (client) => {
+  const result = await withTransaction(async (client) => {
     const cat = await client.query<{ id: string }>(
       `select id from public.service_categories where code = $1 and is_active = true`,
       [body.categoryCode.trim()],
@@ -483,4 +484,12 @@ export async function completeMyMasterOnboarding(masterId: string, body: Complet
 
     return loadOnboardingResult(client, masterId);
   });
+
+  await syncUserProfileFromMasterCabinet(masterId, {
+    full_name: body.name.trim(),
+    phone: body.phone == null || body.phone === '' ? null : body.phone.trim(),
+    address: body.location.publicAddress.trim() || null,
+  });
+
+  return result;
 }

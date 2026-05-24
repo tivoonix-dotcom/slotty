@@ -1,3 +1,4 @@
-/** Ширина контента лендинга — как у `HomeHeader` (`max-w-[1100px]` + отступы). */
-export const homeShell =
-  'mx-auto w-full max-w-[1100px] px-4 sm:px-6';
+import { CLIENT_DESKTOP_SHELL_CLASS } from '../../shared/layout/clientShellLayout';
+
+/** Ширина контента лендинга — как у каталога и SlottyHeader. */
+export const homeShell = CLIENT_DESKTOP_SHELL_CLASS;

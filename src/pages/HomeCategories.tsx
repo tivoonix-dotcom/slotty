@@ -1,6 +1,10 @@
 import type { FC } from 'react';
 import { ImageReveal } from '../shared/ui/ImageReveal';
-import { homeScrollRow, homeSection } from './home/homeTheme';
+import {
+  CLIENT_DESKTOP_SHELL_BLEED_CLASS,
+  CLIENT_DESKTOP_SHELL_BLEED_PAD_CLASS,
+} from '../shared/layout/clientShellLayout';
+import { homeSection } from './home/homeTheme';
 
 const CATEGORIES = [
   { key: 'manicure', label: 'Маникюр', image: '/photos/лендинг/каталог/маникюр.png' },
@@ -26,47 +30,43 @@ export const HomeCategories: FC<HomeCategoriesProps> = ({ onCategory }) => {
       style={{ animationDelay: '120ms' }}
       aria-labelledby="home-categories-heading"
     >
-      <div className="mx-auto max-w-[68rem]">
-        <div className="mx-auto max-w-[40rem] text-center">
-          <h2
-            id="home-categories-heading"
-            className="text-[clamp(2rem,6vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[#111827]"
-          >
-            Выберите услугу
-          </h2>
+      <div className="mx-auto max-w-[40rem] text-center">
+        <h2
+          id="home-categories-heading"
+          className="text-[clamp(2rem,6vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[#111827]"
+        >
+          Выберите услугу
+        </h2>
+      </div>
 
-        </div>
-
-        <div className="relative mt-10 w-[calc(100%+(100vw-100%)/2)] max-w-none overflow-visible sm:mt-14">
-          <ul
-            className={`${homeScrollRow} list-none gap-5 pb-2 pl-0 pr-[max(1.25rem,env(safe-area-inset-right))] snap-x snap-mandatory scroll-pl-0 sm:gap-6`}
-          >
-            {CATEGORIES.map((category, index) => (
-              <li
-                key={category.key}
-                className="w-[min(17.5rem,82vw)] shrink-0 snap-start sm:w-[19.5rem]"
+      <div
+        className={`${CLIENT_DESKTOP_SHELL_BLEED_CLASS} mt-10 overflow-x-auto [scrollbar-width:none] sm:mt-14 [&::-webkit-scrollbar]:hidden`}
+      >
+        <ul
+          className={`flex list-none snap-x snap-mandatory scroll-pl-6 gap-5 pb-2 xl:scroll-pl-10 sm:gap-6 ${CLIENT_DESKTOP_SHELL_BLEED_PAD_CLASS} pr-[max(1.25rem,env(safe-area-inset-right))]`}
+        >
+          {CATEGORIES.map((category, index) => (
+            <li key={category.key} className="w-[min(17.5rem,82vw)] shrink-0 snap-start sm:w-[19.5rem]">
+              <button
+                type="button"
+                onClick={() => onCategory(category.key)}
+                aria-label={category.label}
+                className="group block w-full transition active:opacity-95"
               >
-                <button
-                  type="button"
-                  onClick={() => onCategory(category.key)}
-                  aria-label={category.label}
-                  className="group block w-full transition active:opacity-95"
-                >
-                  <div className="overflow-hidden rounded-[22px] bg-[#F2F2F2] p-3 sm:rounded-[26px] sm:p-4">
-                    <ImageReveal
-                      src={categoryImageSrc(category)}
-                      alt=""
-                      loading={index < 2 ? 'eager' : 'lazy'}
-                      fetchPriority={index < 2 ? 'high' : 'low'}
-                      draggable={false}
-                      className="block h-auto w-full rounded-[18px] object-contain transition duration-500 group-hover:scale-[1.01] sm:rounded-[22px]"
-                    />
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+                <div className="overflow-hidden rounded-[22px] bg-[#F2F2F2] p-3 sm:rounded-[26px] sm:p-4">
+                  <ImageReveal
+                    src={categoryImageSrc(category)}
+                    alt=""
+                    loading={index < 2 ? 'eager' : 'lazy'}
+                    fetchPriority={index < 2 ? 'high' : 'low'}
+                    draggable={false}
+                    className="block h-auto w-full rounded-[18px] object-contain transition duration-500 group-hover:scale-[1.01] sm:rounded-[22px]"
+                  />
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { HiCalendarDays } from 'react-icons/hi2';
 import { createClientAppointment } from '../../../features/appointments/api/clientAppointments';
 import { fetchPublicSlots } from '../../../features/booking/api/publicSlotsApi';
 import { buildBookingSlotDaysFromPublicSlots } from '../../../features/booking/model/apiBookingSlotGrid';
@@ -12,6 +13,8 @@ import { useAuth } from '../../../features/auth/AuthProvider';
 import { getApiBaseUrl } from '../../../shared/api/backendClient';
 import type { DemoMasterService } from '../../../features/services/model/demoMasters';
 import { BookingSuccessCelebration } from '../../booking/BookingSuccessModal';
+import { BookingCalendarOverlay } from '../../booking/BookingCalendarOverlay';
+import { bookingChipActive, bookingChipIdle, bookingMutedPanel, bookingSectionLabel } from '../../booking/bookingUi';
 import { clientPinkBtn } from '../clientTheme';
 import { ClientSheetShell } from './ClientSheetShell';
 import { formatServicePrice, serviceDurationLabel } from './masterProfileUtils';
@@ -37,6 +40,7 @@ export function BookingTimeSheet({ open, onClose, master, initialServiceId }: Pr
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const service = useMemo(
     () => master.services.find((s) => s.id === serviceId) ?? null,
@@ -99,7 +103,31 @@ export function BookingTimeSheet({ open, onClose, master, initialServiceId }: Pr
 
   const selectedDay = slotDays.find((d) => d.date === selectedDate) ?? null;
   const selectedSlot = selectedDay?.times.find((t) => t.slotId === selectedSlotId) ?? null;
-  const quickDays = slotDays.filter((d) => d.times.length > 0).slice(0, 14);
+  const quickDateDays = useMemo(() => slotDays.slice(0, 14), [slotDays]);
+
+  useEffect(() => {
+    if (!open) {
+      setCalendarOpen(false);
+    }
+  }, [open]);
+
+  const handlePickDate = useCallback(
+    (dateIso: string) => {
+      const day = slotDays.find((d) => d.date === dateIso);
+      if (!day || day.times.length === 0) return;
+      setSelectedDate(dateIso);
+      setSelectedSlotId(day.times[0]?.slotId ?? null);
+    },
+    [slotDays],
+  );
+
+  const handlePickCalendarDate = useCallback(
+    (dateIso: string) => {
+      handlePickDate(dateIso);
+      setCalendarOpen(false);
+    },
+    [handlePickDate],
+  );
 
   const onSubmit = useCallback(() => {
     if (!service || !selectedSlot) return;
@@ -135,9 +163,11 @@ export function BookingTimeSheet({ open, onClose, master, initialServiceId }: Pr
   if (!open) return null;
 
   return (
+    <>
     <ClientSheetShell
       open={open}
       onClose={onClose}
+      desktopSize="wide"
       title={success ? 'Готово' : 'Выберите время'}
       footer={
         success ? (
@@ -200,34 +230,55 @@ export function BookingTimeSheet({ open, onClose, master, initialServiceId }: Pr
 
           {loadingSlots ? (
             <p className="mt-6 text-center text-[14px] text-[#9CA3AF]">Загружаем окна…</p>
-          ) : quickDays.length === 0 ? (
+          ) : slotDays.length === 0 ? (
             <p className="mt-6 text-center text-[14px] text-[#6B7280]">
               Свободных окон пока нет. Попробуйте другую дату.
             </p>
           ) : (
             <>
-              <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {quickDays.map((day) => (
-                  <button
-                    key={day.date}
-                    type="button"
-                    onClick={() => {
-                      setSelectedDate(day.date);
-                      setSelectedSlotId(day.times[0]?.slotId ?? null);
-                    }}
-                    className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold ${
-                      selectedDate === day.date
-                        ? 'bg-[#FFF1F4] text-[#F47C8C]'
-                        : 'bg-[#F1EFEF] text-[#6B7280]'
-                    }`}
-                  >
-                    {day.dateLabel}
-                  </button>
-                ))}
+              <div className="mt-5 flex items-center justify-between gap-2">
+                <p className={bookingSectionLabel}>Дата</p>
+                <button
+                  type="button"
+                  onClick={() => setCalendarOpen(true)}
+                  className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold ${bookingChipIdle}`}
+                >
+                  <HiCalendarDays className="h-4 w-4 text-[#F47C8C]" aria-hidden />
+                  Календарь
+                </button>
               </div>
 
-              {selectedDay ? (
-                <div className="mt-4 flex flex-wrap gap-2">
+              <div className={`${bookingMutedPanel} mt-2 px-4 py-3`}>
+                <p className="text-[11px] font-medium text-[#9CA3AF]">Выбранная дата</p>
+                <p className="mt-1 text-[17px] font-semibold capitalize text-[#111827]">
+                  {selectedDay?.fullDateLabel ?? '—'}
+                </p>
+              </div>
+
+              <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {quickDateDays.map((day) => {
+                  const hasTimes = day.times.length > 0;
+                  const active = day.date === selectedDate;
+                  return (
+                    <button
+                      key={day.date}
+                      type="button"
+                      disabled={!hasTimes}
+                      onClick={() => handlePickDate(day.date)}
+                      className={`shrink-0 rounded-full px-4 py-2.5 text-[14px] font-semibold transition active:scale-[0.98] disabled:opacity-40 ${
+                        active ? bookingChipActive : bookingChipIdle
+                      }`}
+                    >
+                      {day.dateLabel}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedDay && selectedDay.times.length > 0 ? (
+                <>
+                  <p className={`${bookingSectionLabel} mt-6`}>Время</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
                   {selectedDay.times.map((slot) => {
                     const active = selectedSlotId === slot.slotId;
                     const promo = slot.promotion;
@@ -253,7 +304,8 @@ export function BookingTimeSheet({ open, onClose, master, initialServiceId }: Pr
                       </button>
                     );
                   })}
-                </div>
+                  </div>
+                </>
               ) : null}
 
               {selectedSlot && service ? (
@@ -294,5 +346,14 @@ export function BookingTimeSheet({ open, onClose, master, initialServiceId }: Pr
         </>
       )}
     </ClientSheetShell>
+
+      <BookingCalendarOverlay
+        open={calendarOpen}
+        slotDays={slotDays}
+        selectedDate={selectedDate}
+        onClose={() => setCalendarOpen(false)}
+        onPickDate={handlePickCalendarDate}
+      />
+    </>
   );
 }

@@ -72,6 +72,124 @@ function toTelegramUserIdNumber(raw: string | null): number | null {
   return Number(n);
 }
 
+type MasterCabinetPersonalFields = {
+  phone: string | null;
+  fullName: string | null;
+  address: string | null;
+};
+
+async function fetchMasterCabinetPersonalFields(profileId: string): Promise<MasterCabinetPersonalFields | null> {
+  const r = await query<{
+    phone: string | null;
+    display_name: string | null;
+    public_address: string | null;
+  }>(
+    `select mp.phone, mp.display_name, ml.public_address
+     from public.master_profiles mp
+     left join public.master_locations ml
+       on ml.master_id = mp.master_id and ml.is_primary = true
+     where mp.master_id = $1
+     limit 1`,
+    [profileId],
+  );
+  const row = r.rows[0];
+  if (!row) return null;
+  return {
+    phone: row.phone?.trim() || null,
+    fullName: row.display_name?.trim() || null,
+    address: row.public_address?.trim() || null,
+  };
+}
+
+function mergeMasterCabinetPersonalFields(
+  row: { role: string; full_name: string; phone: string | null; address: string | null },
+  master: MasterCabinetPersonalFields | null,
+): { full_name: string; phone: string | null; address: string | null } {
+  if (!master || (row.role !== 'master' && row.role !== 'platform_admin')) {
+    return { full_name: row.full_name, phone: row.phone, address: row.address };
+  }
+
+  return {
+    full_name: row.full_name?.trim() ? row.full_name : master.fullName ?? row.full_name,
+    phone: row.phone?.trim() ? row.phone : master.phone,
+    address: row.address?.trim() ? row.address : master.address,
+  };
+}
+
+/** Копирует телефон / имя / адрес из кабинета мастера в profiles (для клиентского профиля). */
+export async function syncUserProfileFromMasterCabinet(
+  profileId: string,
+  patch: {
+    full_name?: string | null;
+    phone?: string | null;
+    address?: string | null;
+  },
+): Promise<void> {
+  const userPatch: {
+    full_name?: string;
+    phone?: string | null;
+    address?: string | null;
+  } = {};
+
+  if (patch.full_name !== undefined) {
+    const name = patch.full_name?.trim();
+    if (name) userPatch.full_name = name;
+  }
+  if (patch.phone !== undefined) {
+    userPatch.phone = patch.phone?.trim() ? patch.phone.trim() : null;
+  }
+  if (patch.address !== undefined) {
+    userPatch.address = patch.address?.trim() ? patch.address.trim() : null;
+  }
+
+  if (Object.keys(userPatch).length > 0) {
+    await updateProfile(profileId, userPatch);
+  }
+}
+
+/** Обратная синхронизация: правки в клиентском профиле → кабинет мастера. */
+export async function syncMasterCabinetFromUserProfile(
+  profileId: string,
+  patch: {
+    full_name?: string;
+    phone?: string | null;
+    address?: string | null;
+  },
+): Promise<void> {
+  const exists = await query(`select 1 from public.master_profiles where master_id = $1 limit 1`, [profileId]);
+  if (!exists.rowCount) return;
+
+  const fields: string[] = [];
+  const vals: unknown[] = [];
+  let i = 1;
+
+  if (patch.full_name !== undefined) {
+    fields.push(`display_name = $${i++}`);
+    vals.push(patch.full_name);
+  }
+  if (patch.phone !== undefined) {
+    fields.push(`phone = $${i++}`);
+    vals.push(patch.phone);
+  }
+
+  if (fields.length) {
+    vals.push(profileId);
+    await query(
+      `update public.master_profiles set ${fields.join(', ')}, updated_at = now() where master_id = $${i}`,
+      vals,
+    );
+  }
+
+  if (patch.address !== undefined) {
+    await query(
+      `update public.master_locations
+       set public_address = $1, updated_at = now()
+       where master_id = $2 and is_primary = true`,
+      [patch.address?.trim() || '', profileId],
+    );
+  }
+}
+
 export async function getProfileById(profileId: string): Promise<ProfileDto> {
   const r = await query<{
     id: string;
@@ -95,20 +213,48 @@ export async function getProfileById(profileId: string): Promise<ProfileDto> {
   if (!row) {
     throw ApiError.notFound('Profile not found');
   }
-  const [header_avatar_url, account_email] = await Promise.all([
+  const [header_avatar_url, account_email, masterPersonal] = await Promise.all([
     resolveHeaderAvatarUrl(profileId, row.role, row.avatar_url),
     resolveAccountEmail(profileId),
+    row.role === 'master' || row.role === 'platform_admin'
+      ? fetchMasterCabinetPersonalFields(profileId)
+      : Promise.resolve(null),
   ]);
+  const personal = mergeMasterCabinetPersonalFields(row, masterPersonal);
+
+  if (
+    masterPersonal &&
+    (row.role === 'master' || row.role === 'platform_admin')
+  ) {
+    const backfill: {
+      full_name?: string | null;
+      phone?: string | null;
+      address?: string | null;
+    } = {};
+    if (!row.full_name?.trim() && personal.full_name?.trim()) {
+      backfill.full_name = personal.full_name;
+    }
+    if (!row.phone?.trim() && personal.phone) {
+      backfill.phone = personal.phone;
+    }
+    if (!row.address?.trim() && personal.address) {
+      backfill.address = personal.address;
+    }
+    if (Object.keys(backfill).length > 0) {
+      void syncUserProfileFromMasterCabinet(profileId, backfill);
+    }
+  }
+
   return {
     id: row.id,
     telegram_user_id: toTelegramUserIdNumber(row.telegram_user_id),
     telegram_username: row.telegram_username,
-    full_name: row.full_name,
+    full_name: personal.full_name,
     avatar_url: row.avatar_url,
     header_avatar_url,
     role: row.role,
-    phone: row.phone,
-    address: row.address,
+    phone: personal.phone,
+    address: personal.address,
     account_email,
     privacy_consent_accepted_at:
       row.privacy_consent_accepted_at == null ? null : String(row.privacy_consent_accepted_at),

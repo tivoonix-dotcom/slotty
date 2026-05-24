@@ -4,22 +4,29 @@ import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import {
   servicesCard,
   servicesChipActive,
+  servicesDesktopCardPad,
   servicesIconCircle,
-  servicesPinkBtn,
+  servicesTabPanelShell,
+  servicesTabScrollBottomPad,
 } from './adminServicesTheme';
 import { PromotionBannerCard } from './PromotionBannerCard';
 import type { ManagedService } from './servicesFormat';
 import { derivePromotionStatus } from './servicesFormat';
 import { normalizePromotion } from './promotionNormalize';
 import type { ServicePromotion, ServicePromotionStatus } from './servicesTypes';
+import { ServicesExtrasProPreview } from './ServicesExtrasProPreview';
 import { ServicesPromotionMenuSheet } from './ServicesPromotionMenuSheet';
+import { ServicesTabFab } from './ServicesTabFab';
+import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 
 type PromoFilter = 'all' | ServicePromotionStatus;
 
 type Props = {
+  draft: MasterDraft;
   services: ManagedService[];
   promotions: ServicePromotion[];
   extrasLocked?: boolean;
+  onConnectPro?: () => void;
   onExtrasLocked?: () => void;
   onCreate: () => void;
   onEdit: (promo: ServicePromotion) => void;
@@ -34,10 +41,23 @@ const FILTER_OPTIONS: Array<{ id: PromoFilter; label: string; hint: string }> = 
   { id: 'draft', label: 'Черновики', hint: 'Ещё не опубликованы' },
 ];
 
+function promoCountLabel(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+
+  if (mod100 >= 11 && mod100 <= 14) return `${n} акций`;
+  if (mod10 === 1) return `${n} акция`;
+  if (mod10 >= 2 && mod10 <= 4) return `${n} акции`;
+
+  return `${n} акций`;
+}
+
 export function ServicesPromotionsTab({
+  draft,
   services,
   promotions,
   extrasLocked = false,
+  onConnectPro,
   onExtrasLocked,
   onCreate,
   onEdit,
@@ -47,6 +67,8 @@ export function ServicesPromotionsTab({
   const [filterOpen, setFilterOpen] = useState(false);
   const [menuPromo, setMenuPromo] = useState<ServicePromotion | null>(null);
 
+  const connectPro = onConnectPro ?? onExtrasLocked ?? (() => {});
+
   const rows = useMemo(() => {
     return promotions
       .map((p) => {
@@ -55,6 +77,7 @@ export function ServicesPromotionsTab({
           normalized.serviceTitle ||
           services.find((s) => s.id === normalized.serviceId)?.title ||
           '';
+
         return {
           ...normalized,
           serviceTitle,
@@ -75,99 +98,93 @@ export function ServicesPromotionsTab({
 
   const tryCreate = () => {
     if (extrasLocked) {
-      onExtrasLocked?.();
+      connectPro();
       return;
     }
     onCreate();
   };
 
-  const tryEdit = (promo: ServicePromotion) => {
-    if (extrasLocked) {
-      onExtrasLocked?.();
-      return;
-    }
-    onEdit(promo);
-  };
+  if (extrasLocked) {
+    return (
+      <ServicesExtrasProPreview
+        variant="promotions"
+        draft={draft}
+        services={services}
+        onConnectPro={connectPro}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-4 pb-2">
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={tryCreate}
-          disabled={extrasLocked}
-          className={`${servicesPinkBtn} min-w-0 flex-1 disabled:opacity-50`}
-        >
-          + Создать акцию
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterOpen(true)}
-          className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border transition active:scale-[0.96] ${
-            filterIsActive
-              ? 'border-[#FDE8ED] bg-[#FFF1F4] text-[#F47C8C] shadow-[inset_0_0_0_1px_rgba(244,124,140,0.12)]'
-              : 'border-[#EAECEF] bg-white text-[#6B7280]'
-          }`}
-          aria-label={`Фильтры: ${activeFilterLabel}`}
-          aria-expanded={filterOpen}
-        >
-          <HiFunnel className="h-5 w-5" aria-hidden />
-          {filterIsActive ? (
-            <span
-              className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#F47C8C]"
-              aria-hidden
-            />
-          ) : null}
-        </button>
+    <div className={`relative space-y-4 lg:space-y-0 ${servicesTabPanelShell} lg:overflow-hidden`}>
+      <div className={`space-y-4 lg:space-y-5 ${servicesTabScrollBottomPad} ${servicesDesktopCardPad}`}>
+        <div>
+          <h2 className="text-[18px] font-black tracking-[-0.04em] text-[#111827] lg:text-[22px] lg:tracking-[-0.05em]">
+            Акции
+          </h2>
+          <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
+            {promotions.length > 0
+              ? promoCountLabel(promotions.length)
+              : 'Скидки и спецпредложения для клиентов'}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 lg:justify-start lg:gap-3">
+          <p className="text-[12px] font-semibold text-[#9CA3AF] lg:hidden">
+            Новая акция — кнопка «+» внизу справа
+          </p>
+          <button
+            type="button"
+            onClick={() => setFilterOpen(true)}
+            className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border transition active:scale-[0.96] lg:min-h-12 lg:w-auto lg:gap-2 lg:px-4 lg:text-[14px] lg:font-bold ${
+              filterIsActive
+                ? 'border-[#FDE8ED] bg-[#FFF1F4] text-[#F47C8C] shadow-[inset_0_0_0_1px_rgba(244,124,140,0.12)]'
+                : 'border-[#EAECEF] bg-white text-[#6B7280]'
+            }`}
+            aria-label={`Фильтр: ${activeFilterLabel}`}
+            aria-expanded={filterOpen}
+          >
+            <HiFunnel className="h-5 w-5 shrink-0" aria-hidden />
+            <span className="hidden lg:inline">{activeFilterLabel}</span>
+          </button>
+        </div>
+
+        {rows.length === 0 ? (
+          <div className={`${servicesCard} p-6 text-center lg:rounded-[24px]`}>
+            <span className={`${servicesIconCircle} mx-auto flex h-16 w-16 items-center justify-center rounded-[22px]`}>
+              <HiReceiptPercent className="h-8 w-8" aria-hidden />
+            </span>
+            <h3 className="mt-4 text-[18px] font-bold tracking-[-0.04em] text-[#111827] lg:text-[20px]">
+              {promotions.length === 0 ? 'Акций пока нет' : 'Ничего не найдено'}
+            </h3>
+            <p className="mx-auto mt-2 max-w-[20rem] text-[13px] leading-relaxed text-[#6B7280]">
+              {promotions.length === 0
+                ? 'Нажмите «+» внизу справа — баннер появится в каталоге и при записи.'
+                : 'Попробуйте другой фильтр или создайте акцию через «+»'}
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-3.5 lg:space-y-4 lg:rounded-[24px] lg:bg-[#f6f7fb] lg:p-4">
+            {rows.map((promo) => (
+              <li key={promo.id}>
+                <PromotionBannerCard
+                  promo={promo}
+                  onMenu={() => setMenuPromo(promo)}
+                  className="lg:min-h-[176px]"
+                />
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      {rows.length === 0 ? (
-        <div className={`${servicesCard} p-6 text-center`}>
-          <span className={`${servicesIconCircle} mx-auto h-16 w-16 rounded-[22px]`}>
-            <HiReceiptPercent className="h-8 w-8" aria-hidden />
-          </span>
-          <h3 className="mt-4 text-[18px] font-bold tracking-[-0.04em] text-[#111827]">
-            {promotions.length === 0 ? 'Акций пока нет' : 'Ничего не найдено'}
-          </h3>
-          <p className="mx-auto mt-2 max-w-[18rem] text-[13px] leading-relaxed text-[#6B7280]">
-            {promotions.length === 0
-              ? 'Создайте первую акцию, чтобы привлечь клиентов'
-              : 'Попробуйте другой фильтр'}
-          </p>
-          {promotions.length === 0 ? (
-            <button
-              type="button"
-              onClick={tryCreate}
-              disabled={extrasLocked}
-              className={`${servicesPinkBtn} mt-5 disabled:opacity-50`}
-            >
-              Создать акцию
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <ul className="space-y-3.5">
-          {rows.map((promo) => (
-            <li key={promo.id}>
-              <PromotionBannerCard
-                promo={promo}
-                onMenu={() => {
-                  if (extrasLocked) {
-                    onExtrasLocked?.();
-                    return;
-                  }
-                  setMenuPromo(promo);
-                }}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+      <ServicesTabFab ariaLabel="Создать акцию" onClick={tryCreate} />
 
-      <AdminBottomSheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Фильтр">
+      <AdminBottomSheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Фильтр акций">
         <div className="space-y-2 pb-2">
           {FILTER_OPTIONS.map((option) => {
             const selected = filter === option.id;
+
             return (
               <button
                 key={option.id}
@@ -181,14 +198,19 @@ export function ServicesPromotionsTab({
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-bold text-[#111827]">{option.label}</span>
-                  <span className="mt-0.5 block text-[12px] font-medium text-[#9CA3AF]">{option.hint}</span>
+                  <span className="mt-0.5 block text-[12px] font-medium text-[#9CA3AF]">
+                    {option.hint}
+                  </span>
                 </span>
                 {selected ? (
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F47C8C] text-white">
                     <HiCheck className="h-5 w-5" aria-hidden />
                   </span>
                 ) : (
-                  <span className="h-8 w-8 shrink-0 rounded-full border border-[#EAECEF] bg-[#FAFAFA]" aria-hidden />
+                  <span
+                    className="h-8 w-8 shrink-0 rounded-full border border-[#EAECEF] bg-[#FAFAFA]"
+                    aria-hidden
+                  />
                 )}
               </button>
             );
@@ -201,7 +223,7 @@ export function ServicesPromotionsTab({
         promo={menuPromo}
         onClose={() => setMenuPromo(null)}
         onEdit={() => {
-          if (menuPromo) tryEdit(menuPromo);
+          if (menuPromo) onEdit(menuPromo);
           setMenuPromo(null);
         }}
         onDelete={() => {

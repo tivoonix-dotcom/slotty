@@ -351,8 +351,8 @@ export function OverviewBarChart({
   const axisIdx = chartAxisIndices(stats.length);
 
   return (
-    <div>
-      <div className={`relative min-h-[11rem] ${overviewMutedSurface} p-3`}>
+    <div className="min-w-0">
+      <div className={`relative min-h-[11rem] overflow-hidden rounded-[20px] ${overviewMutedSurface} p-3 lg:min-h-[10.5rem]`}>
         <div className="pointer-events-none absolute inset-x-3 bottom-3 top-3 flex flex-col justify-between">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="border-t border-dashed border-[#E5E7EB]" />

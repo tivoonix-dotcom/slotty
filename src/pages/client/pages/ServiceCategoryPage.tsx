@@ -1,19 +1,21 @@
 import { useMemo, useState } from 'react';
 import { useCatalogErrorModal } from '../hooks/useCatalogErrorModal';
-import { Link, useOutletContext, useParams } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { HiArrowLeft } from 'react-icons/hi2';
 import type { ClientOutletContext } from '../clientOutletContext';
-import { ClientPageShell } from '../components/ClientPageShell';
 import { MasterCard } from '../components/MasterCard';
 import { QuickChips } from '../components/QuickChips';
 import { GeoPromptCard } from '../components/GeoPromptCard';
-import { FilterOpenButton } from '../components/FilterOpenButton';
 import { CategoryMasterFilterSheet } from '../components/CategoryMasterFilterSheet';
 import { SkeletonMasterCard } from '../components/SkeletonCards';
 import { EmptyState } from '../components/EmptyState';
 import { CatalogError } from '../components/CatalogError';
 import { useCatalogData } from '../hooks/useCatalogData';
-import { SERVICES_PATH } from '../../../app/paths';
+import { getServiceCategoryPath, SERVICES_PATH } from '../../../app/paths';
+import {
+  getServiceCategoryLabel,
+  normalizeCategoryCode,
+} from '../../../features/catalog/serviceCategoryLabels';
 import { groupListingsByMaster, sortMastersByDistance } from '../lib/groupMasters';
 import { formatDurationMinutes, formatMastersCountLabel, formatPriceFrom } from '../lib/catalogFormat';
 import {
@@ -24,6 +26,10 @@ import {
   toggleQuickChip,
   type CategoryMasterFilters,
 } from '../lib/categoryMasterFilters';
+import { ServiceCategoryDesktop } from '../serviceCategory/ServiceCategoryDesktop';
+import { CatalogStickyToolbar } from '../servicesCatalog/CatalogStickyToolbar';
+import { catalogCanvasClass, catalogMetaChipClass } from '../servicesCatalog/servicesCatalogTheme';
+import { CLIENT_CONTENT_PAD_BOTTOM, CLIENT_HEADER_OFFSET } from '../clientNavConstants';
 
 const FILTER_CHIPS = [
   { id: 'today', label: 'Сегодня' },
@@ -38,7 +44,9 @@ const FILTER_CHIPS = [
 
 export function ServiceCategoryPage() {
   const { categoryCode } = useParams<{ categoryCode: string }>();
+  const navigate = useNavigate();
   const { userLat, userLng, hasGeo, requestGeo } = useOutletContext<ClientOutletContext>();
+  const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<CategoryMasterFilters>(DEFAULT_CATEGORY_MASTER_FILTERS);
   const [filterDraft, setFilterDraft] = useState<CategoryMasterFilters>(DEFAULT_CATEGORY_MASTER_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -46,21 +54,22 @@ export function ServiceCategoryPage() {
   const activeFilterCount = countActiveCategoryFilters(filters);
   const quickChipIds = useMemo(() => filtersToQuickChips(filters), [filters]);
 
+  const normalizedCategoryCode = categoryCode ? normalizeCategoryCode(categoryCode) : undefined;
+
   const apiParams = useMemo(
     () =>
       categoryFiltersToApiParams(
         filters,
-        { limit: 80, category: categoryCode },
+        { limit: 80, category: normalizedCategoryCode },
         hasGeo,
       ),
-    [filters, categoryCode, hasGeo],
+    [filters, normalizedCategoryCode, hasGeo],
   );
 
   const { listings, categories, loading, error, reload } = useCatalogData(apiParams);
   useCatalogErrorModal(error, reload, 'Категория');
 
-  const categoryName =
-    categories.find((c) => c.code === categoryCode)?.name ?? categoryCode ?? 'Услуга';
+  const categoryName = getServiceCategoryLabel(categoryCode, categories);
 
   const masters = useMemo(() => {
     let list = groupListingsByMaster(listings);
@@ -73,6 +82,17 @@ export function ServiceCategoryPage() {
     }
     return list;
   }, [listings, userLat, userLng, filters.sortBy, filters.minRating, filters.priceTier]);
+
+  const filteredMasters = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return masters;
+    return masters.filter(
+      (m) =>
+        m.masterName.toLowerCase().includes(q) ||
+        m.serviceName.toLowerCase().includes(q) ||
+        m.category.toLowerCase().includes(q),
+    );
+  }, [masters, search]);
 
   const stats = useMemo(() => {
     const prices = listings.map((l) => l.priceFrom).filter((p) => p > 0);
@@ -100,56 +120,31 @@ export function ServiceCategoryPage() {
     setFilterOpen(true);
   };
 
+  const handleCategorySelect = (code: string | null) => {
+    if (code == null) {
+      navigate(SERVICES_PATH);
+      return;
+    }
+    if (code !== categoryCode) {
+      navigate(getServiceCategoryPath(code));
+    }
+  };
+
   const todayFilterNoSlots =
     filters.dateRange === 'today' &&
     !loading &&
-    masters.length > 0 &&
-    masters.every((m) => !m.nextSlotStartsAt);
+    filteredMasters.length > 0 &&
+    filteredMasters.every((m) => !m.nextSlotStartsAt);
 
-  return (
-    <ClientPageShell>
-      <Link
-        to={SERVICES_PATH}
-        className="mb-3 inline-flex items-center gap-1 text-[14px] font-semibold text-[#6B7280]"
-      >
-        <HiArrowLeft className="h-4 w-4" aria-hidden />
-        Услуги
-      </Link>
-
-      <h1 className="text-[30px] font-semibold leading-tight tracking-tight text-[#111827]">
-        {categoryName}
-      </h1>
-      <p className="mt-2 text-[15px] leading-snug text-[#6B7280]">
-        Выберите мастера и удобное время
-      </p>
-
-      <div className="mt-3 flex flex-wrap gap-2 text-[13px] font-medium text-[#374151]">
-        {stats.minPrice != null ? (
-          <span className="rounded-full bg-[#F1EFEF] px-3 py-1.5">{formatPriceFrom(stats.minPrice)}</span>
-        ) : null}
-        <span className="rounded-full bg-[#F1EFEF] px-3 py-1.5">
-          {formatDurationMinutes(stats.duration)}
-        </span>
-        <span className="rounded-full bg-[#F1EFEF] px-3 py-1.5">
-          {formatMastersCountLabel(stats.masterCount)}
-        </span>
-      </div>
-
-      <div className="mt-5">
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <QuickChips chips={[...FILTER_CHIPS]} activeIds={quickChipIds} onToggle={toggleChip} />
-          </div>
-          <FilterOpenButton activeCount={activeFilterCount} onClick={openFilters} className="mt-2" />
+  const mobileResults = (
+    <>
+      {quickChipIds.has('near') && !hasGeo ? (
+        <div className="mb-3">
+          <GeoPromptCard onAllow={requestGeo} />
         </div>
-        {quickChipIds.has('near') && !hasGeo ? (
-          <div className="mt-2">
-            <GeoPromptCard onAllow={requestGeo} />
-          </div>
-        ) : null}
-      </div>
+      ) : null}
 
-      <div className="mt-6 space-y-3">
+      <div className="space-y-3">
         {loading ? (
           <>
             <SkeletonMasterCard />
@@ -157,7 +152,7 @@ export function ServiceCategoryPage() {
           </>
         ) : error ? (
           <CatalogError message={error} onRetry={() => void reload()} />
-        ) : masters.length === 0 ? (
+        ) : filteredMasters.length === 0 ? (
           <EmptyState
             title="Пока нет мастеров по этой услуге"
             description="Попробуйте снять фильтры или выберите другую услугу"
@@ -174,10 +169,87 @@ export function ServiceCategoryPage() {
             }
           />
         ) : (
-          masters.map((m) => (
+          filteredMasters.map((m) => (
             <MasterCard key={m.masterId} listing={m} userLat={userLat} userLng={userLng} />
           ))
         )}
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      <ServiceCategoryDesktop
+        categoryCode={categoryCode ?? ''}
+        categoryName={categoryName}
+        search={search}
+        onSearchChange={setSearch}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onResetFilters={() => setFilters({ ...DEFAULT_CATEGORY_MASTER_FILTERS })}
+        onCategorySelect={handleCategorySelect}
+        categories={categories}
+        loading={loading}
+        error={error}
+        onRetry={() => void reload()}
+        masters={filteredMasters}
+        stats={stats}
+        quickChipIds={quickChipIds}
+        onToggleChip={toggleChip}
+        todayFilterNoSlots={todayFilterNoSlots}
+        userLat={userLat}
+        userLng={userLng}
+        hasGeo={hasGeo}
+        onRequestGeo={requestGeo}
+        showGeoPrompt={quickChipIds.has('near')}
+      />
+
+      <div className={`relative z-0 lg:hidden min-h-dvh ${catalogCanvasClass} ${CLIENT_HEADER_OFFSET}`}>
+        <div className="mx-auto w-full max-w-lg px-4 pt-1 sm:px-5">
+          <CatalogStickyToolbar
+            compact
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Имя мастера, услуга, район…"
+            loading={loading}
+            showResultCount={false}
+            onFilterClick={openFilters}
+            activeFilterCount={activeFilterCount}
+          >
+            <div className="min-w-0">
+              <Link
+                to={SERVICES_PATH}
+                className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#6B7280] transition hover:text-[#111827]"
+              >
+                <HiArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Услуги
+              </Link>
+              <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <h1 className="text-[18px] font-bold leading-tight tracking-[-0.03em] text-[#111827]">
+                  {categoryName}
+                </h1>
+                <div className="flex flex-wrap gap-1.5">
+                  {stats.minPrice != null ? (
+                    <span className={`${catalogMetaChipClass} !py-1 !text-[12px]`}>
+                      {formatPriceFrom(stats.minPrice)}
+                    </span>
+                  ) : null}
+                  <span className={`${catalogMetaChipClass} !py-1 !text-[12px]`}>
+                    {formatDurationMinutes(stats.duration)}
+                  </span>
+                  <span className={`${catalogMetaChipClass} !py-1 !text-[12px]`}>
+                    {formatMastersCountLabel(stats.masterCount)}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-1.5">
+                <QuickChips chips={[...FILTER_CHIPS]} activeIds={quickChipIds} onToggle={toggleChip} />
+              </div>
+            </div>
+          </CatalogStickyToolbar>
+
+          <div className={`${CLIENT_CONTENT_PAD_BOTTOM} pb-6 pt-4`}>{mobileResults}</div>
+        </div>
       </div>
 
       <CategoryMasterFilterSheet
@@ -192,6 +264,6 @@ export function ServiceCategoryPage() {
           void reload();
         }}
       />
-    </ClientPageShell>
+    </>
   );
 }

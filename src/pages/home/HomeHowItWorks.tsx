@@ -1,48 +1,83 @@
-import type { FC } from 'react';
+import { useCallback, useEffect, useMemo, type FC } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { getProfilePath } from '../../app/paths';
+import {
+  LANDING_HOW_TAB_BOOKING,
+  LANDING_HOW_TAB_HISTORY,
+  LANDING_HOW_TAB_REMINDERS,
+  LANDING_HOW_TAB_SERVICE,
+  LANDING_HOW_TAB_SLOTS,
+  type LandingHowTabId,
+  parseLandingHowTab,
+} from '../../shared/layout/SlottyHeader/headerNav';
 import { ImageReveal } from '../../shared/ui/ImageReveal';
-import { homeSection } from './homeTheme';
+import { homeOutlineBtn, homePinkBtn, homeSection } from './homeTheme';
 
 const PHOTO = (name: string) => `/photos/ШАГИ/${name}`;
 
-const BENTO_PHOTOS = [
-  { src: PHOTO('4.png'), alt: '', containOnMobile: true },
-  { src: PHOTO('2.png'), alt: 'Выберите время', containOnMobile: false },
-] as const;
-
-type Step = {
-  label: string;
-  title: string;
-  text: string;
-};
-
-const STEPS_LEFT: Step[] = [
-  {
-    label: 'Шаг 1',
-    title: 'Выберите услугу',
-    text: 'Откройте нужную категорию и найдите подходящего мастера.',
-  },
-  {
-    label: 'Шаг 2',
-    title: 'Выберите время',
-    text: 'Смотрите свободные окна и записывайтесь без звонков.',
-  },
-];
-
-const STEPS_RIGHT: Step[] = [
-  {
-    label: 'Шаг 3',
-    title: 'Запишитесь',
-    text: 'Подтвердите визит в пару кликов — без звонков и переписок.',
-  },
-  {
-    label: 'Шаг 4',
-    title: 'Получите напоминание',
-    text: 'Подтверждение и напоминание придут прямо в Telegram.',
-  },
-];
-
 const BENTO_ROUND = 'overflow-hidden rounded-[20px] sm:rounded-[28px]';
 const BENTO_SURFACE = 'bg-[#FAF7F4]';
+
+type HowTab = {
+  id: LandingHowTabId;
+  label: string;
+  stepLabel: string;
+  title: string;
+  text: string;
+  imageSrc: string;
+  imageAlt: string;
+  containOnMobile?: boolean;
+};
+
+const HOW_TABS: HowTab[] = [
+  {
+    id: LANDING_HOW_TAB_SERVICE,
+    label: 'Выбор услуги',
+    stepLabel: 'Шаг 1',
+    title: 'Выберите услугу',
+    text: 'Откройте каталог, выберите категорию, мастера или конкретную услугу — всё в одном месте.',
+    imageSrc: PHOTO('4.png'),
+    imageAlt: '',
+    containOnMobile: true,
+  },
+  {
+    id: LANDING_HOW_TAB_SLOTS,
+    label: 'Свободное время',
+    stepLabel: 'Шаг 2',
+    title: 'Выберите время',
+    text: 'Смотрите реальные свободные окна мастера и доступные даты без звонков и переписок.',
+    imageSrc: PHOTO('2.png'),
+    imageAlt: 'Выберите время',
+  },
+  {
+    id: LANDING_HOW_TAB_BOOKING,
+    label: 'Заявка на запись',
+    stepLabel: 'Шаг 3',
+    title: 'Запишитесь',
+    text: 'Подтвердите визит в пару кликов — мастер сразу увидит заявку в своём кабинете.',
+    imageSrc: PHOTO('2.png'),
+    imageAlt: 'Подтверждение записи',
+  },
+  {
+    id: LANDING_HOW_TAB_REMINDERS,
+    label: 'Напоминания',
+    stepLabel: 'Шаг 4',
+    title: 'Получите напоминание',
+    text: 'Подтверждение и напоминание придут в Telegram — меньше неявок и забытых визитов.',
+    imageSrc: PHOTO('4.png'),
+    imageAlt: '',
+    containOnMobile: true,
+  },
+  {
+    id: LANDING_HOW_TAB_HISTORY,
+    label: 'История записей',
+    stepLabel: 'Шаг 5',
+    title: 'Все записи под рукой',
+    text: 'Будущие и прошлые визиты хранятся в профиле — удобно перенести, отменить или записаться снова.',
+    imageSrc: PHOTO('2.png'),
+    imageAlt: 'История записей',
+  },
+];
 
 function StepBadge({ children }: { children: string }) {
   return (
@@ -52,107 +87,114 @@ function StepBadge({ children }: { children: string }) {
   );
 }
 
-function StepItem({ step }: { step: Step }) {
-  return (
-    <li>
-      <StepBadge>{step.label}</StepBadge>
-      <h3 className="text-[1.375rem] font-bold leading-[1.1] tracking-[-0.02em] text-[#111827] sm:text-[clamp(1.5rem,4.5vw,2.25rem)] sm:leading-[1.08] sm:tracking-[-0.03em]">
-        {step.title}
-      </h3>
-      <p className="mt-2 text-[15px] leading-[1.5] text-[#4B5563] sm:mt-3 sm:max-w-[28rem] sm:text-[18px] sm:leading-[1.5]">
-        {step.text}
-      </p>
-    </li>
-  );
-}
+export const HomeHowItWorks: FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTabId = useMemo(() => parseLandingHowTab(location.hash), [location.hash]);
+  const activeTab = HOW_TABS.find((t) => t.id === activeTabId) ?? HOW_TABS[0];
 
-function BentoImageOnly({
-  src,
-  alt,
-  priority,
-  containOnMobile = false,
-  className = '',
-}: {
-  src: string;
-  alt: string;
-  priority?: boolean;
-  containOnMobile?: boolean;
-  className?: string;
-}) {
-  const fitClass = containOnMobile
+  const setTab = useCallback(
+    (id: LandingHowTabId) => {
+      navigate({ pathname: location.pathname, hash: id }, { replace: true });
+    },
+    [location.pathname, navigate],
+  );
+
+  useEffect(() => {
+    if (location.pathname !== '/book' && location.pathname !== '/') return;
+    if (!location.hash.includes('how-')) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [location.hash, location.pathname]);
+
+  const fitClass = activeTab.containOnMobile
     ? 'object-contain object-center p-3 sm:object-cover sm:p-0'
     : 'object-cover';
 
   return (
-    <article
-      className={`${BENTO_ROUND} ${containOnMobile ? 'bg-[#FAF7F4]' : ''} aspect-[4/5] w-full sm:aspect-auto sm:min-h-0 ${className}`}
-    >
-      <ImageReveal
-        src={src}
-        alt={alt}
-        loading={priority ? 'eager' : 'lazy'}
-        fetchPriority={priority ? 'high' : 'low'}
-        draggable={false}
-        className={`block h-full w-full ${fitClass}`}
-      />
-    </article>
-  );
-}
-
-function BentoStepsCard({ steps, className = '' }: { steps: Step[]; className?: string }) {
-  return (
-    <article
-      className={`${BENTO_ROUND} ${BENTO_SURFACE} flex flex-col justify-center p-5 sm:min-h-0 sm:p-10 ${className}`}
-    >
-      <ol className="space-y-6 sm:space-y-12">
-        {steps.map((step) => (
-          <StepItem key={step.label} step={step} />
-        ))}
-      </ol>
-    </article>
-  );
-}
-
-export const HomeHowItWorks: FC = () => {
-  return (
     <section id="how-it-works" className={`${homeSection} scroll-mt-28`} aria-labelledby="home-how-heading">
-      <div className="mx-auto max-w-[68rem]">
-        <div className="mx-auto max-w-[40rem] px-1 text-center sm:px-0">
-          <h2
-            id="home-how-heading"
-            className="text-[clamp(1.75rem,5.5vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[#111827]"
+      <div className="mx-auto max-w-[40rem] px-1 text-center sm:px-0">
+        <h2
+          id="home-how-heading"
+          className="text-[clamp(1.75rem,5.5vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[#111827]"
+        >
+          Как работает запись
+        </h2>
+      </div>
+
+      <div
+        className="mt-6 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:mt-8 sm:flex-wrap sm:justify-center sm:gap-2.5 [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+        aria-label="Шаги записи"
+      >
+        {HOW_TABS.map((tab) => {
+          const on = tab.id === activeTabId;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              aria-controls={tab.id}
+              id={`${tab.id}-tab`}
+              onClick={() => setTab(tab.id)}
+              className={`shrink-0 rounded-full px-4 py-2.5 text-[13px] font-semibold transition sm:text-[14px] ${
+                on
+                  ? 'bg-[#F47C8C] text-white shadow-[0_4px_14px_rgba(244,124,140,0.28)]'
+                  : 'bg-[#F5F5F5] text-[#374151] hover:bg-[#EBEBEB]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        id={activeTab.id}
+        role="tabpanel"
+        aria-labelledby={`${activeTab.id}-tab`}
+        className="mt-6 grid grid-cols-1 gap-2.5 sm:mt-8 sm:grid-cols-12 sm:items-stretch sm:gap-4"
+      >
+        <article
+          className={`${BENTO_ROUND} ${BENTO_SURFACE} flex flex-col justify-center p-5 sm:col-span-7 sm:min-h-[18rem] sm:p-10`}
+        >
+          <StepBadge>{activeTab.stepLabel}</StepBadge>
+          <h3 className="text-[1.375rem] font-bold leading-[1.1] tracking-[-0.02em] text-[#111827] sm:text-[clamp(1.5rem,4.5vw,2.25rem)] sm:leading-[1.08] sm:tracking-[-0.03em]">
+            {activeTab.title}
+          </h3>
+          <p className="mt-2 text-[15px] leading-[1.5] text-[#4B5563] sm:mt-3 sm:max-w-[28rem] sm:text-[18px] sm:leading-[1.5]">
+            {activeTab.text}
+          </p>
+          {activeTab.id === LANDING_HOW_TAB_HISTORY ? (
+            <Link to={getProfilePath('appointments')} className={`${homePinkBtn} mt-5 w-fit sm:mt-6`}>
+              Мои записи
+            </Link>
+          ) : null}
+        </article>
+
+        <div className="sm:col-span-5 sm:flex sm:h-full">
+          <article
+            className={`${BENTO_ROUND} ${activeTab.containOnMobile ? 'bg-[#FAF7F4]' : ''} aspect-[4/5] w-full sm:aspect-[4/5] sm:min-h-0`}
           >
-            Как работает запись
-          </h2>
-        </div>
-
-        <div className="mt-8 grid grid-cols-1 gap-2.5 sm:mt-14 sm:grid-cols-12 sm:items-stretch sm:gap-4">
-          <BentoStepsCard steps={STEPS_LEFT} className="sm:col-span-7 sm:min-h-[18rem] sm:h-full" />
-
-          <div className="grid grid-cols-2 gap-2.5 sm:contents">
-            <div className="sm:col-span-5 sm:flex sm:h-full">
-              <BentoImageOnly
-                src={BENTO_PHOTOS[0].src}
-                alt={BENTO_PHOTOS[0].alt}
-                priority
-                containOnMobile={BENTO_PHOTOS[0].containOnMobile}
-                className="sm:aspect-[4/5]"
-              />
-            </div>
-
-            <div className="sm:col-span-5 sm:flex sm:h-full">
-              <BentoImageOnly
-                src={BENTO_PHOTOS[1].src}
-                alt={BENTO_PHOTOS[1].alt}
-                containOnMobile={BENTO_PHOTOS[1].containOnMobile}
-                className="sm:aspect-[4/5]"
-              />
-            </div>
-          </div>
-
-          <BentoStepsCard steps={STEPS_RIGHT} className="sm:col-span-7 sm:h-full" />
+            <ImageReveal
+              src={activeTab.imageSrc}
+              alt={activeTab.imageAlt}
+              loading="lazy"
+              draggable={false}
+              className={`block h-full w-full ${fitClass}`}
+            />
+          </article>
         </div>
       </div>
+
+      <p className="mt-4 text-center sm:mt-5">
+        <button type="button" onClick={() => setTab(LANDING_HOW_TAB_SERVICE)} className={homeOutlineBtn}>
+          Смотреть с первого шага
+        </button>
+      </p>
     </section>
   );
 };

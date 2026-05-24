@@ -4,10 +4,11 @@ import {
   computeExperienceYears,
   satisfiedClientsPercent,
 } from './masterProfileUtils';
+import { catalogDesktopPanel } from './masterProfileTheme';
 
-type Props = { master: ExtendedMasterProfile };
+type Props = { master: ExtendedMasterProfile; layout?: 'stack' | 'desktop' };
 
-export function MasterTrustStats({ master }: Props) {
+export function MasterTrustStats({ master, layout = 'stack' }: Props) {
   const years = computeExperienceYears(master.careerItems);
   const satisfied = satisfiedClientsPercent(master.rating, master.reviewsCount);
   const portfolioCount = master.portfolio?.length ?? 0;
@@ -48,12 +49,14 @@ export function MasterTrustStats({ master }: Props) {
     }
   }
 
+  const isDesktop = layout === 'desktop';
+
   return (
-    <section className="mt-8 grid grid-cols-3 gap-2">
+    <section className={`${isDesktop ? '' : 'mt-0'} grid grid-cols-3 gap-2 ${isDesktop ? catalogDesktopPanel + ' p-2' : catalogDesktopPanel + ' p-2'}`}>
       {items.slice(0, 3).map(({ icon: Icon, label, value }) => (
         <div
           key={label}
-          className="rounded-[20px] bg-[#FAFAFA] px-2 py-4 text-center"
+          className={`px-2 py-4 text-center ${isDesktop ? 'rounded-[12px] bg-[#FAFAFA]' : 'rounded-[12px] bg-[#FAFAFA]'}`}
         >
           <Icon className="mx-auto h-6 w-6 text-[#F47C8C]" aria-hidden />
           <p className="mt-2 text-[11px] leading-tight text-[#9CA3AF]">{label}</p>

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { authMiddleware } from '../../middlewares/auth.js';
-import { getProfileById, updateProfile } from './profiles.service.js';
+import { getProfileById, syncMasterCabinetFromUserProfile, updateProfile } from './profiles.service.js';
 import { uploadProfileAvatar } from './profiles.storage.js';
 import { normalizeBelarusPhone } from './belarusPhone.js';
 
@@ -83,6 +83,17 @@ profilesRouter.patch(
       phone,
       address,
     });
-    res.json(profile);
+
+    if (profile.role === 'master' || profile.role === 'platform_admin') {
+      await syncMasterCabinetFromUserProfile(req.user!.id, {
+        ...(body.full_name !== undefined && body.full_name.trim()
+          ? { full_name: body.full_name.trim() }
+          : {}),
+        ...(body.phone !== undefined ? { phone } : {}),
+        ...(body.address !== undefined ? { address } : {}),
+      });
+    }
+
+    res.json(await getProfileById(req.user!.id));
   }),
 );

@@ -21,33 +21,36 @@ export const HomeHero: FC<HomeHeroProps> = ({
 }) => {
   return (
     <section
-      className="relative scroll-mt-28 overflow-hidden rounded-[24px] sm:rounded-[28px]"
+      className="relative scroll-mt-28 rounded-[24px] sm:rounded-[28px]"
       aria-labelledby="home-hero-heading"
     >
-      <ImageReveal
-        src={HERO_BG_SRC}
-        alt=""
-        loading="eager"
-        fetchPriority="high"
-        draggable={false}
-        className="absolute inset-0 h-full w-full object-cover object-center"
-      />
-
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FFFCFC]/88 via-[#FFFCFC]/72 to-[#FFFCFC]/88"
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-[24px] sm:rounded-[28px]"
         aria-hidden
-      />
+      >
+        <ImageReveal
+          src={HERO_BG_SRC}
+          alt=""
+          loading="eager"
+          fetchPriority="high"
+          draggable={false}
+          className="h-full w-full object-contain object-center"
+        />
+
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FFFCFC]/88 via-[#FFFCFC]/72 to-[#FFFCFC]/88" />
+      </div>
 
       <div className="relative z-10 flex min-h-[min(68vh,34rem)] flex-col items-center justify-center px-5 py-14 text-center sm:min-h-[min(72vh,38rem)] sm:px-8 sm:py-16">
         <h1
           id="home-hero-heading"
           className="mx-auto max-w-[18em] text-balance text-[clamp(2.25rem,7vw,4rem)] font-bold leading-[1.05] tracking-[-0.03em] text-[#111827]"
         >
-          Сервис записи к мастерам
+          Найдите мастера рядом и запишитесь онлайн
         </h1>
 
-        <p className="mx-auto mt-3 max-w-[28em] text-pretty text-[clamp(1.0625rem,2.5vw,1.375rem)] font-normal leading-[1.5] text-[#555555] sm:mt-4">
-          Каталог услуг, свободные окна и онлайн-запись за пару кликов.
+        <p className="mx-auto mt-3 max-w-[32em] text-pretty text-[clamp(1.0625rem,2.5vw,1.375rem)] font-normal leading-[1.5] text-[#555555] sm:mt-4">
+          Выберите услугу, удобное время и мастера. SLOTTY помогает записаться без звонков,
+          переписок и ожидания ответа.
         </p>
 
         <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col items-stretch gap-3 sm:mt-10 sm:max-w-none sm:flex-row sm:justify-center sm:gap-3">

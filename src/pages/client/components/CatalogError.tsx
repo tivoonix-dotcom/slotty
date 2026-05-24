@@ -14,6 +14,7 @@ export function CatalogError({ message, onRetry }: Props) {
       description={message ?? 'Проверьте соединение и попробуйте ещё раз'}
       actionLabel="Повторить"
       onAction={onRetry}
+      variant="catalog"
     />
   );
 }

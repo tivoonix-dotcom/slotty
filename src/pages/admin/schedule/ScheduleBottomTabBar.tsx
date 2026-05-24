@@ -11,10 +11,29 @@ const TABS = [
 type Props = {
   active: SchedulePageTab;
   onChange: (tab: SchedulePageTab) => void;
+  variant?: 'mobile' | 'desktop';
 };
 
-export function ScheduleBottomTabBar({ active, onChange }: Props) {
+export function ScheduleBottomTabBar({ active, onChange, variant = 'mobile' }: Props) {
+  if (variant === 'desktop') {
+    return (
+      <AdminSegmentTabNav
+        tabs={TABS}
+        active={active}
+        onChange={onChange}
+        ariaLabel="Разделы расписания"
+        mode="desktop"
+      />
+    );
+  }
+
   return (
-    <AdminSegmentTabNav tabs={TABS} active={active} onChange={onChange} ariaLabel="Разделы расписания" />
+    <AdminSegmentTabNav
+      tabs={TABS}
+      active={active}
+      onChange={onChange}
+      ariaLabel="Разделы расписания"
+      mode="mobile"
+    />
   );
 }

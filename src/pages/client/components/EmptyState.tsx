@@ -9,11 +9,25 @@ type Props = {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** catalog — без собственной «коробки», контент уже в белой панели каталога */
+  variant?: 'default' | 'catalog';
 };
 
-export function EmptyState({ icon, title, description, actionLabel, onAction }: Props) {
+export function EmptyState({
+  icon,
+  title,
+  description,
+  actionLabel,
+  onAction,
+  variant = 'default',
+}: Props) {
+  const shellClass =
+    variant === 'catalog'
+      ? 'flex flex-col items-center px-2 py-4 text-center'
+      : 'flex flex-col items-center rounded-[28px] bg-[#F1EFEF] px-6 py-10 text-center shadow-[0_12px_40px_rgba(17,24,39,0.045)]';
+
   return (
-    <div className="flex flex-col items-center rounded-[28px] bg-[#F1EFEF] px-6 py-10 text-center shadow-[0_12px_40px_rgba(17,24,39,0.045)]">
+    <div className={shellClass}>
       {icon ? (
         <div className="mb-4 text-[#F47C8C] opacity-80">{icon}</div>
       ) : (

@@ -18,7 +18,6 @@ function isBookingPath(pathname: string): boolean {
 
 export function ClientLayout() {
   const { pathname } = useLocation();
-  const hideCatalogHeader = isMasterPublicPath(pathname);
   const hideBottomNav = isMasterPublicPath(pathname) || isBookingPath(pathname);
   const { cityLabel, hasGeo, requestGeo, userLat, userLng } = useClientGeo();
 
@@ -34,14 +33,10 @@ export function ClientLayout() {
   return (
     <ClientErrorModalProvider>
       <div className="min-h-dvh bg-white text-neutral-900">
-        {hideCatalogHeader ? null : (
-          <>
-            <div className="lg:hidden">
-              <ClientHeader cityLabel={cityLabel} onCityClick={hasGeo ? undefined : requestGeo} />
-            </div>
-            <SlottyHeader variant="bar" />
-          </>
-        )}
+        <div className="lg:hidden">
+          <ClientHeader cityLabel={cityLabel} onCityClick={hasGeo ? undefined : requestGeo} />
+        </div>
+        <SlottyHeader variant="bar" />
         <Outlet context={outletContext} />
         {hideBottomNav ? null : <ClientBottomNav />}
       </div>
