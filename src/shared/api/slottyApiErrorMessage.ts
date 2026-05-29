@@ -71,6 +71,8 @@ const PRO_FEATURE_MESSAGES: Record<string, string> = {
 const PRO_MESSAGES: Record<string, string> = {
   PRO_REQUIRED:
     'Функция доступна по подписке «Мастер Pro». Подключите тариф в разделе «Тарифы».',
+  SUBSCRIPTION_EXPIRED:
+    'Срок Pro истёк. Продлите тариф в разделе «Тарифы», чтобы снова пользоваться Pro-функциями.',
 };
 
 const LIMIT_MESSAGES: Record<string, string> = {
@@ -80,6 +82,8 @@ const LIMIT_MESSAGES: Record<string, string> = {
     'Дата окна выходит за пределы горизонта расписания вашего тарифа. Выберите более близкую дату или смените тариф.',
   LIMIT_MONTHLY_APPOINTMENTS_REACHED:
     'У мастера достигнут лимит записей на этот месяц по тарифу. Попробуйте позже или выберите другого мастера.',
+  PLAN_LIMIT_REACHED:
+    'Достигнут лимит по тарифу. Подключите Pro или удалите лишние элементы.',
 };
 
 const ACCOUNT_MESSAGES: Record<string, (reason?: string) => string> = {

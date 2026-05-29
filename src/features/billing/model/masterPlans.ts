@@ -50,13 +50,13 @@ export function getPlanLimits(plan: PlanId): PlanLimits {
       return {
         maxServices: 3,
         maxMonthlyAppointments: 20,
-        scheduleHorizonDays: 30,
+        scheduleHorizonDays: 14,
       };
     case 'pro':
       return {
         maxServices: null,
         maxMonthlyAppointments: null,
-        scheduleHorizonDays: 365,
+        scheduleHorizonDays: 90,
       };
     default:
       return getPlanLimits('free');

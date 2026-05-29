@@ -1,5 +1,6 @@
 import { query } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { assertCanAddPortfolioItem } from '../billing/billing.service.js';
 
 const PAYMENT_METHODS_MARKER = '\n\n__SLOTTY_PAYMENT_METHODS_JSON__\n';
 const PAYMENT_METHODS_MARKER_ALT = '__SLOTTY_PAYMENT_METHODS_JSON__';
@@ -480,6 +481,7 @@ export async function createMyPortfolioItem(
     sortOrder?: number;
   },
 ): Promise<PortfolioCamel> {
+  await assertCanAddPortfolioItem(masterId);
   const r = await query<{
     id: string;
     image_url: string;

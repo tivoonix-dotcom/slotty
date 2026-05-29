@@ -22,7 +22,7 @@ const MAIN_TABS: { id: ClientProfileMainTab; label: string }[] = [
 type Props = {
   displayName: string;
   roleSubtitle: string;
-  initialLetter: string;
+  profileInitials: string;
   authLoading: boolean;
   isAuthenticated: boolean;
   avatarPreviewUrl: string | null;
@@ -46,7 +46,7 @@ type Props = {
 export function ClientProfileDesktopSidebar({
   displayName,
   roleSubtitle,
-  initialLetter,
+  profileInitials,
   authLoading,
   isAuthenticated,
   avatarPreviewUrl,
@@ -129,7 +129,9 @@ export function ClientProfileDesktopSidebar({
                       loading="eager"
                     />
                   ) : (
-                    <span className="flex h-full w-full items-center justify-center">{initialLetter}</span>
+                    <span className="flex h-full w-full items-center justify-center text-[15px] tracking-tight">
+                      {profileInitials}
+                    </span>
                   )}
                 </button>
               </div>

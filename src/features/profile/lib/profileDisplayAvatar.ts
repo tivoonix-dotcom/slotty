@@ -12,6 +12,13 @@ export function isGeneratedPlaceholderAvatarUrl(url: string | null | undefined):
   return false;
 }
 
+/** Портрет из Google OAuth — буква «J» и т.п.; показываем инициалы вместо. */
+export function isGoogleOAuthAvatarUrl(url: string | null | undefined): boolean {
+  const u = url?.trim().toLowerCase();
+  if (!u) return false;
+  return u.includes('googleusercontent.com') || u.includes('ggpht.com');
+}
+
 /** Портрет из Telegram CDN (не ссылка на профиль t.me/username). */
 export function isTelegramPortraitUrl(url: string | null | undefined): boolean {
   const raw = url?.trim();
@@ -33,14 +40,25 @@ export function isSupabaseProfileAvatarUrl(url: string | null | undefined): bool
   return /\/avatar\.(jpe?g|png|webp)(\?|#|$)/i.test(u);
 }
 
-/** Реальное фото пользователя (загрузка / Telegram / OAuth), не генератор. */
-export function isUserUploadedAvatarUrl(url: string | null | undefined): boolean {
-  if (isSupabaseProfileAvatarUrl(url) || isTelegramPortraitUrl(url)) return true;
+function isSupabaseStoredPortraitUrl(url: string | null | undefined): boolean {
   const raw = url?.trim();
-  if (!raw || isGeneratedPlaceholderAvatarUrl(raw)) return false;
-  const u = raw.toLowerCase();
-  if (u.includes('googleusercontent.com')) return true;
-  return false;
+  if (!raw || isGeneratedPlaceholderAvatarUrl(raw) || isGoogleOAuthAvatarUrl(raw)) return false;
+  return raw.toLowerCase().includes('/storage/v1/object/public/');
+}
+
+/** Реальное фото для отображения: Supabase / Telegram / Storage, не Google и не генератор. */
+export function resolvePortraitDisplayUrl(url: string | null | undefined): string | null {
+  const raw = url?.trim();
+  if (!raw || isGeneratedPlaceholderAvatarUrl(raw) || isGoogleOAuthAvatarUrl(raw)) return null;
+  if (isSupabaseProfileAvatarUrl(raw) || isTelegramPortraitUrl(raw) || isSupabaseStoredPortraitUrl(raw)) {
+    return optimizeAvatarUrl(raw, 256) || raw;
+  }
+  return null;
+}
+
+/** Реальное фото пользователя (загрузка / Telegram), не OAuth Google. */
+export function isUserUploadedAvatarUrl(url: string | null | undefined): boolean {
+  return resolvePortraitDisplayUrl(url) != null;
 }
 
 /** Для онбординга: только Supabase-загрузка или портрет Telegram после сохранения. */
@@ -48,13 +66,18 @@ export function isOnboardingAvatarPhotoUrl(url: string | null | undefined): bool
   return isSupabaseProfileAvatarUrl(url) || isTelegramPortraitUrl(url);
 }
 
-/** Инициалы для плейсхолдера: фамилия + имя, иначе первая буква. */
+/**
+ * Инициалы для плейсхолдера: буква фамилии + буква имени.
+ * Фамилия — последнее слово (как в кабинете мастера), имя — первое.
+ */
 export function profileDisplayInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
-    const first = [...parts[0]!][0];
-    const second = [...parts[1]!][0];
-    if (first && second) return `${first}${second}`.toLocaleUpperCase('ru-RU');
+    const surname = parts[parts.length - 1]!;
+    const given = parts[0]!;
+    const s = [...surname][0];
+    const g = [...given][0];
+    if (s && g) return `${s}${g}`.toLocaleUpperCase('ru-RU');
   }
   const first = [...(parts[0] ?? 'S')][0];
   return (first ?? 'S').toLocaleUpperCase('ru-RU');
@@ -62,13 +85,12 @@ export function profileDisplayInitials(name: string): string {
 
 /**
  * Единый URL аватара аккаунта из GET /api/me (`header_avatar_url`, fallback `avatar_url`).
- * Используйте в хедере, клиентском профиле и кабинете мастера.
+ * Google OAuth и внешние ссылки без Storage/Telegram → null → инициалы в UI.
  */
 export function accountAvatarUrl(profile: BackendProfile | null | undefined): string | null {
   if (!profile) return null;
   const raw = (profile.header_avatar_url ?? profile.avatar_url)?.trim() || null;
-  if (!raw || isGeneratedPlaceholderAvatarUrl(raw)) return null;
-  return optimizeAvatarUrl(raw, 256) || raw;
+  return resolvePortraitDisplayUrl(raw);
 }
 
 /** @deprecated alias — accountAvatarUrl */

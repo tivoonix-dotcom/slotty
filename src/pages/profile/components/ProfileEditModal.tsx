@@ -6,7 +6,7 @@ import {
   normalizeBelarusPhone,
   sanitizeBelarusPhoneInput,
 } from '../../../features/profile/lib/belarusPhone';
-import { profileDisplayAvatarUrl } from '../../../features/profile/lib/profileDisplayAvatar';
+import { profileDisplayAvatarUrl, profileDisplayInitials } from '../../../features/profile/lib/profileDisplayAvatar';
 import { apiFetch } from '../../../shared/api/backendClient';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import { ServicesFilterAddressInput } from '../../services/ServicesFilterAddressInput';
@@ -174,7 +174,9 @@ export function ProfileEditModal({
           {avatarSrc ? (
             <ImageReveal src={avatarSrc} alt="" className="h-full w-full object-cover" loading="eager" />
           ) : (
-            <span className="flex h-full w-full items-center justify-center">?</span>
+            <span className="flex h-full w-full items-center justify-center tracking-tight">
+              {profileDisplayInitials(profile?.full_name ?? '')}
+            </span>
           )}
         </button>
 

@@ -19,6 +19,38 @@ function envFirst(...keys: string[]): string | undefined {
   return undefined;
 }
 
+/** Нормализует URL из env (trim, https:// если нет схемы). Невалидное optional → undefined + warn. */
+function normalizeEnvUrl(raw: unknown, label: string, optional = true): string | undefined {
+  if (raw === '' || raw === undefined || raw === null) return undefined;
+  let s = String(raw).trim();
+  if (!s) return undefined;
+  if (!/^https?:\/\//i.test(s)) {
+    s = `https://${s.replace(/^\/+/, '')}`;
+  }
+  try {
+    const u = new URL(s);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      throw new Error('unsupported protocol');
+    }
+    let out = u.origin;
+    if (u.pathname && u.pathname !== '/') {
+      out += u.pathname.replace(/\/$/, '');
+    }
+    return out;
+  } catch {
+    if (optional) {
+      console.warn(`[env] ${label} ignored (invalid URL): ${String(raw).slice(0, 120)}`);
+      return undefined;
+    }
+    return s;
+  }
+}
+
+function requiredEnvUrl(raw: unknown, label: string): string {
+  const normalized = normalizeEnvUrl(raw, label, false);
+  return normalized ?? String(raw ?? '').trim();
+}
+
 if (!process.env.SUPABASE_URL) {
   const url = envFirst('SUPABASE_URL', 'VITE_SUPABASE_URL');
   if (url) process.env.SUPABASE_URL = url;
@@ -64,15 +96,18 @@ const envSchema = z.object({
     (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
     z.string().min(1).optional(),
   ),
-  CLIENT_URL: z.string().url().default('http://localhost:5173'),
+  CLIENT_URL: z.preprocess(
+    (v) => requiredEnvUrl(v, 'CLIENT_URL'),
+    z.string().url().default('http://localhost:5173'),
+  ),
   /** HTTPS URL мини-приложения (ngrok / Cloudflare Tunnel / прод). Для `npm run telegram:setup`. */
   WEB_APP_URL: z.preprocess(
-    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    (v) => normalizeEnvUrl(v, 'WEB_APP_URL', true),
     z.string().url().optional(),
   ),
   /** Полный HTTPS URL вебхука бэкенда, например `https://api.example.com/api/telegram/webhook`. Для `npm run telegram:setup`. */
   TELEGRAM_WEBHOOK_URL: z.preprocess(
-    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    (v) => normalizeEnvUrl(v, 'TELEGRAM_WEBHOOK_URL', true),
     z.string().url().optional(),
   ),
   /** Секрет для заголовка `X-Telegram-Bot-Api-Secret-Token` (до 256 символов). Должен совпадать с `secret_token` в setWebhook. */
@@ -92,7 +127,7 @@ const envSchema = z.object({
     .transform((v) => v === 'true'),
   /** Supabase project URL (для загрузки аватаров в Storage с сервера). */
   SUPABASE_URL: z.preprocess(
-    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    (v) => normalizeEnvUrl(v, 'SUPABASE_URL', true),
     z.string().url().optional(),
   ),
   /** Service role — только на сервере, не в браузере. */
@@ -126,7 +161,7 @@ const envSchema = z.object({
   ),
   /** Sentry DSN (backend). Без DSN — только warning при старте. */
   SENTRY_DSN: z.preprocess(
-    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    (v) => normalizeEnvUrl(v, 'SENTRY_DSN', true),
     z.string().url().optional(),
   ),
   SENTRY_ENVIRONMENT: z.preprocess(

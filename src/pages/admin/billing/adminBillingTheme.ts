@@ -29,13 +29,13 @@ export const billingPinkBtn =
 export const billingOutlineBtn =
   'flex min-h-11 w-full items-center justify-center rounded-[14px] border border-[#EAECEF] bg-white text-[14px] font-semibold text-[#374151] transition hover:bg-[#FAFAFA] active:scale-[0.98] disabled:cursor-default disabled:opacity-70';
 
-export const billingSegmentWrap = 'flex rounded-full bg-[#F1EFEF] p-1';
+export const billingSegmentWrap = 'grid grid-cols-2 gap-1 rounded-[12px] bg-[#EBEBEB] p-1';
 
 export const billingSegmentBtn = (active: boolean) =>
-  `min-h-10 flex-1 rounded-full px-3 text-[14px] font-semibold transition active:scale-[0.98] ${
+  `flex min-h-10 w-full items-center justify-center rounded-[10px] text-[14px] font-semibold transition active:scale-[0.98] ${
     active
-      ? 'bg-white text-[#111827] shadow-[0_6px_16px_rgba(17,17,17,0.06)]'
-      : 'text-[#6B7280]'
+      ? 'bg-white text-[#111827] shadow-[0_2px_8px_rgba(17,17,17,0.06)]'
+      : 'bg-transparent text-[#6B7280] hover:text-[#374151]'
   }`;
 
 export const billingTrayLabel =

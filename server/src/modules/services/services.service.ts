@@ -120,7 +120,7 @@ export async function patchMyService(
     isActive?: boolean;
   },
 ) {
-  await getMyService(masterId, serviceId);
+  const current = await getMyService(masterId, serviceId);
   if (patch.categoryId) {
     const cat = await query(`select 1 from public.service_categories where id = $1 and is_active = true`, [
       patch.categoryId,
@@ -145,6 +145,10 @@ export async function patchMyService(
   if (patch.priceType !== undefined) push('price_type', patch.priceType);
   if (patch.sortOrder !== undefined) push('sort_order', patch.sortOrder);
   if (patch.isActive !== undefined) push('is_active', patch.isActive);
+
+  if (patch.isActive === true && !current.isActive) {
+    await assertCanCreateMasterService(masterId);
+  }
 
   if (fields.length) {
     vals.push(serviceId, masterId);

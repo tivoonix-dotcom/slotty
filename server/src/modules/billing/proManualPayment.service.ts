@@ -427,7 +427,11 @@ export async function approveProManualPaymentRequest(
   },
 ): Promise<void> {
   const r = await query<RequestRow & { display_name: string }>(
-    `select ${REQUEST_COLUMNS}, mp.display_name
+    `select r.id, r.master_id, r.payer_full_name, r.tariff_amount::text, r.declared_paid_amount::text,
+            r.received_amount::text, r.bank_fee_amount::text, r.fee_covered_by, r.currency,
+            r.billing_period::text as billing_period, r.paid_at, r.payment_comment, r.receipt_url,
+            r.receipt_file_path, r.status, r.admin_note, r.rejection_reason, r.tax_receipt_created, r.tax_receipt_note,
+            r.created_at, r.reviewed_at, mp.display_name
        from public.pro_manual_payment_requests r
        join public.master_profiles mp on mp.master_id = r.master_id
       where r.id = $1`,
@@ -516,7 +520,11 @@ export async function rejectProManualPaymentRequest(
   }
 
   const r = await query<RequestRow & { display_name: string }>(
-    `select ${REQUEST_COLUMNS}, mp.display_name
+    `select r.id, r.master_id, r.payer_full_name, r.tariff_amount::text, r.declared_paid_amount::text,
+            r.received_amount::text, r.bank_fee_amount::text, r.fee_covered_by, r.currency,
+            r.billing_period::text as billing_period, r.paid_at, r.payment_comment, r.receipt_url,
+            r.receipt_file_path, r.status, r.admin_note, r.rejection_reason, r.tax_receipt_created, r.tax_receipt_note,
+            r.created_at, r.reviewed_at, mp.display_name
        from public.pro_manual_payment_requests r
        join public.master_profiles mp on mp.master_id = r.master_id
       where r.id = $1`,

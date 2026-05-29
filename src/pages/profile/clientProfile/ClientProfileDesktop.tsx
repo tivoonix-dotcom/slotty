@@ -32,7 +32,7 @@ type Props = {
   onSelectTab: (tab: ClientProfileMainTab) => void;
   displayName: string;
   roleSubtitle: string;
-  initialLetter: string;
+  profileInitials: string;
   authLoading: boolean;
   isAuthenticated: boolean;
   backendConfigured: boolean;
@@ -114,7 +114,7 @@ export function ClientProfileDesktop({
   onSelectTab,
   displayName,
   roleSubtitle,
-  initialLetter,
+  profileInitials,
   authLoading,
   isAuthenticated,
   backendConfigured,
@@ -191,7 +191,7 @@ export function ClientProfileDesktop({
             <ClientProfileDesktopSidebar
               displayName={displayName}
               roleSubtitle={roleSubtitle}
-              initialLetter={initialLetter}
+              profileInitials={profileInitials}
               authLoading={authLoading}
               isAuthenticated={isAuthenticated}
               avatarPreviewUrl={avatarPreviewUrl}

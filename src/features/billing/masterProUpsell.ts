@@ -15,6 +15,7 @@ export function isProRequiredApiMessage(message: string): boolean {
   const m = message.trim();
   if (!m) return false;
   if (m.includes('PRO_REQUIRED')) return true;
+  if (m.includes('SUBSCRIPTION_EXPIRED')) return true;
   if (m.includes(MASTER_PRO_PLAN_NAME)) return true;
   return LEGACY_PRO_REQUIRED_SNIPPETS.some((s) => m.includes(s));
 }

@@ -40,6 +40,20 @@ export function pickPortraitUrlOnTelegramSync(
   return c;
 }
 
+/** Портрет из Google OAuth — не отдаём в UI, показываем инициалы. */
+export function isGoogleOAuthAvatarUrl(url: string | null | undefined): boolean {
+  const raw = url?.trim().toLowerCase();
+  if (!raw) return false;
+  return raw.includes('googleusercontent.com') || raw.includes('ggpht.com');
+}
+
+/** URL для хедера / GET /api/me: без Google и генераторов. */
+export function sanitizePortraitDisplayUrl(url: string | null | undefined): string | null {
+  const raw = url?.trim() || null;
+  if (!raw || isGoogleOAuthAvatarUrl(raw)) return null;
+  return raw;
+}
+
 /** Нужно скачать портрет на сервер и сохранить в Storage. */
 export function shouldMirrorPortraitToStorage(url: string | null | undefined): boolean {
   const raw = url?.trim();

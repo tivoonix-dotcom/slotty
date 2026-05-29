@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BillingPeriod } from '../../../features/billing/model/masterPlans';
 import type { MasterSubscriptionDto } from '../../../features/admin/api/adminBillingApi';
 import {
@@ -10,11 +10,14 @@ import {
   type ProManualPaymentCabinetState,
   type ProManualPaymentRequestDto,
 } from '../../../features/billing/api/proPaymentRequestApi';
+import { billingSoftNote } from './adminBillingTheme';
 import {
-  billingOutlineBtn,
-  billingPinkBtn,
-  billingSoftNote,
-} from './adminBillingTheme';
+  catalogSheetField,
+  catalogSheetGhostBtn,
+  catalogSheetLabel,
+  catalogSheetPrimaryBtn,
+  catalogSheetSecondaryBtn,
+} from '../shared/adminCatalogSheetTheme';
 
 type Props = {
   billingPeriod: BillingPeriod;
@@ -58,7 +61,7 @@ function CopyButton({ value }: { value: string }) {
     <button
       type="button"
       onClick={() => void copyText(value, setLabel)}
-      className="shrink-0 rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1 text-[12px] font-semibold text-[#374151] hover:bg-[#F9FAFB]"
+      className={catalogSheetGhostBtn}
     >
       {label}
     </button>
@@ -89,8 +92,8 @@ function RequisitesBlock({ config }: { config: ManualPaymentConfigDto }) {
   }
 
   return (
-    <div className="rounded-[18px] bg-[#F9FAFB] px-4 py-3 ring-1 ring-[#F3F4F6]">
-      <p className="mb-1 text-[13px] font-semibold text-[#374151]">Реквизиты для оплаты</p>
+    <div className="rounded-[20px] bg-white p-4 ring-1 ring-[#EEEEEE]">
+      <p className="text-[13px] font-semibold text-[#111827]">Реквизиты для оплаты</p>
       <RequisiteRow label="Получатель" value={config.recipientFullName} />
       <RequisiteRow label="Банк" value={config.bankName} />
       <RequisiteRow label="IBAN" value={config.iban ?? '—'} copyValue={config.iban ?? undefined} />
@@ -103,6 +106,97 @@ function RequisitesBlock({ config }: { config: ManualPaymentConfigDto }) {
         copyValue={config.paymentPurpose}
       />
     </div>
+  );
+}
+
+function PaymentFormField({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className={catalogSheetLabel}>
+        {label}
+        {required ? ' *' : ''}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function ReceiptFilePicker({
+  file,
+  onChange,
+}: {
+  file: File | null;
+  onChange: (file: File | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="mt-1.5 rounded-[10px] bg-[#EBEBEB] px-3 py-3">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        className="sr-only"
+        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+      />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className={`${catalogSheetGhostBtn} shrink-0`}
+        >
+          {file ? 'Заменить файл' : 'Выбрать файл'}
+        </button>
+        <p className="min-w-0 text-[13px] leading-snug text-[#6B7280]">
+          {file ? (
+            <span className="font-semibold text-[#111827]">{file.name}</span>
+          ) : (
+            'JPEG, PNG, WebP или PDF · до 5 МБ · необязательно'
+          )}
+        </p>
+        {file ? (
+          <button
+            type="button"
+            onClick={() => {
+              onChange(null);
+              if (inputRef.current) inputRef.current.value = '';
+            }}
+            className="shrink-0 text-[13px] font-semibold text-[#F47C8C] hover:underline"
+          >
+            Убрать
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function PaymentConsentCheckbox({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-[12px] bg-[#FAFAFA] px-3 py-3 ring-1 ring-[#F3F4F6] transition hover:bg-[#F5F5F5]">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded-[5px] border-[#D1D5DB] accent-[#F47C8C]"
+      />
+      <span className="text-[13px] leading-snug text-[#374151]">{children}</span>
+    </label>
   );
 }
 
@@ -305,106 +399,103 @@ export function ProManualPaymentSheet({
           {lastRejected && !pending ? <RejectedBlock request={lastRejected} /> : null}
 
           {canShowForm && !isActivePro ? (
-            <form className="space-y-3" onSubmit={(e) => void handleSubmit(e)}>
-              <label className="block space-y-1">
-                <span className="text-[13px] font-semibold text-[#374151]">ФИО плательщика *</span>
+            <form
+              className="space-y-4 rounded-[20px] bg-white p-4 ring-1 ring-[#EEEEEE]"
+              onSubmit={(e) => void handleSubmit(e)}
+            >
+              <p className="text-[15px] font-bold tracking-[-0.02em] text-[#111827]">Заявка «Я оплатил»</p>
+
+              <PaymentFormField label="ФИО плательщика" required>
                 <input
                   required
                   value={payerFullName}
                   onChange={(e) => setPayerFullName(e.target.value)}
                   placeholder="Иванов Иван Иванович"
-                  className="min-h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-[14px] outline-none focus:border-[#F47C8C]/50"
+                  className={`${catalogSheetField} mt-1.5`}
                   maxLength={200}
                 />
-              </label>
+              </PaymentFormField>
 
-              <label className="block space-y-1">
-                <span className="text-[13px] font-semibold text-[#374151]">Сумма, которую вы отправили *</span>
+              <PaymentFormField label="Сумма, которую вы отправили" required>
                 <input
                   required
                   inputMode="decimal"
                   value={declaredPaidAmount}
                   onChange={(e) => setDeclaredPaidAmount(e.target.value)}
-                  className="min-h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-[14px] outline-none focus:border-[#F47C8C]/50"
+                  className={`${catalogSheetField} mt-1.5`}
                 />
-              </label>
+              </PaymentFormField>
 
-              <label className="block space-y-1">
-                <span className="text-[13px] font-semibold text-[#374151]">Дата оплаты *</span>
+              <PaymentFormField label="Дата оплаты" required>
                 <input
                   required
                   type="date"
                   value={paidAt}
                   onChange={(e) => setPaidAt(e.target.value)}
-                  className="min-h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-[14px] outline-none focus:border-[#F47C8C]/50"
+                  className={`${catalogSheetField} mt-1.5`}
                 />
-              </label>
+              </PaymentFormField>
 
-              <label className="block space-y-1">
-                <span className="text-[13px] font-semibold text-[#374151]">Комментарий / назначение платежа *</span>
+              <PaymentFormField label="Комментарий / назначение платежа" required>
                 <textarea
                   required
                   value={paymentComment}
                   onChange={(e) => setPaymentComment(e.target.value)}
                   rows={3}
                   placeholder="Например: Оплата Pro SLOTTY, Иванов Иван, +375 XX XXX-XX-XX"
-                  className="w-full rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-[14px] outline-none focus:border-[#F47C8C]/50"
+                  className={`${catalogSheetField} mt-1.5 resize-none`}
                   maxLength={4000}
                 />
-              </label>
+              </PaymentFormField>
 
-              <label className="block space-y-1">
-                <span className="text-[13px] font-semibold text-[#374151]">Скрин/чек оплаты</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,application/pdf"
-                  onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-                  className="w-full text-[14px] text-[#374151]"
-                />
-              </label>
+              <div>
+                <span className={catalogSheetLabel}>Скрин/чек оплаты</span>
+                <ReceiptFilePicker file={receiptFile} onChange={setReceiptFile} />
+              </div>
 
-              <label className="flex gap-2 text-[13px] leading-snug text-[#374151]">
-                <input
-                  type="checkbox"
-                  checked={confirmPaid}
-                  onChange={(e) => setConfirmPaid(e.target.checked)}
-                  className="mt-0.5"
-                />
-                <span>Я подтверждаю, что оплатил тариф и отправляю заявку на ручную проверку</span>
-              </label>
+              <div className="space-y-2.5">
+                <PaymentConsentCheckbox checked={confirmPaid} onChange={setConfirmPaid}>
+                  Я подтверждаю, что оплатил тариф и отправляю заявку на ручную проверку
+                </PaymentConsentCheckbox>
+                <PaymentConsentCheckbox checked={confirmManualReview} onChange={setConfirmManualReview}>
+                  Я понимаю, что Pro активируется только после проверки оплаты администратором
+                </PaymentConsentCheckbox>
+              </div>
 
-              <label className="flex gap-2 text-[13px] leading-snug text-[#374151]">
-                <input
-                  type="checkbox"
-                  checked={confirmManualReview}
-                  onChange={(e) => setConfirmManualReview(e.target.checked)}
-                  className="mt-0.5"
-                />
-                <span>Я понимаю, что Pro активируется только после проверки оплаты администратором</span>
-              </label>
-
-              {submitError ? <p className="text-[13px] text-[#DC2626]">{submitError}</p> : null}
+              {submitError ? (
+                <p className="rounded-[10px] bg-[#FEF2F2] px-3 py-2 text-[13px] font-medium text-[#DC2626]">
+                  {submitError}
+                </p>
+              ) : null}
 
               <button
                 type="submit"
                 disabled={submitting || !formValid}
-                className={`min-h-12 w-full ${billingPinkBtn} disabled:opacity-50`}
+                className={`${catalogSheetPrimaryBtn} min-h-12 w-full disabled:cursor-not-allowed`}
               >
-                {submitting ? 'Отправка…' : isExpiredPro ? 'Продлить Pro — отправить заявку' : 'Отправить заявку на проверку'}
+                {submitting
+                  ? 'Отправка…'
+                  : isExpiredPro
+                    ? 'Продлить Pro — отправить заявку'
+                    : 'Отправить заявку на проверку'}
               </button>
             </form>
           ) : null}
 
           {isActivePro ? (
-            <button type="button" onClick={onBack} className={`min-h-12 w-full ${billingPinkBtn}`}>
+            <button type="button" onClick={onBack} className={`${catalogSheetPrimaryBtn} min-h-12 w-full`}>
               Закрыть
             </button>
           ) : null}
 
           {showMockDemo && onMockDemo ? (
-            <div className="space-y-2 border-t border-[#F3F4F6] pt-4">
+            <div className="space-y-2 border-t border-[#EEEEEE] pt-4">
               <p className="text-[13px] text-[#6B7280]">Dev: быстрая активация Pro без проверки оплаты.</p>
-              <button type="button" onClick={() => void Promise.resolve(onMockDemo())} className={billingOutlineBtn}>
+              <button
+                type="button"
+                onClick={() => void Promise.resolve(onMockDemo())}
+                className={`${catalogSheetSecondaryBtn} w-full`}
+              >
                 Подключить в demo
               </button>
             </div>
@@ -413,7 +504,7 @@ export function ProManualPaymentSheet({
       ) : null}
 
       {!isActivePro ? (
-        <button type="button" onClick={onBack} className={`min-h-12 w-full ${billingOutlineBtn}`}>
+        <button type="button" onClick={onBack} className={`${catalogSheetSecondaryBtn} min-h-12 w-full`}>
           Назад
         </button>
       ) : null}

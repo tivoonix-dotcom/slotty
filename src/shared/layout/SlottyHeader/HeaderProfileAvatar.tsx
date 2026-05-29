@@ -23,18 +23,18 @@ export function HeaderProfileAvatar({ profile, fill = false }: Props) {
     return <img src={src} alt="" className={fill ? avatarFillClass : avatarImgClass} />;
   }
 
-  const letter = profileDisplayInitials(profile?.full_name ?? '')[0] ?? '?';
+  const initials = profileDisplayInitials(profile?.full_name ?? '');
 
   return (
     <span
       className={
         fill
-          ? 'flex h-full w-full items-center justify-center rounded-full bg-[#F47C8C] text-[13px] font-semibold text-white'
-          : 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F47C8C] text-[11px] font-semibold text-white'
+          ? 'flex h-full w-full items-center justify-center rounded-full bg-[#F47C8C] text-[12px] font-semibold tracking-tight text-white'
+          : 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F47C8C] text-[10px] font-semibold tracking-tight text-white'
       }
       aria-hidden
     >
-      {letter}
+      {initials}
     </span>
   );
 }

@@ -11,15 +11,25 @@ export function BillingPeriodSwitch({ period, onPeriod, showLabel = true }: Prop
   return (
     <div>
       {showLabel ? <p className={billingTrayLabel}>Период оплаты</p> : null}
-      <div className={billingSegmentWrap}>
-        <button type="button" onClick={() => onPeriod('month')} className={billingSegmentBtn(period === 'month')}>
+      <div className={billingSegmentWrap} role="group" aria-label="Период оплаты">
+        <button
+          type="button"
+          onClick={() => onPeriod('month')}
+          className={billingSegmentBtn(period === 'month')}
+          aria-pressed={period === 'month'}
+        >
           Месяц
         </button>
-        <button type="button" onClick={() => onPeriod('year')} className={billingSegmentBtn(period === 'year')}>
+        <button
+          type="button"
+          onClick={() => onPeriod('year')}
+          className={billingSegmentBtn(period === 'year')}
+          aria-pressed={period === 'year'}
+        >
           Год
         </button>
       </div>
-      <p className="mt-3 text-center text-[13px] font-medium text-[#9CA3AF]">
+      <p className="mt-2.5 text-center text-[12px] font-medium text-[#9CA3AF]">
         2 месяца бесплатно при оплате за год
       </p>
     </div>

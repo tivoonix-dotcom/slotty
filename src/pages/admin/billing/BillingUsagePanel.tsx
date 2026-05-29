@@ -36,7 +36,7 @@ export function BillingUsagePanel({
   const isFree = plan === 'free';
 
   return (
-    <section className={billingPanel}>
+    <section className={`${billingPanel} py-3.5 sm:p-4`}>
       <p className={billingTrayLabel}>{isFree ? 'Использование на Free' : 'Ваш Pro'}</p>
 
       {isFree ? (

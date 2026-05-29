@@ -24,16 +24,10 @@ import { useAdminToast } from '../shared/useAdminToast';
 import { LoadingVideo } from '../../../shared/ui/LoadingVideo';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { BillingDesktopHero } from './BillingDesktopHero';
-import {
-  LANDING_MASTER_PRO_FEATURES,
-  LANDING_PRO_DESCRIPTION,
-  LandingPricingCard,
-  LandingProTariffCard,
-  landingPlanCtaClass,
-  landingProCtaClass,
-} from '../../../features/billing/ui/landingTariffCards';
+import { LANDING_MASTER_PRO_FEATURES } from '../../../features/billing/ui/landingTariffCards';
 import { BillingMobileHeader } from './BillingMobileHeader';
 import { BillingPeriodSwitch } from './BillingPeriodSwitch';
+import { BillingPlanCards } from './BillingPlanCards';
 import { BillingUsagePanel } from './BillingUsagePanel';
 import { ProManualPaymentSheet } from './ProManualPaymentSheet';
 import { getProManualPaymentState } from '../../../features/billing/api/proPaymentRequestApi';
@@ -83,32 +77,20 @@ const PLAN_UI: Record<
       'Профиль мастера',
       'До 3 услуг',
       'До 20 записей в месяц',
-      'График работы на 30 дней',
+      'График работы по тарифу',
       'Базовая сводка',
       'Заявки клиентов',
-      'Ручное управление записями',
     ],
     limits: [
       'Не больше 3 услуг',
       'После 20 записей в месяц — предложение перейти на Pro',
       'Нет расширенной аналитики',
-      'Нет командной работы',
     ],
   },
   pro: {
     name: 'Мастер Pro',
     tagline: 'Для активной работы: безлимит записей, расширенная сводка и полный кабинет.',
-    includes: [
-      'Всё из Free',
-      'Безлимит услуг и записей',
-      'График работы на 365 дней',
-      'Расширенная сводка',
-      'История клиентов',
-      'Напоминания клиентам',
-      'Приоритет в поиске',
-      'Предпросмотр профиля',
-      'Быстрые действия с заявками',
-    ],
+    includes: [...LANDING_MASTER_PRO_FEATURES],
     limits: [],
   },
 };
@@ -293,6 +275,33 @@ export function AdminBillingTab() {
 
   const proPriceParts = splitPlanPrice(proPriceLine);
 
+  const proHorizonDays =
+    useLiveBilling && apiPlans
+      ? (apiPlans.find((p) => p.code === 'pro')?.maxScheduleDaysAhead ?? limits.scheduleHorizonDays)
+      : getPlanLimits('pro').scheduleHorizonDays;
+
+  const freePlanFeatures = useMemo(
+    () => [
+      'Профиль в каталоге',
+      `До ${maxSvc} услуг`,
+      `До ${maxAppt} записей в месяц`,
+      `График на ${limits.scheduleHorizonDays} дней`,
+      'Заявки и записи',
+    ],
+    [maxAppt, maxSvc, limits.scheduleHorizonDays],
+  );
+
+  const proPlanFeatures = useMemo(
+    () => [
+      'Безлимит услуг и записей',
+      `График на ${proHorizonDays} дней`,
+      'Акции и наборы услуг',
+      'Расширенная аналитика',
+      'Приоритет в поиске',
+    ],
+    [proHorizonDays],
+  );
+
   const statusBanners = (
     <>
       {apiLoading || (useCabinetApi && cabinetLoading) ? (
@@ -314,11 +323,8 @@ export function AdminBillingTab() {
   );
 
   const periodTray = (
-    <div className={billingListTray}>
-      <BillingPeriodSwitch
-        period={billingPeriodView}
-        onPeriod={persistPeriod}
-      />
+    <div className={`${billingListTray} py-3.5`}>
+      <BillingPeriodSwitch period={billingPeriodView} onPeriod={persistPeriod} />
     </div>
   );
 
@@ -345,48 +351,23 @@ export function AdminBillingTab() {
         : '/ месяц';
 
   const planCards = (
-    <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-2 md:gap-4 lg:gap-5">
-      <LandingPricingCard
-        name={PLAN_UI.free.name}
-        priceValue={freePriceValue}
-        priceUnit={freePriceUnit}
-        includesLabel="Включено:"
-        features={PLAN_UI.free.includes}
-        badge={freeActive ? 'Активен' : undefined}
-        footer={
-          <button
-            type="button"
-            disabled={freeActive}
-            onClick={() => void applyPlan('free')}
-            className={landingPlanCtaClass(false, freeActive)}
-          >
-            {freeActive ? 'Текущий тариф' : 'Перейти на Free'}
-          </button>
+    <BillingPlanCards
+      freePriceValue={freePriceValue}
+      freePriceUnit={freePriceUnit}
+      proPriceValue={proPriceParts.value}
+      proPriceUnit={proPriceUnit}
+      freeFeatures={freePlanFeatures}
+      proFeatures={proPlanFeatures}
+      freeActive={freeActive}
+      proActive={proActive}
+      onSelectFree={() => void applyPlan('free')}
+      onSelectPro={() => {
+        if (useLiveBilling) {
+          void recordBillingCheckoutStarted(billingPeriodView).catch(() => {});
         }
-      />
-      <LandingProTariffCard
-        priceValue={proPriceParts.value}
-        priceUnit={proPriceUnit}
-        features={LANDING_MASTER_PRO_FEATURES}
-        description={LANDING_PRO_DESCRIPTION}
-        topBadge={proActive ? 'Активен' : 'Популярный'}
-        footer={
-          <button
-            type="button"
-            disabled={proActive}
-            onClick={() => {
-              if (useLiveBilling) {
-                void recordBillingCheckoutStarted(billingPeriodView).catch(() => {});
-              }
-              setMockProOpen(true);
-            }}
-            className={landingProCtaClass(proActive)}
-          >
-            {proActive ? 'Текущий тариф' : 'Открыть Pro'}
-          </button>
-        }
-      />
-    </div>
+        setMockProOpen(true);
+      }}
+    />
   );
 
   const demoNote = !isPro && !useLiveBilling ? (
@@ -409,7 +390,7 @@ export function AdminBillingTab() {
 
   return (
     <>
-      <section className={`-mx-4 min-w-0 space-y-4 overflow-x-hidden px-4 pb-8 lg:hidden ${BILLING_PAGE_BG}`}>
+      <section className={`-mx-4 min-w-0 space-y-3 overflow-x-hidden px-4 pb-8 lg:hidden ${BILLING_PAGE_BG}`}>
         <BillingMobileHeader plan={planStateView.plan} period={billingPeriodView} />
         {statusBanners}
         {!apiLoading && !(useCabinetApi && cabinetLoading) ? (
@@ -424,7 +405,7 @@ export function AdminBillingTab() {
         ) : null}
       </section>
 
-      <div className={`${billingShellCard} space-y-5`}>
+      <div className={`${billingShellCard} space-y-4`}>
         <BillingDesktopHero
           plan={planStateView.plan}
           period={billingPeriodView}
@@ -433,7 +414,7 @@ export function AdminBillingTab() {
           scheduleDays={limits.scheduleHorizonDays}
           isPro={isPro}
         />
-        <div className="space-y-5 px-4 pb-6 sm:px-5">
+        <div className="space-y-3 px-4 pb-6 sm:px-5">
           {statusBanners}
           {!apiLoading && !(useCabinetApi && cabinetLoading) ? (
             <>

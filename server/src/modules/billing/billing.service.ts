@@ -4,9 +4,99 @@ import { env } from '../../config/env.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { recordBillingEvent } from './billingEvents.service.js';
 import { quotePromoForCheckout, recordPromoRedemption } from './promoCode.service.js';
+import { PORTFOLIO_PHOTO_LIMITS, type EffectivePlanCode } from './planLimits.config.js';
 
 function num(v: string): number {
   return Number(v);
+}
+
+export type MasterPlanAccess = {
+  subscriptionPlanCode: string;
+  isProActive: boolean;
+  proExpired: boolean;
+  effectivePlanCode: EffectivePlanCode;
+  currentPeriodEnd: string | null;
+  proExpiresAt: string | null;
+};
+
+function isProSubscriptionExpired(
+  planCode: string,
+  currentPeriodEnd: Date | string | null,
+  proExpiresAt: Date | string | null,
+): boolean {
+  if (planCode.toLowerCase() !== 'pro') return false;
+  const now = Date.now();
+  const ends: number[] = [];
+  if (proExpiresAt) ends.push(new Date(proExpiresAt).getTime());
+  if (currentPeriodEnd) ends.push(new Date(currentPeriodEnd).getTime());
+  if (ends.length === 0) return false;
+  return Math.min(...ends) < now;
+}
+
+/** Единая проверка активного Pro (plan + даты окончания). */
+export async function getMasterPlanAccess(masterId: string): Promise<MasterPlanAccess> {
+  await ensureMasterSubscription(masterId);
+  const r = await query<{
+    code: string;
+    current_period_end: Date;
+    pro_expires_at: Date | string | null;
+  }>(
+    `select sp.code,
+            ms.current_period_end,
+            mp.pro_expires_at
+       from public.master_subscriptions ms
+       join public.subscription_plans sp on sp.id = ms.plan_id
+       left join public.master_profiles mp on mp.master_id = ms.master_id
+      where ms.master_id = $1`,
+    [masterId],
+  );
+  const row = r.rows[0];
+  if (!row) {
+    throw ApiError.internal('Подписка мастера недоступна');
+  }
+  const subscriptionPlanCode = row.code.toLowerCase();
+  const proExpired = isProSubscriptionExpired(
+    subscriptionPlanCode,
+    row.current_period_end,
+    row.pro_expires_at,
+  );
+  const isProActive = subscriptionPlanCode === 'pro' && !proExpired;
+  return {
+    subscriptionPlanCode,
+    isProActive,
+    proExpired,
+    effectivePlanCode: isProActive ? 'pro' : 'free',
+    currentPeriodEnd: row.current_period_end ? new Date(row.current_period_end).toISOString() : null,
+    proExpiresAt: row.pro_expires_at ? new Date(row.pro_expires_at).toISOString() : null,
+  };
+}
+
+async function getEffectivePlanLimits(masterId: string): Promise<{
+  maxServices: number | null;
+  maxMonthlyAppointments: number | null;
+  maxScheduleDaysAhead: number;
+}> {
+  const access = await getMasterPlanAccess(masterId);
+  const r = await query<{
+    max_services: number | null;
+    max_monthly_appointments: number | null;
+    max_schedule_days_ahead: number;
+  }>(
+    `select max_services, max_monthly_appointments, max_schedule_days_ahead
+       from public.subscription_plans
+      where code = $1 and is_active = true
+      limit 1`,
+    [access.effectivePlanCode],
+  );
+  const row = r.rows[0];
+  if (!row) {
+    throw ApiError.internal(`План ${access.effectivePlanCode} не найден`);
+  }
+  return {
+    maxServices: row.max_services,
+    maxMonthlyAppointments: row.max_monthly_appointments,
+    maxScheduleDaysAhead: row.max_schedule_days_ahead,
+  };
 }
 
 /** Mock Pro в production всегда запрещён. В dev/test — по NODE_ENV или ALLOW_SUBSCRIPTION_MOCK. */
@@ -129,12 +219,35 @@ function mapJoinedPlanRow(row: {
 }
 
 export async function assertMasterHasProPlan(masterId: string): Promise<void> {
-  const sub = await getMasterSubscriptionWithUsage(masterId);
-  if (sub.plan.code.toLowerCase() !== 'pro') {
+  const access = await getMasterPlanAccess(masterId);
+  if (access.proExpired) {
+    throw ApiError.forbidden(
+      'Срок Pro истёк. Продлите тариф в разделе «Тарифы».',
+      'SUBSCRIPTION_EXPIRED',
+    );
+  }
+  if (!access.isProActive) {
     throw ApiError.forbidden(
       'Функция доступна по подписке «Мастер Pro». Подключите тариф в разделе «Тарифы».',
       'PRO_REQUIRED',
     );
+  }
+}
+
+export async function assertCanAddPortfolioItem(masterId: string): Promise<void> {
+  const access = await getMasterPlanAccess(masterId);
+  const max =
+    access.effectivePlanCode === 'pro' ? PORTFOLIO_PHOTO_LIMITS.pro : PORTFOLIO_PHOTO_LIMITS.free;
+  const cnt = await query<{ c: number }>(
+    `select count(*)::int as c from public.master_portfolio_items where master_id = $1`,
+    [masterId],
+  );
+  if ((cnt.rows[0]?.c ?? 0) >= max) {
+    const msg =
+      access.effectivePlanCode === 'pro'
+        ? `Достигнут лимит портфолио (${max} фото)`
+        : `Достигнут лимит Free (${max} фото). Подключите Pro для большего портфолио.`;
+    throw ApiError.forbidden(msg, 'PLAN_LIMIT_REACHED');
   }
 }
 
@@ -405,15 +518,8 @@ export async function recordMasterCheckoutStarted(
 }
 
 export async function assertCanCreateMasterService(masterId: string): Promise<void> {
-  await ensureMasterSubscription(masterId);
-  const lim = await query<{ max: number | null }>(
-    `select sp.max_services as max
-       from public.master_subscriptions ms
-       join public.subscription_plans sp on sp.id = ms.plan_id
-      where ms.master_id = $1`,
-    [masterId],
-  );
-  const maxS = lim.rows[0]?.max;
+  const limits = await getEffectivePlanLimits(masterId);
+  const maxS = limits.maxServices;
   if (maxS == null) return;
   const cnt = await query<{ c: number }>(
     `select count(*)::int as c
@@ -428,15 +534,8 @@ export async function assertCanCreateMasterService(masterId: string): Promise<vo
 }
 
 export async function assertSlotWithinPlanHorizon(masterId: string, startsAt: Date): Promise<void> {
-  await ensureMasterSubscription(masterId);
-  const lim = await query<{ days: number }>(
-    `select sp.max_schedule_days_ahead as days
-       from public.master_subscriptions ms
-       join public.subscription_plans sp on sp.id = ms.plan_id
-      where ms.master_id = $1`,
-    [masterId],
-  );
-  const days = lim.rows[0]?.days;
+  const limits = await getEffectivePlanLimits(masterId);
+  const days = limits.maxScheduleDaysAhead;
   if (days == null || days <= 0) return;
   const horizonMs = days * 24 * 60 * 60 * 1000;
   if (startsAt.getTime() > Date.now() + horizonMs) {
@@ -446,12 +545,13 @@ export async function assertSlotWithinPlanHorizon(masterId: string, startsAt: Da
 
 export async function assertMasterMonthlyAppointmentsAllowNew(client: PoolClient, masterId: string): Promise<void> {
   await ensureMasterSubscriptionWithClient(client, masterId);
+  const access = await getMasterPlanAccess(masterId);
   const lim = await client.query<{ max: number | null }>(
-    `select sp.max_monthly_appointments as max
-       from public.master_subscriptions ms
-       join public.subscription_plans sp on sp.id = ms.plan_id
-      where ms.master_id = $1`,
-    [masterId],
+    `select max_monthly_appointments as max
+       from public.subscription_plans
+      where code = $1 and is_active = true
+      limit 1`,
+    [access.effectivePlanCode],
   );
   const maxM = lim.rows[0]?.max;
   if (maxM == null) return;

@@ -173,6 +173,7 @@ export async function patchMyBundle(
     status: string;
   }>,
 ) {
+  await assertMasterHasProPlan(masterId);
   const current = await getMyBundle(masterId, bundleId);
   const nextIds = patch.serviceIds ?? current.serviceIds;
   await assertServicesBelongToMaster(masterId, nextIds);
@@ -400,6 +401,7 @@ export async function patchMyPromotion(
     publish?: boolean;
   }>,
 ) {
+  await assertMasterHasProPlan(masterId);
   const current = await getMyPromotion(masterId, promotionId);
   const serviceId = patch.serviceId ?? current.serviceId;
   await assertServiceBelongsToMaster(masterId, serviceId);

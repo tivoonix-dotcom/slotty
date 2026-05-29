@@ -1,5 +1,6 @@
 import { HiStar } from 'react-icons/hi2';
 import type { DemoReview } from '../../../features/services/model/demoMasters';
+import { profileDisplayInitials } from '../../../features/profile/lib/profileDisplayAvatar';
 
 type Props = { review: DemoReview; layout?: 'stack' | 'desktop' };
 
@@ -16,8 +17,8 @@ export function ReviewCard({ review, layout = 'stack' }: Props) {
       }
     >
       <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFF1F4] text-[14px] font-bold text-[#F47C8C]">
-          {(review.author[0] ?? 'К').toUpperCase()}
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFF1F4] text-[13px] font-bold tracking-tight text-[#F47C8C]">
+          {profileDisplayInitials(review.author)}
         </span>
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold text-[#111827]">{review.author}</p>

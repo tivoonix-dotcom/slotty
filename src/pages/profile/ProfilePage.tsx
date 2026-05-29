@@ -51,7 +51,7 @@ import { formatTelegramUserDisplayName } from '../../shared/lib/telegramWebApp';
 import { apiFetch, getApiBaseUrl } from '../../shared/api/backendClient';
 import { postClientReview } from '../../features/profile/api/clientReviews';
 import { useClientErrorModal } from '../client/ClientErrorModalContext';
-import { profileDisplayAvatarUrl } from '../../features/profile/lib/profileDisplayAvatar';
+import { profileDisplayAvatarUrl, profileDisplayInitials } from '../../features/profile/lib/profileDisplayAvatar';
 import { optimizeAvatarUrl } from '../../shared/lib/optimizeAvatarUrl';
 import { ImageReveal } from '../../shared/ui/ImageReveal';
 import { HomeHeader } from '../HomeHeader';
@@ -582,21 +582,21 @@ export function ProfilePage() {
     [searchParams],
   );
 
-  const { displayName, roleSubtitle, initialLetter } = useMemo(() => {
+  const { displayName, roleSubtitle, profileInitials } = useMemo(() => {
     if (profile) {
       const name = profile.full_name;
       const sub = profile.role === 'master' ? 'Мастер\u00a0SLOTTY' : 'Клиент\u00a0SLOTTY';
-      const t = name.trim();
-      const ini = t.length ? t[0]!.toUpperCase() : '?';
-      return { displayName: name, roleSubtitle: sub, initialLetter: ini };
+      return { displayName: name, roleSubtitle: sub, profileInitials: profileDisplayInitials(name) };
     }
     if (telegramUserPreview) {
       const name = formatTelegramUserDisplayName(telegramUserPreview);
-      const t = name.trim();
-      const ini = t.length ? t[0]!.toUpperCase() : '?';
-      return { displayName: name, roleSubtitle: 'Клиент\u00a0SLOTTY', initialLetter: ini };
+      return {
+        displayName: name,
+        roleSubtitle: 'Клиент\u00a0SLOTTY',
+        profileInitials: profileDisplayInitials(name),
+      };
     }
-    return { displayName: 'Гость', roleSubtitle: 'Войдите через Telegram', initialLetter: '?' };
+    return { displayName: 'Гость', roleSubtitle: 'Войдите через Telegram', profileInitials: '?' };
   }, [profile, telegramUserPreview]);
 
   const profileAvatarUrl = useMemo(() => profileDisplayAvatarUrl(profile), [profile]);
@@ -958,7 +958,7 @@ export function ProfilePage() {
         onSelectTab={selectMainTab}
         displayName={displayName}
         roleSubtitle={roleSubtitle}
-        initialLetter={initialLetter}
+        profileInitials={profileInitials}
         authLoading={authLoading}
         isAuthenticated={isAuthenticated}
         backendConfigured={backendConfigured}
@@ -1083,8 +1083,8 @@ export function ProfilePage() {
                       fetchPriority="high"
                     />
                   ) : (
-                    <span className="flex h-full w-full items-center justify-center" aria-hidden>
-                      {initialLetter}
+                    <span className="flex h-full w-full items-center justify-center text-[17px] tracking-tight" aria-hidden>
+                      {profileInitials}
                     </span>
                   )}
 

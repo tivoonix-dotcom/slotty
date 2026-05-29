@@ -241,6 +241,78 @@ async function main() {
       `NODE_ENV=${process.env.NODE_ENV ?? 'development'} status=${mockPatch.status} code=${errCode(mockPatch.json)}`,
     );
 
+    // --- Expired Pro ---
+    const expiredProMaster = crypto.randomUUID();
+    await pg.query(
+      `insert into public.profiles (id, role, full_name, account_status) values ($1, 'master', $2, 'active')`,
+      [expiredProMaster, `${tag}_expired_pro`],
+    );
+    await pg.query(
+      `insert into public.master_profiles (
+         master_id, display_name, publication_status, is_profile_active,
+         master_plan, pro_status, pro_started_at, pro_expires_at
+       ) values ($1, $2, 'published', true, 'pro', 'active', now() - interval '60 days', now() - interval '1 day')`,
+      [expiredProMaster, `${tag}_expired_pro`],
+    );
+    cleanupIds.push(expiredProMaster);
+    const proPlanId = await queryPlanId(pg, 'pro');
+    if (proPlanId) {
+      await pg.query(
+        `insert into public.master_subscriptions (
+           master_id, plan_id, status, billing_period, current_period_start, current_period_end
+         ) values ($1, $2, 'active', 'month', now() - interval '60 days', now() - interval '1 day')
+         on conflict (master_id) do update set
+           plan_id = $2,
+           current_period_start = now() - interval '60 days',
+           current_period_end = now() - interval '1 day'`,
+        [expiredProMaster, proPlanId],
+      );
+    }
+    const expiredTok = bearer(expiredProMaster, 'master', jwtSecret);
+    const expiredSummary = await fetchJson('GET', '/api/masters/me/overview/summary', {
+      token: expiredTok,
+    });
+    log(
+      expiredSummary.status === 403 && errCode(expiredSummary.json) === 'SUBSCRIPTION_EXPIRED',
+      'pro-expiry',
+      'expired Pro → overview/summary 403 SUBSCRIPTION_EXPIRED',
+      `status=${expiredSummary.status} code=${errCode(expiredSummary.json)}`,
+    );
+
+    // --- Portfolio limit (Free) ---
+    for (let i = 0; i < 3; i++) {
+      await pg.query(
+        `insert into public.master_portfolio_items (master_id, image_url, sort_order)
+         values ($1, $2, $3)`,
+        [freeMaster, `https://example.com/p${i}.jpg`, i],
+      );
+    }
+    const portfolio4 = await fetchJson('POST', '/api/masters/me/portfolio', {
+      token: freeTok,
+      body: { imageUrl: 'https://example.com/p4.jpg', sortOrder: 4 },
+    });
+    log(
+      portfolio4.status === 403 && errCode(portfolio4.json) === 'PLAN_LIMIT_REACHED',
+      'plan-limits',
+      'free → 4th portfolio item blocked',
+      `status=${portfolio4.status} code=${errCode(portfolio4.json)}`,
+    );
+
+    // --- RLS: no write policy on master_subscriptions ---
+    const rlsPolicies = await pg.query<{ polname: string }>(
+      `select policyname as polname
+         from pg_policies
+        where schemaname = 'public'
+          and tablename = 'master_subscriptions'
+          and cmd in ('ALL', 'INSERT', 'UPDATE', 'DELETE')`,
+    );
+    log(
+      rlsPolicies.rowCount === 0,
+      'rls',
+      'master_subscriptions has no authenticated write policies',
+      `policies=${rlsPolicies.rows.map((r) => r.polname).join(',') || 'none'}`,
+    );
+
     // --- 7. Platform admin safety ---
     const adminId = crypto.randomUUID();
     await pg.query(
@@ -289,8 +361,13 @@ async function main() {
 }
 
 async function queryFreePlan(pg: import('pg').Client): Promise<string | null> {
+  return queryPlanId(pg, 'free');
+}
+
+async function queryPlanId(pg: import('pg').Client, code: string): Promise<string | null> {
   const r = await pg.query<{ id: string }>(
-    `select id from public.subscription_plans where code = 'free' and is_active = true limit 1`,
+    `select id from public.subscription_plans where code = $1 and is_active = true limit 1`,
+    [code],
   );
   return r.rows[0]?.id ?? null;
 }

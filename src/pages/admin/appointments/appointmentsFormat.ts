@@ -3,6 +3,7 @@ import {
   isoDateLocal,
   type DemoMasterAppointment,
 } from '../../../features/master/model/demoMasterAppointments';
+import { profileDisplayInitials } from '../../../features/profile/lib/profileDisplayAvatar';
 import { formatBynRu } from '../overview/overviewFormat';
 
 export function formatAppointmentPrice(value: number): string {
@@ -10,12 +11,7 @@ export function formatAppointmentPrice(value: number): string {
 }
 
 export function clientInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return '?';
-  return parts
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? '')
-    .join('');
+  return profileDisplayInitials(name);
 }
 
 /** «На дому» / «В студии» из короткого адреса. */

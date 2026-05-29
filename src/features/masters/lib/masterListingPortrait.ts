@@ -1,25 +1,15 @@
 import {
-  isGeneratedPlaceholderAvatarUrl,
-  isSupabaseProfileAvatarUrl,
-  isTelegramPortraitUrl,
+  isGoogleOAuthAvatarUrl,
   profileDisplayInitials,
+  resolvePortraitDisplayUrl,
 } from '../../profile/lib/profileDisplayAvatar';
 import { optimizeAvatarUrl } from '../../../shared/lib/optimizeAvatarUrl';
 
-/** Портрет из Google OAuth — в карточках каталога не показываем, только наш плейсхолдер. */
-export function isGoogleOAuthAvatarUrl(url: string | null | undefined): boolean {
-  const u = url?.trim().toLowerCase();
-  if (!u) return false;
-  return u.includes('googleusercontent.com') || u.includes('ggpht.com');
-}
+export { isGoogleOAuthAvatarUrl };
 
 /** Загруженное фото мастера (кабинет / Telegram), не генератор и не Google. */
 export function isMasterCardPortraitUrl(url: string | null | undefined): boolean {
-  const raw = url?.trim();
-  if (!raw || isGeneratedPlaceholderAvatarUrl(raw) || isGoogleOAuthAvatarUrl(raw)) return false;
-  if (isTelegramPortraitUrl(raw) || isSupabaseProfileAvatarUrl(raw)) return true;
-  const u = raw.toLowerCase();
-  return u.includes('/storage/v1/object/public/') && u.includes('/masters/');
+  return resolvePortraitDisplayUrl(url) != null;
 }
 
 /** URL для `<img>` в карточке листинга; пустая строка → плейсхолдер с инициалами. */

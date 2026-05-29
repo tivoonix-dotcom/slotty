@@ -1,5 +1,6 @@
 import { apptAvatarFallback } from './adminAppointmentsTheme';
 import { clientInitials } from './appointmentsFormat';
+import { resolvePortraitDisplayUrl } from '../../../features/profile/lib/profileDisplayAvatar';
 
 type Props = {
   name: string;
@@ -16,7 +17,7 @@ const SIZE = {
 
 export function AppointmentsClientAvatar({ name, photoUrl, size = 'md' }: Props) {
   const sizeClass = SIZE[size];
-  const src = photoUrl?.trim();
+  const src = resolvePortraitDisplayUrl(photoUrl);
 
   if (src) {
     return (

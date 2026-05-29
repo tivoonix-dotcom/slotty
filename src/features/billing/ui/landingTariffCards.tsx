@@ -5,7 +5,7 @@ import { MasterProRotatingCard } from '../../../pages/home/MasterProRotatingCard
 export const LANDING_MASTER_PRO_FEATURES = [
   'Ваш регион в каталоге SLOTTY',
   'Безлимит услуг и записей',
-  'График на 365 дней',
+  'График на 90 дней',
   'Расширенная сводка и аналитика',
   'Приоритет в поиске',
   'Акции и наборы услуг',
@@ -17,7 +17,7 @@ export const LANDING_MASTER_FREE_FEATURES = [
   'Профиль мастера в каталоге',
   'До 3 услуг',
   'До 20 записей в месяц',
-  'График на 30 дней',
+  'График на 14 дней',
   'Заявки и управление записями',
 ] as const;
 

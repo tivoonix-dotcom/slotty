@@ -2,6 +2,7 @@ import { query } from '../../config/db.js';
 import {
   isStablePortraitUrl,
   isTelegramPortraitUrl,
+  sanitizePortraitDisplayUrl,
 } from '../../lib/profileAvatarUrlPolicy.js';
 import { ApiError } from '../../utils/ApiError.js';
 import {
@@ -115,10 +116,11 @@ export async function resolveHeaderAvatarUrl(
   avatarUrl: string | null,
   hasMasterProfile: boolean,
 ): Promise<string | null> {
-  const accountAvatar = avatarUrl?.trim() || null;
+  const accountAvatar = sanitizePortraitDisplayUrl(avatarUrl);
   if (accountAvatar) return accountAvatar;
   if (!hasMasterProfile) return null;
-  return fetchMasterCabinetPhotoUrl(profileId);
+  const masterPhoto = await fetchMasterCabinetPhotoUrl(profileId);
+  return sanitizePortraitDisplayUrl(masterPhoto);
 }
 
 function toTelegramUserIdNumber(raw: string | null): number | null {
