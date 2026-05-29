@@ -1,7 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import type { ConsentAcceptancePayload } from '../api/legalApi';
-import { SIGNUP_CONSENT_CHECKBOXES } from '../../../shared/legal/legalConfig';
+import {
+  SignupConsentFields,
+  allSignupConsentsChecked,
+  buildSignupConsentPayload,
+} from './SignupConsentFields';
 
 type Props = {
   busy?: boolean;
@@ -12,10 +16,7 @@ type Props = {
 export function ConsentGateScreen({ busy = false, error, onSubmit }: Props) {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
-  const allChecked = useMemo(
-    () => SIGNUP_CONSENT_CHECKBOXES.every((item) => checked[item.documentKey]),
-    [checked],
-  );
+  const allChecked = useMemo(() => allSignupConsentsChecked(checked), [checked]);
 
   const toggle = useCallback((key: string) => {
     setChecked((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -23,16 +24,12 @@ export function ConsentGateScreen({ busy = false, error, onSubmit }: Props) {
 
   const handleSubmit = useCallback(() => {
     if (!allChecked || busy) return;
-    const consents: ConsentAcceptancePayload[] = SIGNUP_CONSENT_CHECKBOXES.map((item) => ({
-      documentKey: item.documentKey,
-      version: 1,
-    }));
-    void onSubmit(consents);
+    void onSubmit(buildSignupConsentPayload());
   }, [allChecked, busy, onSubmit]);
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="consent-gate-title"
@@ -43,38 +40,13 @@ export function ConsentGateScreen({ busy = false, error, onSubmit }: Props) {
             Перед продолжением примите документы
           </h1>
           <p className="mt-2 text-[14px] leading-relaxed text-[#6B7280]">
-            Для использования SLOTTY нужно принять актуальные условия и согласия. Полные тексты — по ссылкам
-            ниже.
+            Для использования SLOTTY нужно принять актуальные условия и согласия. Полные тексты — по
+            ссылкам ниже.
           </p>
 
-          <ul className="mt-5 space-y-4">
-            {SIGNUP_CONSENT_CHECKBOXES.map((item) => (
-              <li key={item.documentKey}>
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 shrink-0 rounded border-[#D1D5DB] accent-[#111827]"
-                    checked={Boolean(checked[item.documentKey])}
-                    disabled={busy}
-                    onChange={() => toggle(item.documentKey)}
-                  />
-                  <span className="text-[14px] leading-snug text-[#374151]">
-                    {item.textBefore}
-                    <Link
-                      to={item.path}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-semibold text-[#E29595] underline-offset-2 hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {item.linkLabel}
-                    </Link>
-                    {item.textAfter}
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-5">
+            <SignupConsentFields checked={checked} onToggle={toggle} disabled={busy} />
+          </div>
 
           {error ? (
             <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700">{error}</p>
@@ -92,6 +64,7 @@ export function ConsentGateScreen({ busy = false, error, onSubmit }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

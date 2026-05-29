@@ -28,6 +28,11 @@ import { useTelegram } from '../../../shared/hooks/useTelegram';
 import { openTelegramOrBrowserUrl } from '../../../shared/lib/telegramWebApp';
 import { GoogleIcon } from '../../../shared/ui/GoogleIcon';
 import { isConsentRequiredError } from '../../legal/consentBlock.types';
+import {
+  SignupConsentFields,
+  allSignupConsentsChecked,
+  buildSignupConsentPayload,
+} from '../../legal/components/SignupConsentFields';
 import { useAuth } from '../AuthProvider';
 import {
   sheetFieldClass,
@@ -248,6 +253,28 @@ export function LoginMethodsPanel({
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailNotice, setEmailNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [consentChecked, setConsentChecked] = useState<Record<string, boolean>>({});
+  const [consentRequiredHint, setConsentRequiredHint] = useState(false);
+
+  const allConsentsChecked = useMemo(() => allSignupConsentsChecked(consentChecked), [consentChecked]);
+  const signupConsents = useMemo(
+    () => (allConsentsChecked ? buildSignupConsentPayload() : undefined),
+    [allConsentsChecked],
+  );
+
+  const toggleConsent = useCallback((documentKey: string) => {
+    setConsentChecked((prev) => ({ ...prev, [documentKey]: !prev[documentKey] }));
+    setConsentRequiredHint(false);
+  }, []);
+
+  const openConsentFlow = useCallback(
+    (state: Parameters<typeof openConsentBlock>[0]) => {
+      setError(null);
+      setConsentRequiredHint(true);
+      openConsentBlock(state);
+    },
+    [openConsentBlock],
+  );
 
   const isSettings = mode === 'settings' && isAuthenticated;
   const pageStyle = appearance === 'page';
@@ -300,13 +327,13 @@ export function LoginMethodsPanel({
           await refreshProfile();
           onLinked?.();
         } else {
-          const session = await loginWithGoogle(idToken);
+          const session = await loginWithGoogle(idToken, { consents: signupConsents });
           applySession(session);
           onLinked?.(session.profile);
         }
       } catch (e) {
         if (isConsentRequiredError(e)) {
-          openConsentBlock({
+          openConsentFlow({
             action: { type: 'google', idToken },
             isNewUser: e.consentRequired?.isNewUser === true,
             onSuccess: () => {
@@ -322,7 +349,7 @@ export function LoginMethodsPanel({
         setBusy(false);
       }
     },
-    [applySession, isSettings, onLinked, openConsentBlock, refreshProfile, reload],
+    [applySession, isSettings, onLinked, openConsentFlow, refreshProfile, reload, signupConsents],
   );
 
   const handleLoginTelegram = useCallback(async () => {
@@ -330,10 +357,17 @@ export function LoginMethodsPanel({
       setBusy(true);
       setError(null);
       try {
-        const session = await loginWithTelegram(initDataRaw);
+        const session = await loginWithTelegram(initDataRaw, { consents: signupConsents });
         applySession(session);
         onLinked?.(session.profile);
       } catch (e) {
+        if (isConsentRequiredError(e)) {
+          openConsentFlow({
+            action: { type: 'telegram', initDataRaw },
+            isNewUser: e.consentRequired?.isNewUser === true,
+          });
+          return;
+        }
         setError(e instanceof Error ? e.message : 'Ошибка Telegram');
       } finally {
         setBusy(false);
@@ -346,7 +380,7 @@ export function LoginMethodsPanel({
         ? null
         : 'Telegram-бот не настроен. Задайте TELEGRAM_BOT_TOKEN на сервере или VITE_TELEGRAM_BOT_USERNAME на фронте.',
     );
-  }, [applySession, initDataRaw, isTelegramWebApp, onLinked, telegramLoginUrl]);
+  }, [applySession, initDataRaw, isTelegramWebApp, onLinked, openConsentFlow, signupConsents, telegramLoginUrl]);
 
   const renderTelegramLoginControl = (className: string, label: string) => {
     const content = (
@@ -409,20 +443,20 @@ export function LoginMethodsPanel({
         await refreshProfile();
         onLinked?.();
       } else if (emailMode === 'register') {
-        const session = await registerWithEmail(email, password);
+        const session = await registerWithEmail(email, password, { consents: signupConsents });
         applySession(session);
         setEmailNotice(
           `Мы отправили письмо на ${email.trim()}. Подтвердите email по ссылке из письма (проверьте «Спам»).`,
         );
         onLinked?.(session.profile);
       } else {
-        const session = await loginWithEmail(email, password);
+        const session = await loginWithEmail(email, password, { consents: signupConsents });
         applySession(session);
         onLinked?.(session.profile);
       }
     } catch (e) {
       if (isConsentRequiredError(e)) {
-        openConsentBlock({
+        openConsentFlow({
           action:
             emailMode === 'register'
               ? { type: 'email_register', email, password }
@@ -442,7 +476,7 @@ export function LoginMethodsPanel({
     } finally {
       setBusy(false);
     }
-  }, [applySession, email, emailMode, isSettings, onLinked, openConsentBlock, password, refreshProfile]);
+  }, [applySession, email, emailMode, isSettings, onLinked, openConsentFlow, password, refreshProfile, signupConsents]);
 
   const handleResendVerification = useCallback(async () => {
     setBusy(true);
@@ -469,9 +503,18 @@ export function LoginMethodsPanel({
           ? 'Войти'
           : 'Продолжить';
 
+    const requiresConsents = emailMode === 'register' || consentRequiredHint;
+    const canSubmit =
+      !busy && email.trim().length > 0 && password.length >= 8 && (!requiresConsents || allConsentsChecked);
+
     return (
       <div className="space-y-6">
         {error ? <ErrorBanner message={error} pageStyle /> : null}
+        {consentRequiredHint && !error ? (
+          <p className="rounded-2xl bg-[#FFF7ED] px-4 py-3 text-[13px] leading-relaxed text-[#9A3412]">
+            Отметьте все документы ниже, чтобы продолжить вход или регистрацию.
+          </p>
+        ) : null}
         {emailNotice ? (
           <p className="rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-[13px] leading-relaxed text-[#166534]">
             {emailNotice}
@@ -517,9 +560,22 @@ export function LoginMethodsPanel({
             placeholder="Пароль (мин. 8 символов)"
             className={AUTH_FIELD_CLASS}
           />
+
+          {(emailMode === 'register' || consentRequiredHint) ? (
+            <div className="rounded-2xl bg-[#F9FAFB] px-4 py-4">
+              <p className="mb-3 text-[13px] font-semibold text-[#374151]">Документы сервиса</p>
+              <SignupConsentFields
+                checked={consentChecked}
+                onToggle={toggleConsent}
+                disabled={busy}
+                compact
+              />
+            </div>
+          ) : null}
+
           <button
             type="button"
-            disabled={busy || !email.trim() || password.length < 8}
+            disabled={!canSubmit}
             onClick={() => void handleEmailSubmit()}
             className={AUTH_PRIMARY_BTN_CLASS}
           >
@@ -550,7 +606,7 @@ export function LoginMethodsPanel({
 
         <div className="space-y-3">
           <GoogleLoginPill
-            busy={busy}
+            busy={busy || (emailMode === 'register' && !allConsentsChecked)}
             googleClientId={googleClientId}
             label="Google"
             pageStyle
@@ -561,7 +617,16 @@ export function LoginMethodsPanel({
             onError={(m) => setError(m)}
           />
 
-          {renderTelegramLoginControl(AUTH_SOCIAL_BTN_CLASS, 'Telegram')}
+          {emailMode === 'register' && !allConsentsChecked ? (
+            <p className="text-center text-[12px] leading-relaxed text-[#9CA3AF]">
+              Сначала отметьте документы выше, затем войдите через Google или Telegram.
+            </p>
+          ) : null}
+
+          {renderTelegramLoginControl(
+            `${AUTH_SOCIAL_BTN_CLASS}${emailMode === 'register' && !allConsentsChecked ? ' pointer-events-none opacity-50' : ''}`,
+            'Telegram',
+          )}
 
           {!initDataRaw || !isTelegramWebApp ? (
             <p className="text-center text-[12px] leading-relaxed text-[#9CA3AF]">

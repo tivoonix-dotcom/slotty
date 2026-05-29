@@ -21,10 +21,9 @@ export type ConsentRequiredError = Error & {
 };
 
 export function isConsentRequiredError(err: unknown): err is ConsentRequiredError {
-  return (
-    err instanceof Error &&
-    Boolean((err as ConsentRequiredError).consentRequired)
-  );
+  if (!(err instanceof Error)) return false;
+  if ((err as ConsentRequiredError).consentRequired) return true;
+  return /примите актуальные документы/i.test(err.message);
 }
 
 export type { ConsentAcceptancePayload };
