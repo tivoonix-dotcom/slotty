@@ -1,44 +1,109 @@
 import { apiFetch } from '../../../shared/api/backendClient';
 import { readAuthApiError } from '../lib/authApiErrors';
 import type { AuthIdentityDto, AuthSessionResponse } from '../types';
+import type { ConsentAcceptancePayload } from '../../legal/api/legalApi';
+import { readApiErrorWithConsent } from '../../legal/api/legalApi';
 
-export async function loginWithTelegram(initDataRaw: string): Promise<AuthSessionResponse> {
+type LoginOptions = {
+  consents?: ConsentAcceptancePayload[];
+};
+
+export async function loginWithTelegram(
+  initDataRaw: string,
+  options?: LoginOptions,
+): Promise<AuthSessionResponse> {
   const res = await apiFetch('/api/auth/telegram', {
     method: 'POST',
     skipAuth: true,
-    body: JSON.stringify({ initDataRaw }),
+    body: JSON.stringify({ initDataRaw, ...(options?.consents ? { consents: options.consents } : {}) }),
   });
-  if (!res.ok) throw new Error(await readAuthApiError(res));
+  if (!res.ok) {
+    const parsed = await readApiErrorWithConsent(res);
+    if (parsed.consentRequired) {
+      const err = new Error(parsed.message) as Error & { consentRequired?: typeof parsed.consentRequired };
+      err.consentRequired = parsed.consentRequired;
+      throw err;
+    }
+    throw new Error(await readAuthApiError(res));
+  }
   return (await res.json()) as AuthSessionResponse;
 }
 
-export async function loginWithGoogle(idToken: string): Promise<AuthSessionResponse> {
+export async function loginWithGoogle(
+  idToken: string,
+  options?: LoginOptions,
+): Promise<AuthSessionResponse> {
   const res = await apiFetch('/api/auth/google', {
     method: 'POST',
     skipAuth: true,
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify({ idToken, ...(options?.consents ? { consents: options.consents } : {}) }),
+  });
+  if (!res.ok) {
+    const parsed = await readApiErrorWithConsent(res);
+    if (parsed.consentRequired) {
+      const err = new Error(parsed.message) as Error & { consentRequired?: typeof parsed.consentRequired };
+      err.consentRequired = parsed.consentRequired;
+      throw err;
+    }
+    throw new Error(await readAuthApiError(res));
+  }
+  return (await res.json()) as AuthSessionResponse;
+}
+
+export async function completeGoogleLoginPending(
+  pendingToken: string,
+  consents: ConsentAcceptancePayload[],
+): Promise<AuthSessionResponse> {
+  const res = await apiFetch('/api/auth/google/complete-pending', {
+    method: 'POST',
+    skipAuth: true,
+    body: JSON.stringify({ pendingToken, consents }),
   });
   if (!res.ok) throw new Error(await readAuthApiError(res));
   return (await res.json()) as AuthSessionResponse;
 }
 
-export async function loginWithEmail(email: string, password: string): Promise<AuthSessionResponse> {
+export async function loginWithEmail(
+  email: string,
+  password: string,
+  options?: LoginOptions,
+): Promise<AuthSessionResponse> {
   const res = await apiFetch('/api/auth/email/login', {
     method: 'POST',
     skipAuth: true,
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, ...(options?.consents ? { consents: options.consents } : {}) }),
   });
-  if (!res.ok) throw new Error(await readAuthApiError(res));
+  if (!res.ok) {
+    const parsed = await readApiErrorWithConsent(res);
+    if (parsed.consentRequired) {
+      const err = new Error(parsed.message) as Error & { consentRequired?: typeof parsed.consentRequired };
+      err.consentRequired = parsed.consentRequired;
+      throw err;
+    }
+    throw new Error(await readAuthApiError(res));
+  }
   return (await res.json()) as AuthSessionResponse;
 }
 
-export async function registerWithEmail(email: string, password: string): Promise<AuthSessionResponse> {
+export async function registerWithEmail(
+  email: string,
+  password: string,
+  options?: LoginOptions,
+): Promise<AuthSessionResponse> {
   const res = await apiFetch('/api/auth/email/register', {
     method: 'POST',
     skipAuth: true,
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, ...(options?.consents ? { consents: options.consents } : {}) }),
   });
-  if (!res.ok) throw new Error(await readAuthApiError(res));
+  if (!res.ok) {
+    const parsed = await readApiErrorWithConsent(res);
+    if (parsed.consentRequired) {
+      const err = new Error(parsed.message) as Error & { consentRequired?: typeof parsed.consentRequired };
+      err.consentRequired = parsed.consentRequired;
+      throw err;
+    }
+    throw new Error(await readAuthApiError(res));
+  }
   return (await res.json()) as AuthSessionResponse;
 }
 

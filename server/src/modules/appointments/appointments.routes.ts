@@ -19,6 +19,7 @@ import {
 import { uploadBookingReferencePhoto } from './appointments.storage.js';
 import { notifyAppointmentCreated, notifyMasterClientCancelledBooking } from './appointments.telegram.js';
 import { bookingCreateLimiter } from '../../middlewares/rateLimit.js';
+import { requireSignupConsents } from '../../middlewares/requireSignupConsents.js';
 
 export const appointmentCreateRouter = Router();
 appointmentCreateRouter.use(authMiddleware);
@@ -30,7 +31,7 @@ const bookBody = z.object({
   clientReferencePhotoUrl: z.string().url().max(2048).optional(),
 });
 
-appointmentCreateRouter.post('/', bookingCreateLimiter, requireClientBookingCreate, asyncHandler(async (req, res) => {
+appointmentCreateRouter.post('/', bookingCreateLimiter, requireClientBookingCreate, requireSignupConsents, asyncHandler(async (req, res) => {
     const body = bookBody.parse(req.body);
     const out = await createAppointmentTx({
       clientId: req.user!.id,

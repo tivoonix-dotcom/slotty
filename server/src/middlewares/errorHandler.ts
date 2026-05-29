@@ -23,6 +23,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
         message: err.message,
         ...(err.code ? { code: err.code } : {}),
         ...(err.reason ? { reason: err.reason } : {}),
+        ...(err.details ? { details: err.details } : {}),
       },
     });
   }

@@ -18,6 +18,7 @@ import { catalogRouter } from './modules/catalog/catalog.routes.js';
 import { telegramWebhookRouter } from './modules/telegram/telegram.webhook.routes.js';
 import { publicRouter } from './modules/public/public.routes.js';
 import { geoRouter } from './modules/geo/geo.routes.js';
+import { legalRouter } from './modules/legal/legal.routes.js';
 import { platformAdminRouter } from './modules/platform-admin/platformAdmin.routes.js';
 import { resolveTrustProxySetting } from './lib/clientIp.js';
 
@@ -32,6 +33,7 @@ export function createApp() {
   const api = express.Router();
   api.use('/health', healthRouter);
   api.use('/geo', geoRouter);
+  api.use('/legal', legalRouter);
   api.use('/public', publicRouter);
   api.use('/auth', authRouter);
   api.use('/me', profilesRouter);

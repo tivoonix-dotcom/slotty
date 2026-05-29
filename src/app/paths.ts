@@ -159,10 +159,19 @@ export const ADMIN_PROFILE_COMPLETION_PATH = '/admin/profile/completion';
 export const LEGAL_PRIVACY_PATH = '/legal/privacy';
 
 /** Согласие на обработку персональных данных (страница). */
+export const LEGAL_CONSENT_PATH = '/legal/consent';
+
+/** @deprecated Используйте LEGAL_CONSENT_PATH */
 export const LEGAL_PD_CONSENT_PATH = '/legal/consent-pd';
+
+/** Согласие на трансграничную передачу персональных данных. */
+export const LEGAL_CROSS_BORDER_PATH = '/legal/cross-border';
 
 /** Пользовательское соглашение (страница). */
 export const LEGAL_TERMS_PATH = '/legal/terms';
+
+/** Условия для мастеров. */
+export const LEGAL_MASTER_TERMS_PATH = '/legal/master-terms';
 
 /** Шаблон маршрута профиля мастера (для документации / Route). */
 export const MASTER_PATH = '/master/:id';

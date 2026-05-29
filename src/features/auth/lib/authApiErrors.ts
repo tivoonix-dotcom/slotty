@@ -11,6 +11,10 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   API_PUBLIC_URL_MISSING:
     'На сервере API не задан публичный URL (PUBLIC_API_URL или RAILWAY_PUBLIC_DOMAIN).',
   AUTH_REQUIRED: 'Сначала войдите через Telegram в кабинет, затем снова нажмите «Подключить Google».',
+  CONSENT_REQUIRED: 'Перед продолжением примите актуальные документы сервиса.',
+  CONSENT_VERSION_MISMATCH: 'Версия документа устарела. Обновите страницу и примите актуальную версию.',
+  CONSENT_INCOMPLETE: 'Отметьте все обязательные документы.',
+  GOOGLE_LOGIN_PENDING_EXPIRED: 'Сессия входа через Google устарела. Начните вход заново.',
   GOOGLE_LINK_HANDOFF_INVALID:
     'Ссылка для привязки устарела. Вернитесь в Telegram → «Способы входа» → «Подключить Google».',
   GOOGLE_OAUTH_STATE_INVALID: 'Сессия Google устарела. Начните вход заново.',

@@ -30,4 +30,7 @@ app.listen(env.PORT, () => {
   }
   void initTelegramBotTransport();
   startAppointmentRemindersScheduler();
+  void import('./modules/auth/googleLoginPending.store.js').then(({ warnIfPendingStoreNotShared }) => {
+    warnIfPendingStoreNotShared();
+  });
 });

@@ -13,6 +13,9 @@ import {
 import { verifyGoogleIdToken } from './googleAuth.js';
 import { syncMasterAccountVerified } from './accountVerification.js';
 import { sendVerificationEmailForProfile } from './email/emailAuth.service.js';
+import type { AuthConsentGateOptions } from './authConsent.service.js';
+import type { ConsentAcceptanceInput } from '../legal/legal.types.js';
+import { consumePendingGoogleLogin } from './googleLoginPending.store.js';
 
 async function syncVerifiedAfterIdentityChange(profileId: string) {
   await syncMasterAccountVerified(profileId).catch((e) => {
@@ -48,7 +51,10 @@ function verifyTelegramInitDataOrThrow(initDataRaw: string) {
  * Login or register via Telegram Web App initData.
  * Uses auth_identities; keeps profiles.telegram_user_id in sync.
  */
-export async function loginWithTelegram(initDataRaw: string) {
+export async function loginWithTelegram(
+  initDataRaw: string,
+  consentGate?: AuthConsentGateOptions,
+) {
   const verified = verifyTelegramInitDataOrThrow(initDataRaw);
   const fullName = displayNameFromTelegram(
     verified.user.first_name,
@@ -56,7 +62,7 @@ export async function loginWithTelegram(initDataRaw: string) {
     verified.user.username,
   );
   try {
-    return await loginOrRegisterWithTelegram(verified.user, fullName);
+    return await loginOrRegisterWithTelegram(verified.user, fullName, consentGate);
   } catch (e: unknown) {
     const err = e as { code?: string };
     if (err?.code === '23503') {
@@ -81,9 +87,21 @@ export async function linkTelegram(initDataRaw: string, profileId: string) {
   return { identities };
 }
 
-export async function loginWithGoogle(idToken: string) {
+export async function loginWithGoogle(
+  idToken: string,
+  consentGate?: AuthConsentGateOptions,
+) {
   const payload = await verifyGoogleIdToken(idToken);
-  return loginOrRegisterWithGoogle(payload);
+  return loginOrRegisterWithGoogle(payload, consentGate);
+}
+
+export async function completeGoogleLoginWithPending(
+  pendingToken: string,
+  consents: ConsentAcceptanceInput[] | undefined,
+  consentGate: AuthConsentGateOptions,
+) {
+  const idToken = consumePendingGoogleLogin(pendingToken);
+  return loginWithGoogle(idToken, { consents, meta: consentGate.meta });
 }
 
 export async function linkGoogle(idToken: string, profileId: string) {
@@ -93,17 +111,31 @@ export async function linkGoogle(idToken: string, profileId: string) {
   return { identities };
 }
 
-export async function loginWithEmail(email: string, password: string) {
-  return loginWithEmailIdentity(email, password);
+export async function loginWithEmail(
+  email: string,
+  password: string,
+  consentGate?: AuthConsentGateOptions,
+) {
+  return loginWithEmailIdentity(email, password, consentGate);
 }
 
-export async function registerWithEmail(email: string, password: string) {
-  const { session, isNewRegistration } = await registerWithEmailIdentity(email, password);
+export async function registerWithEmail(
+  email: string,
+  password: string,
+  consentGate?: AuthConsentGateOptions,
+) {
+  const { session, isNewRegistration } = await registerWithEmailIdentity(
+    email,
+    password,
+    consentGate,
+  );
   if (isNewRegistration) {
     scheduleVerificationEmail(session.profile.id);
   }
   return session;
 }
+
+export { buildConsentGateFromRequest, consentSourceFromRequest } from './authConsentRequest.js';
 
 export async function linkEmail(email: string, password: string, profileId: string) {
   const identities = await linkEmailToProfile(profileId, email, password);

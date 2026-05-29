@@ -15,6 +15,7 @@
     "e2e:hardening-verify": "tsx src/scripts/e2eHardeningVerify.ts",
     "e2e:google-dedup": "tsx src/scripts/e2eGoogleProfileDedup.ts",
     "e2e:slot-rebook": "tsx src/scripts/e2eSlotRebookAfterCancel.ts",
+    "cleanup:test-data": "tsx src/scripts/cleanupTestData.ts",
     "diagnose:profile": "tsx src/scripts/diagnoseProfileByEmail.ts",
     "merge:google-duplicate": "tsx src/scripts/mergeGoogleDuplicateProfile.ts",
     "test:client-ip": "tsx src/scripts/testClientIpSecurity.ts"

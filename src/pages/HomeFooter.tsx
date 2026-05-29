@@ -4,7 +4,8 @@ import {
   BECOME_MASTER_PATH,
   BOOKING_PATH,
   HUB_PATH,
-  LEGAL_PD_CONSENT_PATH,
+  LEGAL_CONSENT_PATH,
+  LEGAL_CROSS_BORDER_PATH,
   LEGAL_PRIVACY_PATH,
   LEGAL_TERMS_PATH,
   SERVICES_PATH,
@@ -34,7 +35,8 @@ const FOOTER_COL_A = [
 const FOOTER_COL_B = [
   { key: 'master', label: 'Кабинет мастера', to: BECOME_MASTER_PATH },
   { key: 'privacy', label: 'Политика ПД', to: LEGAL_PRIVACY_PATH },
-  { key: 'consent', label: 'Согласие на обработку', to: LEGAL_PD_CONSENT_PATH },
+  { key: 'consent', label: 'Согласие на обработку', to: LEGAL_CONSENT_PATH },
+  { key: 'cross', label: 'Трансграничная передача', to: LEGAL_CROSS_BORDER_PATH },
   { key: 'terms', label: 'Пользовательское соглашение', to: LEGAL_TERMS_PATH },
 ] as const;
 

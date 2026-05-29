@@ -4,6 +4,8 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { authMiddleware, optionalAuthMiddleware } from '../../middlewares/auth.js';
 import {
+  buildConsentGateFromRequest,
+  completeGoogleLoginWithPending,
   linkEmail,
   linkGoogle,
   linkTelegram,
@@ -12,6 +14,8 @@ import {
   loginWithGoogle,
   loginWithTelegram,
 } from './auth.service.js';
+import { createPendingGoogleLogin } from './googleLoginPending.store.js';
+import { acceptConsentsForProfile } from '../legal/legal.service.js';
 import {
   buildClientOAuthDoneUrl,
   buildGoogleAuthorizationUrl,
@@ -79,12 +83,36 @@ const googleOAuthStartBody = z.object({
   returnPath: z.string().max(256).optional(),
 });
 
+const consentItemSchema = z.object({
+  documentKey: z.string().min(1),
+  version: z.coerce.number().int().positive(),
+});
+
+const consentsField = z.object({
+  consents: z.array(consentItemSchema).min(1).optional(),
+});
+
+const telegramLoginBody = telegramBody.merge(consentsField);
+const googleLoginBody = googleBody.merge(consentsField);
+const emailRegisterBody = emailLoginBody.merge(consentsField);
+const emailLoginWithConsentsBody = emailLoginBody.merge(consentsField);
+
+const acceptConsentsBody = z.object({
+  consents: z.array(consentItemSchema).min(1),
+});
+
+const googlePendingCompleteBody = z.object({
+  pendingToken: z.string().min(1),
+  consents: z.array(consentItemSchema).min(1),
+});
+
 authRouter.post(
   '/telegram',
   authCredentialLimiter,
   asyncHandler(async (req, res) => {
-    const body = telegramBody.parse(req.body);
-    const out = await loginWithTelegram(body.initDataRaw);
+    const body = telegramLoginBody.parse(req.body);
+    const gate = buildConsentGateFromRequest(req, body.consents, 'telegram');
+    const out = await loginWithTelegram(body.initDataRaw, gate);
     res.json(out);
   }),
 );
@@ -93,9 +121,32 @@ authRouter.post(
   '/google',
   authCredentialLimiter,
   asyncHandler(async (req, res) => {
-    const body = googleBody.parse(req.body);
-    const out = await loginWithGoogle(body.idToken);
+    const body = googleLoginBody.parse(req.body);
+    const gate = buildConsentGateFromRequest(req, body.consents, 'google');
+    const out = await loginWithGoogle(body.idToken, gate);
     res.json(out);
+  }),
+);
+
+authRouter.post(
+  '/google/complete-pending',
+  authCredentialLimiter,
+  asyncHandler(async (req, res) => {
+    const body = googlePendingCompleteBody.parse(req.body);
+    const gate = buildConsentGateFromRequest(req, body.consents, 'google');
+    const out = await completeGoogleLoginWithPending(body.pendingToken, body.consents, gate);
+    res.json(out);
+  }),
+);
+
+authRouter.post(
+  '/consents/accept',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const body = acceptConsentsBody.parse(req.body);
+    const gate = buildConsentGateFromRequest(req, body.consents, 'web');
+    const status = await acceptConsentsForProfile(req.user!.id, body.consents, gate.meta);
+    res.json({ ok: true, consentStatus: status });
   }),
 );
 
@@ -103,8 +154,9 @@ authRouter.post(
   '/email/login',
   authCredentialLimiter,
   asyncHandler(async (req, res) => {
-    const body = emailLoginBody.parse(req.body);
-    const out = await loginWithEmail(body.email, body.password);
+    const body = emailLoginWithConsentsBody.parse(req.body);
+    const gate = buildConsentGateFromRequest(req, body.consents, 'email');
+    const out = await loginWithEmail(body.email, body.password, gate);
     res.json(out);
   }),
 );
@@ -113,8 +165,9 @@ authRouter.post(
   '/email/register',
   authCredentialLimiter,
   asyncHandler(async (req, res) => {
-    const body = emailLoginBody.parse(req.body);
-    const out = await registerWithEmail(body.email, body.password);
+    const body = emailRegisterBody.parse(req.body);
+    const gate = buildConsentGateFromRequest(req, body.consents, 'email');
+    const out = await registerWithEmail(body.email, body.password, gate);
     res.json(out);
   }),
 );
@@ -230,14 +283,32 @@ authRouter.get(
         return;
       }
 
-      const session = await loginWithGoogle(idToken);
-      res.redirect(
-        buildClientOAuthDoneUrl({
-          purpose: 'login',
-          token: session.token,
-          returnPath: state.returnPath,
-        }),
-      );
+      try {
+        const session = await loginWithGoogle(idToken);
+        res.redirect(
+          buildClientOAuthDoneUrl({
+            purpose: 'login',
+            token: session.token,
+            returnPath: state.returnPath,
+          }),
+        );
+      } catch (loginErr) {
+        if (loginErr instanceof ApiError && loginErr.code === 'CONSENT_REQUIRED') {
+          const pendingToken = createPendingGoogleLogin(idToken);
+          const isNewUser = loginErr.details?.isNewUser === true;
+          res.redirect(
+            buildClientOAuthDoneUrl({
+              purpose: 'login',
+              returnPath: state.returnPath,
+              error: 'CONSENT_REQUIRED',
+              pendingToken,
+              isNewUser: isNewUser ? '1' : '0',
+            }),
+          );
+          return;
+        }
+        throw loginErr;
+      }
     } catch (e) {
       const errCode =
         e instanceof ApiError ? (e.code ?? 'oauth_failed') : 'oauth_failed';

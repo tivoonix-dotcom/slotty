@@ -1,6 +1,6 @@
 import { EMPTY_BOOKING_DATE } from '../../shared/lib/emptyDisplayText';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { getProfilePath, getMasterPath, SERVICES_PATH } from '../../app/paths';
 import { ensureClientBookingAuth } from '../../features/auth/lib/requireClientBookingAuth';
 import { createClientAppointment } from '../../features/appointments/api/clientAppointments';
@@ -340,6 +340,8 @@ export function BookingPage() {
         action={{ to: SERVICES_PATH, label: 'К услугам' }}
       >
         <NothingFoundCard
+          variant="plain"
+          picture="searchEmpty"
           title="Не удалось загрузить данные для записи"
           text="Проверьте соединение с сервером или откройте страницу мастера из каталога услуг."
         />
@@ -367,6 +369,7 @@ export function BookingPage() {
         }}
       >
         <NothingFoundCard
+          variant="plain"
           title="Запись"
           text="Откройте эту страницу из профиля мастера или по ссылке из Telegram."
         />
@@ -378,6 +381,8 @@ export function BookingPage() {
     return (
       <BookingStateScreen backTo={SERVICES_PATH} action={{ to: SERVICES_PATH, label: 'К услугам' }}>
         <NothingFoundCard
+          variant="plain"
+          picture="searchEmpty"
           title="Мастер не найден"
           text="Попробуйте выбрать другого специалиста."
         />
@@ -397,11 +402,21 @@ export function BookingPage() {
     return (
       <BookingPageShell backTo={backTo}>
         <NothingFoundCard
+          variant="plain"
+          picture="servicesEmpty"
           title={missingChosenService ? 'Услуга недоступна' : 'Услуги пока не добавлены'}
           text={
             missingChosenService
               ? 'Вернитесь в профиль мастера и выберите услугу из актуального списка.'
               : 'Мастер скоро заполнит список услуг.'
+          }
+          action={
+            <Link
+              to={backTo}
+              className="text-[14px] font-semibold text-[#F47C8C] no-underline transition hover:opacity-80"
+            >
+              Назад к мастеру
+            </Link>
           }
         />
       </BookingPageShell>
@@ -414,10 +429,22 @@ export function BookingPage() {
   if (!hasSlots) {
     return (
       <BookingPageShell backTo={backTo}>
-        <NothingFoundCard
-          title="Свободных слотов нет"
-          text="Попробуйте выбрать другую услугу или день."
-        />
+        <div className="flex min-h-[min(58dvh,26rem)] w-full flex-col items-center justify-center">
+          <NothingFoundCard
+            variant="plain"
+            picture="scheduleEmpty"
+            title="Свободных слотов нет"
+            text="Попробуйте другую услугу или зайдите позже — мастер может открыть новые окна."
+            action={
+              <Link
+                to={backTo}
+                className="text-[14px] font-semibold text-[#F47C8C] no-underline transition hover:opacity-80"
+              >
+                Назад к мастеру
+              </Link>
+            }
+          />
+        </div>
       </BookingPageShell>
     );
   }

@@ -18,6 +18,16 @@ export type BackendProfile = {
   blocked_reason?: string | null;
   access_restriction_reason?: string | null;
   access_restricted_until?: string | null;
+  consent_status?: {
+    satisfied: boolean;
+    missing: Array<{
+      documentKey: string;
+      version: number;
+      title: string;
+      effectiveFrom: string;
+      path: string;
+    }>;
+  };
   /** Сервер переключил на основной аккаунт (email/TG/Google были на разных profiles). */
   session_refresh?: { token: string };
 };

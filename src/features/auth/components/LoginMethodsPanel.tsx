@@ -27,6 +27,7 @@ import { GoogleSignInButton } from './GoogleSignInButton';
 import { useTelegram } from '../../../shared/hooks/useTelegram';
 import { openTelegramOrBrowserUrl } from '../../../shared/lib/telegramWebApp';
 import { GoogleIcon } from '../../../shared/ui/GoogleIcon';
+import { isConsentRequiredError } from '../../legal/consentBlock.types';
 import { useAuth } from '../AuthProvider';
 import {
   sheetFieldClass,
@@ -233,7 +234,7 @@ export function LoginMethodsPanel({
 }: Props) {
   const [searchParams] = useSearchParams();
   const loginReturnPath = searchParams.get('from') ?? undefined;
-  const { isAuthenticated, applySession, refreshProfile } = useAuth();
+  const { isAuthenticated, applySession, refreshProfile, openConsentBlock } = useAuth();
   const { initDataRaw, isTelegramWebApp } = useTelegram();
   const isMasterRegister = authIntent === 'master-register';
   const [identities, setIdentities] = useState<AuthIdentityDto[]>([]);
@@ -304,12 +305,24 @@ export function LoginMethodsPanel({
           onLinked?.(session.profile);
         }
       } catch (e) {
+        if (isConsentRequiredError(e)) {
+          openConsentBlock({
+            action: { type: 'google', idToken },
+            isNewUser: e.consentRequired?.isNewUser === true,
+            onSuccess: () => {
+              if (isSettings) {
+                void reload();
+              }
+            },
+          });
+          return;
+        }
         setError(e instanceof Error ? e.message : messageForAuthErrorCode('GOOGLE_TOKEN_INVALID'));
       } finally {
         setBusy(false);
       }
     },
-    [applySession, isSettings, onLinked, refreshProfile],
+    [applySession, isSettings, onLinked, openConsentBlock, refreshProfile, reload],
   );
 
   const handleLoginTelegram = useCallback(async () => {
@@ -408,11 +421,28 @@ export function LoginMethodsPanel({
         onLinked?.(session.profile);
       }
     } catch (e) {
+      if (isConsentRequiredError(e)) {
+        openConsentBlock({
+          action:
+            emailMode === 'register'
+              ? { type: 'email_register', email, password }
+              : { type: 'email_login', email, password },
+          isNewUser: e.consentRequired?.isNewUser === true,
+          onSuccess: () => {
+            if (emailMode === 'register') {
+              setEmailNotice(
+                `Мы отправили письмо на ${email.trim()}. Подтвердите email по ссылке из письма (проверьте «Спам»).`,
+              );
+            }
+          },
+        });
+        return;
+      }
       setError(e instanceof Error ? e.message : 'Ошибка email');
     } finally {
       setBusy(false);
     }
-  }, [applySession, email, emailMode, isSettings, onLinked, password, refreshProfile]);
+  }, [applySession, email, emailMode, isSettings, onLinked, openConsentBlock, password, refreshProfile]);
 
   const handleResendVerification = useCallback(async () => {
     setBusy(true);

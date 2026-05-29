@@ -4,6 +4,9 @@ import {
   BECOME_MASTER_PATH,
   BOOKING_PATH,
   HUB_PATH,
+  LEGAL_CONSENT_PATH,
+  LEGAL_CROSS_BORDER_PATH,
+  LEGAL_MASTER_TERMS_PATH,
   LEGAL_PD_CONSENT_PATH,
   LEGAL_PRIVACY_PATH,
   LEGAL_TERMS_PATH,
@@ -26,7 +29,9 @@ import { ClientLayout } from '../pages/client/ClientLayout';
 import { MastersCatalogPage } from '../pages/client/pages/MastersCatalogPage';
 import { ServiceCategoryPage } from '../pages/client/pages/ServiceCategoryPage';
 import { ServicesCatalogPage } from '../pages/client/pages/ServicesCatalogPage';
-import { PersonalDataConsentPage } from '../pages/legal/PersonalDataConsentPage';
+import { PersonalDataConsentLegacyRedirect, PersonalDataConsentPage } from '../pages/legal/PersonalDataConsentPage';
+import { CrossBorderConsentPage } from '../pages/legal/CrossBorderConsentPage';
+import { MasterTermsPage } from '../pages/legal/MasterTermsPage';
 import { PrivacyPolicyPage } from '../pages/legal/PrivacyPolicyPage';
 import { UserAgreementPage } from '../pages/legal/UserAgreementPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
@@ -106,7 +111,10 @@ export function AppRouter() {
         <Route path={BECOME_MASTER_PATH} element={<BecomeMasterPage />} />
         <Route path="/settings" element={<Navigate to={PROFILE_SETTINGS_PATH} replace />} />
         <Route path={LEGAL_PRIVACY_PATH} element={<PrivacyPolicyPage />} />
-        <Route path={LEGAL_PD_CONSENT_PATH} element={<PersonalDataConsentPage />} />
+        <Route path={LEGAL_CONSENT_PATH} element={<PersonalDataConsentPage />} />
+        <Route path={LEGAL_PD_CONSENT_PATH} element={<PersonalDataConsentLegacyRedirect />} />
+        <Route path={LEGAL_CROSS_BORDER_PATH} element={<CrossBorderConsentPage />} />
+        <Route path={LEGAL_MASTER_TERMS_PATH} element={<MasterTermsPage />} />
         <Route path={LEGAL_TERMS_PATH} element={<UserAgreementPage />} />
         <Route path="*" element={<Navigate to={HUB_PATH} replace />} />
       </Routes>

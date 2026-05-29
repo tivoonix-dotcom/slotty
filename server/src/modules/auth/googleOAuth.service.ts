@@ -176,12 +176,16 @@ export function buildClientOAuthDoneUrl(params: {
   token?: string;
   error?: string;
   returnPath?: string;
+  pendingToken?: string;
+  isNewUser?: string;
 }): string {
   const base = env.CLIENT_URL.replace(/\/$/, '');
   const url = new URL(`${base}/auth/google/done`);
   if (params.error) url.searchParams.set('error', params.error);
   if (params.purpose === 'link') url.searchParams.set('status', 'linked');
   if (params.returnPath?.startsWith('/')) url.searchParams.set('from', params.returnPath);
+  if (params.pendingToken) url.searchParams.set('pending', params.pendingToken);
+  if (params.isNewUser) url.searchParams.set('isNewUser', params.isNewUser);
   const hash = params.token ? `#token=${encodeURIComponent(params.token)}` : '';
   return `${url.toString()}${hash}`;
 }

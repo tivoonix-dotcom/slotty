@@ -11,6 +11,13 @@ import {
   isProfileSubstantial,
 } from './profileDuplicatePolicy.js';
 import { mergeLinkedProfileIntoTarget, pickMergedAvatarUrl } from './accountProfileMerge.service.js';
+import {
+  gateExistingProfileConsents,
+  prepareNewUserConsents,
+  saveNewUserConsentsInTx,
+  type AuthConsentGateOptions,
+} from './authConsent.service.js';
+import { reassignProfileConsentsToCanonical } from '../legal/legal.service.js';
 import { fetchTelegramUserPortraitUrl } from '../telegram/telegramPortrait.api.js';
 import { resolveStablePortraitUrl } from '../../lib/mirrorPortraitToStorage.js';
 import { pickPortraitUrlOnTelegramSync } from '../../lib/profileAvatarUrlPolicy.js';
@@ -371,6 +378,8 @@ async function consolidateProfileIdentitiesToCanonical(
       providerUserId: `${CANONICAL_PROFILE_ALIAS_PREFIX}${canonicalId}`,
       email: null,
     });
+
+    await reassignProfileConsentsToCanonical(canonicalId, staleProfileId);
   });
 }
 
@@ -415,7 +424,11 @@ async function collectTelegramLoginCandidateProfileIds(
 }
 
 /** Login or register via Telegram initData (standalone, not linking). */
-export async function loginOrRegisterWithTelegram(user: TelegramWebAppUser, fullName: string) {
+export async function loginOrRegisterWithTelegram(
+  user: TelegramWebAppUser,
+  fullName: string,
+  consentGate?: AuthConsentGateOptions,
+) {
   const providerUserId = String(user.id);
   const candidates = await collectTelegramLoginCandidateProfileIds(user);
   const preferredProfileId = await pickPreferredProfileIdAmong(candidates, {
@@ -423,6 +436,11 @@ export async function loginOrRegisterWithTelegram(user: TelegramWebAppUser, full
   });
 
   if (preferredProfileId) {
+    await gateExistingProfileConsents(preferredProfileId, {
+      consents: consentGate?.consents,
+      meta: consentGate?.meta ?? { source: 'telegram' },
+    });
+
     for (const otherId of candidates) {
       if (otherId === preferredProfileId) continue;
       await mergeLinkedProfileIntoTarget(preferredProfileId, otherId);
@@ -448,6 +466,12 @@ export async function loginOrRegisterWithTelegram(user: TelegramWebAppUser, full
     return issueSessionForProfile(preferredProfileId);
   }
 
+  const consentMeta = consentGate?.meta ?? { source: 'telegram' as const };
+  const validatedConsents = await prepareNewUserConsents({
+    consents: consentGate?.consents,
+    meta: consentMeta,
+  });
+
   const profileId = await withTransaction(async (client) => {
     const id = await createProfileRow(client, {
       fullName,
@@ -462,6 +486,7 @@ export async function loginOrRegisterWithTelegram(user: TelegramWebAppUser, full
       email: null,
     });
     await syncTelegramProfileColumns(client, id, user, fullName);
+    await saveNewUserConsentsInTx(client, id, validatedConsents, consentMeta);
     return id;
   });
 
@@ -522,7 +547,10 @@ export async function linkTelegramToProfile(profileId: string, user: TelegramWeb
   return listAuthIdentitiesForProfile(profileId);
 }
 
-export async function loginOrRegisterWithGoogle(payload: GoogleIdTokenPayload) {
+export async function loginOrRegisterWithGoogle(
+  payload: GoogleIdTokenPayload,
+  consentGate?: AuthConsentGateOptions,
+) {
   const providerUserId = payload.sub;
   const candidates = await collectGoogleLoginCandidateProfileIds(payload);
   let preferredProfileId = await pickPreferredProfileIdAmong(candidates, {
@@ -572,6 +600,11 @@ export async function loginOrRegisterWithGoogle(payload: GoogleIdTokenPayload) {
   }
 
   if (preferredProfileId) {
+    await gateExistingProfileConsents(preferredProfileId, {
+      consents: consentGate?.consents,
+      meta: consentGate?.meta ?? { source: 'google' },
+    });
+
     for (const otherId of candidates) {
       if (otherId === preferredProfileId) continue;
       await mergeLinkedProfileIntoTarget(preferredProfileId, otherId);
@@ -628,6 +661,12 @@ export async function loginOrRegisterWithGoogle(payload: GoogleIdTokenPayload) {
   }
 
   const displayName = payload.name?.trim() || payload.email?.split('@')[0] || 'Google user';
+  const consentMeta = consentGate?.meta ?? { source: 'google' as const };
+  const validatedConsents = await prepareNewUserConsents({
+    consents: consentGate?.consents,
+    meta: consentMeta,
+  });
+
   const profileId = await withTransaction(async (client) => {
     const id = await createProfileRow(client, {
       fullName: displayName,
@@ -639,6 +678,7 @@ export async function loginOrRegisterWithGoogle(payload: GoogleIdTokenPayload) {
       providerUserId,
       email: payload.email ?? null,
     });
+    await saveNewUserConsentsInTx(client, id, validatedConsents, consentMeta);
     return id;
   });
 
@@ -885,7 +925,11 @@ async function assignEmailIdentityToProfile(
 }
 
 /** Login only: verify password and open the preferred (Google/master) account when email is shared. */
-export async function loginWithEmailIdentity(emailRaw: string, password: string) {
+export async function loginWithEmailIdentity(
+  emailRaw: string,
+  password: string,
+  consentGate?: AuthConsentGateOptions,
+) {
   const email = normalizeAuthEmail(emailRaw);
   const matchingProfileIds = await findProfileIdsMatchingEmail(email);
   const preferredProfileId = await pickPreferredProfileIdForEmail(matchingProfileIds);
@@ -903,6 +947,10 @@ export async function loginWithEmailIdentity(emailRaw: string, password: string)
         await assignEmailIdentityToProfile(client, targetProfileId, email, credentialHash);
       });
     }
+    await gateExistingProfileConsents(targetProfileId, {
+      consents: consentGate?.consents,
+      meta: consentGate?.meta ?? { source: 'email' },
+    });
     return issueSessionForProfile(targetProfileId);
   }
 
@@ -921,7 +969,11 @@ export async function loginWithEmailIdentity(emailRaw: string, password: string)
 }
 
 /** Register only: attach email+password to an existing Google/master profile or create a new one. */
-export async function registerWithEmailIdentity(emailRaw: string, password: string) {
+export async function registerWithEmailIdentity(
+  emailRaw: string,
+  password: string,
+  consentGate?: AuthConsentGateOptions,
+) {
   const email = normalizeAuthEmail(emailRaw);
   const matchingProfileIds = await findProfileIdsMatchingEmail(email);
   const preferredProfileId = await pickPreferredProfileIdForEmail(matchingProfileIds);
@@ -936,6 +988,10 @@ export async function registerWithEmailIdentity(emailRaw: string, password: stri
     await withTransaction(async (client) => {
       await assignEmailIdentityToProfile(client, preferredProfileId, email, hash);
     });
+    await gateExistingProfileConsents(preferredProfileId, {
+      consents: consentGate?.consents,
+      meta: consentGate?.meta ?? { source: 'email' },
+    });
     const session = await issueSessionForProfile(preferredProfileId);
     return { session, isNewRegistration: true as const };
   }
@@ -947,9 +1003,16 @@ export async function registerWithEmailIdentity(emailRaw: string, password: stri
 
   const hash = await hashEmailPassword(password);
   const displayName = email.split('@')[0] || 'User';
+  const consentMeta = consentGate?.meta ?? { source: 'email' as const };
+  const validatedConsents = await prepareNewUserConsents({
+    consents: consentGate?.consents,
+    meta: consentMeta,
+  });
+
   const profileId = await withTransaction(async (client) => {
     const id = await createProfileRow(client, { fullName: displayName });
     await assignEmailIdentityToProfile(client, id, email, hash);
+    await saveNewUserConsentsInTx(client, id, validatedConsents, consentMeta);
     return id;
   });
 

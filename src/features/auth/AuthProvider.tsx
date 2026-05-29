@@ -14,6 +14,20 @@ import {
   preloadFavoriteMasterIds,
   syncLocalFavoritesToServer,
 } from '../profile/lib/favoriteMastersResolve';
+import {
+  completeGoogleLoginPending,
+  loginWithEmail,
+  loginWithGoogle,
+  loginWithTelegram,
+  registerWithEmail,
+} from './api/authApi';
+import { ConsentGateScreen } from '../legal/components/ConsentGateScreen';
+import {
+  acceptConsentsAuthenticated,
+  readApiErrorWithConsent,
+  type ConsentAcceptancePayload,
+} from '../legal/api/legalApi';
+import type { ConsentBlockState } from '../legal/consentBlock.types';
 import { apiFetch, getApiBaseUrl, getStoredAuthToken, setStoredAuthToken } from '../../shared/api/backendClient';
 import { useTelegram } from '../../shared/hooks/useTelegram';
 import { readTelegramUserIdFromInitDataRaw } from '../../shared/lib/telegramWebApp';
@@ -26,9 +40,11 @@ type AuthContextValue = {
   isLoading: boolean;
   isAuthenticated: boolean;
   backendConfigured: boolean;
+  consentBlocked: boolean;
   refreshProfile: () => Promise<void>;
   applySession: (session: AuthSessionResponse) => void;
   logout: () => void;
+  openConsentBlock: (state: ConsentBlockState) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -38,9 +54,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<BackendProfile | null>(null);
   const [token, setToken] = useState<string | null>(() => getStoredAuthToken());
   const [sessionLoading, setSessionLoading] = useState(false);
+  const [consentBlock, setConsentBlock] = useState<ConsentBlockState | null>(null);
+  const [consentBusy, setConsentBusy] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
 
   const isLoading = !isReady || sessionLoading;
   const backendConfigured = Boolean(getApiBaseUrl());
+  const consentBlocked =
+    Boolean(consentBlock) || Boolean(profile && profile.consent_status?.satisfied === false);
 
   const logout = useCallback(() => {
     clearAdminCabinetSessionCache();
@@ -48,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStoredAuthToken(null);
     setToken(null);
     setProfile(null);
+    setConsentBlock(null);
   }, []);
 
   const applySession = useCallback((session: AuthSessionResponse) => {
@@ -56,19 +78,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStoredAuthToken(session.token);
     setToken(session.token);
     setProfile(session.profile);
+    setConsentBlock(null);
     void syncLocalFavoritesToServer().then(() => preloadFavoriteMasterIds());
   }, []);
 
   const applyMePayload = useCallback((payload: BackendProfile) => {
     const refresh = sessionRefreshToken(payload);
-    const profile = normalizeBackendProfile(payload);
+    const nextProfile = normalizeBackendProfile(payload);
     if (refresh) {
       clearAdminCabinetSessionCache();
       clearOverviewBundleCache();
       setStoredAuthToken(refresh);
       setToken(refresh);
     }
-    setProfile(profile);
+    setProfile(nextProfile);
+    if (nextProfile.consent_status?.satisfied === false && getStoredAuthToken()) {
+      setConsentBlock((prev) =>
+        prev ??
+        ({
+          action: { type: 'accept_only' },
+          isNewUser: false,
+        } satisfies ConsentBlockState),
+      );
+    }
+  }, []);
+
+  const openConsentBlock = useCallback((state: ConsentBlockState) => {
+    setConsentError(null);
+    setConsentBlock(state);
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -93,6 +130,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* keep previous profile if any */
     }
   }, [logout, applyMePayload]);
+
+  const submitConsents = useCallback(
+    async (consents: ConsentAcceptancePayload[]) => {
+      if (!consentBlock) return;
+      setConsentBusy(true);
+      setConsentError(null);
+      try {
+        const { action, onSuccess } = consentBlock;
+        if (action.type === 'accept_only') {
+          await acceptConsentsAuthenticated(consents);
+          await refreshProfile();
+          setConsentBlock(null);
+          onSuccess?.();
+          return;
+        }
+        if (action.type === 'telegram') {
+          const session = await loginWithTelegram(action.initDataRaw, { consents });
+          applySession(session);
+          onSuccess?.();
+          return;
+        }
+        if (action.type === 'google') {
+          const session = await loginWithGoogle(action.idToken, { consents });
+          applySession(session);
+          onSuccess?.();
+          return;
+        }
+        if (action.type === 'google_pending') {
+          const session = await completeGoogleLoginPending(action.pendingToken, consents);
+          applySession(session);
+          onSuccess?.();
+          return;
+        }
+        if (action.type === 'email_login') {
+          const session = await loginWithEmail(action.email, action.password, { consents });
+          applySession(session);
+          onSuccess?.();
+          return;
+        }
+        if (action.type === 'email_register') {
+          const session = await registerWithEmail(action.email, action.password, { consents });
+          applySession(session);
+          onSuccess?.();
+        }
+      } catch (e) {
+        setConsentError(e instanceof Error ? e.message : 'Не удалось сохранить согласия');
+      } finally {
+        setConsentBusy(false);
+      }
+    },
+    [consentBlock, applySession, refreshProfile],
+  );
 
   useEffect(() => {
     if (!isReady) {
@@ -140,7 +229,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // Автовход в Telegram Web App: без JWT или JWT от другого аккаунта (например Google в браузере).
         if (initDataRaw && isTelegramWebApp) {
           const res = await apiFetch('/api/auth/telegram', {
             method: 'POST',
@@ -148,6 +236,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             body: JSON.stringify({ initDataRaw }),
           });
           if (!res.ok) {
+            const parsed = await readApiErrorWithConsent(res);
+            if (parsed.consentRequired) {
+              if (!cancelled) {
+                setStoredAuthToken(null);
+                setToken(null);
+                setProfile(null);
+                openConsentBlock({
+                  action: { type: 'telegram', initDataRaw },
+                  isNewUser: parsed.consentRequired.isNewUser === true,
+                });
+              }
+              return;
+            }
             if (!cancelled) {
               setStoredAuthToken(null);
               setToken(null);
@@ -160,6 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!cancelled) {
             setToken(data.token);
             setProfile(data.profile);
+            setConsentBlock(null);
           }
           await syncLocalFavoritesToServer();
           preloadFavoriteMasterIds();
@@ -186,7 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isReady, initDataRaw, isTelegramWebApp, applyMePayload]);
+  }, [isReady, initDataRaw, isTelegramWebApp, applyMePayload, openConsentBlock]);
 
   useEffect(() => {
     syncMasterFlagFromProfile(profile ?? undefined);
@@ -197,16 +299,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       token,
       isLoading,
-      isAuthenticated: Boolean(profile),
+      isAuthenticated: Boolean(profile) && !consentBlocked,
+      backendConfigured,
+      consentBlocked,
+      refreshProfile,
+      applySession,
+      logout,
+      openConsentBlock,
+    }),
+    [
+      profile,
+      token,
+      isLoading,
+      consentBlocked,
       backendConfigured,
       refreshProfile,
       applySession,
       logout,
-    }),
-    [profile, token, isLoading, backendConfigured, refreshProfile, applySession, logout],
+      openConsentBlock,
+    ],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {consentBlock ? (
+        <ConsentGateScreen busy={consentBusy} error={consentError} onSubmit={submitConsents} />
+      ) : null}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

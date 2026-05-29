@@ -21,7 +21,7 @@ function readTokenFromLocation(): string | null {
 export function GoogleOAuthDonePage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, openConsentBlock } = useAuth();
   const [message, setMessage] = useState('Завершаем вход…');
   const [linked, setLinked] = useState(false);
 
@@ -30,6 +30,8 @@ export function GoogleOAuthDonePage() {
     const error = params.get('error');
     const status = params.get('status');
     const from = params.get('from') ?? undefined;
+    const pending = params.get('pending')?.trim();
+    const isNewUser = params.get('isNewUser') === '1';
 
     if (status === 'linked') {
       setLinked(!error);
@@ -38,6 +40,15 @@ export function GoogleOAuthDonePage() {
           ? messageForAuthErrorCode(error, 'Не удалось привязать Google.')
           : 'Google привязан. Вернитесь в Telegram и нажмите «Обновить» в «Способы входа».',
       );
+      return;
+    }
+
+    if (error === 'CONSENT_REQUIRED' && pending) {
+      openConsentBlock({
+        action: { type: 'google_pending', pendingToken: pending },
+        isNewUser,
+      });
+      setMessage('Примите документы, чтобы завершить вход через Google.');
       return;
     }
 
@@ -71,7 +82,7 @@ export function GoogleOAuthDonePage() {
         setMessage('Токен получен, но не удалось загрузить профиль. Откройте главную страницу.');
       }
     })()
-  }, [location.search, navigate, refreshProfile]);
+  }, [location.search, navigate, openConsentBlock, refreshProfile]);
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12 text-center">

@@ -10,6 +10,7 @@ import {
   resolveCanonicalProfileId,
 } from '../auth/authIdentities.service.js';
 import { getProfileById, syncMasterCabinetFromUserProfile, updateProfile } from './profiles.service.js';
+import { getConsentStatusForProfile } from '../legal/legal.service.js';
 import { uploadProfileAvatar } from './profiles.storage.js';
 import { normalizeBelarusPhone } from './belarusPhone.js';
 
@@ -43,10 +44,17 @@ profilesRouter.get(
     const canonicalId = await resolveCanonicalProfileId(tokenProfileId);
     if (canonicalId !== tokenProfileId) {
       const session = await issueSessionForProfile(tokenProfileId);
-      res.json({ ...session.profile, session_refresh: { token: session.token } });
+      const consentStatus = await getConsentStatusForProfile(session.profile.id);
+      res.json({
+        ...session.profile,
+        session_refresh: { token: session.token },
+        consent_status: consentStatus,
+      });
       return;
     }
-    res.json(await getProfileById(tokenProfileId));
+    const profile = await getProfileById(tokenProfileId);
+    const consentStatus = await getConsentStatusForProfile(tokenProfileId);
+    res.json({ ...profile, consent_status: consentStatus });
   }),
 );
 
