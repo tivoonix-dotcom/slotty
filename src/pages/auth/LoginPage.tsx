@@ -36,9 +36,7 @@ export function LoginPage() {
       <h1 className={AUTH_TITLE_CLASS}>Войти</h1>
       <p className={AUTH_SUBTITLE_CLASS}>Email, Google или Telegram — как вам удобнее.</p>
 
-      <div className="mt-4">
-        <LoginAccountHint />
-      </div>
+      <LoginAccountHint />
 
       <div className="mt-8 min-h-[28rem]">
         <LoginMethodsPanel mode="login" appearance="page" onLinked={onLinked} />

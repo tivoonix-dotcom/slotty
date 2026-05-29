@@ -628,13 +628,7 @@ export function LoginMethodsPanel({
             'Telegram',
           )}
 
-          {!initDataRaw || !isTelegramWebApp ? (
-            <p className="text-center text-[12px] leading-relaxed text-[#9CA3AF]">
-              {isMasterAuth
-                ? 'Откроется Telegram → бот SLOTTY. Новый аккаунт создаётся автоматически.'
-                : 'Откроется Telegram → бот SLOTTY → кнопка «Открыть SLOTTY».'}
-            </p>
-          ) : null}
+
         </div>
       </div>
     );

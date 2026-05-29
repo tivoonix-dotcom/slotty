@@ -53,9 +53,7 @@ export function MasterLoginPage() {
       <h1 className={`mt-6 lg:mt-0 ${AUTH_TITLE_CLASS}`}>Войдите в кабинет мастера</h1>
       <p className={AUTH_SUBTITLE_CLASS}>Google, Telegram или email — выберите удобный способ.</p>
 
-      <div className="mt-4">
-        <LoginAccountHint />
-      </div>
+      <LoginAccountHint />
 
       <div className={`mt-8 min-h-[20rem] lg:min-h-[28rem] ${AUTH_FORM_PANEL_CLASS}`}>
         <LoginMethodsPanel mode="login" appearance="page" authIntent="master-login" onLinked={onLinked} />

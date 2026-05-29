@@ -55,9 +55,7 @@ export function MasterRegisterPage() {
         Сначала создайте аккаунт — затем заполните анкету и откройте запись для клиентов.
       </p>
 
-      <div className="mt-4">
-        <LoginAccountHint />
-      </div>
+      <LoginAccountHint />
 
       <div className={`mt-8 min-h-[20rem] lg:min-h-[28rem] ${AUTH_FORM_PANEL_CLASS}`}>
         <LoginMethodsPanel mode="login" appearance="page" authIntent="master-register" onLinked={onLinked} />
