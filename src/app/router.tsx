@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import {
   ADMIN_PATH,
   BECOME_MASTER_PATH,
@@ -80,10 +80,9 @@ export {
   SERVICES_PATH,
 } from './paths';
 
-export function AppRouter() {
+export function AppRoutes() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <Routes>
         <Route path="/" element={<Navigate to={HUB_PATH} replace />} />
         <Route path={HUB_PATH} element={<Home />} />
         <Route element={<ClientLayout />}>
@@ -117,7 +116,6 @@ export function AppRouter() {
         <Route path={LEGAL_MASTER_TERMS_PATH} element={<MasterTermsPage />} />
         <Route path={LEGAL_TERMS_PATH} element={<UserAgreementPage />} />
         <Route path="*" element={<Navigate to={HUB_PATH} replace />} />
-      </Routes>
-    </BrowserRouter>
+    </Routes>
   );
 }

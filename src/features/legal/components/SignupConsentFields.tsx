@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import {
   LEGAL_DOCUMENT_VERSION,
   SIGNUP_CONSENT_CHECKBOXES,
@@ -38,15 +37,15 @@ export function SignupConsentFields({ checked, onToggle, disabled = false, compa
             />
             <span className={`leading-snug text-[#374151] ${compact ? 'text-[13px]' : 'text-[14px]'}`}>
               {item.textBefore}
-              <Link
-                to={item.path}
+              <a
+                href={item.path}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-semibold text-[#E29595] underline-offset-2 hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 {item.linkLabel}
-              </Link>
+              </a>
               {item.textAfter}
             </span>
           </label>
