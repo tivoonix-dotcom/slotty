@@ -10,11 +10,11 @@ import {
   settingsRowIcon,
 } from './adminSettingsTheme';
 
-export function SettingsHelpHero() {
+export function SettingsHelpHero({ children }: { children: ReactNode }) {
   return (
     <section
       className={`relative overflow-hidden ${settingsHelpHeroBleed}`}
-      aria-labelledby="settings-help-hero-heading"
+      aria-label="Поддержка"
     >
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center"
@@ -22,20 +22,13 @@ export function SettingsHelpHero() {
         aria-hidden
       />
       <div className="pointer-events-none absolute inset-0 bg-black/42" aria-hidden />
-      <div className="relative px-4 py-7 sm:px-5 sm:py-8 lg:px-6 lg:py-9">
-        <h2
-          id="settings-help-hero-heading"
-          className="text-[22px] font-black tracking-[-0.04em] text-white lg:text-[26px]"
-        >
-          Справка
-        </h2>
-        <p className="mt-2 max-w-md text-[14px] font-semibold leading-snug text-white/88 sm:text-[15px]">
-          Telegram, почта и юридические документы SLOTTY
-        </p>
-      </div>
+      <div className="relative px-4 py-6 sm:px-5 sm:py-7 lg:px-6 lg:py-8">{children}</div>
     </section>
   );
 }
+
+export const settingsHelpHeroSectionLabel =
+  'text-[11px] font-bold uppercase tracking-[0.1em] text-white/70';
 
 export function SettingsBackButton({ onClick, label = 'Назад' }: { onClick: () => void; label?: string }) {
   return (

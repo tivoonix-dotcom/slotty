@@ -17,6 +17,7 @@ import {
   SettingsBackButton,
   SettingsContactCard,
   SettingsDocCard,
+  settingsHelpHeroSectionLabel,
   SettingsHelpHero,
   SettingsLegalReader,
   TelegramSupportIcon,
@@ -40,29 +41,28 @@ export function SettingsHelpSection() {
 
   return (
     <section className="min-w-0">
-      <SettingsHelpHero />
-      <div className={`${settingsPanel} pt-6 sm:pt-7`}>
-        <div className="space-y-3">
-          <p className={settingsSectionLabel}>Поддержка</p>
-          <div className={`${settingsListTray} ${settingsListDivide}`}>
-            <SettingsContactCard
-              tone="telegram"
-              icon={<TelegramSupportIcon />}
-              title="Telegram"
-              value={SUPPORT_TELEGRAM}
-              href={tgUrl}
-              external
-            />
-            <SettingsContactCard
-              tone="email"
-              icon={<EmailSupportIcon />}
-              title="Email"
-              value={SUPPORT_EMAIL}
-              href={emailReady ? `mailto:${SUPPORT_EMAIL}` : null}
-            />
-          </div>
+      <SettingsHelpHero>
+        <p className={settingsHelpHeroSectionLabel}>Поддержка</p>
+        <div className={`mt-3 ${settingsListTray} ${settingsListDivide}`}>
+          <SettingsContactCard
+            tone="telegram"
+            icon={<TelegramSupportIcon />}
+            title="Telegram"
+            value={SUPPORT_TELEGRAM}
+            href={tgUrl}
+            external
+          />
+          <SettingsContactCard
+            tone="email"
+            icon={<EmailSupportIcon />}
+            title="Email"
+            value={SUPPORT_EMAIL}
+            href={emailReady ? `mailto:${SUPPORT_EMAIL}` : null}
+          />
         </div>
+      </SettingsHelpHero>
 
+      <div className={`${settingsPanel} pt-6 sm:pt-7`}>
         <div className="space-y-3">
           <p className={settingsSectionLabel}>Документы</p>
           <div className={`${settingsListTray} ${settingsListDivide}`}>
