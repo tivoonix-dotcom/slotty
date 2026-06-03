@@ -62,17 +62,15 @@ export function servicesProUpsellCopy(variant: ServicesProUpsellVariant) {
   if (variant === 'bundles') {
     return {
       ...base,
-      exampleTitle: 'Примеры карточек',
-      exampleNote:
-        'Демонстрационные наборы ниже не сохраняются в кабинете и не показываются клиентам.',
-      fabLabel: 'Тарифы',
+      exampleTitle: 'Пример набора',
+      exampleNote: 'Ниже — один пример карточки. С Pro вы создадите свои наборы.',
+      fabLabel: 'Подключить Pro',
     };
   }
   return {
     ...base,
-    exampleTitle: 'Примеры баннеров',
-    exampleNote:
-      'Демонстрационные акции ниже не сохраняются в кабинете и не показываются клиентам.',
-    fabLabel: 'Тарифы',
+    exampleTitle: 'Пример акции',
+    exampleNote: 'Ниже — один пример баннера. С Pro вы создадите свои акции.',
+    fabLabel: 'Подключить Pro',
   };
 }

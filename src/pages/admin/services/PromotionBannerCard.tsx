@@ -123,8 +123,8 @@ export function PromotionBannerCard({ promo, onMenu, className = '', examplePrev
         ) : null}
 
         {examplePreview ? (
-          <p className="mt-2 text-[12px] font-semibold italic text-[#9CA3AF]">
-            Даты публикации задаются при создании своей акции
+          <p className="mt-2 text-[12px] font-semibold text-[#9CA3AF]">
+            Сроки и условия задаёте при создании своей акции в Pro
           </p>
         ) : (
           <p className="mt-2 flex items-center gap-1 text-[12px] font-semibold text-[#9CA3AF]">

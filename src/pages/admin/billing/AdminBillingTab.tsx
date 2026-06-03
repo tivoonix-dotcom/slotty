@@ -26,15 +26,12 @@ import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { BillingDesktopHero } from './BillingDesktopHero';
 import { LANDING_MASTER_PRO_FEATURES } from '../../../features/billing/ui/landingTariffCards';
 import { BillingMobileHeader } from './BillingMobileHeader';
-import { BillingPeriodSwitch } from './BillingPeriodSwitch';
-import { BillingPlanCards } from './BillingPlanCards';
-import { BillingUsagePanel } from './BillingUsagePanel';
-import { ProManualPaymentSheet } from './ProManualPaymentSheet';
+import { BillingPlansSection } from './BillingPlansSection';
+import { ProBePaidPaymentSheet } from './ProBePaidPaymentSheet';
 import { getProManualPaymentState } from '../../../features/billing/api/proPaymentRequestApi';
 import { isDevDemoAllowed } from '../../../shared/lib/appMode';
 import {
   billingErrorBanner,
-  billingListTray,
   billingOutlineBtn,
   billingPinkBtn,
   billingShellCard,
@@ -275,33 +272,6 @@ export function AdminBillingTab() {
 
   const proPriceParts = splitPlanPrice(proPriceLine);
 
-  const proHorizonDays =
-    useLiveBilling && apiPlans
-      ? (apiPlans.find((p) => p.code === 'pro')?.maxScheduleDaysAhead ?? limits.scheduleHorizonDays)
-      : getPlanLimits('pro').scheduleHorizonDays;
-
-  const freePlanFeatures = useMemo(
-    () => [
-      'Профиль в каталоге',
-      `До ${maxSvc} услуг`,
-      `До ${maxAppt} записей в месяц`,
-      `График на ${limits.scheduleHorizonDays} дней`,
-      'Заявки и записи',
-    ],
-    [maxAppt, maxSvc, limits.scheduleHorizonDays],
-  );
-
-  const proPlanFeatures = useMemo(
-    () => [
-      'Безлимит услуг и записей',
-      `График на ${proHorizonDays} дней`,
-      'Акции и наборы услуг',
-      'Расширенная аналитика',
-      'Приоритет в поиске',
-    ],
-    [proHorizonDays],
-  );
-
   const statusBanners = (
     <>
       {apiLoading || (useCabinetApi && cabinetLoading) ? (
@@ -322,23 +292,6 @@ export function AdminBillingTab() {
     </>
   );
 
-  const periodTray = (
-    <div className={`${billingListTray} py-3.5`}>
-      <BillingPeriodSwitch period={billingPeriodView} onPeriod={persistPeriod} />
-    </div>
-  );
-
-  const usageBlock = (
-    <BillingUsagePanel
-      plan={planStateView.plan}
-      servicesLen={servicesLen}
-      maxSvc={maxSvc}
-      monthlyCount={monthlyCount}
-      maxAppt={maxAppt}
-      scheduleHorizonDays={limits.scheduleHorizonDays}
-    />
-  );
-
   const freeActive = planStateView.plan === 'free';
   const proActive = planStateView.plan === 'pro';
   const freePriceValue = freePriceLine.split(' / ')[0] ?? freePriceLine;
@@ -350,16 +303,39 @@ export function AdminBillingTab() {
         ? ` / ${proPriceParts.unit}`
         : '/ месяц';
 
-  const planCards = (
-    <BillingPlanCards
+  const demoNote = !isPro && !useLiveBilling ? (
+    <p className={billingSoftNote}>
+      Оплата картой появится позже. Сейчас Pro можно активировать в demo-режиме для проверки кабинета.
+    </p>
+  ) : null;
+
+  const plansSection = (
+    <BillingPlansSection
+      plan={planStateView.plan}
+      billingPeriod={billingPeriodView}
+      onPeriodChange={persistPeriod}
+      servicesLen={servicesLen}
+      maxSvc={maxSvc}
+      monthlyCount={monthlyCount}
+      maxAppt={maxAppt}
+      scheduleHorizonDays={limits.scheduleHorizonDays}
       freePriceValue={freePriceValue}
       freePriceUnit={freePriceUnit}
       proPriceValue={proPriceParts.value}
       proPriceUnit={proPriceUnit}
-      freeFeatures={freePlanFeatures}
-      proFeatures={proPlanFeatures}
       freeActive={freeActive}
       proActive={proActive}
+      useLiveBilling={useLiveBilling}
+      showPaymentLogos
+      proPaymentPendingBanner={
+        useLiveBilling && proPaymentPending && !isPro ? (
+          <p className="rounded-[18px] bg-[#FFFBEB] px-4 py-3 text-[14px] font-semibold text-[#92400E] ring-1 ring-[#FDE68A]">
+            Заявка на проверке. Мы проверяем оплату и активируем Pro после подтверждения.
+          </p>
+        ) : null
+      }
+      liveBillingNote={null}
+      demoNote={demoNote}
       onSelectFree={() => void applyPlan('free')}
       onSelectPro={() => {
         if (useLiveBilling) {
@@ -370,24 +346,6 @@ export function AdminBillingTab() {
     />
   );
 
-  const demoNote = !isPro && !useLiveBilling ? (
-    <p className={billingSoftNote}>
-      Оплата картой появится позже. Сейчас Pro можно активировать в demo-режиме для проверки кабинета.
-    </p>
-  ) : null;
-
-  const proPaymentPendingBanner = useLiveBilling && proPaymentPending && !isPro ? (
-    <p className="rounded-[18px] bg-[#FFFBEB] px-4 py-3 text-[14px] font-semibold text-[#92400E] ring-1 ring-[#FDE68A]">
-      Заявка на проверке. Мы проверяем оплату и активируем Pro после подтверждения.
-    </p>
-  ) : null;
-
-  const liveBillingNote = useLiveBilling && !isPro && !proPaymentPending ? (
-    <p className={billingSoftNote}>
-      Pro можно оплатить картой через bePaid или по реквизитам с заявкой на проверку.
-    </p>
-  ) : null;
-
   return (
     <>
       <section className={`-mx-4 min-w-0 space-y-3 overflow-x-hidden px-4 pb-8 lg:hidden ${BILLING_PAGE_BG}`}>
@@ -395,17 +353,13 @@ export function AdminBillingTab() {
         {statusBanners}
         {!apiLoading && !(useCabinetApi && cabinetLoading) ? (
           <>
-            {periodTray}
-            {usageBlock}
-            {proPaymentPendingBanner}
-            {liveBillingNote}
             {demoNote}
-            {planCards}
+            <div className="lg:hidden">{plansSection}</div>
           </>
         ) : null}
       </section>
 
-      <div className={`${billingShellCard} space-y-4`}>
+      <div className={`${billingShellCard} w-full min-w-0 space-y-4`}>
         <BillingDesktopHero
           plan={planStateView.plan}
           period={billingPeriodView}
@@ -414,17 +368,10 @@ export function AdminBillingTab() {
           scheduleDays={limits.scheduleHorizonDays}
           isPro={isPro}
         />
-        <div className="space-y-3 px-4 pb-6 sm:px-5">
+        <div className="w-full min-w-0 space-y-4 pb-6">
           {statusBanners}
           {!apiLoading && !(useCabinetApi && cabinetLoading) ? (
-            <>
-              {periodTray}
-              {usageBlock}
-              {proPaymentPendingBanner}
-              {liveBillingNote}
-              {demoNote}
-              {planCards}
-            </>
+            <div className="hidden w-full min-w-0 lg:block">{plansSection}</div>
           ) : null}
         </div>
       </div>
@@ -436,16 +383,13 @@ export function AdminBillingTab() {
         variant="catalog"
       >
         {useLiveBilling ? (
-          <ProManualPaymentSheet
+          <ProBePaidPaymentSheet
             billingPeriod={billingPeriodView}
+            amountLabel={proPriceLine}
             subscription={apiSub ?? null}
             showMockDemo={isDevDemoAllowed()}
             onBack={() => setMockProOpen(false)}
             onMockDemo={() => confirmMock()}
-            onSubmitted={() => {
-              setProPaymentPending(true);
-              showToast('Заявка отправлена на проверку');
-            }}
           />
         ) : (
           <MockPaymentBody

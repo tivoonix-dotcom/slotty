@@ -23,6 +23,8 @@ type Props = {
   monthlyCount: number;
   maxAppt: number;
   scheduleHorizonDays: number;
+  /** Внутри блока Pro без отдельной «карточки». */
+  variant?: 'panel' | 'compact';
 };
 
 export function BillingUsagePanel({
@@ -32,11 +34,13 @@ export function BillingUsagePanel({
   monthlyCount,
   maxAppt,
   scheduleHorizonDays,
+  variant = 'panel',
 }: Props) {
   const isFree = plan === 'free';
+  const isCompact = variant === 'compact';
 
-  return (
-    <section className={`${billingPanel} py-3.5 sm:p-4`}>
+  const inner = (
+    <>
       <p className={billingTrayLabel}>{isFree ? 'Использование на Free' : 'Ваш Pro'}</p>
 
       {isFree ? (
@@ -68,6 +72,12 @@ export function BillingUsagePanel({
           <UsageRow label="График работы" value={`${scheduleHorizonDays} дней`} />
         </div>
       )}
-    </section>
+    </>
   );
+
+  if (isCompact) {
+    return <div className="w-full min-w-0">{inner}</div>;
+  }
+
+  return <section className={`${billingPanel} w-full min-w-0 py-3.5 sm:p-4`}>{inner}</section>;
 }

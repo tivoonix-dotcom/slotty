@@ -238,6 +238,7 @@ function BundlesHero({ metrics }: { metrics: ServicesTabMetrics['bundles'] }) {
 function ProLockedExtrasHero({ tab }: { tab: 'bundles' | 'promotions' }) {
   const isPromos = tab === 'promotions';
   const copy = servicesProUpsellCopy(tab);
+  const badge = isPromos ? 'Акции' : 'Наборы услуг';
 
   return (
     <HeroShell
@@ -245,14 +246,16 @@ function ProLockedExtrasHero({ tab }: { tab: 'bundles' | 'promotions' }) {
         <section className="bg-[#F6F7FB] p-5 lg:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <p className="inline-flex items-center gap-2 text-[12px] font-bold text-[#6B7280]">
+              <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[12px] font-bold text-[#6B7280] ring-1 ring-[#E5E7EB]">
                 <HiLockClosed className="h-4 w-4 text-[#ff5f7a]" aria-hidden />
-                {copy.title}
+                {badge} · только с {MASTER_PRO_PLAN_NAME}
               </p>
-              <p className="mt-3 text-[15px] font-semibold leading-relaxed text-[#6B7280] lg:max-w-[40rem]">
+              <p className="mt-4 text-[22px] font-black tracking-[-0.04em] text-[#111827] lg:text-[28px]">
+                Сейчас на тарифе Free
+              </p>
+              <p className="mt-2 max-w-[36rem] text-[15px] font-semibold leading-relaxed text-[#6B7280]">
                 {copy.lead}
               </p>
-              <p className="mt-2 text-[13px] font-medium text-[#9CA3AF]">{copy.exampleNote}</p>
             </div>
             <Link
               to={ADMIN_BILLING_PATH}
@@ -267,30 +270,23 @@ function ProLockedExtrasHero({ tab }: { tab: 'bundles' | 'promotions' }) {
       <OverviewKpiCarousel>
         <OverviewKpiStatCard
           surface="carousel"
-          label="Ваш тариф"
+          label="Тариф"
           value="Free"
           hint={`Нужен ${MASTER_PRO_PLAN_NAME}`}
           icon={<HiLockClosed className="h-5 w-5" aria-hidden />}
         />
         <OverviewKpiStatCard
           surface="carousel"
-          label="Создано"
+          label={isPromos ? 'Акции' : 'Наборы'}
           value="0"
-          hint={isPromos ? 'Ваших акций' : 'Ваших наборов'}
+          hint="Создадите после Pro"
           icon={isPromos ? <HiReceiptPercent className="h-5 w-5" aria-hidden /> : <HiGift className="h-5 w-5" aria-hidden />}
         />
         <OverviewKpiStatCard
           surface="carousel"
-          label="Примеры"
-          value="2"
-          hint="Только для ознакомления"
-          icon={<HiEyeSlash className="h-5 w-5" aria-hidden />}
-        />
-        <OverviewKpiStatCard
-          surface="carousel"
-          label="Услуги"
+          label="Каталог"
           value={EMPTY_METRIC}
-          hint="Каталог доступен на Free"
+          hint="Услуги доступны на Free"
           icon={<HiScissors className="h-5 w-5" aria-hidden />}
         />
       </OverviewKpiCarousel>

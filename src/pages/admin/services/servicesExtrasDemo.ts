@@ -21,41 +21,42 @@ export function demoBundlesForPreview(services: ManagedService[]): ServiceBundle
   const comboPrice = Math.max(10, Math.round((p1 + p2) * 0.85));
   const original = p1 + p2;
 
-  return [
-    {
-      id: 'preview-bundle-1',
-      title:
-        first && second
-          ? `Пример: ${first.title} + ${second.title}`
-          : 'Пример: комбо из двух услуг',
-      description: 'Карточка для наглядности — не сохраняется и клиентам не показывается.',
-      serviceIds: [first?.id ?? 's1', second?.id ?? 's2'],
-      originalPrice: original,
-      bundlePrice: comboPrice,
-      discountPercent: Math.round(((original - comboPrice) / original) * 100),
-      discountAmount: original - comboPrice,
-      durationMinutes: d1 + d2,
-      imageSource: 'placeholder',
-      status: 'visible',
-      createdAt: DEMO_NOW,
-      updatedAt: DEMO_NOW,
-    },
-    {
-      id: 'preview-bundle-2',
-      title: first ? `Пример: ${first.title}` : 'Пример: набор из одной услуги',
-      description: 'Второй пример — иллюстрация интерфейса Pro.',
-      serviceIds: [first?.id ?? 's1'],
-      originalPrice: p1,
-      bundlePrice: Math.max(10, Math.round(p1 * 0.9)),
-      discountPercent: 10,
-      discountAmount: Math.max(0, p1 - Math.round(p1 * 0.9)),
-      durationMinutes: d1,
-      imageSource: 'placeholder',
-      status: 'draft',
-      createdAt: DEMO_NOW,
-      updatedAt: DEMO_NOW,
-    },
-  ];
+  const primary: ServiceBundle = {
+    id: 'preview-bundle-1',
+    title:
+      first && second
+        ? `Пример: ${first.title} + ${second.title}`
+        : 'Пример: комбо из двух услуг',
+    description: 'Карточка для наглядности — не сохраняется и клиентам не показывается.',
+    serviceIds: [first?.id ?? 's1', second?.id ?? 's2'],
+    originalPrice: original,
+    bundlePrice: comboPrice,
+    discountPercent: Math.round(((original - comboPrice) / original) * 100),
+    discountAmount: original - comboPrice,
+    durationMinutes: d1 + d2,
+    imageSource: 'placeholder',
+    status: 'visible',
+    createdAt: DEMO_NOW,
+    updatedAt: DEMO_NOW,
+  };
+
+  const secondary: ServiceBundle = {
+    id: 'preview-bundle-2',
+    title: first ? `Пример: ${first.title}` : 'Пример: набор из одной услуги',
+    description: 'Второй пример — иллюстрация интерфейса Pro.',
+    serviceIds: [first?.id ?? 's1'],
+    originalPrice: p1,
+    bundlePrice: Math.max(10, Math.round(p1 * 0.9)),
+    discountPercent: 10,
+    discountAmount: Math.max(0, p1 - Math.round(p1 * 0.9)),
+    durationMinutes: d1,
+    imageSource: 'placeholder',
+    status: 'draft',
+    createdAt: DEMO_NOW,
+    updatedAt: DEMO_NOW,
+  };
+
+  return [primary, secondary];
 }
 
 export function demoPromotionsForPreview(services: ManagedService[]): ServicePromotion[] {

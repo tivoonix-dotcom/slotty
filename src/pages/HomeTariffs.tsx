@@ -10,6 +10,7 @@ import {
   LandingProTariffCard,
   landingPlanCtaClass,
 } from '../features/billing/ui/landingTariffCards';
+import { PaymentPartnersStrip } from '../shared/ui/PaymentLogos';
 import { homeSection } from './home/homeTheme';
 
 type PlanCardConfig = {
@@ -167,6 +168,8 @@ export const HomeTariffs: FC = () => {
             );
           })}
         </div>
+
+        <PaymentPartnersStrip className="mt-10 sm:mt-12" />
       </div>
     </section>
   );

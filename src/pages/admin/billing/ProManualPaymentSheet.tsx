@@ -11,7 +11,6 @@ import {
   type ProManualPaymentRequestDto,
 } from '../../../features/billing/api/proPaymentRequestApi';
 import { billingSoftNote } from './adminBillingTheme';
-import { ProBePaidPaymentBlock } from './ProBePaidPaymentBlock';
 import {
   catalogSheetField,
   catalogSheetGhostBtn,
@@ -381,15 +380,6 @@ export function ProManualPaymentSheet({
                   оплаты администратором.
                 </p>
               </div>
-
-              <ProBePaidPaymentBlock
-                billingPeriod={billingPeriod}
-                disabled={Boolean(pending) || submitting}
-              />
-
-              <p className="text-[13px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
-                или по реквизитам
-              </p>
 
               <RequisitesBlock config={config} />
 
