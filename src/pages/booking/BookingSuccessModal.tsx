@@ -20,22 +20,34 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function BookingSuccessCelebration({ compact }: { compact?: boolean }) {
-  const circleSize = compact ? 'h-16 w-16' : 'h-[5.25rem] w-[5.25rem]';
-  const iconSize = compact ? 'h-9 w-9' : 'h-11 w-11';
-
+function SuccessBrandLogo({ compact }: { compact?: boolean }) {
   return (
-    <div className={`flex flex-col items-center text-center ${compact ? 'py-2' : ''}`}>
+    <div
+      className={`flex items-center justify-center rounded-[18px] bg-white shadow-[0_8px_24px_rgba(244,124,140,0.12)] ring-1 ring-[#FDE8ED] ${
+        compact ? 'px-4 py-2.5' : 'px-5 py-3'
+      }`}
+    >
       <img
         src={HEADER_LOGO_SRC}
         alt="SLOTTY"
-        width={120}
-        height={40}
+        width={160}
+        height={48}
         decoding="async"
-        className="h-8 w-auto object-contain"
+        className={`w-auto object-contain ${compact ? 'h-9' : 'h-11 sm:h-12'}`}
       />
+    </div>
+  );
+}
+
+export function BookingSuccessCelebration({ compact }: { compact?: boolean }) {
+  const circleSize = compact ? 'h-16 w-16' : 'h-[4.75rem] w-[4.75rem]';
+  const iconSize = compact ? 'h-9 w-9' : 'h-10 w-10';
+
+  return (
+    <div className={`flex flex-col items-center text-center ${compact ? 'py-2' : ''}`}>
+      <SuccessBrandLogo compact={compact} />
       <div
-        className={`relative mt-5 flex ${circleSize} items-center justify-center rounded-full bg-gradient-to-br from-[#F47C8C] to-[#F26D83] shadow-[0_14px_40px_rgba(244,124,140,0.38)]`}
+        className={`relative mt-4 flex ${circleSize} items-center justify-center rounded-full bg-gradient-to-br from-[#F47C8C] to-[#F26D83] shadow-[0_14px_40px_rgba(244,124,140,0.38)]`}
         aria-hidden
       >
         <span className="absolute inset-0 rounded-full ring-4 ring-[#FFF1F4]" />
@@ -54,11 +66,11 @@ export function BookingSuccessModal({ success }: Props) {
         aria-labelledby="booking-success-title"
         className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(17,24,39,0.18)]"
       >
-        <div className="bg-gradient-to-b from-[#FFF1F4] to-white px-6 pb-2 pt-8">
+        <div className="bg-gradient-to-b from-[#FFF8F9] via-[#FFF1F4] to-white px-6 pb-2 pt-7 sm:pt-8">
           <BookingSuccessCelebration />
           <h2
             id="booking-success-title"
-            className="mt-5 text-center text-[22px] font-semibold leading-tight tracking-tight text-[#111827]"
+            className="mt-4 text-center text-[22px] font-bold leading-tight tracking-[-0.03em] text-[#111827] sm:text-[24px]"
           >
             Запись подтверждена
           </h2>
@@ -110,10 +122,15 @@ export function BookingSuccessModal({ success }: Props) {
                   HEADER_LOGO_SRC,
                 )
               }
-              className={`${clientOutlineBtn} w-full min-h-11 gap-2 !bg-white ring-1 ring-[#F3F4F6]`}
+              className="flex w-full min-h-12 items-center justify-center gap-3 rounded-full border border-[#FDE8ED] bg-white px-4 text-[15px] font-semibold text-[#111827] shadow-[0_4px_16px_rgba(17,24,39,0.06)] transition hover:border-[#F47C8C]/40 hover:bg-[#FFFBFC] active:scale-[0.98]"
             >
-              <HiDocumentArrowDown className="h-5 w-5 text-[#6B7280]" aria-hidden />
-              Скачать PDF
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFF1F4] text-[#F47C8C]">
+                <HiDocumentArrowDown className="h-5 w-5" aria-hidden />
+              </span>
+              <span className="text-left leading-tight">
+                Скачать подтверждение
+                <span className="mt-0.5 block text-[12px] font-medium text-[#9CA3AF]">PDF для печати</span>
+              </span>
             </button>
             <Link to={SERVICES_PATH} className={`${clientOutlineBtn} w-full min-h-11 text-[15px]`}>
               К услугам
