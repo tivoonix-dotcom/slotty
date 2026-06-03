@@ -64,7 +64,6 @@ export function WindowTemplateList({
           <h3 className="text-[17px] font-bold tracking-[-0.03em] text-[#111827] lg:text-[22px] lg:tracking-[-0.05em]">
             Шаблоны окон
           </h3>
-          image.png
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           {templates.length > 0 ? (
