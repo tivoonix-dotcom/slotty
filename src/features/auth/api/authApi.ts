@@ -1,6 +1,6 @@
 import { apiFetch } from '../../../shared/api/backendClient';
 import { readAuthApiError } from '../lib/authApiErrors';
-import type { AuthIdentityDto, AuthSessionResponse } from '../types';
+import type { AuthIdentityDto, AuthSessionResponse, AuthSessionRowDto } from '../types';
 import type { ConsentAcceptancePayload } from '../../legal/api/legalApi';
 import { readApiErrorWithConsent } from '../../legal/api/legalApi';
 
@@ -112,6 +112,27 @@ export async function fetchAuthIdentities(): Promise<AuthIdentityDto[]> {
   if (!res.ok) throw new Error(await readAuthApiError(res));
   const d = (await res.json()) as { identities?: AuthIdentityDto[] };
   return d.identities ?? [];
+}
+
+export async function fetchAuthSessions(): Promise<AuthSessionRowDto[]> {
+  const res = await apiFetch('/api/auth/sessions');
+  if (!res.ok) throw new Error(await readAuthApiError(res));
+  const d = (await res.json()) as { sessions?: AuthSessionRowDto[] };
+  return d.sessions ?? [];
+}
+
+export async function revokeAuthSession(
+  sessionId: string,
+): Promise<{ ok: boolean; revokedCurrent: boolean }> {
+  const res = await apiFetch(`/api/auth/sessions/${sessionId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(await readAuthApiError(res));
+  return (await res.json()) as { ok: boolean; revokedCurrent: boolean };
+}
+
+export async function revokeOtherAuthSessions(): Promise<{ ok: boolean; revokedCount: number }> {
+  const res = await apiFetch('/api/auth/sessions/revoke-others', { method: 'POST' });
+  if (!res.ok) throw new Error(await readAuthApiError(res));
+  return (await res.json()) as { ok: boolean; revokedCount: number };
 }
 
 export async function linkTelegram(initDataRaw: string): Promise<AuthIdentityDto[]> {

@@ -39,6 +39,13 @@ import {
   verifyEmailWithToken,
 } from './email/emailAuth.service.js';
 import { authCredentialLimiter, authEmailSendLimiter } from '../../middlewares/rateLimit.js';
+import {
+  issueSessionContextFromRequest,
+  listAuthSessionsForProfile,
+  revokeAuthSession,
+  revokeOtherAuthSessions,
+} from './authSessions.service.js';
+import { resolveCanonicalProfileId } from './authIdentities.service.js';
 
 export const authRouter = Router();
 
@@ -112,7 +119,7 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const body = telegramLoginBody.parse(req.body);
     const gate = buildConsentGateFromRequest(req, body.consents, 'telegram');
-    const out = await loginWithTelegram(body.initDataRaw, gate);
+    const out = await loginWithTelegram(body.initDataRaw, gate, issueSessionContextFromRequest(req));
     res.json(out);
   }),
 );
@@ -123,7 +130,7 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const body = googleLoginBody.parse(req.body);
     const gate = buildConsentGateFromRequest(req, body.consents, 'google');
-    const out = await loginWithGoogle(body.idToken, gate);
+    const out = await loginWithGoogle(body.idToken, gate, issueSessionContextFromRequest(req));
     res.json(out);
   }),
 );
@@ -134,7 +141,12 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const body = googlePendingCompleteBody.parse(req.body);
     const gate = buildConsentGateFromRequest(req, body.consents, 'google');
-    const out = await completeGoogleLoginWithPending(body.pendingToken, body.consents, gate);
+    const out = await completeGoogleLoginWithPending(
+      body.pendingToken,
+      body.consents,
+      gate,
+      issueSessionContextFromRequest(req),
+    );
     res.json(out);
   }),
 );
@@ -156,7 +168,7 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const body = emailLoginWithConsentsBody.parse(req.body);
     const gate = buildConsentGateFromRequest(req, body.consents, 'email');
-    const out = await loginWithEmail(body.email, body.password, gate);
+    const out = await loginWithEmail(body.email, body.password, gate, issueSessionContextFromRequest(req));
     res.json(out);
   }),
 );
@@ -167,7 +179,12 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const body = emailRegisterBody.parse(req.body);
     const gate = buildConsentGateFromRequest(req, body.consents, 'email');
-    const out = await registerWithEmail(body.email, body.password, gate);
+    const out = await registerWithEmail(
+      body.email,
+      body.password,
+      gate,
+      issueSessionContextFromRequest(req),
+    );
     res.json(out);
   }),
 );
@@ -182,6 +199,37 @@ authRouter.get(
       console.error('[SLOTTY] sync master is_verified on identities list failed:', e);
     });
     res.json({ identities });
+  }),
+);
+
+authRouter.get(
+  '/sessions',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const profileId = await resolveCanonicalProfileId(req.user!.id);
+    const sessions = await listAuthSessionsForProfile(profileId, req.user!.authSessionId);
+    res.json({ sessions });
+  }),
+);
+
+authRouter.post(
+  '/sessions/revoke-others',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const profileId = await resolveCanonicalProfileId(req.user!.id);
+    const out = await revokeOtherAuthSessions(profileId, req.user!.authSessionId);
+    res.json({ ok: true, ...out });
+  }),
+);
+
+authRouter.delete(
+  '/sessions/:sessionId',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const sessionId = z.string().uuid().parse(req.params.sessionId);
+    const profileId = await resolveCanonicalProfileId(req.user!.id);
+    const out = await revokeAuthSession(profileId, sessionId, req.user!.authSessionId);
+    res.json({ ok: true, ...out });
   }),
 );
 
@@ -284,7 +332,7 @@ authRouter.get(
       }
 
       try {
-        const session = await loginWithGoogle(idToken);
+        const session = await loginWithGoogle(idToken, undefined, issueSessionContextFromRequest(req));
         res.redirect(
           buildClientOAuthDoneUrl({
             purpose: 'login',

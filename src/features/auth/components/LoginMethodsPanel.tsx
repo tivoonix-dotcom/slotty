@@ -34,6 +34,7 @@ import {
   buildSignupConsentPayload,
 } from '../../legal/components/SignupConsentFields';
 import { useAuth } from '../AuthProvider';
+import { ActiveSessionsSection } from './ActiveSessionsSection';
 import {
   sheetFieldClass,
   sheetHintClass,
@@ -783,6 +784,8 @@ export function LoginMethodsPanel({
             </button>
           </div>
         ) : null}
+
+        <ActiveSessionsSection />
       </div>
     );
   }
@@ -955,6 +958,8 @@ export function LoginMethodsPanel({
             </div>
           ) : null}
         </LoginMethodSheetCard>
+
+        <ActiveSessionsSection />
       </div>
     );
   }

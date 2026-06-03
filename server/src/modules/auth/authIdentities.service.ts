@@ -21,6 +21,10 @@ import { reassignProfileConsentsToCanonical } from '../legal/legal.service.js';
 import { fetchTelegramUserPortraitUrl } from '../telegram/telegramPortrait.api.js';
 import { resolveStablePortraitUrl } from '../../lib/mirrorPortraitToStorage.js';
 import { pickPortraitUrlOnTelegramSync } from '../../lib/profileAvatarUrlPolicy.js';
+import {
+  createAuthSession,
+  type IssueSessionContext,
+} from './authSessions.service.js';
 
 const EMAIL_PROVIDER_USER_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -383,7 +387,10 @@ async function consolidateProfileIdentitiesToCanonical(
   });
 }
 
-export async function issueSessionForProfile(profileId: string) {
+export async function issueSessionForProfile(
+  profileId: string,
+  sessionCtx?: IssueSessionContext,
+) {
   const { getProfileById } = await import('../profiles/profiles.service.js');
   const { assertProfileCanAuthenticate } = await import('../profiles/profileAccount.service.js');
   const { signAccessToken } = await import('./authTokens.js');
@@ -396,7 +403,8 @@ export async function issueSessionForProfile(profileId: string) {
   if (role !== 'client' && role !== 'master' && role !== 'platform_admin') {
     throw ApiError.internal('Invalid profile role', 'BAD_ROLE');
   }
-  const token = signAccessToken(canonicalId, role);
+  const sessionId = await createAuthSession(canonicalId, sessionCtx);
+  const token = signAccessToken(canonicalId, role, sessionId);
   return { token, profile };
 }
 
@@ -428,6 +436,7 @@ export async function loginOrRegisterWithTelegram(
   user: TelegramWebAppUser,
   fullName: string,
   consentGate?: AuthConsentGateOptions,
+  sessionCtx?: IssueSessionContext,
 ) {
   const providerUserId = String(user.id);
   const candidates = await collectTelegramLoginCandidateProfileIds(user);
@@ -463,7 +472,7 @@ export async function loginOrRegisterWithTelegram(
       });
       await syncTelegramProfileColumns(client, preferredProfileId, user, fullName);
     });
-    return issueSessionForProfile(preferredProfileId);
+    return issueSessionForProfile(preferredProfileId, sessionCtx);
   }
 
   const consentMeta = consentGate?.meta ?? { source: 'telegram' as const };
@@ -490,7 +499,7 @@ export async function loginOrRegisterWithTelegram(
     return id;
   });
 
-  return issueSessionForProfile(profileId);
+  return issueSessionForProfile(profileId, sessionCtx);
 }
 
 /** Link Telegram to an already authenticated profile. */
@@ -550,6 +559,7 @@ export async function linkTelegramToProfile(profileId: string, user: TelegramWeb
 export async function loginOrRegisterWithGoogle(
   payload: GoogleIdTokenPayload,
   consentGate?: AuthConsentGateOptions,
+  sessionCtx?: IssueSessionContext,
 ) {
   const providerUserId = payload.sub;
   const candidates = await collectGoogleLoginCandidateProfileIds(payload);
@@ -642,7 +652,7 @@ export async function loginOrRegisterWithGoogle(
       );
     });
 
-    return issueSessionForProfile(preferredProfileId);
+    return issueSessionForProfile(preferredProfileId, sessionCtx);
   }
 
   if (payload.email) {
@@ -682,7 +692,7 @@ export async function loginOrRegisterWithGoogle(
     return id;
   });
 
-  return issueSessionForProfile(profileId);
+  return issueSessionForProfile(profileId, sessionCtx);
 }
 
 export async function linkGoogleToProfile(profileId: string, payload: GoogleIdTokenPayload) {
@@ -929,6 +939,7 @@ export async function loginWithEmailIdentity(
   emailRaw: string,
   password: string,
   consentGate?: AuthConsentGateOptions,
+  sessionCtx?: IssueSessionContext,
 ) {
   const email = normalizeAuthEmail(emailRaw);
   const matchingProfileIds = await findProfileIdsMatchingEmail(email);
@@ -951,7 +962,7 @@ export async function loginWithEmailIdentity(
       consents: consentGate?.consents,
       meta: consentGate?.meta ?? { source: 'email' },
     });
-    return issueSessionForProfile(targetProfileId);
+    return issueSessionForProfile(targetProfileId, sessionCtx);
   }
 
   if (hadEmailPassword) {
@@ -973,6 +984,7 @@ export async function registerWithEmailIdentity(
   emailRaw: string,
   password: string,
   consentGate?: AuthConsentGateOptions,
+  sessionCtx?: IssueSessionContext,
 ) {
   const email = normalizeAuthEmail(emailRaw);
   const matchingProfileIds = await findProfileIdsMatchingEmail(email);
@@ -992,7 +1004,7 @@ export async function registerWithEmailIdentity(
       consents: consentGate?.consents,
       meta: consentGate?.meta ?? { source: 'email' },
     });
-    const session = await issueSessionForProfile(preferredProfileId);
+    const session = await issueSessionForProfile(preferredProfileId, sessionCtx);
     return { session, isNewRegistration: true as const };
   }
 
@@ -1016,7 +1028,7 @@ export async function registerWithEmailIdentity(
     return id;
   });
 
-  const session = await issueSessionForProfile(profileId);
+  const session = await issueSessionForProfile(profileId, sessionCtx);
   return { session, isNewRegistration: true as const };
 }
 

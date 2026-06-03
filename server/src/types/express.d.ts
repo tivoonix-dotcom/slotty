@@ -8,6 +8,7 @@ declare global {
       user?: {
         id: string;
         role: JwtUserRole;
+        authSessionId: string | null;
         accountStatus: ProfileAccountStatus;
         restrictionReason: string | null;
         blockedReason: string | null;

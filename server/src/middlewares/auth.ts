@@ -5,6 +5,10 @@ import { isProfileEmptyDuplicate } from '../modules/auth/profileDuplicatePolicy.
 import { resolveCanonicalProfileId } from '../modules/auth/authIdentities.service.js';
 import { loadProfileAuthContext } from '../modules/profiles/profileAccount.service.js';
 import type { ProfileAccountStatus } from '../modules/profiles/profileAccount.service.js';
+import {
+  assertAuthSessionActive,
+  touchAuthSession,
+} from '../modules/auth/authSessions.service.js';
 import { ApiError } from '../utils/ApiError.js';
 
 export type JwtUserRole = 'client' | 'master' | 'platform_admin';
@@ -21,6 +25,7 @@ export interface AuthUserPayload {
 interface JwtClaims {
   sub: string;
   role: JwtUserRole;
+  sid?: string;
   iat?: number;
   exp?: number;
 }
@@ -61,9 +66,15 @@ export async function authMiddleware(req: Request, _res: Response, next: NextFun
     if (blockedErr) {
       return next(blockedErr);
     }
+    const authSessionId = typeof decoded.sid === 'string' ? decoded.sid : null;
+    if (authSessionId) {
+      await assertAuthSessionActive(authSessionId, profileId);
+      void touchAuthSession(authSessionId);
+    }
     req.user = {
       id: ctx.id,
       role: ctx.role,
+      authSessionId,
       accountStatus: ctx.accountStatus,
       restrictionReason: ctx.restrictionReason,
       blockedReason: ctx.blockedReason,
@@ -95,9 +106,18 @@ export async function optionalAuthMiddleware(req: Request, _res: Response, next:
     if (ctx.accountStatus === 'blocked' || ctx.accountStatus === 'deleted') {
       return next();
     }
+    const authSessionId = typeof decoded.sid === 'string' ? decoded.sid : null;
+    if (authSessionId) {
+      try {
+        await assertAuthSessionActive(authSessionId, profileId);
+      } catch {
+        return next();
+      }
+    }
     req.user = {
       id: ctx.id,
       role: ctx.role,
+      authSessionId,
       accountStatus: ctx.accountStatus,
       restrictionReason: ctx.restrictionReason,
       blockedReason: ctx.blockedReason,

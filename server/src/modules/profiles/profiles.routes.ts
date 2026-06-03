@@ -9,6 +9,7 @@ import {
   issueSessionForProfile,
   resolveCanonicalProfileId,
 } from '../auth/authIdentities.service.js';
+import { issueSessionContextFromRequest } from '../auth/authSessions.service.js';
 import { getProfileById, syncMasterCabinetFromUserProfile, updateProfile } from './profiles.service.js';
 import { getConsentStatusForProfile } from '../legal/legal.service.js';
 import { uploadProfileAvatar } from './profiles.storage.js';
@@ -43,7 +44,10 @@ profilesRouter.get(
     const tokenProfileId = req.user!.id;
     const canonicalId = await resolveCanonicalProfileId(tokenProfileId);
     if (canonicalId !== tokenProfileId) {
-      const session = await issueSessionForProfile(tokenProfileId);
+      const session = await issueSessionForProfile(
+        tokenProfileId,
+        issueSessionContextFromRequest(req),
+      );
       const consentStatus = await getConsentStatusForProfile(session.profile.id);
       res.json({
         ...session.profile,

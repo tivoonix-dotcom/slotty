@@ -57,3 +57,12 @@ export type AuthSessionResponse = {
   token: string;
   profile: BackendProfile;
 };
+
+export type AuthSessionRowDto = {
+  id: string;
+  title: string;
+  subtitle: string;
+  createdAt: string;
+  lastActiveAt: string;
+  isCurrent: boolean;
+};

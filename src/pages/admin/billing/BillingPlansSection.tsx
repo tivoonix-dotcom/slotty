@@ -71,19 +71,16 @@ export function BillingPlansSection({
             Выберите тариф
           </h2>
           <p className="mt-1 max-w-xl text-[14px] font-medium leading-snug text-[#6B7280]">
-            Сравните Free и Мастер Pro. Период оплаты и текущее использование — для перехода на Pro.
+            Сначала выберите период и тариф Pro, затем сравните с Free.
           </p>
         </div>
       </div>
 
-      <div className="mt-4 space-y-3">
-        {proPaymentPendingBanner}
-        {liveBillingNote}
-        {demoNote}
-      </div>
+      {liveBillingNote ? <div className="mt-4">{liveBillingNote}</div> : null}
 
       <div className="mt-5 grid w-full min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5 lg:items-start">
         <LandingPricingCard
+          className="order-2 lg:order-1"
           name="Free"
           priceValue={freePriceValue}
           priceUnit={freePriceUnit}
@@ -102,23 +99,17 @@ export function BillingPlansSection({
           }
         />
 
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="order-1 flex min-w-0 flex-col gap-3 lg:order-2">
+          {proPaymentPendingBanner || demoNote ? (
+            <div className="space-y-3">
+              {proPaymentPendingBanner}
+              {demoNote}
+            </div>
+          ) : null}
+
           {!proActive ? (
             <div className="w-full min-w-0 rounded-[20px] bg-white p-4 ring-1 ring-[#EEEEEE] sm:p-5">
               <BillingPeriodSwitch period={billingPeriod} onPeriod={onPeriodChange} />
-              {isFree ? (
-                <div className="mt-5 border-t border-[#F3F4F6] pt-5">
-                  <BillingUsagePanel
-                    plan="free"
-                    servicesLen={servicesLen}
-                    maxSvc={maxSvc}
-                    monthlyCount={monthlyCount}
-                    maxAppt={maxAppt}
-                    scheduleHorizonDays={scheduleHorizonDays}
-                    variant="compact"
-                  />
-                </div>
-              ) : null}
             </div>
           ) : null}
 
@@ -142,7 +133,21 @@ export function BillingPlansSection({
           />
 
           {showPaymentLogos && useLiveBilling && !proActive ? (
-            <PaymentPartnersStrip className="mt-4" />
+            <PaymentPartnersStrip />
+          ) : null}
+
+          {isFree && !proActive ? (
+            <div className="w-full min-w-0 rounded-[20px] bg-white p-4 ring-1 ring-[#EEEEEE] sm:p-5">
+              <BillingUsagePanel
+                plan="free"
+                servicesLen={servicesLen}
+                maxSvc={maxSvc}
+                monthlyCount={monthlyCount}
+                maxAppt={maxAppt}
+                scheduleHorizonDays={scheduleHorizonDays}
+                variant="compact"
+              />
+            </div>
           ) : null}
         </div>
       </div>

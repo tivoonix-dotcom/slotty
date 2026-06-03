@@ -51,6 +51,7 @@ export type LandingPricingCardProps = {
   highlighted?: boolean;
   description?: string;
   footer: ReactNode;
+  className?: string;
 };
 
 /** Белая карточка тарифа — тот же блок, что «Мастер» / «Клиент» на лендинге. */
@@ -64,6 +65,7 @@ export function LandingPricingCard({
   highlighted = false,
   description,
   footer,
+  className = '',
 }: LandingPricingCardProps) {
   return (
     <article
@@ -71,7 +73,7 @@ export function LandingPricingCard({
         highlighted
           ? 'z-10 border-[#111827] shadow-[0_24px_60px_rgba(17,24,39,0.12)]'
           : 'border-[#E8EAED] shadow-[0_8px_30px_rgba(17,24,39,0.04)]'
-      }`}
+      } ${className}`}
     >
       {badge ? (
         <span className="absolute right-5 top-5 rounded-full bg-[#111827] px-3 py-1 text-[11px] font-semibold text-white">
