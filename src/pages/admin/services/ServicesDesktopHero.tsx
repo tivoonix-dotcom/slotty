@@ -4,22 +4,17 @@ import {
   HiEye,
   HiEyeSlash,
   HiGift,
-  HiLockClosed,
   HiReceiptPercent,
   HiScissors,
   HiSquares2X2,
   HiWallet,
 } from 'react-icons/hi2';
-import { Link } from 'react-router-dom';
-import { ADMIN_BILLING_PATH } from '../../../app/paths';
 import { OverviewKpiCarousel, OverviewKpiStatCard } from '../overview/OverviewKpiBlocks';
 import {
   formatOptionalByn,
   formatOptionalPriceRange,
-  EMPTY_METRIC,
 } from '../../../shared/lib/emptyDisplayText';
 import { servicesDesktopCard, SLOTTY_GRADIENT } from './adminServicesTheme';
-import { MASTER_PRO_PLAN_NAME, servicesProUpsellCopy } from './servicesProUpsell';
 import type { ServicesTabMetrics } from './servicesTabMetrics';
 import type { ServicesTabId } from './servicesTypes';
 
@@ -235,65 +230,6 @@ function BundlesHero({ metrics }: { metrics: ServicesTabMetrics['bundles'] }) {
   );
 }
 
-function ProLockedExtrasHero({ tab }: { tab: 'bundles' | 'promotions' }) {
-  const isPromos = tab === 'promotions';
-  const copy = servicesProUpsellCopy(tab);
-  const badge = isPromos ? 'Акции' : 'Наборы услуг';
-
-  return (
-    <HeroShell
-      hero={
-        <section className="bg-[#F6F7FB] p-5 lg:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[12px] font-bold text-[#6B7280] ring-1 ring-[#E5E7EB]">
-                <HiLockClosed className="h-4 w-4 text-[#ff5f7a]" aria-hidden />
-                {badge} · только с {MASTER_PRO_PLAN_NAME}
-              </p>
-              <p className="mt-4 text-[22px] font-black tracking-[-0.04em] text-[#111827] lg:text-[28px]">
-                Сейчас на тарифе Free
-              </p>
-              <p className="mt-2 max-w-[36rem] text-[15px] font-semibold leading-relaxed text-[#6B7280]">
-                {copy.lead}
-              </p>
-            </div>
-            <Link
-              to={ADMIN_BILLING_PATH}
-              className="inline-flex min-h-11 shrink-0 items-center justify-center self-start rounded-[14px] bg-[#ff5f7a] px-5 text-[14px] font-bold text-white transition hover:bg-[#f04f6c] active:scale-[0.98]"
-            >
-              {copy.cta}
-            </Link>
-          </div>
-        </section>
-      }
-    >
-      <OverviewKpiCarousel>
-        <OverviewKpiStatCard
-          surface="carousel"
-          label="Тариф"
-          value="Free"
-          hint={`Нужен ${MASTER_PRO_PLAN_NAME}`}
-          icon={<HiLockClosed className="h-5 w-5" aria-hidden />}
-        />
-        <OverviewKpiStatCard
-          surface="carousel"
-          label={isPromos ? 'Акции' : 'Наборы'}
-          value="0"
-          hint="Создадите после Pro"
-          icon={isPromos ? <HiReceiptPercent className="h-5 w-5" aria-hidden /> : <HiGift className="h-5 w-5" aria-hidden />}
-        />
-        <OverviewKpiStatCard
-          surface="carousel"
-          label="Каталог"
-          value={EMPTY_METRIC}
-          hint="Услуги доступны на Free"
-          icon={<HiScissors className="h-5 w-5" aria-hidden />}
-        />
-      </OverviewKpiCarousel>
-    </HeroShell>
-  );
-}
-
 function PromotionsHero({ metrics }: { metrics: ServicesTabMetrics['promotions'] }) {
   const m = metrics;
 
@@ -344,11 +280,8 @@ function PromotionsHero({ metrics }: { metrics: ServicesTabMetrics['promotions']
 }
 
 export function ServicesDesktopHero({ tab, metrics, extrasLocked = false }: Props) {
-  if (extrasLocked && tab === 'bundles') {
-    return <ProLockedExtrasHero tab="bundles" />;
-  }
-  if (extrasLocked && tab === 'promotions') {
-    return <ProLockedExtrasHero tab="promotions" />;
+  if (extrasLocked && (tab === 'bundles' || tab === 'promotions')) {
+    return null;
   }
 
   switch (tab) {

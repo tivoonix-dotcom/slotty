@@ -9,6 +9,10 @@ type Props = {
 };
 
 export function ServicesPageHeader({ activeTab, metrics, extrasLocked = false }: Props) {
+  const hideHero =
+    extrasLocked && (activeTab === 'bundles' || activeTab === 'promotions');
+  if (hideHero) return null;
+
   return (
     <>
       <div className="pb-4 lg:hidden">
