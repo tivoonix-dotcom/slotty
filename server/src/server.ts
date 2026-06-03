@@ -5,6 +5,8 @@ import { getGoogleOAuthDiagnostics } from './modules/auth/googleOAuth.service.js
 import { startAppointmentRemindersScheduler } from './modules/appointments/appointmentReminders.scheduler.js';
 import { initTelegramBotTransport } from './modules/telegram/telegram.service.js';
 import { logResendConfigStatus } from './modules/email/emailConfig.js';
+import { logBePaidConfigStatus } from './modules/payments/bepaid.config.js';
+import { logAuthSessionsTableStatus } from './modules/auth/authSessions.service.js';
 
 initSentry();
 const app = createApp();
@@ -30,6 +32,8 @@ app.listen(env.PORT, () => {
     console.log(`[auth] Google OAuth redirect → ${googleOAuth.redirectUri}`);
   }
   logResendConfigStatus();
+  logBePaidConfigStatus();
+  void logAuthSessionsTableStatus();
   void initTelegramBotTransport();
   startAppointmentRemindersScheduler();
   void import('./modules/auth/googleLoginPending.store.js').then(({ warnIfPendingStoreNotShared }) => {

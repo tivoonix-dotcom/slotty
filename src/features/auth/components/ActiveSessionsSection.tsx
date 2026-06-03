@@ -112,6 +112,7 @@ export function ActiveSessionsSection() {
 
   const okxBtn =
     'shrink-0 rounded-[10px] bg-[#F5F5F5] px-4 py-2 text-[14px] font-semibold text-[#111827] transition hover:bg-[#EBEBEB] disabled:opacity-50';
+  const hasCurrent = sessions.some((s) => s.isCurrent);
   const hasOthers = sessions.some((s) => !s.isCurrent);
 
   return (
@@ -123,7 +124,7 @@ export function ActiveSessionsSection() {
             Устройства, с которых выполнен вход. Завершите лишние, если не узнаёте сеанс.
           </p>
         </div>
-        {hasOthers ? (
+        {hasOthers && hasCurrent ? (
           <button
             type="button"
             disabled={loading || revokingOthers || Boolean(busyId)}

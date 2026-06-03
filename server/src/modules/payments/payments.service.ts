@@ -4,11 +4,10 @@ import { ApiError } from '../../utils/ApiError.js';
 import { recordBillingEvent } from '../billing/billingEvents.service.js';
 import { getMasterPlanAccess } from '../billing/billing.service.js';
 import {
-  assertBePaidConfigured,
+  assertBePaidReady,
   getBePaidFailUrl,
   getBePaidNotificationUrl,
   getBePaidSuccessUrl,
-  isBePaidEnabled,
 } from './bepaid.config.js';
 import { createBePaidCheckout } from './bepaid.client.js';
 import { sanitizePayloadForLog } from './paymentLogSanitizer.js';
@@ -216,10 +215,7 @@ export async function createBePaidPayment(input: {
   returnUrl?: string;
   customerEmail?: string | null;
 }): Promise<CreateBePaidPaymentResult> {
-  if (!isBePaidEnabled()) {
-    throw ApiError.serviceUnavailable('Онлайн-оплата временно недоступна', 'BEPAID_DISABLED');
-  }
-  assertBePaidConfigured();
+  assertBePaidReady();
 
   const currency = (input.currency ?? 'BYN').toUpperCase();
   let amountMinor = input.amountMinor;

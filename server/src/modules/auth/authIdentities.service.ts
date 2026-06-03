@@ -403,7 +403,7 @@ export async function issueSessionForProfile(
   if (role !== 'client' && role !== 'master' && role !== 'platform_admin') {
     throw ApiError.internal('Invalid profile role', 'BAD_ROLE');
   }
-  const sessionId = await createAuthSession(canonicalId, sessionCtx);
+  const sessionId = (await createAuthSession(canonicalId, sessionCtx)) ?? undefined;
   const token = signAccessToken(canonicalId, role, sessionId);
   return { token, profile };
 }
