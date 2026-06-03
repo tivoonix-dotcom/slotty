@@ -45,14 +45,17 @@ export const PaymentLogos: FC<Props> = ({
         {title ? (
           <p className="mb-2 text-[12px] font-semibold tracking-[0.06em] text-[#171717]/55">{title}</p>
         ) : null}
-        <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+        <div className="-mx-1 flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin sm:gap-3">
           {methods.map((method) => (
             <div
               key={method.id}
-              className="flex h-9 min-w-[4.5rem] shrink-0 items-center justify-center rounded-xl bg-white/20 px-2.5 ring-1 ring-inset ring-black/8 transition hover:bg-white/28"
+              className="flex h-12 min-w-[5.75rem] shrink-0 items-center justify-center rounded-xl bg-white/20 px-3 ring-1 ring-inset ring-black/8 transition hover:bg-white/28 sm:h-[3.25rem] sm:min-w-[6.25rem] sm:px-3.5"
               title={method.caption}
             >
-              <PaymentLogoImage method={method} logoHeightClass="h-5 w-auto max-w-[4.5rem]" />
+              <PaymentLogoImage
+                method={method}
+                logoHeightClass="h-7 w-auto max-w-[5.75rem] sm:h-8 sm:max-w-[6.5rem]"
+              />
             </div>
           ))}
         </div>

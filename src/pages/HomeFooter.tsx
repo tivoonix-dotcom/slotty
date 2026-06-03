@@ -198,7 +198,7 @@ export const HomeFooter: FC = () => {
             </div>
           </div>
 
-          <div className="mt-10 max-w-xl">
+          <div className="mt-10 max-w-2xl">
             <PaymentLogos
               variant="footer"
               title="Планируемые способы оплаты"
