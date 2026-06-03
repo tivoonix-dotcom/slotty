@@ -140,6 +140,8 @@ export type MasterProRotatingCardProps = {
   cta?: ReactNode;
   ctaHref?: string;
   ctaLabel?: string;
+  /** Кнопка сразу под списком, без растягивания (кабинет «Тарифы»). */
+  denseCta?: boolean;
 };
 
 export function MasterProRotatingCard({
@@ -151,6 +153,7 @@ export function MasterProRotatingCard({
   cta,
   ctaHref,
   ctaLabel,
+  denseCta = false,
 }: MasterProRotatingCardProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [motionOk, setMotionOk] = useState(true);
@@ -194,7 +197,11 @@ export function MasterProRotatingCard({
         boxShadow: `0 0 32px ${accentGlow(theme.accent, 0.55)}, ${cardShadow}`,
       }}
     >
-      <article className="relative flex min-h-[20rem] flex-col overflow-hidden rounded-[20px] px-5 pb-6 pt-5 sm:rounded-[20px] sm:p-7">
+      <article
+        className={`relative flex flex-col overflow-hidden rounded-[20px] px-5 pb-6 pt-5 sm:rounded-[20px] sm:p-7 ${
+          denseCta ? 'min-h-0' : 'min-h-[20rem]'
+        }`}
+      >
       {MASTER_PRO_CATEGORY_THEMES.map((item, index) => (
         <div
           key={item.key}
@@ -217,7 +224,7 @@ export function MasterProRotatingCard({
         </span>
       ) : null}
 
-      <div className="relative z-10 flex flex-1 flex-col">
+      <div className={`relative z-10 flex flex-col ${denseCta ? '' : 'flex-1'}`}>
         <p
           className="text-[18px] font-semibold tracking-tight transition-colors duration-700"
           style={{ color: colors.primary }}
@@ -254,7 +261,7 @@ export function MasterProRotatingCard({
           {description}
         </p>
 
-        <ul className="mt-4 flex flex-1 flex-col gap-2">
+        <ul className={`mt-4 flex flex-col gap-2 ${denseCta ? '' : 'flex-1'}`}>
           {features.map((feature) => (
             <li key={feature} className="flex items-center gap-2.5">
               <span
@@ -276,7 +283,7 @@ export function MasterProRotatingCard({
           ))}
         </ul>
 
-        <div className="mt-5">
+        <div className={denseCta ? 'mt-4' : 'mt-5'}>
           {cta ??
             (ctaHref && ctaLabel ? (
               <Link

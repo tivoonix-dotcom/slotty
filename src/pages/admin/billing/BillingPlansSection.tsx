@@ -128,6 +128,7 @@ export function BillingPlansSection({
             features={LANDING_MASTER_PRO_FEATURES}
             description={LANDING_PRO_DESCRIPTION}
             topBadge={proActive ? 'Активен' : 'Популярный'}
+            denseCta
             footer={
               <button
                 type="button"

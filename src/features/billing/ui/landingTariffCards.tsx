@@ -115,6 +115,7 @@ export type LandingProTariffCardProps = {
   description?: string;
   topBadge?: string;
   footer: ReactNode;
+  denseCta?: boolean;
 };
 
 /** Pro — тот же `MasterProRotatingCard`, что на лендинге. */
@@ -125,6 +126,7 @@ export function LandingProTariffCard({
   description = LANDING_PRO_DESCRIPTION,
   topBadge = 'Популярный',
   footer,
+  denseCta = false,
 }: LandingProTariffCardProps) {
   return (
     <MasterProRotatingCard
@@ -134,6 +136,7 @@ export function LandingProTariffCard({
       features={features}
       topBadge={topBadge}
       cta={footer}
+      denseCta={denseCta}
     />
   );
 }
