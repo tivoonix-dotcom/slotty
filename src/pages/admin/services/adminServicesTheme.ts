@@ -42,6 +42,11 @@ const servicesTabPhotosDir = '/photos/' + encodeURIComponent('услуги') + '
 export function servicesTabPhotoSrc(fileName: string): string {
   return servicesTabPhotosDir + encodeURIComponent(fileName);
 }
+
+/** Фон hero по вкладке (`public/photos/услуги`). */
+export function servicesTabHeroBg(fileName: '11.webp' | '22.webp' | '33.webp' | '44.webp'): string {
+  return servicesTabPhotoSrc(fileName);
+}
 /** Отступ контента, чтобы список доскролливался выше фиксированного таббара. */
 export const SERVICES_TAB_BAR_SCROLL_PAD = `calc(${SERVICES_TAB_BAR_HEIGHT} + 1.25rem + env(safe-area-inset-bottom, 0px))`;
 

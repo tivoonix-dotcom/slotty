@@ -14,9 +14,17 @@ import {
   formatOptionalByn,
   formatOptionalPriceRange,
 } from '../../../shared/lib/emptyDisplayText';
-import { servicesDesktopCard, SLOTTY_GRADIENT } from './adminServicesTheme';
+import { useTabIntroImage } from '../useTabIntroImage';
+import { servicesDesktopCard, servicesTabHeroBg } from './adminServicesTheme';
 import type { ServicesTabMetrics } from './servicesTabMetrics';
 import type { ServicesTabId } from './servicesTypes';
+
+const SERVICES_TAB_HERO_BG: Record<ServicesTabId, string> = {
+  catalog: servicesTabHeroBg('11.webp'),
+  price: servicesTabHeroBg('22.webp'),
+  bundles: servicesTabHeroBg('33.webp'),
+  promotions: servicesTabHeroBg('44.webp'),
+};
 
 type Props = {
   tab: ServicesTabId;
@@ -35,6 +43,7 @@ function HeroShell({ children, hero }: { children: ReactNode; hero: ReactNode })
 }
 
 function HeroBlock({
+  tab,
   badgeIcon,
   badge,
   value,
@@ -42,6 +51,7 @@ function HeroBlock({
   description,
   action,
 }: {
+  tab: ServicesTabId;
   badgeIcon: ReactNode;
   badge: string;
   value: string;
@@ -49,16 +59,16 @@ function HeroBlock({
   description: string;
   action?: ReactNode;
 }) {
+  const backgroundSrc = useTabIntroImage(SERVICES_TAB_HERO_BG[tab]);
+
   return (
-    <section className={`relative overflow-hidden ${SLOTTY_GRADIENT} p-5 text-white lg:p-8`}>
+    <section className="relative overflow-hidden p-5 text-white lg:p-8">
       <div
-        className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#ff8aa0]/35 blur-3xl lg:-right-20 lg:-top-20 lg:h-72 lg:w-72"
+        className="pointer-events-none absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${backgroundSrc})` }}
         aria-hidden
       />
-      <div
-        className="pointer-events-none absolute -bottom-16 -left-12 h-32 w-32 rounded-full bg-[#ff5f7a]/20 blur-3xl lg:-bottom-24 lg:-left-20 lg:h-64 lg:w-64"
-        aria-hidden
-      />
+      <div className="pointer-events-none absolute inset-0 bg-black/45" aria-hidden />
 
       <div className="relative min-w-0">
         <p className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-[12px] font-black text-white lg:px-4 lg:py-2 lg:text-[14px]">
@@ -89,6 +99,7 @@ function CatalogHero({ metrics }: { metrics: ServicesTabMetrics['catalog'] }) {
     <HeroShell
       hero={
         <HeroBlock
+          tab="catalog"
           badgeIcon={<HiSquares2X2 className="h-4 w-4" aria-hidden />}
           badge="Каталог услуг"
           value={String(m.total)}
@@ -139,6 +150,7 @@ function PriceHero({ metrics }: { metrics: ServicesTabMetrics['price'] }) {
     <HeroShell
       hero={
         <HeroBlock
+          tab="price"
           badgeIcon={<HiClipboardDocumentList className="h-4 w-4" aria-hidden />}
           badge="Прайс-лист"
           value={m.avgPrice > 0 ? `${m.avgPrice} BYN` : '0 BYN'}
@@ -188,6 +200,7 @@ function BundlesHero({ metrics }: { metrics: ServicesTabMetrics['bundles'] }) {
     <HeroShell
       hero={
         <HeroBlock
+          tab="bundles"
           badgeIcon={<HiGift className="h-4 w-4" aria-hidden />}
           badge="Наборы услуг"
           value={String(m.total)}
@@ -237,6 +250,7 @@ function PromotionsHero({ metrics }: { metrics: ServicesTabMetrics['promotions']
     <HeroShell
       hero={
         <HeroBlock
+          tab="promotions"
           badgeIcon={<HiReceiptPercent className="h-4 w-4" aria-hidden />}
           badge="Акции"
           value={String(m.active)}

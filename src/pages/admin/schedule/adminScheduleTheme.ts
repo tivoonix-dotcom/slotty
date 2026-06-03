@@ -26,6 +26,7 @@ export const scheduleShellCard = 'hidden w-full min-w-0 lg:block';
 
 export const scheduleDesktopTabsSticky = profileDesktopTabsSticky;
 
+/** @deprecated Используйте фото вкладок (`scheduleTabHeroBg`). */
 export const SCHEDULE_GRADIENT =
   'bg-gradient-to-br from-[#111827] via-[#2b2430] to-[#ff5f7a]';
 
@@ -139,4 +140,9 @@ const scheduleTabPhotosDir = '/photos/' + encodeURIComponent('Расписани
 /** Фото для шапок табов (`public/photos/Расписание`). */
 export function scheduleTabPhotoSrc(fileName: string): string {
   return scheduleTabPhotosDir + encodeURIComponent(fileName);
+}
+
+/** Фон hero по вкладке (`public/photos/Расписание`). */
+export function scheduleTabHeroBg(fileName: '111.webp' | '222.webp' | '333.webp'): string {
+  return scheduleTabPhotoSrc(fileName);
 }

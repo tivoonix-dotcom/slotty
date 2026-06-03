@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { preloadTabIntroImages } from '../useTabIntroImage';
 import { useAdminSectionTab } from '../useAdminSectionTab';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
@@ -30,6 +31,7 @@ import {
   scheduleTabPanelShellCreate,
 } from './adminScheduleTheme';
 import { SchedulePageHeader } from './SchedulePageHeader';
+import { SCHEDULE_TAB_INTRO_IMAGES } from './ScheduleTabIntro';
 import { computeScheduleTabMetrics } from './scheduleTabMetrics';
 import type { PlannedSlot, SchedulePageTab, ScheduleWindowView } from './scheduleTypes';
 import { MSG_SLOTS_ALL_BUSY } from './scheduleTypes';
