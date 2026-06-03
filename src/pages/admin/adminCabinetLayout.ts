@@ -35,8 +35,8 @@ export const adminSidebarFooterCard =
 export const adminSidebarFooterCardAccent =
   'relative flex w-full items-center gap-3 overflow-hidden rounded-[14px] p-3.5 no-underline transition active:scale-[0.99] hover:opacity-95';
 
-/** Фон карточки тарифа в сайдбаре (`public/photos/fon.png`). */
-export const ADMIN_SIDEBAR_TARIFF_BG = '/photos/fon.png';
+/** Фон карточки тарифа в сайдбаре (`public/photos/fon.webp`). */
+export const ADMIN_SIDEBAR_TARIFF_BG = '/photos/fon.webp';
 
 /** Десктоп: сегменты в сером треке (как фильтры в расписании). */
 export const ADMIN_SEGMENT_NAV_DESKTOP =

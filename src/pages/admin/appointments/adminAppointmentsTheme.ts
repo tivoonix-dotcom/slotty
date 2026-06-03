@@ -24,8 +24,8 @@ export const appointmentsShellCard = 'hidden w-full min-w-0 lg:block';
 
 export const appointmentsDesktopTabsSticky = profileDesktopTabsSticky;
 
-/** Фон шапок вкладок записей (`public/photos/fon.png`). */
-export const APPOINTMENTS_HERO_BG = '/photos/fon.png';
+/** Фон шапок вкладок записей (`public/photos/fon.webp`). */
+export const APPOINTMENTS_HERO_BG = '/photos/fon.webp';
 
 export { NOTHING_FOUND_ILLUSTRATION_SRC as APPOINTMENTS_EMPTY_ILLUSTRATION_SRC } from '../../../shared/ui/nothingFoundIllustrationSrc';
 
