@@ -38,6 +38,9 @@ export async function createBePaidCheckout(
         currency: params.currency,
         description: params.description,
         tracking_id: params.trackingId,
+        additional_data: {
+          contract: ['recurring'],
+        },
       },
       settings: {
         success_url: params.successUrl,

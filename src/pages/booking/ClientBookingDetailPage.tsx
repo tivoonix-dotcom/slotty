@@ -7,7 +7,6 @@ import type { ClientBookingDetail } from '../../features/appointments/clientBook
 import { BookingAccessGate } from '../../features/appointments/components/BookingAccessGate';
 import { getApiBaseUrl } from '../../shared/api/backendClient';
 import { normalizeBookingCode } from '../../shared/lib/buildBookingLink';
-import { refreshBookingData } from '../../features/appointments/bookingDataSync';
 import { LoadingScreen } from '../../shared/ui/LoadingVideo';
 
 function ClientBookingDetailContent() {

@@ -10,7 +10,7 @@ import {
 import { createPortal } from 'react-dom';
 import { HiCheckBadge } from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
-import { ADMIN_SETTINGS_LOGIN_METHODS_PATH } from '../../app/paths';
+import { MASTER_SETTINGS_SECURITY_PATH } from '../../app/paths';
 import type { AccountVerificationPendingStep } from '../../features/auth/lib/accountVerification';
 import { MasterVerifiedBadge } from './MasterVerifiedBadge';
 
@@ -105,7 +105,7 @@ export function MasterVerificationStatusBadge({
   verified,
   pendingSteps,
   className = 'h-6 w-6 shrink-0',
-  settingsHref = ADMIN_SETTINGS_LOGIN_METHODS_PATH,
+  settingsHref = MASTER_SETTINGS_SECURITY_PATH,
 }: Props) {
   const tooltipId = useId();
   const anchorRef = useRef<HTMLButtonElement>(null);

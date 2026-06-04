@@ -21,7 +21,7 @@ import {
 
 import { HEADER_LOGO_SRC } from '../../../app/headerLogo';
 import {
-  ADMIN_SETTINGS_PATH,
+  MASTER_SETTINGS_PATH,
   ADMIN_NOTIFICATIONS_PATH,
   ADMIN_PATH,
   PLATFORM_ADMIN_PATH,
@@ -264,7 +264,7 @@ export function SlottyHeader({ variant = 'landing' }: SlottyHeaderProps) {
   const loginReturnPath = `${location.pathname}${location.search}`;
   const loginHref = getLoginPath(loginReturnPath);
   const appointmentsHref = isAuthenticated ? getProfilePath('appointments') : loginHref;
-  const loginMethodsHref = isMasterUser ? ADMIN_SETTINGS_PATH : getProfilePath('settings');
+  const loginMethodsHref = isMasterUser ? MASTER_SETTINGS_PATH : getProfilePath('settings');
 
   const showDesktopChrome = !isTelegramWebApp && variant === 'bar';
   const showLandingDesktop = !isTelegramWebApp && variant === 'landing';

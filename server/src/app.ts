@@ -12,6 +12,7 @@ import { slotsPublicRouter } from './modules/slots/slots.routes.js';
 import { appointmentCreateRouter, clientAppointmentsRouter } from './modules/appointments/appointments.routes.js';
 import { favoritesRouter } from './modules/favorites/favorites.routes.js';
 import { notificationsRouter } from './modules/notifications/notifications.routes.js';
+import { masterNotificationPreferencesRouter } from './modules/notifications/masterNotificationPreferences.routes.js';
 import { billingRouter } from './modules/billing/billing.routes.js';
 import { reviewsRouter } from './modules/reviews/reviews.routes.js';
 import { catalogRouter } from './modules/catalog/catalog.routes.js';
@@ -43,6 +44,7 @@ export function createApp() {
   api.use('/me/appointments', clientAppointmentsRouter);
   api.use('/me/favorites', favoritesRouter);
   api.use('/me/notifications', notificationsRouter);
+  api.use('/me/master/notification-preferences', masterNotificationPreferencesRouter);
   api.use('/reviews', reviewsRouter);
   api.use('/appointments', appointmentCreateRouter);
   api.use('/catalog', catalogRouter);

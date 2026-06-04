@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ADMIN_NOTIFICATIONS_PATH, ADMIN_SETTINGS_PATH } from '../../app/paths';
+import { ADMIN_NOTIFICATIONS_PATH, MASTER_SETTINGS_PATH } from '../../app/paths';
 import { useAdminNotifications } from './notifications/AdminNotificationsContext';
 import { NotificationBellBadge, notificationBellLinkClass } from './notifications/notificationBellUi';
 import { ADMIN_PAGE_TITLES, IconNavNotifications, resolveAdminSectionMeta } from './adminCabinetNav';
@@ -9,7 +9,7 @@ export function AdminDesktopTopBar() {
   const headerRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
   const { hasUnread, unreadCount } = useAdminNotifications();
-  const title = pathname.startsWith(ADMIN_SETTINGS_PATH)
+  const title = pathname.startsWith(MASTER_SETTINGS_PATH)
     ? (resolveAdminSectionMeta(pathname)?.title ?? 'Настройки')
     : (ADMIN_PAGE_TITLES[pathname] ?? 'Кабинет мастера');
   const isNotifications = pathname === ADMIN_NOTIFICATIONS_PATH;

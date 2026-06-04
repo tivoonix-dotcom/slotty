@@ -30,12 +30,18 @@ export async function getPublicAppConfig(req?: Request): Promise<{
   telegramBotUsername?: string;
   googleOAuthConfigured: boolean;
   googleOAuthMissing?: string[];
+  emailDeliveryConfigured: boolean;
+  telegramBotConfigured: boolean;
 }> {
   const telegramBotUsername = await resolveTelegramBotUsername();
   const google = getGoogleOAuthDiagnostics(req);
+  const telegramBotConfigured = Boolean(getBotToken());
+  const emailDeliveryConfigured = Boolean(env.RESEND_API_KEY?.trim());
   return {
     ...(telegramBotUsername ? { telegramBotUsername } : {}),
     googleOAuthConfigured: google.configured,
     ...(google.missing.length > 0 ? { googleOAuthMissing: google.missing } : {}),
+    emailDeliveryConfigured,
+    telegramBotConfigured,
   };
 }

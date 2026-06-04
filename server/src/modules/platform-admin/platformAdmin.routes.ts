@@ -66,6 +66,14 @@ import {
   listPlatformPurchases,
 } from './platformAdmin.purchases.service.js';
 import {
+  adminCancelSubscription,
+  adminMarkSubscriptionExpired,
+  adminRetrySubscriptionPayment,
+  getBillingAdminDiagnostics,
+  getSubscriptionDetailForAdmin,
+  listSubscriptionsForAdmin,
+} from './platformAdmin.subscriptions.service.js';
+import {
   approveProManualPaymentRequest,
   listProManualPaymentRequestsForAdmin,
   rejectProManualPaymentRequest,
@@ -523,6 +531,80 @@ platformAdminRouter.get(
     const limit = z.coerce.number().int().min(1).max(100).optional().parse(req.query.limit);
     const offset = z.coerce.number().int().min(0).optional().parse(req.query.offset);
     res.json(await listPlatformPurchases({ limit, offset }));
+  }),
+);
+
+platformAdminRouter.get(
+  '/billing/diagnostics',
+  asyncHandler(async (_req, res) => {
+    res.json(await getBillingAdminDiagnostics());
+  }),
+);
+
+platformAdminRouter.get(
+  '/subscriptions',
+  asyncHandler(async (req, res) => {
+    const status = z.string().optional().parse(req.query.status);
+    const planCode = z.string().optional().parse(req.query.planCode);
+    const cancelAtPeriodEnd =
+      req.query.cancelAtPeriodEnd === 'true'
+        ? true
+        : req.query.cancelAtPeriodEnd === 'false'
+          ? false
+          : undefined;
+    const pastDue = req.query.pastDue === 'true' ? true : undefined;
+    const nextChargeSoon = req.query.nextChargeSoon === 'true' ? true : undefined;
+    const hasFailedPayments = req.query.hasFailedPayments === 'true' ? true : undefined;
+    const page = z.coerce.number().int().min(1).optional().parse(req.query.page);
+    const pageSize = z.coerce.number().int().min(1).max(100).optional().parse(req.query.pageSize);
+    res.json(
+      await listSubscriptionsForAdmin({
+        status,
+        planCode,
+        cancelAtPeriodEnd,
+        pastDue,
+        nextChargeSoon,
+        hasFailedPayments,
+        page,
+        pageSize,
+      }),
+    );
+  }),
+);
+
+platformAdminRouter.get(
+  '/subscriptions/:masterId',
+  asyncHandler(async (req, res) => {
+    const masterId = z.string().uuid().parse(req.params.masterId);
+    res.json(await getSubscriptionDetailForAdmin(masterId));
+  }),
+);
+
+platformAdminRouter.post(
+  '/subscriptions/:masterId/cancel',
+  asyncHandler(async (req, res) => {
+    const masterId = z.string().uuid().parse(req.params.masterId);
+    const body = z.object({ reason: z.string().min(3).max(500) }).parse(req.body ?? {});
+    await adminCancelSubscription(masterId, req.user!.id, body.reason);
+    res.json({ ok: true });
+  }),
+);
+
+platformAdminRouter.post(
+  '/subscriptions/:masterId/expire',
+  asyncHandler(async (req, res) => {
+    const masterId = z.string().uuid().parse(req.params.masterId);
+    const body = z.object({ reason: z.string().min(3).max(500) }).parse(req.body ?? {});
+    await adminMarkSubscriptionExpired(masterId, req.user!.id, body.reason);
+    res.json({ ok: true });
+  }),
+);
+
+platformAdminRouter.post(
+  '/subscriptions/:masterId/retry-payment',
+  asyncHandler(async (req, res) => {
+    const masterId = z.string().uuid().parse(req.params.masterId);
+    res.json(await adminRetrySubscriptionPayment(masterId, req.user!.id));
   }),
 );
 

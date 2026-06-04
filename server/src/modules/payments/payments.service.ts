@@ -1,7 +1,6 @@
 import { randomUUID } from 'crypto';
 import { query, withTransaction } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
-import { recordBillingEvent } from '../billing/billingEvents.service.js';
 import { getMasterPlanAccess } from '../billing/billing.service.js';
 import {
   assertBePaidReady,
@@ -214,6 +213,8 @@ export async function createBePaidPayment(input: {
   billingPeriod?: 'month' | 'year';
   returnUrl?: string;
   customerEmail?: string | null;
+  /** initial — первая оплата; renewal/update_card — повтор или смена карты при активном Pro */
+  checkoutPurpose?: 'initial' | 'renewal' | 'update_card';
 }): Promise<CreateBePaidPaymentResult> {
   assertBePaidReady();
 
@@ -231,9 +232,13 @@ export async function createBePaidPayment(input: {
     amountMinor = pro.amountMinor;
     planId = pro.planId;
     description = pro.description;
+    const purpose = input.checkoutPurpose ?? 'initial';
     const access = await getMasterPlanAccess(input.masterId);
-    if (access.isProActive) {
+    if (purpose === 'initial' && access.isProActive) {
       throw ApiError.badRequest('Тариф Pro уже активен', 'PRO_ALREADY_ACTIVE');
+    }
+    if (purpose === 'renewal' && !access.isProActive && !access.proExpired) {
+      throw ApiError.badRequest('Продление недоступно', 'RENEWAL_NOT_ALLOWED');
     }
   } else if (input.type === 'appointment_prepayment') {
     throw ApiError.badRequest(
@@ -365,20 +370,13 @@ function mapWebhookToStatus(body: Record<string, unknown>): {
   return { status: 'pending', message: String(body.message ?? '') };
 }
 
-async function fulfillMasterProPlan(payment: PaymentDto): Promise<void> {
+async function fulfillMasterProPlan(
+  payment: PaymentDto,
+  webhookBody?: Record<string, unknown>,
+): Promise<void> {
   if (!payment.masterId || !payment.billingPeriod) return;
-  const durationDays = payment.billingPeriod === 'year' ? 365 : 30;
-  const { activateMasterProFromManualPayment } = await import('../billing/billing.service.js');
-  await activateMasterProFromManualPayment(payment.masterId, payment.billingPeriod, {
-    amount: payment.amount,
-    metadata: {
-      paymentId: payment.id,
-      bepaidTransactionUid: payment.bepaidTransactionUid,
-      provider: 'bepaid',
-      source: 'payment_gateway',
-    },
-    durationDays,
-  });
+  const { activateSubscriptionFromPayment } = await import('../billing/subscriptionBilling.service.js');
+  await activateSubscriptionFromPayment(payment, webhookBody);
 }
 
 export async function processBePaidWebhook(body: Record<string, unknown>): Promise<{ ok: boolean; paymentId?: string }> {
@@ -425,7 +423,7 @@ export async function processBePaidWebhook(body: Record<string, unknown>): Promi
 
   if (updated?.status === 'success' && updated.paymentType === 'master_pro_plan') {
     try {
-      await fulfillMasterProPlan(updated);
+      await fulfillMasterProPlan(updated, body);
     } catch (e) {
       console.error('[bepaid] fulfill pro after success failed', {
         paymentId: updated.id,
@@ -434,17 +432,9 @@ export async function processBePaidWebhook(body: Record<string, unknown>): Promi
     }
   }
 
-  if (updated?.status === 'failed' && updated.masterId) {
-    await recordBillingEvent({
-      masterId: updated.masterId,
-      eventType: 'payment_failed',
-      planCode: 'pro',
-      billingPeriod: updated.billingPeriod ?? undefined,
-      amount: updated.amount,
-      status: 'failed',
-      source: 'payment_gateway',
-      metadata: { paymentId: updated.id },
-    }).catch(() => {});
+  if (updated?.status === 'failed' && updated.masterId && updated.paymentType === 'master_pro_plan') {
+    const { markSubscriptionPaymentFailed } = await import('../billing/subscriptionBilling.service.js');
+    await markSubscriptionPaymentFailed(updated).catch(() => {});
   }
 
   return { ok: true, paymentId: row.id };

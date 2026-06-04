@@ -4,23 +4,28 @@ import { paFilterChip } from '../platformAdminTheme';
 import { PlatformAdminPromoCodesTab } from './PlatformAdminPromoCodesTab';
 import { PlatformAdminPurchasesTab } from './PlatformAdminPurchasesTab';
 import { PlatformAdminProPaymentsTab } from './PlatformAdminProPaymentsTab';
+import { PlatformAdminSubscriptionsTab } from './PlatformAdminSubscriptionsTab';
 
-type BillingKind = 'purchases' | 'promo' | 'pro-payments';
+type BillingKind = 'purchases' | 'promo' | 'pro-payments' | 'subscriptions';
 
 const SEGMENTS: { id: BillingKind; label: string }[] = [
   { id: 'purchases', label: 'Покупки и сводка' },
+  { id: 'subscriptions', label: 'Подписки' },
   { id: 'pro-payments', label: 'Заявки Pro' },
   { id: 'promo', label: 'Промокоды' },
 ];
 
 export function PlatformAdminBillingHub() {
   const [params, setParams] = useSearchParams();
+  const tab = params.get('tab');
   const kind: BillingKind =
-    params.get('tab') === 'promo'
+    tab === 'promo'
       ? 'promo'
-      : params.get('tab') === 'pro-payments'
+      : tab === 'pro-payments'
         ? 'pro-payments'
-        : 'purchases';
+        : tab === 'subscriptions'
+          ? 'subscriptions'
+          : 'purchases';
 
   return (
     <div>
@@ -46,6 +51,8 @@ export function PlatformAdminBillingHub() {
 
       {kind === 'purchases' ? (
         <PlatformAdminPurchasesTab />
+      ) : kind === 'subscriptions' ? (
+        <PlatformAdminSubscriptionsTab />
       ) : kind === 'pro-payments' ? (
         <PlatformAdminProPaymentsTab />
       ) : (

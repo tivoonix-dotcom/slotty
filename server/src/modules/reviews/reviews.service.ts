@@ -90,6 +90,7 @@ export async function createReviewForCompletedAppointment(
     relatedEntityType: 'review',
     relatedEntityId: reviewId,
     telegramHtml: `<b>Новый отзыв</b>\nКлиент поставил ${input.rating}★ и оставил отзыв.`,
+    masterPreferenceEvent: 'reviews',
   });
 
   void notifyMasterEnteredTopIfNeeded(appt.master_id);

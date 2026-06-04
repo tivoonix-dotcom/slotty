@@ -292,6 +292,7 @@ async function deliverReminderForRow(row: DueAppointmentRow, kind: ReminderKind)
       ...related,
       telegramHtml: masterText,
       telegramReplyMarkup: masterBookingTelegramKeyboard(ctx) as unknown as Record<string, unknown>,
+      masterPreferenceEvent: 'reminder_1h',
     });
     await markReminderSent(row.id, kind);
   } catch (e) {

@@ -5,7 +5,7 @@ import { HEADER_LOGO_SRC } from '../../app/headerLogo';
 import {
   ADMIN_APPOINTMENTS_PATH,
   ADMIN_BILLING_PATH,
-  ADMIN_SETTINGS_PATH,
+  MASTER_SETTINGS_PATH,
   ADMIN_NOTIFICATIONS_PATH,
   ADMIN_OVERVIEW_PATH,
   ADMIN_PROFILE_COMPLETION_PATH,
@@ -136,7 +136,7 @@ function AdminLayoutInner() {
   const isAppointments = pathname === ADMIN_APPOINTMENTS_PATH;
   const isNotifications = pathname === ADMIN_NOTIFICATIONS_PATH;
   const isBilling = pathname === ADMIN_BILLING_PATH;
-  const isSettings = pathname.startsWith(ADMIN_SETTINGS_PATH);
+  const isSettings = pathname.startsWith(MASTER_SETTINGS_PATH);
 
   useLayoutEffect(() => {
     const el = stickyShellRef.current;
@@ -426,7 +426,7 @@ function AdminLayoutInner() {
                     <ADMIN_SETTINGS_NAV.icon className="mt-0.5 shrink-0 opacity-95" />
                     <MobileNavItemText
                       label={ADMIN_SETTINGS_NAV.label}
-                      description={ADMIN_SECTION_META[ADMIN_SETTINGS_PATH]?.description}
+                      description={ADMIN_SECTION_META[MASTER_SETTINGS_PATH]?.description}
                       active={isActive}
                     />
                   </span>

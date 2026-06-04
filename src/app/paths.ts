@@ -175,13 +175,25 @@ export const ADMIN_APPOINTMENTS_PATH = '/admin/appointments';
 export const ADMIN_OVERVIEW_PATH = '/admin/overview';
 export const ADMIN_BILLING_PATH = '/admin/billing';
 export const ADMIN_NOTIFICATIONS_PATH = '/admin/notifications';
+/** Кабинет мастера: workspace настроек (SaaS layout). */
+export const MASTER_SETTINGS_PATH = '/master/settings';
+export const MASTER_SETTINGS_SECURITY_PATH = `${MASTER_SETTINGS_PATH}/security`;
+export const MASTER_SETTINGS_NOTIFICATIONS_PATH = `${MASTER_SETTINGS_PATH}/notifications`;
+export const MASTER_SETTINGS_BILLING_PATH = `${MASTER_SETTINGS_PATH}/billing`;
+export const MASTER_SETTINGS_TEAM_PATH = `${MASTER_SETTINGS_PATH}/team`;
+export const MASTER_SETTINGS_INTEGRATIONS_PATH = `${MASTER_SETTINGS_PATH}/integrations`;
+export const MASTER_SETTINGS_PRIVACY_PATH = `${MASTER_SETTINGS_PATH}/privacy`;
+export const MASTER_SETTINGS_SUPPORT_PATH = `${MASTER_SETTINGS_PATH}/support`;
+export const MASTER_SETTINGS_ABOUT_PATH = `${MASTER_SETTINGS_PATH}/about`;
+
+/** @deprecated Используйте MASTER_SETTINGS_*; редиректы сохранены для старых ссылок. */
 export const ADMIN_SETTINGS_PATH = '/admin/settings';
 export const ADMIN_SETTINGS_LOGIN_METHODS_PATH = '/admin/settings/login-methods';
 export const ADMIN_SETTINGS_SUPPORT_PATH = '/admin/settings/support';
 export const ADMIN_SETTINGS_SPONSOR_PATH = '/admin/settings/sponsor';
 export const ADMIN_SETTINGS_DOCUMENTS_PATH = '/admin/settings/documents';
 /** Редирект со старого URL. */
-export const ADMIN_LOGIN_METHODS_PATH = ADMIN_SETTINGS_LOGIN_METHODS_PATH;
+export const ADMIN_LOGIN_METHODS_PATH = MASTER_SETTINGS_SECURITY_PATH;
 export const ADMIN_PROFILE_COMPLETION_PATH = '/admin/profile/completion';
 
 /** Политика обработки персональных данных (страница). */

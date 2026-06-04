@@ -74,6 +74,7 @@ export async function notifyMasterClientCancelledBooking(
       relatedEntityId: appointmentId,
       telegramReplyMarkup: masterBookingTelegramKeyboard(ctx) as unknown as Record<string, unknown>,
       email: masterClientCancelledEmail(ctx),
+      masterPreferenceEvent: 'cancel',
     });
   } catch (e) {
     logNotifyError('notifyMasterClientCancelledBooking', e);

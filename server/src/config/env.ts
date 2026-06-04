@@ -269,6 +269,21 @@ const envSchema = z.object({
     (v) => normalizeEnvUrl(v, 'BEPAID_NOTIFICATION_URL', true),
     z.string().url().optional(),
   ),
+  /** MIT recurring по токену карты (gateway). Требует договор recurring в CRM bePaid. */
+  BEPAID_RECURRING_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  BEPAID_GATEWAY_URL: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    z.string().url().optional(),
+  ),
+  BILLING_WORKER_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false' && v !== '0'),
+  BILLING_WORKER_INTERVAL_MS: z.coerce.number().int().min(60_000).max(3_600_000).default(300_000),
+  BILLING_RENEWAL_REMINDER_DAYS: z.coerce.number().int().min(1).max(14).default(3),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -874,3 +874,131 @@ export async function postNotificationRetryFailed(): Promise<{ retried: number; 
   if (!res.ok) throw new Error(await readErr(res));
   return (await res.json()) as { retried: number; stillFailed: number };
 }
+
+export type PlatformSubscriptionRow = {
+  subscriptionId: string;
+  masterId: string;
+  masterName: string | null;
+  userEmail: string | null;
+  planCode: string;
+  status: string;
+  billingPeriod: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  nextChargeAt: string | null;
+  cancelAtPeriodEnd: boolean;
+  cardBrand: string | null;
+  cardLast4: string | null;
+  hasCardToken: boolean;
+  lastPaymentAt: string | null;
+  failedPaymentsCount: number;
+};
+
+export async function listPlatformSubscriptions(params?: {
+  status?: string;
+  planCode?: string;
+  cancelAtPeriodEnd?: boolean;
+  pastDue?: boolean;
+  nextChargeSoon?: boolean;
+  hasFailedPayments?: boolean;
+  page?: number;
+  pageSize?: number;
+}): Promise<{ subscriptions: PlatformSubscriptionRow[]; total: number }> {
+  const q = new URLSearchParams();
+  if (params?.status) q.set('status', params.status);
+  if (params?.planCode) q.set('planCode', params.planCode);
+  if (params?.cancelAtPeriodEnd) q.set('cancelAtPeriodEnd', 'true');
+  if (params?.pastDue) q.set('pastDue', 'true');
+  if (params?.nextChargeSoon) q.set('nextChargeSoon', 'true');
+  if (params?.hasFailedPayments) q.set('hasFailedPayments', 'true');
+  q.set('page', String(params?.page ?? 1));
+  q.set('pageSize', String(params?.pageSize ?? 25));
+  const res = await apiFetch(`/api/platform-admin/subscriptions?${q}`);
+  if (!res.ok) throw new Error(await readErr(res));
+  return (await res.json()) as { subscriptions: PlatformSubscriptionRow[]; total: number };
+}
+
+export type PlatformSubscriptionDetail = {
+  subscription: {
+    subscriptionId: string;
+    masterId: string;
+    masterName: string | null;
+    planCode: string;
+    status: string;
+    billingPeriod: string;
+    currentPeriodStart: string;
+    currentPeriodEnd: string;
+    nextChargeAt: string | null;
+    cancelAtPeriodEnd: boolean;
+    cardBrand: string | null;
+    cardLast4: string | null;
+    hasCardToken: boolean;
+  };
+  payments: Array<{
+    id: string;
+    amount: number;
+    currency: string;
+    status: string;
+    paidAt: string | null;
+    createdAt: string;
+  }>;
+  jobs: Array<{
+    id: string;
+    jobType: string;
+    status: string;
+    lastError: string | null;
+  }>;
+  billingEvents: Array<{ id: string; eventType: string; createdAt: string }>;
+};
+
+export async function getPlatformSubscriptionDetail(masterId: string): Promise<PlatformSubscriptionDetail> {
+  const res = await apiFetch(`/api/platform-admin/subscriptions/${masterId}`);
+  if (!res.ok) throw new Error(await readErr(res));
+  return (await res.json()) as PlatformSubscriptionDetail;
+}
+
+export async function getBillingDiagnostics(): Promise<{
+  recurringEnabled: boolean;
+  worker: {
+    enabled: boolean;
+    running: boolean;
+    lastTickAt: string | null;
+    lastTickError: string | null;
+  };
+  jobs: {
+    pendingJobs: number;
+    pastDueCount: number;
+    failedJobs24h: number;
+  };
+}> {
+  const res = await apiFetch('/api/platform-admin/billing/diagnostics');
+  if (!res.ok) throw new Error(await readErr(res));
+  return (await res.json()) as Awaited<ReturnType<typeof getBillingDiagnostics>>;
+}
+
+export async function postPlatformSubscriptionCancel(masterId: string, reason: string): Promise<void> {
+  const res = await apiFetch(`/api/platform-admin/subscriptions/${masterId}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new Error(await readErr(res));
+}
+
+export async function postPlatformSubscriptionExpire(masterId: string, reason: string): Promise<void> {
+  const res = await apiFetch(`/api/platform-admin/subscriptions/${masterId}/expire`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new Error(await readErr(res));
+}
+
+export async function postPlatformSubscriptionRetry(
+  masterId: string,
+): Promise<{ paymentUrl: string; paymentId: string }> {
+  const res = await apiFetch(`/api/platform-admin/subscriptions/${masterId}/retry-payment`, {
+    method: 'POST',
+    body: '{}',
+  });
+  if (!res.ok) throw new Error(await readErr(res));
+  return (await res.json()) as { paymentUrl: string; paymentId: string };
+}

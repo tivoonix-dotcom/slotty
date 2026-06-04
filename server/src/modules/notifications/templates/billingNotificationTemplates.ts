@@ -54,3 +54,82 @@ export function proPaymentRejectedForMaster(reason: string): BillingNotification
       `<b>Заявка на Pro отклонена</b>\n` + `Причина: ${escapeTelegramHtml(r)}`,
   };
 }
+
+function formatBillingDate(value: Date | string | null | undefined): string {
+  if (!value) return '—';
+  const { date } = formatAppointmentDateTime(value);
+  return date;
+}
+
+export function subscriptionActivatedNotification(nextChargeAt: Date | string | null): BillingNotificationPayload {
+  const next = formatBillingDate(nextChargeAt);
+  return {
+    type: 'billing',
+    title: 'Master Pro активирован',
+    body: `Тариф Master Pro активен. Следующее списание: ${next}.`,
+    telegramHtml:
+      `<b>Master Pro активирован</b>\n` + `Следующее списание: ${escapeTelegramHtml(next)}.`,
+  };
+}
+
+export function subscriptionRenewedNotification(periodEnd: Date | string | null): BillingNotificationPayload {
+  const end = formatBillingDate(periodEnd);
+  return {
+    type: 'billing',
+    title: 'Подписка Master Pro продлена',
+    body: `Подписка продлена. Pro активен до ${end}.`,
+    telegramHtml: `<b>Master Pro продлён</b>\n` + `Активен до ${escapeTelegramHtml(end)}.`,
+  };
+}
+
+export function subscriptionRenewalReminderNotification(
+  chargeAt: Date | string,
+  amount: number,
+): BillingNotificationPayload {
+  const when = formatBillingDate(chargeAt);
+  return {
+    type: 'billing',
+    title: 'Скоро продление Master Pro',
+    body: `${amount} BYN будут списаны ${when}. Отменить автопродление можно в разделе «Тарифы».`,
+    telegramHtml:
+      `<b>Скоро продление Master Pro</b>\n` +
+      `${escapeTelegramHtml(String(amount))} BYN — ${escapeTelegramHtml(when)}.`,
+  };
+}
+
+export function subscriptionPaymentFailedNotification(): BillingNotificationPayload {
+  return {
+    type: 'billing',
+    title: 'Не удалось продлить Master Pro',
+    body: 'Платёж не прошёл. Обновите карту или повторите оплату в разделе «Тарифы».',
+    telegramHtml:
+      `<b>Не удалось продлить Master Pro</b>\n` +
+      'Обновите карту или повторите оплату в кабинете.',
+  };
+}
+
+export function subscriptionAutoRenewCanceledNotification(
+  periodEnd: Date | string | null,
+): BillingNotificationPayload {
+  const end = formatBillingDate(periodEnd);
+  return {
+    type: 'billing',
+    title: 'Автопродление отключено',
+    body: `Pro будет доступен до ${end}. Следующего списания не будет.`,
+    telegramHtml:
+      `<b>Автопродление отключено</b>\n` + `Pro активен до ${escapeTelegramHtml(end)}.`,
+  };
+}
+
+export function subscriptionAutoRenewResumedNotification(
+  nextChargeAt: Date | string | null,
+): BillingNotificationPayload {
+  const next = formatBillingDate(nextChargeAt);
+  return {
+    type: 'billing',
+    title: 'Автопродление включено',
+    body: `Автопродление снова активно. Следующее списание: ${next}.`,
+    telegramHtml:
+      `<b>Автопродление включено</b>\n` + `Следующее списание: ${escapeTelegramHtml(next)}.`,
+  };
+}

@@ -23,6 +23,11 @@ import { sendNotificationToProfile } from '../telegram/telegramProfileNotificati
 import type { NotificationJobRow } from './notificationJobs.types.js';
 import { query } from '../../config/db.js';
 import type { NotificationType } from './notificationsInsert.js';
+import {
+  logPreferenceDisabledDelivery,
+  mapNotificationJobTypeToPreferenceEvent,
+  shouldDeliverMasterNotification,
+} from './masterNotificationPreferences.deliver.js';
 
 export type ProcessJobResult =
   | { status: 'sent'; providerMessageId?: string | null }
@@ -95,6 +100,25 @@ export async function processNotificationJob(job: NotificationJobRow): Promise<P
     return { status: 'skipped', reason: 'WRONG_RECIPIENT' };
   }
 
+  if (forMaster) {
+    const prefEvent = mapNotificationJobTypeToPreferenceEvent(job.job_type, true);
+    if (prefEvent) {
+      const allowed = await shouldDeliverMasterNotification(
+        job.recipient_user_id,
+        prefEvent,
+        job.channel,
+      );
+      if (!allowed) {
+        await logPreferenceDisabledDelivery({
+          profileId: job.recipient_user_id,
+          eventType: prefEvent,
+          channel: job.channel,
+        });
+        return { status: 'skipped', reason: 'PREFERENCE_DISABLED' };
+      }
+    }
+  }
+
   const notifyType: NotificationType = isReminderJob(job.job_type)
     ? 'appointment_reminder'
     : job.job_type === 'booking_client_confirmed'
@@ -121,6 +145,9 @@ export async function processNotificationJob(job: NotificationJobRow): Promise<P
       email: mail,
       template: job.job_type,
       bookingCode: ctx.voucherNumber,
+      masterPreferenceEvent: forMaster
+        ? mapNotificationJobTypeToPreferenceEvent(job.job_type, true) ?? undefined
+        : undefined,
     });
   }
 

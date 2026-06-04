@@ -11,6 +11,9 @@ import { masterBookingTelegramKeyboard } from '../notifications/telegramAppointm
 import { masterBookingCreatedEmail } from './appointmentNotifyEmail.js';
 import type { AppointmentNotifyContext } from './appointmentNotifyContext.js';
 import { fetchAppointmentNotifyContext } from './appointmentNotifyContext.js';
+import type { MasterNotificationEventKey } from '../notifications/masterNotificationPreferences.state.js';
+import type { MasterImmediateNotifyKind } from '../notifications/masterNotificationPreferences.deliver.js';
+import { mapMasterImmediateNotifyKind } from '../notifications/masterNotificationPreferences.deliver.js';
 
 const related = (ctx: AppointmentNotifyContext) => ({
   relatedEntityType: 'appointment' as const,
@@ -27,6 +30,7 @@ export async function notifyMasterBookingCreated(ctx: AppointmentNotifyContext):
     telegramReplyMarkup: masterBookingTelegramKeyboard(ctx) as unknown as Record<string, unknown>,
     bookingCode: ctx.voucherNumber,
     email: masterBookingCreatedEmail(ctx),
+    masterPreferenceEvent: 'new_booking',
   });
 }
 
@@ -56,6 +60,16 @@ export async function notifyMasterByAppointmentId(
   };
   const markup = masterBookingTelegramKeyboard(ctx) as unknown as Record<string, unknown>;
 
+  const kindToImmediate: Partial<Record<typeof kind, MasterImmediateNotifyKind>> = {
+    client_running_late: 'client_running_late',
+    client_reported_arrived: 'client_arrived',
+    disputed_by_client: 'dispute_created',
+  };
+  const masterPreferenceEvent: MasterNotificationEventKey | undefined = (() => {
+    const immediate = kindToImmediate[kind];
+    return immediate ? mapMasterImmediateNotifyKind(immediate) ?? undefined : undefined;
+  })();
+
   switch (kind) {
     case 'completed': {
       const payload = masterBookingCompleted(ctx);
@@ -65,6 +79,7 @@ export async function notifyMasterByAppointmentId(
         ...related,
         bookingCode: ctx.voucherNumber,
         telegramReplyMarkup: markup,
+        masterPreferenceEvent,
       });
       break;
     }
@@ -76,6 +91,7 @@ export async function notifyMasterByAppointmentId(
         ...related,
         bookingCode: ctx.voucherNumber,
         telegramReplyMarkup: markup,
+        masterPreferenceEvent,
       });
       break;
     }
@@ -89,6 +105,7 @@ export async function notifyMasterByAppointmentId(
         ...related,
         bookingCode: ctx.voucherNumber,
         telegramReplyMarkup: markup,
+        masterPreferenceEvent,
       });
       break;
     }
@@ -100,6 +117,7 @@ export async function notifyMasterByAppointmentId(
         ...related,
         bookingCode: ctx.voucherNumber,
         telegramReplyMarkup: markup,
+        masterPreferenceEvent,
       });
       break;
     }
@@ -111,6 +129,7 @@ export async function notifyMasterByAppointmentId(
         ...related,
         bookingCode: ctx.voucherNumber,
         telegramReplyMarkup: markup,
+        masterPreferenceEvent,
       });
       break;
     }

@@ -6,6 +6,12 @@ import { logNotificationDelivery } from './notificationDeliveriesInsert.js';
 import { sendNotificationToProfile } from '../telegram/telegramProfileNotifications.js';
 import type { SendTelegramMessageResult } from '../telegram/telegram.service.js';
 import { logNotification, logNotificationWarn } from './notificationLog.js';
+import type { MasterNotificationEventKey } from './masterNotificationPreferences.state.js';
+import {
+  logPreferenceDisabledDelivery,
+  shouldDeliverMasterNotification,
+  type MasterNotificationDeliveryChannel,
+} from './masterNotificationPreferences.deliver.js';
 
 export type NotifyUserEmail = {
   subject: string;
@@ -24,7 +30,18 @@ export type NotifyUserParams = {
   telegramReplyMarkup?: Record<string, unknown>;
   email?: NotifyUserEmail;
   bookingCode?: string | null;
+  /** Если задано — применяются master notification preferences (только для мастера). */
+  masterPreferenceEvent?: MasterNotificationEventKey | null;
 };
+
+async function masterAllowsChannel(
+  userId: string,
+  event: MasterNotificationEventKey | null | undefined,
+  channel: MasterNotificationDeliveryChannel,
+): Promise<boolean> {
+  if (!event) return true;
+  return shouldDeliverMasterNotification(userId, event, channel);
+}
 
 function buildTelegramDedupeKey(params: {
   type: NotificationType;
@@ -52,7 +69,20 @@ export async function deliverEmailNotification(params: {
   email: NotifyUserEmail;
   template: string;
   bookingCode?: string | null;
+  masterPreferenceEvent?: MasterNotificationEventKey | null;
 }): Promise<EmailDeliveryResult> {
+  if (
+    params.masterPreferenceEvent &&
+    !(await masterAllowsChannel(params.userId, params.masterPreferenceEvent, 'email'))
+  ) {
+    await logPreferenceDisabledDelivery({
+      profileId: params.userId,
+      eventType: params.masterPreferenceEvent,
+      channel: 'email',
+    });
+    return { status: 'skipped', reason: 'PREFERENCE_DISABLED' };
+  }
+
   const to = await resolveAccountEmail(params.userId);
   if (!to) {
     logNotificationWarn('notification.skipped', {
@@ -118,7 +148,7 @@ export async function deliverEmailNotification(params: {
 
 async function deliverTelegramOnly(
   params: NotifyUserParams,
-  notificationId: string,
+  notificationId: string | null,
 ): Promise<void> {
   const html = params.telegramHtml?.trim();
   if (!html) return;
@@ -133,7 +163,7 @@ async function deliverTelegramOnly(
       res.status === 'ok' ? 'sent' : res.status === 'skipped' ? 'skipped' : 'failed';
 
     await logNotificationDelivery({
-      notificationId,
+      notificationId: notificationId ?? null,
       profileId: params.userId,
       channel: 'telegram',
       status,
@@ -148,7 +178,7 @@ async function deliverTelegramOnly(
       error: message,
     });
     await logNotificationDelivery({
-      notificationId,
+      notificationId: notificationId ?? null,
       profileId: params.userId,
       channel: 'telegram',
       status: 'failed',
@@ -161,29 +191,50 @@ async function deliverTelegramOnly(
 /** In-app + опционально Telegram (каналы независимы от email). */
 export async function deliverInAppAndTelegram(
   params: NotifyUserParams & { type: NotificationType },
-): Promise<string> {
-  const notificationId = await insertUserNotification({
-    userId: params.userId,
-    type: params.type,
-    title: params.title,
-    body: params.body,
-    relatedEntityType: params.relatedEntityType,
-    relatedEntityId: params.relatedEntityId,
-  });
+): Promise<string | null> {
+  const event = params.masterPreferenceEvent;
+  let notificationId: string | null = null;
+
+  if (await masterAllowsChannel(params.userId, event, 'in_app')) {
+    notificationId = await insertUserNotification({
+      userId: params.userId,
+      type: params.type,
+      title: params.title,
+      body: params.body,
+      relatedEntityType: params.relatedEntityType,
+      relatedEntityId: params.relatedEntityId,
+    });
+  } else if (event) {
+    await logPreferenceDisabledDelivery({
+      profileId: params.userId,
+      eventType: event,
+      channel: 'in_app',
+    });
+  }
 
   if (params.telegramHtml?.trim()) {
-    await deliverTelegramOnly(
-      {
-        userId: params.userId,
-        type: params.type,
-        title: params.title,
-        body: params.body,
-        telegramHtml: params.telegramHtml,
-        telegramReplyMarkup: params.telegramReplyMarkup,
-        relatedEntityId: params.relatedEntityId,
-      },
-      notificationId,
-    );
+    if (await masterAllowsChannel(params.userId, event, 'telegram')) {
+      await deliverTelegramOnly(
+        {
+          userId: params.userId,
+          type: params.type,
+          title: params.title,
+          body: params.body,
+          telegramHtml: params.telegramHtml,
+          telegramReplyMarkup: params.telegramReplyMarkup,
+          relatedEntityId: params.relatedEntityId,
+          masterPreferenceEvent: event,
+        },
+        notificationId,
+      );
+    } else if (event) {
+      await logPreferenceDisabledDelivery({
+        profileId: params.userId,
+        eventType: event,
+        channel: 'telegram',
+        notificationId,
+      });
+    }
   }
 
   return notificationId;
@@ -198,24 +249,48 @@ async function deliverEmailFromNotifyParams(params: NotifyUserParams): Promise<v
     email: mail,
     template: params.type,
     bookingCode: params.bookingCode,
+    masterPreferenceEvent: params.masterPreferenceEvent,
   }).catch(() => undefined);
 }
 
 /** In-app + Telegram + email параллельно; сбой одного канала не блокирует другой. */
 export async function notifyUser(params: NotifyUserParams): Promise<void> {
-  const notificationId = await insertUserNotification({
-    userId: params.userId,
-    type: params.type,
-    title: params.title,
-    body: params.body,
-    relatedEntityType: params.relatedEntityType,
-    relatedEntityId: params.relatedEntityId,
-  });
+  const event = params.masterPreferenceEvent;
+  let notificationId: string | null = null;
+
+  if (await masterAllowsChannel(params.userId, event, 'in_app')) {
+    notificationId = await insertUserNotification({
+      userId: params.userId,
+      type: params.type,
+      title: params.title,
+      body: params.body,
+      relatedEntityType: params.relatedEntityType,
+      relatedEntityId: params.relatedEntityId,
+    });
+  } else if (event) {
+    await logPreferenceDisabledDelivery({
+      profileId: params.userId,
+      eventType: event,
+      channel: 'in_app',
+    });
+  }
 
   const results = await Promise.allSettled([
-    params.telegramHtml?.trim()
-      ? deliverTelegramOnly(params, notificationId)
-      : Promise.resolve(),
+    (async () => {
+      if (!params.telegramHtml?.trim()) return;
+      if (await masterAllowsChannel(params.userId, event, 'telegram')) {
+        await deliverTelegramOnly(params, notificationId);
+        return;
+      }
+      if (event) {
+        await logPreferenceDisabledDelivery({
+          profileId: params.userId,
+          eventType: event,
+          channel: 'telegram',
+          notificationId,
+        });
+      }
+    })(),
     deliverEmailFromNotifyParams(params),
   ]);
 

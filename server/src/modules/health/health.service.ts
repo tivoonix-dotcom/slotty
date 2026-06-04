@@ -5,6 +5,7 @@ import { query } from '../../config/db.js';
 import { env } from '../../config/env.js';
 import { getAppointmentRemindersSchedulerStatus } from '../appointments/appointmentReminders.scheduler.js';
 import { getNotificationJobsWorkerStatus } from '../notifications/notificationJobs.worker.js';
+import { getBillingWorkerStatus } from '../billing/billingWorker.js';
 import { isResendConfigured, resolveResendFrom } from '../email/emailConfig.js';
 
 const migrationsDir = path.resolve(
@@ -49,6 +50,7 @@ export function getRuntimeHealth() {
     sentryConfigured: Boolean(env.SENTRY_DSN?.trim()),
     reminders: getAppointmentRemindersSchedulerStatus(),
     notificationJobs: getNotificationJobsWorkerStatus(),
+    billingWorker: getBillingWorkerStatus(),
     resendConfigured: isResendConfigured(),
     resendFrom: resolveResendFrom(),
   };

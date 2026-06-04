@@ -32,6 +32,9 @@ export type BillingPlansSectionProps = {
   proPriceUnit: string;
   freeActive: boolean;
   proActive: boolean;
+  /** Показывать CTA оплаты на карточке Pro (false когда Pro уже активен) */
+  showProCheckoutCta?: boolean;
+  proCtaLabel?: string;
   useLiveBilling: boolean;
   showPaymentLogos?: boolean;
   proPaymentPendingBanner?: ReactNode;
@@ -56,6 +59,8 @@ export function BillingPlansSection({
   proPriceUnit,
   freeActive,
   proActive,
+  showProCheckoutCta = true,
+  proCtaLabel = 'Подключить Pro',
   useLiveBilling,
   showPaymentLogos = false,
   proPaymentPendingBanner,
@@ -65,7 +70,7 @@ export function BillingPlansSection({
   onSelectPro,
 }: BillingPlansSectionProps) {
   const isFree = plan === 'free';
-  const showBePaidOnCta = showPaymentLogos && useLiveBilling && !proActive;
+  const showBePaidOnCta = showPaymentLogos && useLiveBilling && showProCheckoutCta && !proActive;
 
   return (
     <section className={`${billingDesktopCard} w-full min-w-0 p-4 sm:p-5 lg:p-6`}>
@@ -152,9 +157,9 @@ export function BillingPlansSection({
               >
                 {proActive ? (
                   'Текущий тариф'
-                ) : (
+                ) : showProCheckoutCta ? (
                   <>
-                    <span>Оплатить картой</span>
+                    <span>{proCtaLabel}</span>
                     {showBePaidOnCta ? (
                       <PaymentLogoImage
                         method={BEPAID_METHOD}
@@ -163,6 +168,8 @@ export function BillingPlansSection({
                       />
                     ) : null}
                   </>
+                ) : (
+                  'Подключить Pro'
                 )}
               </button>
             }

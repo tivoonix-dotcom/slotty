@@ -28,6 +28,11 @@
     "test:booking-completion": "tsx --test src/lib/appointments.completion.unit.test.ts",
     "test:booking-lifecycle": "tsx src/lib/bookingLifecycleSmoke.unit.test.ts",
     "test:booking-reminder-jobs": "tsx src/lib/bookingReminderJobs.unit.test.ts",
+    "test:subscription-billing": "tsx --test src/lib/subscriptionBilling.unit.test.ts",
+    "test:notification-preferences": "tsx --test src/modules/notifications/masterNotificationPreferences.unit.test.ts src/modules/notifications/masterNotificationPreferences.deliver.unit.test.ts",
+    "test:settings-redirects": "tsx --test src/lib/settingsLegacyRedirects.unit.test.ts",
+    "test:billing-jobs": "tsx --test src/lib/billingJobs.unit.test.ts",
+    "staging:billing-saas": "tsx src/scripts/stagingBillingSaasVerify.ts",
     "staging:verify": "tsx src/scripts/stagingBookingVerify.ts"
   },
   "dependencies": {

@@ -80,3 +80,14 @@ npm run db:v2:migrate
 `BEPAID_ENV=sandbox` → в checkout передаётся `test: true`.
 
 Перед боевым запуском: тестовый платёж, проверка webhook, idempotency (повторный webhook).
+
+## Автопродление (MIT recurring)
+
+1. В checkout передаётся `additional_data.contract: ['recurring']`.
+2. В webhook при успехе сохраняется `credit_card.token` → `master_subscriptions.provider_card_token`.
+3. `BEPAID_RECURRING_ENABLED=true` — billing worker списывает по токену через `POST https://gateway.bepaid.by/transactions/payments`.
+4. Без recurring в CRM / без токена — только ручное продление; в UI не обещаем автосписание (`autoRenewLegalAllowed=false`).
+
+Миграции: `060_master_subscription_saas.sql`, `061_subscription_billing_jobs.sql`.
+
+Smoke: `npm run staging:billing-saas --prefix server`

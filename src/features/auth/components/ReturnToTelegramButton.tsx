@@ -1,4 +1,4 @@
-import { ADMIN_SETTINGS_LOGIN_METHODS_PATH } from '../../../app/paths';
+import { MASTER_SETTINGS_SECURITY_PATH } from '../../../app/paths';
 import { useTelegramLoginUrl } from '../hooks/useTelegramLoginUrl';
 import { sheetOutlineBtnClass } from '../../../pages/admin/profile/adminProfileCabinetTheme';
 
@@ -12,7 +12,7 @@ export function ReturnToTelegramButton({
   className = sheetOutlineBtnClass,
   label = 'Вернуться в Telegram',
 }: Props) {
-  const telegramUrl = useTelegramLoginUrl(ADMIN_SETTINGS_LOGIN_METHODS_PATH);
+  const telegramUrl = useTelegramLoginUrl(MASTER_SETTINGS_SECURITY_PATH);
 
   if (!telegramUrl) return null;
 

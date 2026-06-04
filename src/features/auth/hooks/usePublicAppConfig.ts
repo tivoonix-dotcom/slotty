@@ -5,6 +5,8 @@ export type PublicAppConfig = {
   telegramBotUsername?: string;
   googleOAuthConfigured?: boolean;
   googleOAuthMissing?: string[];
+  emailDeliveryConfigured?: boolean;
+  telegramBotConfigured?: boolean;
 };
 
 export function usePublicAppConfig(): PublicAppConfig {

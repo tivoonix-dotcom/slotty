@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ADMIN_SETTINGS_LOGIN_METHODS_PATH, HUB_PATH, LOGIN_PATH } from '../../app/paths';
+import { MASTER_SETTINGS_SECURITY_PATH, HUB_PATH, LOGIN_PATH } from '../../app/paths';
 import { linkGoogle } from '../../features/auth/api/authApi';
 import { GoogleSignInButton } from '../../features/auth/components/GoogleSignInButton';
 import { useAuth } from '../../features/auth/AuthProvider';
@@ -24,7 +24,7 @@ export function GoogleLinkPage() {
         if (!handoffToken) await refreshProfile();
         setDone(true);
         if (!handoffToken) {
-          setTimeout(() => navigate(ADMIN_SETTINGS_LOGIN_METHODS_PATH, { replace: true }), 1200);
+          setTimeout(() => navigate(MASTER_SETTINGS_SECURITY_PATH, { replace: true }), 1200);
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Не удалось привязать Google');

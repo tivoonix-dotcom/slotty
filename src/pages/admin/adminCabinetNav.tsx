@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import {
   ADMIN_APPOINTMENTS_PATH,
   ADMIN_BILLING_PATH,
-  ADMIN_SETTINGS_PATH,
+  MASTER_SETTINGS_PATH,
   ADMIN_NOTIFICATIONS_PATH,
   ADMIN_OVERVIEW_PATH,
   ADMIN_PROFILE_COMPLETION_PATH,
@@ -156,34 +156,15 @@ export const ADMIN_SECTION_META: Record<string, AdminSectionMeta> = {
     title: 'Уведомления',
     description: 'Новые заявки, изменения записей и важные события по вашему кабинету.',
   },
-  [ADMIN_SETTINGS_PATH]: {
+  [MASTER_SETTINGS_PATH]: {
     title: 'Настройки',
-    description: 'Способы входа, справка по сервису и заявка на партнёрство SLOTTY.',
-  },
-};
-
-/** Подразделы настроек (pathname содержит сегмент). */
-const SETTINGS_SECTION_META: Record<string, AdminSectionMeta> = {
-  'login-methods': {
-    title: 'Способы входа',
-    description: 'Telegram, Google и email — как вы заходите в кабинет и восстанавливаете доступ.',
-  },
-  support: {
-    title: 'Справка',
-    description: 'Ответы на частые вопросы и юридические документы сервиса.',
-  },
-  sponsor: {
-    title: 'Спонсор SLOTTY',
-    description: 'Заявка на партнёрство и продвижение вашего бренда вместе с платформой.',
+    description: 'Безопасность, уведомления, биллинг, интеграции и поддержка.',
   },
 };
 
 export function resolveAdminSectionMeta(pathname: string): AdminSectionMeta | null {
-  if (pathname.startsWith(ADMIN_SETTINGS_PATH)) {
-    if (pathname.includes('/sponsor')) return SETTINGS_SECTION_META.sponsor;
-    if (pathname.includes('/support')) return SETTINGS_SECTION_META.support;
-    if (pathname.includes('/login-methods')) return SETTINGS_SECTION_META['login-methods'];
-    return ADMIN_SECTION_META[ADMIN_SETTINGS_PATH];
+  if (pathname.startsWith(MASTER_SETTINGS_PATH)) {
+    return ADMIN_SECTION_META[MASTER_SETTINGS_PATH];
   }
   if (ADMIN_SECTION_META[pathname]) return ADMIN_SECTION_META[pathname];
   return null;
@@ -219,7 +200,7 @@ export function IconNavSettings({ className }: { className?: string }) {
 }
 
 export const ADMIN_SETTINGS_NAV = {
-  to: ADMIN_SETTINGS_PATH,
+  to: MASTER_SETTINGS_PATH,
   label: 'Настройки',
   icon: IconNavSettings,
 };
@@ -235,5 +216,5 @@ export const ADMIN_PAGE_TITLES: Record<string, string> = {
   [ADMIN_APPOINTMENTS_PATH]: ADMIN_SECTION_META[ADMIN_APPOINTMENTS_PATH].title,
   [ADMIN_BILLING_PATH]: ADMIN_SECTION_META[ADMIN_BILLING_PATH].title,
   [ADMIN_NOTIFICATIONS_PATH]: ADMIN_SECTION_META[ADMIN_NOTIFICATIONS_PATH].title,
-  [ADMIN_SETTINGS_PATH]: ADMIN_SECTION_META[ADMIN_SETTINGS_PATH].title,
+  [MASTER_SETTINGS_PATH]: ADMIN_SECTION_META[MASTER_SETTINGS_PATH].title,
 };

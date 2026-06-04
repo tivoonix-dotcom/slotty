@@ -22,6 +22,7 @@ import {
   SERVICES_PATH,
 } from './paths';
 import { AdminPage } from '../pages/admin/AdminPage';
+import { MasterSettingsPage } from '../pages/admin/settings/MasterSettingsPage';
 import { PlatformAdminPage } from '../pages/platform-admin/PlatformAdminPage';
 import { BookingPage } from '../pages/booking/BookingPage';
 import { ClientBookingDetailPage } from '../pages/booking/ClientBookingDetailPage';
@@ -113,6 +114,7 @@ export function AppRoutes() {
           <Route path={BOOKING_PATH} element={<BookingPage />} />
         </Route>
         <Route path="/catalog" element={<Navigate to={SERVICES_PATH} replace />} />
+        <Route path="/master/settings/*" element={<MasterSettingsPage />} />
         <Route path={`${ADMIN_PATH}/*`} element={<AdminPage />} />
         <Route path="/platform-admin/*" element={<PlatformAdminPage />} />
         <Route path={LOGIN_PATH} element={<LoginPage />} />

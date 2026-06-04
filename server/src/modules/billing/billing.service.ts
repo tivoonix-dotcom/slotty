@@ -19,30 +19,23 @@ export type MasterPlanAccess = {
   proExpiresAt: string | null;
 };
 
-function isProSubscriptionExpired(
-  planCode: string,
-  currentPeriodEnd: Date | string | null,
-  proExpiresAt: Date | string | null,
-): boolean {
-  if (planCode.toLowerCase() !== 'pro') return false;
-  const now = Date.now();
-  const ends: number[] = [];
-  if (proExpiresAt) ends.push(new Date(proExpiresAt).getTime());
-  if (currentPeriodEnd) ends.push(new Date(currentPeriodEnd).getTime());
-  if (ends.length === 0) return false;
-  return Math.min(...ends) < now;
-}
-
-/** Единая проверка активного Pro (plan + даты окончания). */
+/** Единая проверка активного Pro (plan + статус подписки + даты). */
 export async function getMasterPlanAccess(masterId: string): Promise<MasterPlanAccess> {
+  const { expireDueSubscriptions } = await import('./subscriptionBilling.service.js');
+  const { isProEntitled, deriveSubscriptionUiState } = await import('./subscriptionBilling.state.js');
+  await expireDueSubscriptions(masterId);
   await ensureMasterSubscription(masterId);
   const r = await query<{
     code: string;
+    status: string;
     current_period_end: Date;
+    cancel_at_period_end: boolean;
     pro_expires_at: Date | string | null;
   }>(
     `select sp.code,
+            ms.status::text as status,
             ms.current_period_end,
+            ms.cancel_at_period_end,
             mp.pro_expires_at
        from public.master_subscriptions ms
        join public.subscription_plans sp on sp.id = ms.plan_id
@@ -55,17 +48,22 @@ export async function getMasterPlanAccess(masterId: string): Promise<MasterPlanA
     throw ApiError.internal('Подписка мастера недоступна');
   }
   const subscriptionPlanCode = row.code.toLowerCase();
-  const proExpired = isProSubscriptionExpired(
-    subscriptionPlanCode,
-    row.current_period_end,
-    row.pro_expires_at,
-  );
-  const isProActive = subscriptionPlanCode === 'pro' && !proExpired;
+  const lite = {
+    planCode: subscriptionPlanCode,
+    status: row.status,
+    currentPeriodEnd: row.current_period_end,
+    cancelAtPeriodEnd: row.cancel_at_period_end,
+    proExpiresAt: row.pro_expires_at,
+  };
+  const uiState = deriveSubscriptionUiState(lite);
+  const entitled = isProEntitled(lite);
+  const proExpired = uiState === 'expired' || (subscriptionPlanCode === 'pro' && !entitled);
+  const isProActive = entitled;
   return {
     subscriptionPlanCode,
     isProActive,
     proExpired,
-    effectivePlanCode: isProActive ? 'pro' : 'free',
+    effectivePlanCode: entitled ? 'pro' : 'free',
     currentPeriodEnd: row.current_period_end ? new Date(row.current_period_end).toISOString() : null,
     proExpiresAt: row.pro_expires_at ? new Date(row.pro_expires_at).toISOString() : null,
   };
@@ -455,15 +453,24 @@ export async function activateMasterProFromManualPayment(
 
   const durationDays = Math.min(Math.max(options.durationDays ?? 30, 1), 366);
 
+  const price =
+    billingPeriod === 'year' ? Number(plan.price_year) : Number(plan.price_month);
   await query(
     `update public.master_subscriptions
         set plan_id = $1,
             billing_period = $2::public.billing_period,
+            status = 'active'::public.subscription_status,
             current_period_start = now(),
             current_period_end = now() + ($3::int || ' days')::interval,
+            next_charge_at = now() + ($3::int || ' days')::interval,
+            cancel_at_period_end = false,
+            cancelled_at = null,
+            price_amount = $5,
+            currency = 'BYN',
+            provider = 'bepaid',
             updated_at = now()
       where master_id = $4`,
-    [plan.id, billingPeriod, durationDays, masterId],
+    [plan.id, billingPeriod, durationDays, masterId, price],
   );
 
   const eventSource =
