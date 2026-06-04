@@ -174,7 +174,7 @@ async function verifyAuthenticatedFlows(): Promise<void> {
   );
   add(
     'recent security/support audit rows',
-    sec.rowCount > 0,
+    (sec.rowCount ?? 0) > 0,
     sec.rows.map((r) => r.action).join(', ') || 'none',
   );
 
@@ -186,7 +186,7 @@ async function verifyAuthenticatedFlows(): Promise<void> {
   );
   add(
     'admin system notifications exist',
-    notif.rowCount > 0,
+    (notif.rowCount ?? 0) > 0,
     notif.rows.map((r) => r.title).join(' | ') || 'none (support flow may not have been run on staging API yet)',
   );
 }
