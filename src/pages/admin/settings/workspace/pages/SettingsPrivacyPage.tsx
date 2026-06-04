@@ -5,17 +5,15 @@ import {
   HiShieldCheck,
   HiUserCircle,
 } from 'react-icons/hi2';
-import { Link } from 'react-router-dom';
 import {
   LEGAL_CONSENT_PATH,
   LEGAL_PRIVACY_PATH,
   LEGAL_TERMS_PATH,
   MASTER_SETTINGS_PRIVACY_PATH,
-  MASTER_SETTINGS_SUPPORT_CONTACT_PATH,
 } from '../../../../../app/paths';
-import { SUPPORT_EMAIL } from '../../../../../constants/support';
 import { legalReturnState } from '../../../../legal/useLegalPageBack';
-import { SettingsDangerZone, SettingsCabinetToggleRow } from '../settingsCards';
+import { SettingsCabinetToggleRow } from '../settingsCards';
+import { AccountDeletionSection } from '../privacy/AccountDeletionSection';
 import { SettingsHeader } from '../SettingsHeader';
 import { SETTINGS_PAGE_META } from '../settingsNav';
 import {
@@ -129,22 +127,7 @@ export function SettingsPrivacyPage() {
         </section>
 
         <section>
-          <SettingsDangerZone
-            disabled
-            hint={
-              <>
-                Для удаления аккаунта напишите на{' '}
-                <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold">
-                  {SUPPORT_EMAIL}
-                </a>{' '}
-                или{' '}
-                <Link to={MASTER_SETTINGS_SUPPORT_CONTACT_PATH} className="font-semibold">
-                  создайте обращение в поддержку
-                </Link>
-                .
-              </>
-            }
-          />
+          <AccountDeletionSection />
         </section>
       </div>
     </>

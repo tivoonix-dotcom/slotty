@@ -1,8 +1,10 @@
 import { query } from '../../config/db.js';
 import { env } from '../../config/env.js';
+import { publicAppUrl } from '../../lib/publicAppUrl.js';
 import { getBillingWorkerStatus } from '../billing/billingWorker.js';
 import { isResendConfigured } from '../email/emailConfig.js';
 import { getGoogleOAuthDiagnostics } from '../auth/googleOAuth.service.js';
+import { geoSearch } from '../geo/geo.service.js';
 import { getNotificationJobsWorkerStatus } from '../notifications/notificationJobs.worker.js';
 import { isBePaidConfigured } from '../payments/bepaid.config.js';
 import { callBotMethod, getBotToken } from '../telegram/telegram.botApi.js';
@@ -16,18 +18,68 @@ export type CheckResult = {
 };
 
 const AUTOMATED_KEYS = new Set([
+  'website',
+  'master_cabinet',
   'api',
-  'database',
   'auth',
+  'catalog',
+  'booking',
   'telegram_bot',
   'email_notifications',
   'payments_bepaid',
+  'pro_subscription',
+  'maps',
+  'database',
   'notification_worker',
   'billing_worker',
 ]);
 
+const HTTP_PROBE_TIMEOUT_MS = 12_000;
+
 export function isAutomatedComponentKey(key: string): boolean {
   return AUTOMATED_KEYS.has(key);
+}
+
+async function probeFrontendPath(path: string): Promise<CheckResult> {
+  const url = publicAppUrl(path);
+  const t0 = Date.now();
+  try {
+    const res = await fetch(url, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(HTTP_PROBE_TIMEOUT_MS),
+    });
+    const responseTimeMs = Date.now() - t0;
+    const meta = { url, httpStatus: res.status };
+    if (res.status >= 500) {
+      return {
+        status: 'major_outage',
+        responseTimeMs,
+        errorMessage: `HTTP ${res.status}`,
+        metadata: meta,
+      };
+    }
+    if (res.status >= 400) {
+      return {
+        status: 'degraded',
+        responseTimeMs,
+        errorMessage: `HTTP ${res.status}`,
+        metadata: meta,
+      };
+    }
+    return {
+      status: 'operational',
+      responseTimeMs,
+      errorMessage: null,
+      metadata: meta,
+    };
+  } catch (e) {
+    return {
+      status: 'major_outage',
+      responseTimeMs: Date.now() - t0,
+      errorMessage: e instanceof Error ? e.message : 'fetch failed',
+      metadata: { url },
+    };
+  }
 }
 
 async function checkDatabase(): Promise<CheckResult> {
@@ -175,8 +227,141 @@ function checkBillingWorker(): CheckResult {
   return { status: 'operational', responseTimeMs: null, errorMessage: null, metadata: meta };
 }
 
+async function checkCatalog(): Promise<CheckResult> {
+  const t0 = Date.now();
+  try {
+    const r = await query<{ published: number }>(
+      `select count(*)::int as published
+         from public.master_profiles
+        where publication_status = 'published'`,
+    );
+    return {
+      status: 'operational',
+      responseTimeMs: Date.now() - t0,
+      errorMessage: null,
+      metadata: { publishedMasters: r.rows[0]?.published ?? 0 },
+    };
+  } catch (e) {
+    return {
+      status: 'major_outage',
+      responseTimeMs: Date.now() - t0,
+      errorMessage: e instanceof Error ? e.message : 'catalog query failed',
+      metadata: {},
+    };
+  }
+}
+
+async function checkBooking(): Promise<CheckResult> {
+  const t0 = Date.now();
+  try {
+    const r = await query<{ recent: number }>(
+      `select count(*)::int as recent
+         from public.appointments
+        where created_at >= now() - interval '30 days'`,
+    );
+    return {
+      status: 'operational',
+      responseTimeMs: Date.now() - t0,
+      errorMessage: null,
+      metadata: { appointmentsLast30Days: r.rows[0]?.recent ?? 0 },
+    };
+  } catch (e) {
+    return {
+      status: 'major_outage',
+      responseTimeMs: Date.now() - t0,
+      errorMessage: e instanceof Error ? e.message : 'booking query failed',
+      metadata: {},
+    };
+  }
+}
+
+async function checkProSubscription(): Promise<CheckResult> {
+  const t0 = Date.now();
+  const billingConfigured = isBePaidConfigured();
+  try {
+    const r = await query<{ plans: number; active: number }>(
+      `select
+         (select count(*)::int from public.subscription_plans) as plans,
+         (select count(*)::int from public.master_subscriptions
+           where status = 'active'::public.subscription_status) as active`,
+    );
+    const plans = r.rows[0]?.plans ?? 0;
+    const active = r.rows[0]?.active ?? 0;
+    const meta = { billingConfigured, plans, activeSubscriptions: active };
+    if (!billingConfigured) {
+      return {
+        status: 'unknown',
+        responseTimeMs: Date.now() - t0,
+        errorMessage: 'BePaid не настроен',
+        metadata: meta,
+      };
+    }
+    if (plans === 0) {
+      return {
+        status: 'degraded',
+        responseTimeMs: Date.now() - t0,
+        errorMessage: 'Тарифные планы не найдены',
+        metadata: meta,
+      };
+    }
+    return {
+      status: 'operational',
+      responseTimeMs: Date.now() - t0,
+      errorMessage: null,
+      metadata: meta,
+    };
+  } catch (e) {
+    return {
+      status: 'major_outage',
+      responseTimeMs: Date.now() - t0,
+      errorMessage: e instanceof Error ? e.message : 'subscription query failed',
+      metadata: { billingConfigured },
+    };
+  }
+}
+
+async function checkMaps(): Promise<CheckResult> {
+  const t0 = Date.now();
+  try {
+    await query('select count(*)::int as c from public.master_locations');
+    const hits = await geoSearch('Минск', 'проспект Независимости');
+    const responseTimeMs = Date.now() - t0;
+    if (hits.length > 0) {
+      return {
+        status: 'operational',
+        responseTimeMs,
+        errorMessage: null,
+        metadata: { geocodeHits: hits.length },
+      };
+    }
+    return {
+      status: 'degraded',
+      responseTimeMs,
+      errorMessage: 'Геокодинг не вернул результатов',
+      metadata: { geocodeHits: 0 },
+    };
+  } catch (e) {
+    return {
+      status: 'degraded',
+      responseTimeMs: Date.now() - t0,
+      errorMessage: e instanceof Error ? e.message : 'maps check failed',
+      metadata: {},
+    };
+  }
+}
+
 export async function runComponentCheck(componentKey: string): Promise<CheckResult | null> {
   switch (componentKey) {
+    case 'website':
+      return probeFrontendPath('/status');
+    case 'master_cabinet':
+      return probeFrontendPath('/master/settings/security');
+    case 'catalog':
+      return checkCatalog();
+    case 'booking':
+      return checkBooking();
+    case 'maps':
+      return checkMaps();
     case 'database':
       return checkDatabase();
     case 'api':
@@ -194,12 +379,7 @@ export async function runComponentCheck(componentKey: string): Promise<CheckResu
     case 'billing_worker':
       return checkBillingWorker();
     case 'pro_subscription':
-      return {
-        status: isBePaidConfigured() ? 'operational' : 'unknown',
-        responseTimeMs: null,
-        errorMessage: null,
-        metadata: { billingConfigured: isBePaidConfigured() },
-      };
+      return checkProSubscription();
     default:
       return null;
   }

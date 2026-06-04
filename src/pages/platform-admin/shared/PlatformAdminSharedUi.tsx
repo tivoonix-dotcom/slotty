@@ -67,6 +67,8 @@ const STATUS_LABELS: Record<string, string> = {
   no_show: 'Неявка',
   in_review: 'В работе',
   closed: 'Закрыта',
+  cancelled: 'Отменён',
+  deleted: 'Удалён',
 };
 
 const SPONSOR_STATUS_LABELS: Record<string, string> = {
@@ -101,6 +103,8 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled_by_client: 'bg-rose-50 text-rose-800',
   cancelled_by_master: 'bg-rose-50 text-rose-800',
   no_show: 'bg-orange-50 text-orange-800',
+  cancelled: 'bg-slate-100 text-slate-600',
+  deleted: 'bg-slate-200 text-slate-800',
 };
 
 export function StatusBadge({ status }: { status: string }) {

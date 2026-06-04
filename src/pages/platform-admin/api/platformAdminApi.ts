@@ -19,6 +19,7 @@ import type {
   PlatformPurchasesSummary,
   ProManualPaymentRequestAdmin,
   ProfileReportAdmin,
+  AccountDeletionRequestAdmin,
   SupportTicketAdmin,
   SupportTicketAdminDetail,
   EmailCampaignAdmin,
@@ -1003,6 +1004,57 @@ export async function postPlatformSubscriptionRetry(
   });
   if (!res.ok) throw new Error(await readErr(res));
   return (await res.json()) as { paymentUrl: string; paymentId: string };
+}
+
+export async function getAccountDeletionRequests(
+  status: 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled' = 'pending',
+  opts?: { offset?: number; limit?: number },
+): Promise<PlatformPagedResult<AccountDeletionRequestAdmin> & { requests: AccountDeletionRequestAdmin[] }> {
+  const q = new URLSearchParams();
+  q.set('status', status);
+  q.set('limit', String(opts?.limit ?? PAGE_SIZE));
+  q.set('offset', String(opts?.offset ?? 0));
+  const res = await apiFetch(`/api/platform-admin/account-deletion-requests?${q}`);
+  if (!res.ok) throw new Error(await readErr(res));
+  const data = (await res.json()) as {
+    requests: AccountDeletionRequestAdmin[];
+    total: number;
+    limit: number;
+    offset: number;
+  };
+  return {
+    requests: data.requests,
+    items: data.requests,
+    total: data.total,
+    limit: data.limit,
+    offset: data.offset,
+  };
+}
+
+export async function approveAccountDeletionRequest(
+  id: string,
+  adminNote?: string | null,
+): Promise<AccountDeletionRequestAdmin> {
+  const res = await apiFetch(`/api/platform-admin/account-deletion-requests/${id}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ adminNote: adminNote ?? null }),
+  });
+  if (!res.ok) throw new Error(await readErr(res));
+  const data = (await res.json()) as { request: AccountDeletionRequestAdmin };
+  return data.request;
+}
+
+export async function rejectAccountDeletionRequest(
+  id: string,
+  adminNote?: string | null,
+): Promise<AccountDeletionRequestAdmin> {
+  const res = await apiFetch(`/api/platform-admin/account-deletion-requests/${id}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ adminNote: adminNote ?? null }),
+  });
+  if (!res.ok) throw new Error(await readErr(res));
+  const data = (await res.json()) as { request: AccountDeletionRequestAdmin };
+  return data.request;
 }
 
 export async function getPlatformSupportTickets(params?: {

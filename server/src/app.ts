@@ -27,6 +27,7 @@ import { newsletterRouter } from './modules/newsletter/newsletter.routes.js';
 import { paymentsRouter } from './modules/payments/payments.routes.js';
 import { adminPaymentsRouter } from './modules/payments/adminPayments.routes.js';
 import { dataExportRouter } from './modules/data-export/dataExport.routes.js';
+import { accountDeletionRouter } from './modules/account-deletion/accountDeletion.routes.js';
 import { resolveTrustProxySetting } from './lib/clientIp.js';
 
 export function createApp() {
@@ -61,6 +62,7 @@ export function createApp() {
   api.use('/payments', paymentsRouter);
   api.use('/admin/payments', adminPaymentsRouter);
   api.use('/me/data-export', dataExportRouter);
+  api.use('/me/account-deletion', accountDeletionRouter);
   api.use('/telegram/webhook', telegramWebhookRouter);
 
   app.use('/api', api);

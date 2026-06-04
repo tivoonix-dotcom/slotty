@@ -115,7 +115,7 @@ function resolveMonitoringMode(components: ComponentRow[]): {
   if (checked.length === 0) {
     return { mode: 'manual', label: 'Автоматические проверки ещё не запускались' };
   }
-  if (checked.length < automated.length || components.some((c) => c.status === 'unknown')) {
+  if (checked.length < automated.length || automated.some((c) => c.status === 'unknown')) {
     return { mode: 'partial', label: 'Мониторинг подключён частично' };
   }
   return { mode: 'automatic', label: 'Автоматический мониторинг активен' };

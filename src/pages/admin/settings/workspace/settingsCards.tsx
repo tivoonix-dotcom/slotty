@@ -299,14 +299,18 @@ export const SETTINGS_DANGER_ZONE_BG_SRC = '/photos/УДАЛИТЬ/1.png';
 export function SettingsDangerZone({
   onDelete,
   disabled = true,
+  actionLabel,
   hint = 'Удаление через приложение пока недоступно. Напишите в поддержку.',
   backgroundSrc = SETTINGS_DANGER_ZONE_BG_SRC,
 }: {
   onDelete?: () => void;
   disabled?: boolean;
+  actionLabel?: string;
   hint?: ReactNode;
   backgroundSrc?: string;
 }) {
+  const buttonLabel =
+    actionLabel ?? (disabled ? 'Скоро' : 'Удалить аккаунт');
   return (
     <div className="relative overflow-hidden rounded-[20px] shadow-[0_8px_32px_rgba(127,29,29,0.18)]">
       <img
@@ -336,7 +340,7 @@ export function SettingsDangerZone({
           onClick={disabled ? undefined : onDelete}
           className="mt-4 min-h-[44px] rounded-[14px] border border-white/40 bg-white/95 px-5 py-2.5 text-[14px] font-bold text-[#991B1B] shadow-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-55"
         >
-          {disabled ? 'Скоро' : 'Удалить аккаунт'}
+          {buttonLabel}
         </button>
       </div>
     </div>

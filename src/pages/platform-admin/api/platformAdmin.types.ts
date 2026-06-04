@@ -62,6 +62,22 @@ export type SponsorRequestAdmin = {
   profileUrl: string;
 };
 
+export type AccountDeletionRequestAdmin = {
+  id: string;
+  userId: string;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  message: string;
+  requestedAt: string;
+  processedAt: string | null;
+  processedBy: string | null;
+  adminNote: string | null;
+  userFullName: string;
+  userEmail: string | null;
+  userRole: string;
+  accountStatus: string;
+  masterDisplayName: string | null;
+};
+
 export type ProfileReportAdmin = {
   id: string;
   status: 'pending' | 'in_review' | 'closed' | 'rejected';

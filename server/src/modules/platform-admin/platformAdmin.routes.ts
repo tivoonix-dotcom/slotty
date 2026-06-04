@@ -14,6 +14,12 @@ import {
   type SponsorRequestStatus,
 } from '../sponsors/sponsorRequest.service.js';
 import {
+  approveAccountDeletionRequest,
+  listAccountDeletionRequestsForAdmin,
+  rejectAccountDeletionRequest,
+} from '../account-deletion/accountDeletion.service.js';
+import { adminProcessDeletionBodySchema } from '../account-deletion/accountDeletion.validation.js';
+import {
   assignSupportTicket,
   getSupportTicketForAdmin,
   listSupportTicketsForAdmin,
@@ -231,6 +237,45 @@ platformAdminRouter.patch(
       adminComment: body.adminComment,
     });
     res.json({ ok: true });
+  }),
+);
+
+platformAdminRouter.get(
+  '/account-deletion-requests',
+  asyncHandler(async (req, res) => {
+    const status = z
+      .enum(['all', 'pending', 'approved', 'rejected', 'cancelled'])
+      .optional()
+      .parse(req.query.status);
+    const limit = z.coerce.number().int().min(1).max(100).optional().parse(req.query.limit);
+    const offset = z.coerce.number().int().min(0).optional().parse(req.query.offset);
+    res.json(
+      await listAccountDeletionRequestsForAdmin({
+        status: (status ?? 'pending') as 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled',
+        limit,
+        offset,
+      }),
+    );
+  }),
+);
+
+platformAdminRouter.post(
+  '/account-deletion-requests/:id/approve',
+  asyncHandler(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const body = adminProcessDeletionBodySchema.parse(req.body ?? {});
+    const request = await approveAccountDeletionRequest(id, req.user!.id, body.adminNote);
+    res.json({ request });
+  }),
+);
+
+platformAdminRouter.post(
+  '/account-deletion-requests/:id/reject',
+  asyncHandler(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const body = adminProcessDeletionBodySchema.parse(req.body ?? {});
+    const request = await rejectAccountDeletionRequest(id, req.user!.id, body.adminNote);
+    res.json({ request });
   }),
 );
 
