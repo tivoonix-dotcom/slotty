@@ -15,6 +15,7 @@ import {
 import {
   computeClientAnalytics,
   computeRevenueAnalytics,
+  emptyClientAnalytics,
   isOverviewProTab,
   overviewPeriodRange,
   overviewSummaryMetrics,
@@ -235,7 +236,12 @@ export function useOverviewTabData({
   const dayStats = useCabinetApi && apiSummary ? apiSummary.dayStats : localRevenue.dayStats;
 
   const revenue = useCabinetApi && apiRevenue ? apiRevenue : localRevenue;
-  const clients = useCabinetApi && apiClients ? apiClients : localClients;
+  const clients =
+    useCabinetApi && apiClients
+      ? apiClients
+      : useCabinetApi
+        ? emptyClientAnalytics()
+        : localClients;
   const reputation = useCabinetApi && apiReputation ? apiReputation : localReputation;
 
   const loading =

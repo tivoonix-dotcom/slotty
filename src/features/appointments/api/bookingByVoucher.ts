@@ -18,8 +18,19 @@ export type MasterBookingByVoucher = {
   created_at: string;
   client_name: string;
   client_phone: string | null;
+  client_email?: string | null;
+  client_telegram_username?: string | null;
   client_avatar_url: string | null;
   voucher_number: string | null;
+  service_duration_snapshot?: number | null;
+  booking_source?: string | null;
+  location_public_address?: string | null;
+  visit_type?: string | null;
+  service_category_name?: string | null;
+  status_label?: string;
+  status_hint?: string | null;
+  cancel_reason?: string | null;
+  cancel_reason_category?: string | null;
   client_signal?: {
     kind: 'on_the_way' | 'running_late' | 'reported_arrived' | null;
     lateMinutes: number | null;
@@ -35,6 +46,7 @@ export type MasterBookingByVoucher = {
   }>;
   lifecycle?: MasterAppointmentLifecycleResult;
   lifecycle_history?: MasterAppointmentLifecycleResult;
+  pending_expires_at?: string | null;
 };
 
 export async function fetchClientAppointmentByVoucher(
@@ -54,6 +66,19 @@ export async function fetchMasterAppointmentByVoucher(
 ): Promise<MasterBookingByVoucher> {
   const code = encodeURIComponent(bookingCode.trim().toUpperCase());
   const res = await apiFetch(`/api/masters/me/appointments/voucher/${code}`);
+  if (!res.ok) {
+    throw new Error(await readSlottyApiErrorMessage(res));
+  }
+  const data = (await res.json()) as { appointment: MasterBookingByVoucher };
+  return data.appointment;
+}
+
+export async function fetchMasterAppointmentById(
+  appointmentId: string,
+): Promise<MasterBookingByVoucher> {
+  const res = await apiFetch(
+    `/api/masters/me/appointments/${encodeURIComponent(appointmentId)}`,
+  );
   if (!res.ok) {
     throw new Error(await readSlottyApiErrorMessage(res));
   }

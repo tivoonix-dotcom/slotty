@@ -6,7 +6,9 @@ export type NotificationJobType =
   | 'booking_master_client_cancelled'
   | 'booking_reminder_1h'
   | 'booking_reminder_24h'
-  | 'booking_visit_start';
+  | 'booking_visit_start'
+  | 'booking_master_pending_reminder'
+  | 'booking_master_pending_deadline';
 
 export type NotificationJobChannel = 'email' | 'telegram' | 'in_app';
 

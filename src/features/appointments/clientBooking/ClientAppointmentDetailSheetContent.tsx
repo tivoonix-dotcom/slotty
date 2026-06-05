@@ -9,7 +9,7 @@ type Props = {
   row: DemoAppointmentRecord;
   onClose: () => void;
   onRefreshList: () => void | Promise<void>;
-  onOpenReview?: (appointmentId: string) => void;
+  onOpenReview?: () => void;
 };
 
 export function ClientAppointmentDetailSheetContent({

@@ -87,17 +87,17 @@ function ProfileStatusBadge({ status }: { status: MasterPublicationStatus | null
   const { label, tone } = publicationStatusDisplay(status);
   const toneClass =
     tone === 'green'
-      ? 'bg-[#ECFDF3] text-[#15803D] ring-[#BBF7D0]'
+      ? 'bg-[#22C55E] text-white'
       : tone === 'warn'
-        ? 'bg-[#FFF7ED] text-[#C2410C] ring-[#FED7AA]'
-        : 'bg-[#F3F4F6] text-[#6B7280] ring-[#E5E7EB]';
+        ? 'bg-[#FFF7ED] text-[#C2410C]'
+        : 'bg-[#F3F4F6] text-[#6B7280]';
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold ring-1 ${toneClass}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold ${toneClass}`}
     >
       {tone === 'green' ? (
-        <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" aria-hidden />
+        <span className="h-1.5 w-1.5 rounded-full bg-white/90" aria-hidden />
       ) : null}
       {label}
     </span>

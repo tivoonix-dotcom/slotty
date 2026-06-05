@@ -12,6 +12,7 @@ import {
   ADMIN_NOTIFICATIONS_NAV,
   ADMIN_SETTINGS_NAV,
   type AdminNavItem,
+  AdminCabinetNavLink,
 } from '../../adminCabinetNav';
 import { SettingsSearchBox } from './SettingsSearchBox';
 import { SettingsSidebarTariffCard } from './SettingsSidebarTariffCard';
@@ -70,18 +71,21 @@ function CabinetNavRow({
 }) {
   const Icon = item.icon;
   return (
-    <NavLink
-      to={item.to}
-      end={item.end}
+    <AdminCabinetNavLink
+      item={item}
       onClick={onNavigate}
-      className={({ isActive }) => cabinetNavClass(isActive)}
+      className={(isActive) => cabinetNavClass(isActive)}
     >
-      <span className="flex min-w-0 flex-1 items-center gap-3">
-        <Icon className="h-5 w-5 shrink-0 opacity-95" />
-        <span className="truncate text-[15px] font-semibold">{item.label}</span>
-      </span>
-      {trailing}
-    </NavLink>
+      {() => (
+        <>
+          <span className="flex min-w-0 flex-1 items-center gap-3">
+            <Icon className="h-5 w-5 shrink-0 opacity-95" />
+            <span className="truncate text-[15px] font-semibold">{item.label}</span>
+          </span>
+          {trailing}
+        </>
+      )}
+    </AdminCabinetNavLink>
   );
 }
 

@@ -26,6 +26,8 @@
     "staging:booking-verify": "node scripts/staging-booking-verify.mjs",
     "load:catalog": "node scripts/load/catalog-hammer.mjs",
     "e2e:smoke": "playwright test",
+    "e2e:master-day1": "playwright test e2e/master-day1-flow.spec.ts --project=chromium",
+    "e2e:master-mobile360": "playwright test e2e/master-mobile-360.spec.ts --project=mobile360",
     "e2e:booking-lifecycle": "playwright test e2e/booking-lifecycle.spec.ts",
     "e2e:smoke:ui": "playwright test --ui",
     "e2e:hardening": "npm run e2e:hardening-verify --prefix server",

@@ -1,9 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import type { MasterAppointmentsTab } from '../../../features/appointments/masterAppointmentLifecycle';
 import { LoadingScreen } from '../../../shared/ui/LoadingVideo';
 import { AdminAppointmentDetailSheet } from '../shared/AdminAppointmentDetailSheet';
-import { afterBookingMutation } from '../../../features/appointments/bookingDataSync';
 import { useAdminAppointments, useAdminMasterCabinet } from '../useAdminMasterData';
 import { AdminAppointmentsTab } from './AdminAppointmentsTab';
 
@@ -12,11 +11,6 @@ export function AdminAppointmentsSection() {
   const { useCabinetApi, cabinetLoading, cabinetError, reloadCabinet } = useAdminMasterCabinet();
   const [detailAppt, setDetailAppt] = useState<DemoMasterAppointment | null>(null);
   const [detailTab, setDetailTab] = useState<MasterAppointmentsTab>('upcoming');
-
-  const handleAfterBookingAction = useCallback(async () => {
-    afterBookingMutation();
-    if (useCabinetApi) await reloadCabinet();
-  }, [reloadCabinet, useCabinetApi]);
 
   if (useCabinetApi && cabinetLoading) {
     return <LoadingScreen className="bg-[#F1EFEF]" />;
@@ -44,8 +38,10 @@ export function AdminAppointmentsSection() {
         tab={detailTab}
         onClose={() => setDetailAppt(null)}
         useLiveApi={useCabinetApi}
-        onAfterAction={handleAfterBookingAction}
         actionsDisabled={useCabinetApi && cabinetLoading}
+        onAfterAction={async () => {
+          if (useCabinetApi) await reloadCabinet();
+        }}
       />
     </>
   );

@@ -125,6 +125,24 @@ export function mapServerAppointmentToRecord(
   };
 }
 
+const PAST_DB_STATUSES = new Set([
+  'completed',
+  'cancelled',
+  'no_show',
+  'client_confirmed_completed',
+  'master_marked_completed',
+  'disputed',
+]);
+
+export function inferClientAppointmentTab(
+  row: Pick<ServerClientAppointment, 'status' | 'starts_at'>,
+): DemoAppointmentTab {
+  if (PAST_DB_STATUSES.has(row.status)) return 'past';
+  const startMs = new Date(row.starts_at).getTime();
+  if (Number.isFinite(startMs) && startMs < Date.now()) return 'past';
+  return 'upcoming';
+}
+
 export function mergeClientAppointmentsState(
   prev: ClientAppointmentsState,
   chunk: ClientAppointmentsState,

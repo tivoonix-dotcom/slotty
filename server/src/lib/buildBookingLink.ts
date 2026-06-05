@@ -14,7 +14,7 @@ export function normalizeBookingCode(raw: string): string {
   return code;
 }
 
-/** Путь в SPA (без origin). */
+/** Путь в SPA (без origin). Клиент — страница записи с картой и действиями. */
 export function buildBookingPath(role: BookingLinkRole, bookingCode: string): string {
   const code = encodeURIComponent(normalizeBookingCode(bookingCode));
   return role === 'client' ? `/client/appointments/${code}` : `/master/appointments/${code}`;

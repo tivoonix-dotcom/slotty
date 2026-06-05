@@ -2,6 +2,7 @@ import type { IconType } from 'react-icons';
 import {
   HiArrowDown,
   HiArrowUp,
+  HiCalendarDays,
   HiDevicePhoneMobile,
   HiDocumentDuplicate,
   HiEye,
@@ -11,7 +12,6 @@ import {
 } from 'react-icons/hi2';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import {
-  catalogSheetPrimaryBtn,
   catalogSheetSecondaryBtn,
   catalogSheetTitle,
 } from '../shared/adminCatalogSheetTheme';
@@ -31,23 +31,35 @@ type Props = {
   onToggleActive: () => void;
   onDuplicate: () => void;
   onPreview: () => void;
+  onAddWindow: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onDelete: () => void;
 };
 
-type MenuTone = 'brand' | 'neutral' | 'danger';
+type MenuTone = 'neutral' | 'danger';
 
 function iconWrapClass(tone: MenuTone, disabled?: boolean): string {
-  if (disabled) return 'bg-[#EBEBEB] text-[#C4C9D1]';
-  switch (tone) {
-    case 'danger':
-      return 'bg-[#FEF2F2] text-[#EF4444]';
-    case 'neutral':
-      return 'bg-[#EEF2FF] text-[#6366F1]';
-    default:
-      return 'bg-[#FFF1F4] text-[#F47C8C]';
-  }
+  if (disabled) return 'bg-[#F6F7FB] text-[#C4C9D1]';
+  return tone === 'danger' ? 'bg-[#FEF2F2] text-[#EF4444]' : 'bg-[#F6F7FB] text-[#374151]';
+}
+
+function ServicePriceHeroCard({ priceLabel, onClick }: { priceLabel: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full flex-col rounded-[14px] bg-white px-4 py-4 text-left ring-1 ring-[#EAECEF] transition hover:bg-[#FAFAFA] active:scale-[0.99] sm:px-5 sm:py-5"
+    >
+      <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6B7280]">
+        Цена в каталоге
+      </span>
+      <p className="mt-1.5 text-[34px] font-black tabular-nums leading-none tracking-[-0.05em] text-[#111827] sm:text-[38px]">
+        {priceLabel}
+      </p>
+      <span className="mt-3 text-[13px] font-semibold text-[#6B7280]">Изменить цену и название →</span>
+    </button>
+  );
 }
 
 function ActionTile({
@@ -55,7 +67,7 @@ function ActionTile({
   hint,
   icon: Icon,
   onClick,
-  tone = 'brand',
+  tone = 'neutral',
   disabled,
 }: {
   label: string;
@@ -70,10 +82,10 @@ function ActionTile({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex min-h-[72px] w-full items-center gap-3 rounded-[10px] bg-[#EBEBEB] px-3 py-3 text-left transition enabled:hover:bg-[#E4E4E4] enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55 lg:min-h-[80px] lg:flex-col lg:items-start lg:justify-center lg:gap-2 lg:bg-[#F5F5F5] lg:px-4 lg:py-4 lg:enabled:hover:bg-[#EBEBEB]"
+      className="flex min-h-[72px] w-full items-center gap-3 rounded-[14px] bg-white px-3 py-3 text-left ring-1 ring-[#EAECEF] transition enabled:hover:bg-[#FAFAFA] enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55 lg:min-h-[80px] lg:flex-col lg:items-start lg:justify-center lg:gap-2 lg:px-4 lg:py-4"
     >
       <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] lg:h-11 lg:w-11 ${iconWrapClass(tone, disabled)}`}
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] lg:h-11 lg:w-11 ${iconWrapClass(tone, disabled)}`}
       >
         <Icon className="h-5 w-5" aria-hidden />
       </span>
@@ -115,7 +127,7 @@ function OrderButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-[10px] bg-[#EBEBEB] text-[14px] font-semibold text-[#111827] transition enabled:hover:bg-[#E4E4E4] enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+      className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-[12px] bg-white text-[14px] font-semibold text-[#111827] ring-1 ring-[#EAECEF] transition enabled:hover:bg-[#FAFAFA] enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
       {label}
@@ -134,6 +146,7 @@ export function ServicesServiceMenuSheet({
   onToggleActive,
   onDuplicate,
   onPreview,
+  onAddWindow,
   onMoveUp,
   onMoveDown,
   onDelete,
@@ -171,17 +184,7 @@ export function ServicesServiceMenuSheet({
       }
     >
       <div className="space-y-4">
-        <button
-          type="button"
-          onClick={onEdit}
-          className="flex w-full flex-col rounded-[10px] bg-[#FFF1F4] px-5 py-4 text-left transition hover:bg-[#FFE4EA] active:scale-[0.99] lg:px-6 lg:py-5"
-        >
-          <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#F47C8C]">Цена в каталоге</span>
-          <span className="mt-1 text-[34px] font-black tabular-nums leading-none tracking-[-0.05em] text-[#F47C8C] lg:text-[42px]">
-            {priceLabel}
-          </span>
-          <span className="mt-2 text-[13px] font-medium text-[#6B7280]">Нажмите, чтобы изменить цену и название</span>
-        </button>
+        <ServicePriceHeroCard priceLabel={priceLabel} onClick={onEdit} />
 
         <section className={sheetSectionClass}>
           <p className={sheetSectionTitleClass}>Управление</p>
@@ -200,10 +203,15 @@ export function ServicesServiceMenuSheet({
               onClick={onDuplicate}
             />
             <ActionTile
+              label="Добавить окно"
+              hint="Окна для этой услуги"
+              icon={HiCalendarDays}
+              onClick={onAddWindow}
+            />
+            <ActionTile
               label="Превью"
               hint="Как у клиента"
               icon={HiDevicePhoneMobile}
-              tone="neutral"
               onClick={onPreview}
             />
           </div>
@@ -218,7 +226,7 @@ export function ServicesServiceMenuSheet({
         </section>
 
         {deleteBlocked ? (
-          <div className="rounded-[10px] bg-[#FFF4E8] px-4 py-3">
+          <div className="rounded-[14px] bg-[#FFF4E8] px-4 py-3 ring-1 ring-[#FDE68A]/60">
             <p className="text-[13px] font-semibold leading-relaxed text-[#B66A24]">
               {SERVICE_DELETE_BLOCKED_MESSAGE}
             </p>
@@ -230,12 +238,10 @@ export function ServicesServiceMenuSheet({
           <button
             type="button"
             onClick={onDelete}
-            className={`${catalogSheetPrimaryBtn} w-full !bg-[#FEF2F2] !text-[#EF4444] hover:!opacity-95`}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[12px] border border-[#FECACA] bg-white px-4 text-[15px] font-semibold text-[#DC2626] transition hover:bg-[#FEF2F2] active:scale-[0.98]"
           >
-            <span className="inline-flex items-center justify-center gap-2">
-              <HiTrash className="h-5 w-5" aria-hidden />
-              Удалить услугу
-            </span>
+            <HiTrash className="h-5 w-5" aria-hidden />
+            Удалить услугу
           </button>
         )}
       </div>

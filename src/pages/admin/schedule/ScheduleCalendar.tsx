@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiArrowDownTray, HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
 import { downloadScheduleMonthWordReport } from './exportScheduleWordReport';
 import type { ScheduleWindowView } from './scheduleTypes';
@@ -68,15 +68,15 @@ function DayLoadBar({ stats, inverted }: { stats: DayWindowStats; inverted?: boo
   if (total <= 0) return null;
 
   const segments = [
-    { n: booked, class: inverted ? 'bg-white' : 'bg-[#ff5f7a]' },
-    { n: free, class: inverted ? 'bg-white/70' : 'bg-[#ffb3c1]' },
+    { n: booked, class: inverted ? 'bg-white' : 'bg-[#3B4CCA]' },
+    { n: free, class: inverted ? 'bg-white/70' : 'bg-[#B8BEE8]' },
     { n: blocked, class: inverted ? 'bg-white/40' : 'bg-[#EAECEF]' },
   ].filter((s) => s.n > 0);
 
   return (
     <div
       className={`mt-1 flex h-1 w-full max-w-[2.25rem] overflow-hidden rounded-full ${
-        inverted ? 'bg-white/25' : 'bg-[#FDE8ED]'
+        inverted ? 'bg-white/25' : 'bg-[#D8DCF5]'
       }`}
       aria-hidden
     >
@@ -116,17 +116,17 @@ function CalendarDayCell({
         pastMuted ? 'min-h-[2.35rem] py-1 opacity-70 sm:min-h-[2.5rem]' : 'min-h-[3.25rem] py-1.5 sm:min-h-[3.5rem]'
       } ${
         isSelected
-          ? 'bg-[#ff5f7a] text-white'
+          ? 'bg-[#3B4CCA] text-white'
           : isToday
-            ? 'bg-[#FFF1F4] text-[#ff5f7a]'
+            ? 'bg-[#EEF0FC] text-[#3B4CCA]'
             : pastMuted
               ? hasSlots
                 ? 'bg-[#EBEBEB] text-[#6B7280] hover:bg-[#E4E4E4]'
                 : 'bg-transparent text-[#9CA3AF] hover:bg-[#EBEBEB]/60'
               : hasSlots
-                ? 'bg-white text-[#111827] hover:bg-[#FFF1F4]'
+                ? 'bg-white text-[#111827] hover:bg-[#EEF0FC]'
                 : cell.inCurrentMonth
-                  ? 'bg-[#F6F7FB] text-[#374151] ring-1 ring-inset ring-[#EEEEEE] hover:bg-[#FFF1F4]'
+                  ? 'bg-[#F6F7FB] text-[#374151] ring-1 ring-inset ring-[#EEEEEE] hover:bg-[#EEF0FC]'
                   : 'bg-transparent text-[#D1D5DB]'
       }`}
       aria-label={`${dayNum}, ${windowsCountRu(stats?.total ?? 0)}`}
@@ -145,7 +145,7 @@ function CalendarDayCell({
           <span
             className={`font-black leading-none tabular-nums ${
               pastMuted ? 'text-[9px]' : 'text-[10px]'
-            } ${isSelected ? 'text-white' : dense ? 'text-[#ff5f7a]' : 'text-[#6B7280]'}`}
+            } ${isSelected ? 'text-white' : dense ? 'text-[#3B4CCA]' : 'text-[#6B7280]'}`}
           >
             {formatCountBadge(stats.total)}
           </span>
@@ -173,14 +173,14 @@ function ScheduleWindowRowCompact({ window: w, onClick }: { window: ScheduleWind
       onClick={onClick}
       className={`flex w-full items-center gap-3 rounded-[16px] px-3 py-2.5 text-left transition active:scale-[0.99] ${
         booked
-          ? 'bg-[#FFF1F4] text-[#111827]'
+          ? 'bg-[#EEF0FC] text-[#111827]'
           : w.status === 'blocked'
             ? 'bg-[#EBEBEB] text-[#6B7280]'
             : 'bg-white text-[#111827]'
       }`}
     >
       <span
-        className="shrink-0 text-[13px] font-black tabular-nums tracking-[-0.03em] text-[#ff5f7a]"
+        className="shrink-0 text-[13px] font-black tabular-nums tracking-[-0.03em] text-[#3B4CCA]"
       >
         {w.startTime}
       </span>
@@ -189,7 +189,7 @@ function ScheduleWindowRowCompact({ window: w, onClick }: { window: ScheduleWind
       </span>
       <span
         className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-          booked ? 'bg-[#ff5f7a] text-white' : 'bg-[#EBEBEB] text-[#6B7280]'
+          booked ? 'bg-[#3B4CCA] text-white' : 'bg-[#EBEBEB] text-[#6B7280]'
         }`}
       >
         {STATUS_SHORT[w.status]}
@@ -334,7 +334,7 @@ export function ScheduleCalendar({
               <button
                 type="button"
                 onClick={goToday}
-                className="mt-1 text-[13px] font-bold text-[#ff5f7a] transition active:opacity-70"
+                className="mt-1 text-[13px] font-bold text-[#3B4CCA] transition active:opacity-70"
               >
                 Сегодня
               </button>
@@ -352,7 +352,7 @@ export function ScheduleCalendar({
           {!loading ? (
             <p className="mt-3 text-center text-[12px] font-semibold text-[#6B7280]">
               В месяце:{' '}
-              <span className="font-black text-[#ff5f7a]">{windowsCountRu(monthWindowCount)}</span>
+              <span className="font-black text-[#3B4CCA]">{windowsCountRu(monthWindowCount)}</span>
               {busyDaysInMonth.length > 0 ? (
                 <span className="text-[#9CA3AF]"> · {busyDaysInMonth.length} дн. с окнами</span>
               ) : null}
@@ -401,11 +401,11 @@ export function ScheduleCalendar({
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] font-semibold text-[#6B7280]">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#ff5f7a]" aria-hidden />
+              <span className="h-2 w-2 rounded-full bg-[#3B4CCA]" aria-hidden />
               Запись
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#ffb3c1]" aria-hidden />
+              <span className="h-2 w-2 rounded-full bg-[#B8BEE8]" aria-hidden />
               Свободно
             </span>
             <span className="inline-flex items-center gap-1.5">
@@ -478,12 +478,12 @@ export function ScheduleCalendar({
               {selectedDayStats && selectedDayStats.total > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {selectedDayStats.free > 0 ? (
-                    <span className="rounded-full bg-[#EBEBEB] px-2.5 py-1 text-[11px] font-semibold text-[#111827] lg:bg-[#FFF1F4] lg:font-bold lg:text-[#ff5f7a]">
+                    <span className="rounded-full bg-[#EBEBEB] px-2.5 py-1 text-[11px] font-semibold text-[#111827] lg:bg-[#EEF0FC] lg:font-bold lg:text-[#3B4CCA]">
                       {selectedDayStats.free} св.
                     </span>
                   ) : null}
                   {selectedDayStats.booked > 0 ? (
-                    <span className="rounded-full bg-[#EBEBEB] px-2.5 py-1 text-[11px] font-semibold text-[#111827] lg:bg-[#ff5f7a] lg:font-bold lg:text-white">
+                    <span className="rounded-full bg-[#EBEBEB] px-2.5 py-1 text-[11px] font-semibold text-[#111827] lg:bg-[#3B4CCA] lg:font-bold lg:text-white">
                       {selectedDayStats.booked} зап.
                     </span>
                   ) : null}
@@ -495,7 +495,7 @@ export function ScheduleCalendar({
                 disabled={exportingWord || loading}
                 title="Скачать отчёт Word за месяц"
                 aria-label="Скачать отчёт Word за месяц"
-                className={`${scheduleCalendarIconBtn} text-[#ff5f7a]`}
+                className={`${scheduleCalendarIconBtn} text-[#3B4CCA]`}
               >
                 <HiArrowDownTray className="h-5 w-5" aria-hidden />
               </button>
@@ -562,7 +562,7 @@ export function ScheduleCalendar({
                   disabled={!canCreateForDay}
                   title={!canCreateForDay ? createForDayDisabledTitle : undefined}
                   onClick={() => onCreateForDay?.(selectedIso)}
-                  className="mt-3 text-[14px] font-bold text-[#ff5f7a] underline decoration-[#ffb3c1] underline-offset-2 transition hover:text-[#ff6f88] disabled:cursor-not-allowed disabled:text-[#9CA3AF] disabled:no-underline"
+                  className="mt-3 text-[14px] font-bold text-[#3B4CCA] underline decoration-[#B8BEE8] underline-offset-2 transition hover:text-[#4558D4] disabled:cursor-not-allowed disabled:text-[#9CA3AF] disabled:no-underline"
                 >
                   Создать окно на этот день
                 </button>

@@ -7,6 +7,7 @@ import { contactsToLegacyContactLine, type MasterContactPayload } from './master
 import { decodePaymentNote, listMasterPaymentMethodNames } from './masterTrustProfile.service.js';
 import { getPublicMasterBookingRulesSummary } from './masterBookingRulesStructured.service.js';
 import { sanitizeMasterLocationForViewer } from '../../lib/sanitizeMasterLocation.js';
+import { resolveClientDisplayIdentity } from '../../lib/clientDisplayIdentity.js';
 
 const MASTER_PROFILE_COVER_TITLE = 'Обложка профиля';
 
@@ -287,6 +288,15 @@ type ReviewRow = {
   created_at: Date | string;
   client_id: string;
   client_name: string | null;
+  client_phone: string | null;
+  client_telegram_username: string | null;
+  avatar_url: string | null;
+  master_display_name: string | null;
+  master_photo_url: string | null;
+  client_name_snapshot: string | null;
+  client_phone_snapshot: string | null;
+  master_reply: string | null;
+  master_reply_at: Date | string | null;
 };
 
 export async function getMasterDetail(masterId: string) {
@@ -388,9 +398,16 @@ export async function getMasterDetail(masterId: string) {
       [masterId],
     ),
     query(
-      `select r.id, r.rating, r.body, r.created_at, r.client_id, p.full_name as client_name
+      `select r.id, r.rating, r.body, r.created_at, r.client_id,
+              r.master_reply, r.master_reply_at,
+              p.full_name as client_name, p.phone as client_phone, p.telegram_username as client_telegram_username,
+              p.avatar_url,
+              mp.display_name as master_display_name, mp.photo_url as master_photo_url,
+              a.client_name_snapshot, a.client_phone_snapshot
          from public.reviews r
+         join public.appointments a on a.id = r.appointment_id
          join public.profiles p on p.id = r.client_id
+         left join public.master_profiles mp on mp.master_id = r.client_id
         where r.master_id = $1 and r.status = 'published'
         order by r.created_at desc
         limit 50`,
@@ -411,6 +428,8 @@ export async function getMasterDetail(masterId: string) {
     : paymentDecodedPublic.paymentMethods;
 
   const rulesSummary = await getPublicMasterBookingRulesSummary(masterId);
+  const { getPublicMasterPayment } = await import('./masterPaymentSettings.service.js');
+  const paymentPublic = await getPublicMasterPayment(masterId);
 
   const locRows = locations.rows as PublicMasterLocationRow[];
   const coverUrl = await resolveMasterPublicCoverUrl(master.master_id, master.portfolio_cover_item_id);
@@ -443,6 +462,7 @@ export async function getMasterDetail(masterId: string) {
           clientPreview: rulesSummary.clientPreview,
         }
       : null,
+    payment: paymentPublic,
     certificates: (certificates.rows as CertificateRow[]).map((row) => ({
       id: row.id,
       title: row.title,
@@ -469,14 +489,33 @@ export async function getMasterDetail(masterId: string) {
       description: row.description,
       sortOrder: row.sort_order,
     })),
-    reviews: (reviews.rows as ReviewRow[]).map((row) => ({
-      id: row.id,
-      rating: row.rating,
-      body: row.body,
-      createdAt: row.created_at,
-      clientId: row.client_id,
-      clientName: row.client_name,
-    })),
+    reviews: (reviews.rows as ReviewRow[]).map((row) => {
+      const identity = resolveClientDisplayIdentity({
+        masterDisplayName: row.master_display_name,
+        masterPhotoUrl: row.master_photo_url,
+        profileFullName: row.client_name,
+        profileAvatarUrl: row.avatar_url,
+        nameSnapshot: row.client_name_snapshot,
+        phone: row.client_phone,
+        phoneSnapshot: row.client_phone_snapshot,
+        telegramUsername: row.client_telegram_username,
+      });
+      return {
+        id: row.id,
+        rating: row.rating,
+        body: row.body,
+        createdAt: row.created_at,
+        clientId: row.client_id,
+        clientName: identity.displayName,
+        clientAvatarUrl: identity.avatarUrl,
+        masterReply: row.master_reply?.trim() || null,
+        masterReplyAt: row.master_reply_at
+          ? row.master_reply_at instanceof Date
+            ? row.master_reply_at.toISOString()
+            : String(row.master_reply_at)
+          : null,
+      };
+    }),
   };
 }
 
@@ -541,7 +580,8 @@ export async function getMyMasterProfile(profileId: string) {
   const r = await query(
     `select master_id, display_name, slug, primary_category_id, bio, phone, contact, contacts, photo_url,
             portfolio_cover_item_id,
-            publication_status::text, is_profile_active, rating_avg::text, reviews_count, global_buffer_minutes
+            publication_status::text, is_profile_active, rating_avg::text, reviews_count, global_buffer_minutes,
+            created_at
        from public.master_profiles
       where master_id = $1`,
     [profileId],
@@ -563,6 +603,7 @@ export async function getMyMasterProfile(profileId: string) {
         rating_avg: string;
         reviews_count: number;
         global_buffer_minutes: number;
+        created_at: Date | string;
       }
     | undefined;
   if (!row) {
@@ -614,6 +655,7 @@ export async function getMyMasterProfile(profileId: string) {
     rating: num(row.rating_avg) ?? 0,
     reviewsCount: row.reviews_count,
     globalBufferMinutes: row.global_buffer_minutes,
+    createdAt: new Date(row.created_at).toISOString(),
   };
 }
 

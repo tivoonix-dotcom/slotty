@@ -57,6 +57,7 @@ export function MasterExtraSections({ master, layout = 'stack' }: Props) {
       master.bookingRules?.trim() ||
       master.cancellationPolicy?.trim() ||
       master.paymentNote?.trim() ||
+      master.payment?.methods?.length ||
       paymentMethods.length > 0,
   );
   const clientContacts = resolveFilledContacts({
@@ -135,14 +136,16 @@ export function MasterExtraSections({ master, layout = 'stack' }: Props) {
                 ) : null}
               </>
             )}
-            {paymentMethods.length > 0 || master.paymentNote?.trim() ? (
+            {paymentMethods.length > 0 || master.paymentNote?.trim() || master.payment?.methods?.length ? (
               <div>
                 <p className="text-[12px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
                   Оплата
                 </p>
                 <MasterPaymentMethodsBlock
                   methods={paymentMethods}
+                  payment={master.payment}
                   note={master.paymentNote}
+                  preferredBankIds={master.preferredBankIds}
                   compact
                 />
               </div>

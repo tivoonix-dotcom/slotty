@@ -22,6 +22,7 @@ export type MasterCabinetProfileDto = {
   reviewsCount: number;
   globalBufferMinutes: number;
   portfolioCoverItemId?: string | null;
+  createdAt: string;
 };
 
 export type MasterCabinetCategoryDto = { code: string; name: string } | null;
@@ -213,12 +214,19 @@ export type MasterAppointmentListRow = {
   status: string;
   price_snapshot: string;
   service_title_snapshot: string;
+  service_duration_snapshot?: number | null;
   client_note: string | null;
   client_reference_photo_url: string | null;
-  created_at: string;
+  created_at?: string;
   client_name: string;
   client_phone: string | null;
+  client_email?: string | null;
+  client_telegram_username?: string | null;
+  client_telegram_id?: string | null;
   client_avatar_url?: string | null;
+  booking_source?: string | null;
+  cancel_reason?: string | null;
+  voucher_number?: string | null;
 };
 
 export type MasterAppointmentsTab = 'pending' | 'upcoming' | 'history' | 'active' | 'all';

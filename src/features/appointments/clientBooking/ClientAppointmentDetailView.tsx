@@ -1,28 +1,49 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { getProfilePath } from '../../../app/paths';
+import { Link, useNavigate } from 'react-router-dom';
+import { getClientAppointmentReviewPath } from '../../../app/paths';
+import { HiArrowLeft, HiChatBubbleLeftRight } from 'react-icons/hi2';
+import { getProfilePath, PROFILE_SETTINGS_SUPPORT_PATH } from '../../../app/paths';
 import {
   cancelClientAppointmentById,
   cancelClientAppointmentByVoucher,
 } from '../api/bookingByVoucher';
 import {
   clientCommentByVoucher,
-  clientConfirmCompletedByVoucher,
   clientDisputeByVoucher,
-  clientSignalByVoucher,
 } from '../api/bookingLifecycleApi';
 import { afterBookingMutation } from '../bookingDataSync';
-import { appointmentStatusLabel, dbStatusToUi } from '../appointmentStatus';
+import { dbStatusToUi } from '../appointmentStatus';
 import type { DemoAppointmentRecord } from '../model/demoAppointments';
-import { buildYandexMapWidgetUrl, buildYandexMapsRouteUrl } from '../model/demoAppointments';
 import { formatServiceName } from '../../../shared/lib/displayFormat';
 import type { ClientBookingDetail } from './clientBookingDetailTypes';
 import { formatPriceByn, statusLabelRu } from '../../../pages/profile/profileFormat';
 import { openBookingVoucherPrint } from '../../../features/booking/lib/bookingConfirmationVoucherPrint';
 import { HEADER_LOGO_SRC } from '../../../app/headerLogo';
-import { formatDurationMinutes } from '../../../pages/admin/appointments/appointmentsFormat';
-
-const LATE_PRESETS = [5, 10, 15, 30] as const;
+import { formatBookingCreatedAt } from './clientBookingDetailUi';
+import {
+  clientBookingAsideSticky,
+  clientBookingBackLink,
+  clientBookingField,
+  clientBookingPageGrid,
+  clientBookingPanel,
+  clientBookingPrimaryBtnClass,
+} from './clientBookingDetailTheme';
+import { ClientAppointmentHeroCard } from './ClientAppointmentHeroCard';
+import { ClientAppointmentMasterCard } from './ClientAppointmentMasterCard';
+import { ClientAppointmentInfoCard } from './ClientAppointmentInfoCard';
+import { ClientAppointmentLocationCard } from './ClientAppointmentLocationCard';
+import { ClientAppointmentNextStepCard } from './ClientAppointmentNextStepCard';
+import { ClientAppointmentTimeline } from './ClientAppointmentTimeline';
+import { ClientAppointmentStickyActions } from './ClientAppointmentStickyActions';
+import { downloadAppointmentIcs } from './downloadAppointmentIcs';
+import {
+  buildClientAppointmentActions,
+  buildClientAppointmentHero,
+  buildClientAppointmentNextStep,
+  type ClientAppointmentPrimaryAction,
+  type ClientAppointmentSecondaryAction,
+} from './clientAppointmentViewModel';
+import { ClientBookingSectionTitle } from './clientBookingDetailUi';
 
 const DISPUTE_REASONS = [
   { id: 'master_no_show', label: 'Мастер не пришёл' },
@@ -42,26 +63,8 @@ const CANCEL_REASONS = [
   { id: 'other', label: 'Другое' },
 ] as const;
 
-function pinkBtn(disabled?: boolean) {
-  return `min-h-11 w-full rounded-full bg-[#F47C8C] text-[14px] font-semibold text-white shadow-[0_8px_24px_rgba(244,124,140,0.28)] transition hover:opacity-95 disabled:opacity-50 ${disabled ? 'pointer-events-none' : ''}`;
-}
-
-function softBtn() {
-  return 'min-h-11 w-full rounded-full border border-[#E8E4E4] bg-white text-[14px] font-semibold text-[#374151]';
-}
-
-function ghostBtn() {
-  return 'min-h-10 w-full rounded-full bg-[#F1EFEF] text-[14px] font-semibold text-neutral-900';
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  if (!value.trim()) return null;
-  return (
-    <div className="flex items-start justify-between gap-3 border-b border-[#F0EEEE] py-3 last:border-0">
-      <span className="shrink-0 text-[13px] font-medium text-[#9CA3AF]">{label}</span>
-      <span className="min-w-0 text-right text-[14px] font-semibold leading-snug text-[#111827]">{value}</span>
-    </div>
-  );
+function primaryBtnClass(disabled?: boolean) {
+  return `${clientBookingPrimaryBtnClass} disabled:opacity-50 ${disabled ? 'pointer-events-none' : ''}`;
 }
 
 function mapDetailToDemoRow(detail: ClientBookingDetail): DemoAppointmentRecord {
@@ -109,7 +112,7 @@ type Props = {
   layout?: 'sheet' | 'page';
   onRefresh: () => void | Promise<void>;
   onClose?: () => void;
-  onOpenReview?: (appointmentId: string) => void;
+  onOpenReview?: () => void;
   onRebook?: (masterId: string) => void;
 };
 
@@ -123,9 +126,6 @@ export function ClientAppointmentDetailView({
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lateOpen, setLateOpen] = useState(false);
-  const [lateMinutes, setLateMinutes] = useState(10);
-  const [lateComment, setLateComment] = useState('');
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>(CANCEL_REASONS[0].id);
   const [cancelComment, setCancelComment] = useState('');
@@ -133,13 +133,31 @@ export function ClientAppointmentDetailView({
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState<string>(DISPUTE_REASONS[0].id);
   const [disputeComment, setDisputeComment] = useState('');
+  const navigate = useNavigate();
 
   const voucher = detail.voucher_number ?? '';
-  const actions = new Set(detail.available_actions ?? []);
   const openDispute =
     detail.dispute?.status === 'open' || detail.dispute?.status === 'in_review';
   const demoRow = useMemo(() => mapDetailToDemoRow(detail), [detail]);
-  const hero = detail.hero;
+  const hero = useMemo(() => buildClientAppointmentHero(detail), [detail]);
+  const nextStep = useMemo(() => buildClientAppointmentNextStep(detail), [detail]);
+  const actionsView = useMemo(() => buildClientAppointmentActions(detail), [detail]);
+
+  const phoneHref =
+    detail.master?.contact_actions.find(
+      (a) => a.href && (a.type === 'phone' || a.type === 'whatsapp'),
+    )?.href ?? null;
+  const messageHref =
+    detail.master?.contact_actions.find(
+      (a) => a.href && (a.type === 'telegram' || a.type === 'slotty'),
+    )?.href ??
+    detail.master?.contact_actions.find((a) => a.href && a.type !== 'phone')?.href ??
+    null;
+  const routeHref = demoRow.yandexMap
+    ? `https://yandex.ru/maps/?rtext=~${demoRow.yandexMap.lat},${demoRow.yandexMap.lon}&rtt=auto`
+    : detail.address?.line
+      ? `https://yandex.ru/maps/?text=${encodeURIComponent(detail.address.line)}`
+      : null;
 
   const run = useCallback(
     async (fn: () => Promise<void>) => {
@@ -158,89 +176,111 @@ export function ClientAppointmentDetailView({
     [onRefresh],
   );
 
-  const visitLabel = detail.location_visit_type === 'at_home' ? 'На дому' : 'В студии';
-  const durationLabel = formatDurationMinutes(
-    detail.service_duration_minutes,
-    detail.service_title_snapshot,
-  );
-  const showMap = Boolean(detail.address?.map_available && (detail.address?.line || demoRow.yandexMap));
+  const mapTitle = detail.location_visit_type === 'at_home' ? 'Адрес' : 'Адрес мастера';
+  const createdAtLabel = detail.created_at ? formatBookingCreatedAt(detail.created_at) : '';
 
-  const contactPrimary = detail.master?.contact_actions.find((a) => a.href) ?? null;
+  const handlePrimary = useCallback(
+    (action: ClientAppointmentPrimaryAction) => {
+      switch (action) {
+        case 'cancel_request':
+          setCancelOpen(true);
+          break;
+        case 'open_route':
+          if (routeHref) window.open(routeHref, '_blank', 'noopener,noreferrer');
+          break;
+        case 'call_master':
+          if (phoneHref) window.location.href = phoneHref;
+          break;
+        case 'leave_review':
+          if (voucher) {
+            navigate(getClientAppointmentReviewPath(voucher));
+          } else {
+            onOpenReview?.();
+          }
+          break;
+        case 'book_again':
+          onRebook?.(detail.master_id);
+          break;
+        default:
+          break;
+      }
+    },
+    [detail.master_id, navigate, onOpenReview, onRebook, phoneHref, routeHref, voucher],
+  );
+
+  const handleSecondary = useCallback(
+    (action: ClientAppointmentSecondaryAction) => {
+      switch (action) {
+        case 'open_master_profile':
+          if (detail.master?.profile_path) window.location.href = detail.master.profile_path;
+          break;
+        case 'copy_address':
+          if (detail.address?.line) void navigator.clipboard?.writeText(detail.address.line);
+          break;
+        case 'cancel_booking':
+          setCancelOpen(true);
+          break;
+        case 'write_master':
+          if (messageHref) window.location.href = messageHref;
+          break;
+        case 'download_pdf':
+          openBookingVoucherPrint(
+            {
+              masterName: demoRow.masterName,
+              serviceTitle: demoRow.serviceTitle,
+              dateLabel: demoRow.dateLabel,
+              timeLabel: demoRow.timeLabel,
+              locationLine: demoRow.addressShort,
+              priceLabel: formatPriceByn(demoRow.price),
+              statusLabel: statusLabelRu(demoRow.status),
+              voucherNumber: demoRow.voucherNumber ?? undefined,
+            },
+            HEADER_LOGO_SRC,
+          );
+          break;
+        case 'dispute':
+          setDisputeOpen(true);
+          break;
+        case 'open_route':
+          if (routeHref) window.open(routeHref, '_blank', 'noopener,noreferrer');
+          break;
+        case 'add_to_calendar':
+          downloadAppointmentIcs(detail);
+          break;
+        case 'call_master':
+          if (phoneHref) window.location.href = phoneHref;
+          break;
+        case 'book_again':
+          onRebook?.(detail.master_id);
+          break;
+        default:
+          break;
+      }
+    },
+    [demoRow, detail, detail.address?.line, detail.master?.profile_path, detail.master_id, messageHref, onRebook, phoneHref, routeHref],
+  );
 
   let overlay: ReactNode = null;
-  if (lateOpen) {
-    overlay = (
-      <div
-        className="fixed inset-0 z-[60] flex items-end justify-center bg-black/35 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-        onClick={() => setLateOpen(false)}
-      >
-        <div className="w-full max-w-lg rounded-t-[28px] bg-white p-5" onClick={(e) => e.stopPropagation()}>
-          <h3 className="text-[20px] font-semibold text-neutral-950">На сколько опаздываете?</h3>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {LATE_PRESETS.map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={`rounded-full px-4 py-2 text-[14px] font-semibold ${lateMinutes === m ? 'bg-[#F47C8C] text-white' : 'bg-[#F5F3F3] text-[#374151]'}`}
-                onClick={() => setLateMinutes(m)}
-              >
-                {m} мин
-              </button>
-            ))}
-          </div>
-          <input
-            type="number"
-            min={1}
-            max={240}
-            value={lateMinutes}
-            onChange={(e) => setLateMinutes(Number(e.target.value) || 10)}
-            className="mt-4 w-full rounded-[12px] border border-[#E5E7EB] px-3 py-2 text-[15px]"
-          />
-          <textarea
-            value={lateComment}
-            onChange={(e) => setLateComment(e.target.value)}
-            placeholder="Комментарий (необязательно)"
-            rows={2}
-            className="mt-3 w-full rounded-[12px] border border-[#E5E7EB] px-3 py-2 text-[15px]"
-          />
-          <button
-            type="button"
-            className={`${pinkBtn(busy)} mt-4`}
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                if (!voucher) return;
-                await clientSignalByVoucher(voucher, 'running-late', {
-                  lateMinutes,
-                  comment: lateComment.trim() || undefined,
-                });
-                setLateOpen(false);
-              })
-            }
-          >
-            Сообщить мастеру
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (disputeOpen) {
     const commentOk = disputeComment.trim().length >= 10;
     overlay = (
       <div
-        className="fixed inset-0 z-[60] flex items-end justify-center bg-black/35 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        className="fixed inset-0 z-[60] flex items-end justify-center bg-black/35 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4"
         onClick={() => setDisputeOpen(false)}
       >
-        <div className="w-full max-w-lg rounded-t-[28px] bg-white p-5" onClick={(e) => e.stopPropagation()}>
-          <h3 className="text-[20px] font-semibold text-neutral-950">Сообщить о проблеме</h3>
-          <p className="mt-2 text-[14px] text-neutral-500">
+        <div
+          className="w-full max-w-lg rounded-t-[16px] bg-white p-5 ring-1 ring-[#EEEEEE] sm:rounded-[16px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-[18px] font-bold tracking-[-0.03em] text-[#111827]">Сообщить о проблеме</h3>
+          <p className="mt-2 text-[14px] text-[#6B7280]">
             Опишите ситуацию — мы передадим обращение в поддержку.
           </p>
           <select
             value={disputeReason}
             onChange={(e) => setDisputeReason(e.target.value)}
-            className="mt-4 w-full rounded-[12px] border border-[#E5E7EB] px-3 py-2 text-[15px]"
+            className={clientBookingField}
           >
             {DISPUTE_REASONS.map((r) => (
               <option key={r.id} value={r.id}>
@@ -253,14 +293,14 @@ export function ClientAppointmentDetailView({
             onChange={(e) => setDisputeComment(e.target.value)}
             placeholder="Комментарий (минимум 10 символов)"
             rows={4}
-            className="mt-3 w-full rounded-[12px] border border-[#E5E7EB] px-3 py-2 text-[15px]"
+            className={`${clientBookingField} mt-3`}
           />
           <p className="mt-1 text-[12px] text-[#9CA3AF]">
             {commentOk ? 'Можно отправить' : `Ещё ${10 - disputeComment.trim().length} символов`}
           </p>
           <button
             type="button"
-            className={`${pinkBtn(busy || !commentOk)} mt-4`}
+            className={`${primaryBtnClass(busy || !commentOk)} mt-4`}
             disabled={busy || !commentOk || !voucher}
             onClick={() =>
               void run(async () => {
@@ -283,16 +323,19 @@ export function ClientAppointmentDetailView({
   if (cancelOpen) {
     overlay = (
       <div
-        className="fixed inset-0 z-[60] flex items-end justify-center bg-black/35 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        className="fixed inset-0 z-[60] flex items-end justify-center bg-black/35 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4"
         onClick={() => setCancelOpen(false)}
       >
-        <div className="w-full max-w-lg rounded-t-[28px] bg-white p-5" onClick={(e) => e.stopPropagation()}>
-          <h3 className="text-[20px] font-semibold text-neutral-950">Отменить запись?</h3>
-          <p className="mt-2 text-[14px] text-neutral-500">Мастер получит уведомление.</p>
+        <div
+          className="w-full max-w-lg rounded-t-[16px] bg-white p-5 ring-1 ring-[#EEEEEE] sm:rounded-[16px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-[18px] font-bold tracking-[-0.03em] text-[#111827]">Отменить запись?</h3>
+          <p className="mt-2 text-[14px] text-[#6B7280]">Мастер получит уведомление.</p>
           <select
             value={cancelReason}
             onChange={(e) => setCancelReason(e.target.value)}
-            className="mt-4 w-full rounded-[12px] border border-[#E5E7EB] px-3 py-2 text-[15px]"
+            className={clientBookingField}
           >
             {CANCEL_REASONS.map((r) => (
               <option key={r.id} value={r.id}>
@@ -305,11 +348,11 @@ export function ClientAppointmentDetailView({
             onChange={(e) => setCancelComment(e.target.value)}
             placeholder="Комментарий"
             rows={2}
-            className="mt-3 w-full rounded-[12px] border border-[#E5E7EB] px-3 py-2 text-[15px]"
+            className={`${clientBookingField} mt-3`}
           />
           <button
             type="button"
-            className={`${pinkBtn(busy)} mt-4`}
+            className={`${primaryBtnClass(busy)} mt-4`}
             disabled={busy}
             onClick={() =>
               void run(async () => {
@@ -333,278 +376,151 @@ export function ClientAppointmentDetailView({
     );
   }
 
+  const pageHeader =
+    layout === 'page' ? (
+      <>
+        <Link to={getProfilePath('appointments')} className={clientBookingBackLink}>
+          <HiArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+          Мои записи
+        </Link>
+        <div className="mt-3">
+          <h1 className="text-[22px] font-bold tracking-[-0.04em] text-[#111827] lg:text-[26px]">
+            Детали записи
+          </h1>
+          {hero.voucherNumber || createdAtLabel ? (
+            <p className="mt-1.5 text-[13px] font-medium text-[#6B7280] lg:text-[14px]">
+              {[hero.voucherNumber, createdAtLabel ? `Создана ${createdAtLabel}` : '']
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          ) : null}
+        </div>
+      </>
+    ) : null;
+
+  const commentBlock = actionsView.showComment ? (
+    <div className={`${clientBookingPanel} p-4`}>
+      <p className="text-[14px] font-semibold text-[#111827]">Комментарий мастеру</p>
+      <textarea
+        value={commentDraft}
+        onChange={(e) => setCommentDraft(e.target.value)}
+        rows={3}
+        className={`${clientBookingField} mt-2`}
+        placeholder="Например: подъеду к главному входу"
+      />
+      <button
+        type="button"
+        disabled={busy || !commentDraft.trim() || !voucher}
+        className={`${primaryBtnClass(busy)} mt-2`}
+        onClick={() =>
+          void run(async () => {
+            await clientCommentByVoucher(voucher, commentDraft.trim());
+            setCommentDraft('');
+          })
+        }
+      >
+        Отправить
+      </button>
+    </div>
+  ) : null;
+
+  const helpBlock =
+    layout === 'page' ? (
+      <div className={`${clientBookingPanel} p-4 lg:p-5`}>
+        <ClientBookingSectionTitle>Нужна помощь?</ClientBookingSectionTitle>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#6B7280]">
+          Если возникли вопросы по записи или мастеру — напишите в поддержку.
+        </p>
+        <Link to={PROFILE_SETTINGS_SUPPORT_PATH} className="mt-4 inline-flex min-h-10 items-center gap-2 text-[14px] font-semibold text-[#F47C8C]">
+          <HiChatBubbleLeftRight className="h-4 w-4" aria-hidden />
+          Написать в поддержку
+        </Link>
+      </div>
+    ) : null;
+
+  const showMasterContacts =
+    actionsView.primary === 'call_master' ||
+    actionsView.secondary.includes('write_master') ||
+    actionsView.secondary.includes('call_master');
+
   return (
     <>
-      {layout === 'page' ? (
-        <Link to={getProfilePath('appointments')} className="text-[14px] font-semibold text-[#6B7280]">
-          ← Мои записи
-        </Link>
-      ) : null}
+      {pageHeader}
 
-      <div className={layout === 'page' ? 'mt-6' : ''}>
-        <div className="rounded-[28px] bg-gradient-to-br from-[#FFF8F9] to-[#FFF4F6] p-5 ring-1 ring-[#F47C8C]/15">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <span className="inline-flex rounded-full bg-white/80 px-3 py-1 text-[12px] font-semibold text-[#F47C8C]">
-              {detail.status_label ?? appointmentStatusLabel(detail.status)}
-            </span>
-            {hero?.lateBadge ? (
-              <span className="rounded-full bg-[#FEF2F2] px-3 py-1 text-[11px] font-bold text-[#B91C1C]">
-                {hero.lateBadge}
-              </span>
+      <div className={layout === 'page' ? 'mt-4 lg:mt-6' : 'mt-0'}>
+        <div className={layout === 'page' ? clientBookingPageGrid : 'flex flex-col gap-4'}>
+          <div className="flex min-w-0 flex-col gap-4">
+            <ClientAppointmentHeroCard hero={hero} layout={layout} />
+            <ClientAppointmentNextStepCard
+              nextStep={nextStep}
+              showReviewPendingHint={actionsView.showReviewPendingHint}
+            />
+            {detail.master ? (
+              <ClientAppointmentMasterCard
+                master={detail.master}
+                showContactActions={showMasterContacts}
+              />
             ) : null}
-            {hero?.countdown ? (
-              <span className="text-[12px] font-semibold text-[#6B7280]">осталось {hero.countdown}</span>
+            <ClientAppointmentInfoCard detail={detail} />
+            {layout === 'sheet' && actionsView.showMap ? (
+              <ClientAppointmentLocationCard
+                detail={detail}
+                demoRow={demoRow}
+                mapTitle={mapTitle}
+                onCopyAddress={() => {
+                  if (detail.address?.line) void navigator.clipboard?.writeText(detail.address.line);
+                }}
+              />
+            ) : null}
+            {commentBlock}
+            {actionsView.showTimeline && detail.timeline ? (
+              <ClientAppointmentTimeline timeline={detail.timeline} />
+            ) : null}
+            {openDispute ? (
+              <p className={`${clientBookingPanel} px-4 py-3 text-[13px] font-semibold text-[#C2410C] lg:p-5`}>
+                Обращение отправлено — ожидает решения поддержки
+              </p>
+            ) : null}
+            {error ? (
+              <p className="rounded-[10px] bg-[#FEF2F2] px-4 py-3 text-[14px] font-semibold text-[#EF4444]">
+                {error}
+              </p>
+            ) : null}
+            {layout === 'sheet' ? (
+              <ClientAppointmentStickyActions
+                layout={layout}
+                primary={actionsView.primary}
+                secondary={actionsView.secondary}
+                busy={busy}
+                onPrimary={handlePrimary}
+                onSecondary={handleSecondary}
+                onClose={onClose}
+              />
             ) : null}
           </div>
-          <h2 className="mt-3 text-[22px] font-bold tracking-tight text-neutral-950">
-            {hero?.title ?? detail.status_label}
-          </h2>
-          <p className="mt-1 text-[14px] leading-relaxed text-[#6B7280]">{hero?.subtitle ?? detail.status_hint}</p>
-          {openDispute ? (
-            <p className="mt-3 rounded-[14px] bg-[#FFF7ED] px-3 py-2 text-[13px] font-semibold text-[#C2410C]">
-              Обращение отправлено — ожидает решения поддержки
-            </p>
-          ) : null}
-        </div>
 
-        <div className="mt-3 flex flex-col gap-2">
-          {actions.has('on_the_way') ? (
-            <button
-              type="button"
-              disabled={busy}
-              className={pinkBtn(busy)}
-              onClick={() => voucher && void run(() => clientSignalByVoucher(voucher, 'on-the-way'))}
-            >
-              Я в пути
-            </button>
-          ) : null}
-          {actions.has('running_late') ? (
-            <button type="button" disabled={busy} className={softBtn()} onClick={() => setLateOpen(true)}>
-              Я опаздываю
-            </button>
-          ) : null}
-          {actions.has('reported_arrived') ? (
-            <button
-              type="button"
-              disabled={busy}
-              className={softBtn()}
-              onClick={() => voucher && void run(() => clientSignalByVoucher(voucher, 'reported-arrived'))}
-            >
-              Я на месте
-            </button>
-          ) : null}
-          {actions.has('contact_master') && contactPrimary?.href ? (
-            <a href={contactPrimary.href} className={`${softBtn()} flex items-center justify-center`}>
-              {contactPrimary.label}
-            </a>
-          ) : null}
-          {actions.has('contact_master') && !contactPrimary?.href ? (
-            <p className="rounded-[16px] bg-[#F8F7F7] px-4 py-3 text-[13px] text-[#6B7280]">
-              Свяжитесь с мастером через SLOTTY — напоминания придут в Telegram.
-            </p>
-          ) : null}
-        </div>
-
-        {detail.master ? (
-          <div className="mt-4 rounded-[24px] border border-[#F0EEEE] bg-white p-4">
-            <div className="flex gap-3">
-              {detail.master.photo_url ? (
-                <img
-                  src={detail.master.photo_url}
-                  alt=""
-                  className="h-14 w-14 shrink-0 rounded-full object-cover"
+          {layout === 'page' ? (
+            <aside className={clientBookingAsideSticky}>
+              {actionsView.showMap ? (
+                <ClientAppointmentLocationCard
+                  detail={detail}
+                  demoRow={demoRow}
+                  mapTitle={mapTitle}
+                  onCopyAddress={() => {
+                    if (detail.address?.line) void navigator.clipboard?.writeText(detail.address.line);
+                  }}
                 />
-              ) : (
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#F5F3F3] text-[18px] font-bold text-[#9CA3AF]">
-                  {detail.master.display_name.slice(0, 1)}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-[16px] font-bold text-neutral-950">{detail.master.display_name}</p>
-                {detail.master.specialty ? (
-                  <p className="text-[13px] text-[#6B7280]">{detail.master.specialty}</p>
-                ) : null}
-                {detail.master.reviews_count > 0 ? (
-                  <p className="mt-0.5 text-[13px] font-semibold text-[#F47C8C]">
-                    ★ {detail.master.rating.toFixed(1)} · {detail.master.reviews_count} отзывов
-                  </p>
-                ) : null}
-              </div>
-            </div>
-            <Link
-              to={detail.master.profile_path}
-              className="mt-3 flex min-h-10 items-center justify-center rounded-full border border-[#E8E4E4] text-[14px] font-semibold text-[#374151]"
-            >
-              Открыть профиль мастера
-            </Link>
-          </div>
-        ) : null}
-
-        <div className="mt-4 rounded-[24px] border border-[#F0EEEE] bg-white px-4">
-          <DetailRow label="Услуга" value={formatServiceName(detail.service_title_snapshot)} />
-          <DetailRow label="Дата и время" value={new Date(detail.starts_at).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} />
-          <DetailRow label="Длительность" value={durationLabel} />
-          <DetailRow label="Стоимость" value={formatPriceByn(Number(detail.price_snapshot) || 0)} />
-          <DetailRow label="Формат" value={visitLabel} />
-          {detail.address?.line ? <DetailRow label="Адрес" value={detail.address.line} /> : null}
-          {!detail.address?.line && detail.address?.hint ? (
-            <p className="py-3 text-[13px] leading-relaxed text-[#6B7280]">{detail.address.hint}</p>
-          ) : null}
-          {detail.voucher_number ? (
-            <DetailRow label="Номер записи" value={detail.voucher_number} />
-          ) : null}
-        </div>
-
-        {showMap ? (
-          <div className="mt-4 overflow-hidden rounded-[24px] border border-[#F0EEEE] bg-white p-2">
-            <iframe
-              title="Карта"
-              src={buildYandexMapWidgetUrl(demoRow)}
-              className="block h-[min(200px,38dvh)] w-full rounded-[18px] border-0"
-              loading="lazy"
-            />
-            <div className="mt-2 flex flex-col gap-2">
-              <a
-                href={buildYandexMapsRouteUrl(demoRow)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={softBtn() + ' flex items-center justify-center'}
-              >
-                Построить маршрут
-              </a>
-              {detail.address?.line ? (
-                <button
-                  type="button"
-                  className={ghostBtn()}
-                  onClick={() => void navigator.clipboard?.writeText(detail.address!.line!)}
-                >
-                  Скопировать адрес
-                </button>
               ) : null}
-            </div>
-            <p className="mt-2 px-1 text-[12px] text-[#9CA3AF]">Рекомендуем выйти заранее</p>
-          </div>
-        ) : null}
-
-        {actions.has('add_comment') ? (
-          <div className="mt-4 rounded-[24px] border border-[#F0EEEE] bg-white p-4">
-            <p className="text-[14px] font-semibold text-neutral-950">Комментарий мастеру</p>
-            <textarea
-              value={commentDraft}
-              onChange={(e) => setCommentDraft(e.target.value)}
-              rows={3}
-              className="mt-2 w-full rounded-[12px] border border-[#E5E7EB] px-3 py-2 text-[15px]"
-              placeholder="Например: подъеду к главному входу"
-            />
-            <button
-              type="button"
-              disabled={busy || !commentDraft.trim() || !voucher}
-              className={`${pinkBtn(busy)} mt-2`}
-              onClick={() =>
-                void run(async () => {
-                  await clientCommentByVoucher(voucher, commentDraft.trim());
-                  setCommentDraft('');
-                })
-              }
-            >
-              Отправить
-            </button>
-          </div>
-        ) : null}
-
-        {detail.timeline?.length ? (
-          <div className="mt-4 rounded-[24px] border border-[#F0EEEE] bg-white px-4 py-3">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF]">История</p>
-            <ul className="mt-2 space-y-2">
-              {detail.timeline.slice(-8).map((ev) => (
-                <li key={ev.id} className="text-[13px] text-[#374151]">
-                  <span className="font-semibold">{ev.label}</span>
-                  <span className="text-[#9CA3AF]"> — {ev.timeLabel}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        {detail.cancel_reason && dbStatusToUi(detail.status) === 'cancelled' ? (
-          <p className="mt-4 rounded-[16px] bg-[#F8F7F7] px-4 py-3 text-[13px] text-[#6B7280]">
-            Причина отмены: {detail.cancel_reason}
-          </p>
-        ) : null}
-
-        {error ? (
-          <p className="mt-4 rounded-[12px] bg-[#FEF2F2] px-4 py-3 text-[14px] font-semibold text-[#EF4444]">
-            {error}
-          </p>
-        ) : null}
-
-        <div className="mt-5 flex flex-col gap-2">
-          {actions.has('dispute') && !openDispute ? (
-            <button
-              type="button"
-              disabled={busy}
-              className={softBtn()}
-              onClick={() => setDisputeOpen(true)}
-            >
-              {dbStatusToUi(detail.status) === 'no_show' ? 'Оспорить неявку' : 'Есть проблема'}
-            </button>
-          ) : null}
-          {actions.has('confirm_completed') ? (
-            <button
-              type="button"
-              disabled={busy}
-              className={pinkBtn(busy)}
-              onClick={() => voucher && void run(() => clientConfirmCompletedByVoucher(voucher))}
-            >
-              Подтвердить выполнение
-            </button>
-          ) : null}
-          {actions.has('leave_review') ? (
-            <button
-              type="button"
-              className={pinkBtn()}
-              onClick={() => onOpenReview?.(detail.id)}
-            >
-              Оставить отзыв
-            </button>
-          ) : null}
-          {actions.has('rebook') ? (
-            <button type="button" className={softBtn()} onClick={() => onRebook?.(detail.master_id)}>
-              Записаться снова
-            </button>
-          ) : null}
-          {actions.has('download_pdf') ? (
-            <button
-              type="button"
-              className={ghostBtn()}
-              onClick={() =>
-                openBookingVoucherPrint(
-                  {
-                    masterName: demoRow.masterName,
-                    serviceTitle: demoRow.serviceTitle,
-                    dateLabel: demoRow.dateLabel,
-                    timeLabel: demoRow.timeLabel,
-                    locationLine: demoRow.addressShort,
-                    priceLabel: formatPriceByn(demoRow.price),
-                    statusLabel: statusLabelRu(demoRow.status),
-                    voucherNumber: demoRow.voucherNumber ?? undefined,
-                  },
-                  HEADER_LOGO_SRC,
-                )
-              }
-            >
-              Скачать PDF
-            </button>
-          ) : null}
-          {actions.has('cancel') ? (
-            <button type="button" className={softBtn()} onClick={() => setCancelOpen(true)}>
-              Отменить запись
-            </button>
-          ) : null}
-          {onClose ? (
-            <button type="button" className={ghostBtn()} onClick={onClose}>
-              Закрыть
-            </button>
+              <ClientAppointmentStickyActions
+                layout={layout}
+                primary={actionsView.primary}
+                secondary={actionsView.secondary}
+                busy={busy}
+                onPrimary={handlePrimary}
+                onSecondary={handleSecondary}
+              />
+              {helpBlock}
+            </aside>
           ) : null}
         </div>
       </div>

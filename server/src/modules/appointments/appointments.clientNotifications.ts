@@ -5,9 +5,9 @@ import {
   clientBookingCancelledBySelf,
   clientBookingCompleted,
   clientBookingConfirmed,
+  clientBookingExpired,
   clientBookingDisputedAck,
   clientBookingDisputedByMaster,
-  clientBookingMasterMarkedCompleted,
   clientBookingNoShow,
   clientBookingRequestCreated,
 } from '../notifications/templates/appointmentNotificationTemplates.js';
@@ -80,8 +80,8 @@ export async function notifyClientBookingCompleted(ctx: AppointmentNotifyContext
   });
 }
 
-export async function notifyClientMasterMarkedCompleted(ctx: AppointmentNotifyContext): Promise<void> {
-  const payload = clientBookingMasterMarkedCompleted(ctx);
+export async function notifyClientBookingExpired(ctx: AppointmentNotifyContext): Promise<void> {
+  const payload = clientBookingExpired(ctx);
   await notifyUser({
     userId: ctx.clientId,
     ...payload,
@@ -89,6 +89,11 @@ export async function notifyClientMasterMarkedCompleted(ctx: AppointmentNotifyCo
     telegramReplyMarkup: clientMarkup(ctx),
     bookingCode: ctx.voucherNumber,
   });
+}
+
+/** @deprecated Двустороннее завершение отключено — мастер завершает сразу в completed. */
+export async function notifyClientMasterMarkedCompleted(ctx: AppointmentNotifyContext): Promise<void> {
+  await notifyClientBookingCompleted(ctx);
 }
 
 export async function notifyClientDisputedAck(ctx: AppointmentNotifyContext): Promise<void> {
@@ -147,7 +152,8 @@ export async function notifyClientByAppointmentId(
     | 'no_show'
     | 'master_marked_completed'
     | 'disputed_ack'
-    | 'disputed_by_master',
+    | 'disputed_by_master'
+    | 'expired',
 ): Promise<void> {
   const ctx = await fetchAppointmentNotifyContext(appointmentId);
   if (!ctx) return;
@@ -176,6 +182,9 @@ export async function notifyClientByAppointmentId(
       break;
     case 'disputed_by_master':
       await notifyClientDisputedByMaster(ctx);
+      break;
+    case 'expired':
+      await notifyClientBookingExpired(ctx);
       break;
     default:
       break;

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { MasterDraft, MasterOnboardingService } from '../../../features/profile/lib/demoMasterStorage';
-import { getMySubscription } from '../../../features/admin/api/adminBillingApi';
 import {
   createMySlot,
   deleteMySlot,
@@ -10,6 +9,9 @@ import {
 } from '../../../features/admin/api/adminSlotsApi';
 import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
+import { useMasterPlanEntitlements } from '../../../features/billing/useMasterPlanEntitlements';
+import { resolveScheduleHorizonDays } from '../../../features/billing/resolveScheduleHorizonDays';
+import { isDevDemoAllowed } from '../../../shared/lib/appMode';
 import { SlottyDatePicker } from '../../../shared/ui/SlottyDatePicker';
 import { SlottySelect } from '../../../shared/ui/SlottySelect';
 import { mergeScheduleTimeSelectOptions } from './scheduleTimeSelectOptions';
@@ -277,6 +279,8 @@ function expandRepeatDates(
 
 export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) {
   const { useCabinetApi } = useAdminMasterCabinet();
+  const { limits } = useMasterPlanEntitlements();
+  const scheduleHorizonDays = resolveScheduleHorizonDays(useCabinetApi, limits, isDevDemoAllowed());
 
   const visibleServices = useMemo(() => draft.services.filter(serviceIsActive), [draft.services]);
 
@@ -315,8 +319,6 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [clearFutureStep, setClearFutureStep] = useState<0 | 1>(0);
-  /** null — лимит неизвестен; 0 — без ограничения (редко). */
-  const [scheduleHorizonDays, setScheduleHorizonDays] = useState<number | null>(null);
 
   const reloadSlots = useCallback(async (): Promise<MySlotDto[]> => {
     const list = await getMySlots();
@@ -343,24 +345,6 @@ export function AdminBookingWindowsTab({ draft, onPersist: _onPersist }: Props) 
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [useCabinetApi]);
-
-  useEffect(() => {
-    if (!useCabinetApi) {
-      setScheduleHorizonDays(90);
-      return;
-    }
-    let cancelled = false;
-    void getMySubscription()
-      .then((sub) => {
-        if (!cancelled) setScheduleHorizonDays(sub.plan.maxScheduleDaysAhead);
-      })
-      .catch(() => {
-        if (!cancelled) setScheduleHorizonDays(14);
-      });
     return () => {
       cancelled = true;
     };

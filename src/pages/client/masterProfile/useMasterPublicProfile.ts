@@ -55,9 +55,13 @@ export function useMasterPublicProfile(masterId: string) {
           portfolio: mapPortfolioFromDetail(detail, { excludeCoverItemId: coverItemId }),
           bookingRules: detail.bookingRules?.bookingRules ?? undefined,
           cancellationPolicy: detail.bookingRules?.cancellationPolicy ?? undefined,
-          paymentNote: detail.bookingRules?.paymentNote ?? undefined,
+          paymentNote: detail.payment?.comment ?? detail.bookingRules?.paymentNote ?? undefined,
           paymentMethods: detail.bookingRules?.paymentMethods?.length
             ? detail.bookingRules.paymentMethods
+            : undefined,
+          payment: detail.payment ?? undefined,
+          preferredBankIds: detail.payment?.preferredBankIds?.length
+            ? detail.payment.preferredBankIds
             : undefined,
           clientPreview: detail.bookingRules?.clientPreview?.length
             ? detail.bookingRules.clientPreview

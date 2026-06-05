@@ -7,12 +7,16 @@ import {
   sheetHintClass,
   sheetSectionTitleClass,
 } from './adminProfileCabinetTheme';
+import type { PaymentOption } from './paymentMethodOptions';
 import { CabinetIcon, type CabinetIconName } from './cabinetIcons';
 import { decodePaymentNote } from '../../../features/admin/lib/paymentNoteCodec';
 import { SheetFooter } from './AdminProfileEditSheets';
+import {
+  PaymentMethodIcon,
+  PaymentMethodsGrid,
+} from './bookingRules/PaymentRulesSheetFields';
 
-export const PAYMENT_OPTIONS = ['Наличные', 'Карта', 'Перевод', 'Онлайн позже'] as const;
-export type PaymentOption = (typeof PAYMENT_OPTIONS)[number];
+export { PAYMENT_OPTIONS, type PaymentOption } from './paymentMethodOptions';
 
 type SheetSaveResult = void | Promise<void>;
 
@@ -24,6 +28,8 @@ const PAYMENT_META: Record<PaymentOption, { icon: CabinetIconName; short: string
   Перевод: { icon: 'send', short: 'На карту' },
   'Онлайн позже': { icon: 'clock', short: 'Скоро в Slotty' },
 };
+
+export { PAYMENT_META };
 
 function resolveRulesPayment(d: MasterDraft): { paymentMethods: string[]; paymentNote: string } {
   const decoded = decodePaymentNote(d.paymentNote);
@@ -124,22 +130,17 @@ export function RulesSection({
                   <p className="text-[14px] font-semibold text-[#111827]">Оплата</p>
                   {paymentMethods.length > 0 ? (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {paymentMethods.map((method) => {
-                        const meta = PAYMENT_META[method as PaymentOption];
-                        return (
+                      {paymentMethods.map((method) => (
                           <span
                             key={method}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-[#111827] ring-1 ring-[#EAECEF]"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-[#111827]"
                           >
-                            {meta ? (
-                              <span className="text-[#F47C8C]">
-                                <CabinetIcon name={meta.icon} size={14} />
-                              </span>
-                            ) : null}
+                            <span className="text-[#F47C8C]">
+                              <PaymentMethodIcon method={method} />
+                            </span>
                             {method}
                           </span>
-                        );
-                      })}
+                        ))}
                     </div>
                   ) : (
                     <p className="mt-2 text-[13px] leading-snug text-[#9CA3AF]">Способы не выбраны</p>
@@ -249,33 +250,8 @@ export function SheetRules({
       <div>
         <p className={sheetSectionTitleClass}>Оплата</p>
         <p className={`mt-1 ${sheetHintClass}`}>Выберите способы оплаты</p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {PAYMENT_OPTIONS.map((opt) => {
-            const on = paymentMethods.includes(opt);
-            const meta = PAYMENT_META[opt];
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => togglePayment(opt)}
-                className={`flex min-h-[4.25rem] flex-col items-start justify-center gap-1 rounded-[10px] px-3 py-2.5 text-left transition active:scale-[0.98] ${
-                  on
-                    ? 'bg-[#F47C8C] text-white'
-                    : 'bg-[#EBEBEB] text-[#111827] hover:bg-[#E4E4E4]'
-                }`}
-              >
-                <span
-                  className={`flex items-center gap-1.5 text-[14px] font-semibold ${on ? 'text-white' : 'text-[#111827]'}`}
-                >
-                  <CabinetIcon name={meta.icon} size={16} className={on ? 'text-white' : 'text-[#F47C8C]'} />
-                  {opt}
-                </span>
-                <span className={`text-[11px] font-medium ${on ? 'text-white/85' : 'text-[#6B7280]'}`}>
-                  {meta.short}
-                </span>
-              </button>
-            );
-          })}
+        <div className="mt-3">
+          <PaymentMethodsGrid selected={paymentMethods} onToggle={togglePayment} />
         </div>
 
         <label className="mt-4 block">

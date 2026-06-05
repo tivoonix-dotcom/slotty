@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 import { HiClock, HiRectangleStack, HiScissors, HiSparkles } from 'react-icons/hi2';
 import type { ScheduleTabMetrics } from './scheduleTabMetrics';
 
@@ -22,14 +22,14 @@ function StatChip({
   return (
     <div
       className={`flex min-h-[4.75rem] flex-col justify-between rounded-[16px] p-3.5 lg:min-h-[5.25rem] lg:rounded-[18px] lg:p-4 ${
-        accent ? 'bg-[#FFF1F4]' : 'bg-[#F6F7FB]'
+        accent ? 'bg-[#EEF0FC]' : 'bg-[#F6F7FB]'
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#9CA3AF]">{label}</p>
         <span
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] ${
-            accent ? 'bg-white text-[#ff5f7a]' : 'bg-white/80 text-[#6B7280]'
+            accent ? 'bg-white text-[#3B4CCA]' : 'bg-white/80 text-[#6B7280]'
           }`}
         >
           {icon}
@@ -38,7 +38,7 @@ function StatChip({
       <div>
         <p
           className={`text-[22px] font-black tabular-nums leading-none tracking-[-0.06em] lg:text-[26px] ${
-            accent ? 'text-[#ff5f7a]' : 'text-[#111827]'
+            accent ? 'text-[#3B4CCA]' : 'text-[#111827]'
           }`}
         >
           {value}

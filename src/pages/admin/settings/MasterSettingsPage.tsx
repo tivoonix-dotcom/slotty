@@ -1,6 +1,7 @@
-import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import {
   BECOME_MASTER_PATH,
+  buildAppPath,
   getMasterLoginPath,
   MASTER_SETTINGS_PATH,
   MASTER_START_PATH,
@@ -25,6 +26,8 @@ import { SettingsSupportPage } from './workspace/pages/SettingsSupportPage';
 import { SupportStatusPage } from './workspace/support/SupportStatusPage';
 
 export function MasterSettingsPage() {
+  const location = useLocation();
+  const returnPath = buildAppPath(location.pathname, location.search);
   const { profile, isLoading, isAuthenticated } = useAuth();
   const hasApi = Boolean(getApiBaseUrl());
   const cabinetAccess = hasMasterCabinetAccess(profile);
@@ -37,7 +40,7 @@ export function MasterSettingsPage() {
 
   if (!allowed) {
     if (hasApi && !isAuthenticated) {
-      return <Navigate to={getMasterLoginPath(MASTER_SETTINGS_PATH)} replace />;
+      return <Navigate to={getMasterLoginPath(returnPath)} replace />;
     }
 
     const isPlatformAdminWithoutCabinet =

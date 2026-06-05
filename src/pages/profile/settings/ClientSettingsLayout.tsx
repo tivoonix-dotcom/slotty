@@ -1,55 +1,74 @@
-import { Link, Outlet, useMatch } from 'react-router-dom';
-import { HiArrowLeft } from 'react-icons/hi2';
+import { useState } from 'react';
+import { Link, Outlet } from 'react-router-dom';
+import { HiArrowLeft, HiBars3 } from 'react-icons/hi2';
 import { PROFILE_PATH } from '../../../app/paths';
 import { CLIENT_CONTENT_PAD_BOTTOM, CLIENT_HEADER_OFFSET } from '../../client/clientNavConstants';
-import { catalogCanvasClass } from '../clientProfile/clientProfileTheme';
 import { ClientSettingsSidebar } from './ClientSettingsSidebar';
 import {
-  settingsCanvasClass,
   settingsContentClass,
   settingsDesktopShellClass,
   settingsLayoutGridClass,
+  settingsSidebarShellClass,
+  settingsWorkspaceBg,
 } from './clientSettingsTheme';
 
 export function ClientSettingsLayout() {
-  const docMatch = useMatch('/profile/settings/documents/:docId');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const body = (
-    <>
-      <SettingsHeader />
-      <div className={`mt-6 ${settingsLayoutGridClass}`}>
-        {!docMatch ? <ClientSettingsSidebar /> : null}
-        <div className={settingsContentClass}>
-          <Outlet />
+    <div className={settingsLayoutGridClass}>
+      <aside className={`hidden lg:block ${settingsSidebarShellClass}`}>
+        <ClientSettingsSidebar />
+      </aside>
+
+      <div className={settingsContentClass}>
+        <div className="mb-4 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen((v) => !v)}
+            className="inline-flex min-h-10 items-center gap-2 rounded-[12px] border border-[#EAECEF] bg-white px-3 text-[14px] font-semibold text-[#374151]"
+          >
+            <HiBars3 className="h-5 w-5" aria-hidden />
+            Разделы настроек
+          </button>
+          {mobileNavOpen ? (
+            <div className={`mt-3 ${settingsSidebarShellClass}`}>
+              <ClientSettingsSidebar onNavigate={() => setMobileNavOpen(false)} />
+            </div>
+          ) : null}
         </div>
+        <Outlet />
       </div>
-    </>
+    </div>
   );
 
   return (
     <>
-      <div className={`lg:hidden min-h-dvh ${settingsCanvasClass} ${CLIENT_CONTENT_PAD_BOTTOM} ${CLIENT_HEADER_OFFSET}`}>
-        <div className="mx-auto w-full max-w-lg px-4 pb-10 pt-3">{body}</div>
+      <div className={`lg:hidden min-h-dvh ${settingsWorkspaceBg} ${CLIENT_CONTENT_PAD_BOTTOM} ${CLIENT_HEADER_OFFSET}`}>
+        <div className="mx-auto w-full max-w-lg px-4 pb-10 pt-3">
+          <SettingsBackLink />
+          {body}
+        </div>
       </div>
 
-      <div className={`hidden lg:block min-h-dvh ${catalogCanvasClass}`}>
-        <div className={settingsDesktopShellClass}>{body}</div>
+      <div className={`hidden lg:block min-h-dvh ${settingsWorkspaceBg}`}>
+        <div className={settingsDesktopShellClass}>
+          <SettingsBackLink />
+          {body}
+        </div>
       </div>
     </>
   );
 }
 
-function SettingsHeader() {
+function SettingsBackLink() {
   return (
-    <>
-      <Link
-        to={PROFILE_PATH}
-        className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-semibold text-[#6B7280] transition hover:text-[#111827]"
-      >
-        <HiArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
-        Профиль
-      </Link>
-      <h1 className="mt-3 text-[26px] font-bold tracking-[-0.04em] text-[#111827] sm:text-[28px]">Настройки</h1>
-    </>
+    <Link
+      to={PROFILE_PATH}
+      className="mb-5 inline-flex min-h-10 items-center gap-1.5 text-[14px] font-semibold text-[#6B7280] transition hover:text-[#111827]"
+    >
+      <HiArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+      Профиль
+    </Link>
   );
 }

@@ -1,43 +1,41 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import {
-  PROFILE_SETTINGS_DOCUMENTS_PATH,
-  PROFILE_SETTINGS_LOGIN_METHODS_PATH,
-  PROFILE_SETTINGS_SUPPORT_PATH,
-} from '../../../app/paths';
-import {
-  settingsSidebarClass,
-  settingsSidebarLinkActiveClass,
-  settingsSidebarLinkClass,
-} from './clientSettingsTheme';
+import { CLIENT_SETTINGS_NAV_GROUPS } from './clientSettingsNav';
+import { clientSettingsNavGroupLabel, clientSettingsNavItemClass } from './clientSettingsTheme';
 
-const NAV = [
-  { to: PROFILE_SETTINGS_LOGIN_METHODS_PATH, label: 'Способы входа' },
-  { to: PROFILE_SETTINGS_SUPPORT_PATH, label: 'Поддержка' },
-  { to: PROFILE_SETTINGS_DOCUMENTS_PATH, label: 'Документы' },
-] as const;
-
-export function ClientSettingsSidebar() {
+export function ClientSettingsSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
 
   return (
-    <nav className={settingsSidebarClass} aria-label="Разделы настроек">
-      {NAV.map((item) => {
-        const active =
-          pathname === item.to ||
-          (item.to === PROFILE_SETTINGS_DOCUMENTS_PATH &&
-            pathname.startsWith(PROFILE_SETTINGS_DOCUMENTS_PATH));
+    <nav className="flex flex-col" aria-label="Разделы настроек">
+      {CLIENT_SETTINGS_NAV_GROUPS.map((group) => (
+        <div key={group.id}>
+          <p className={clientSettingsNavGroupLabel}>{group.label}</p>
+          <ul className="space-y-0.5">
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const active =
+                item.matchPrefix === true
+                  ? pathname === item.to || pathname.startsWith(`${item.to}/`)
+                  : pathname === item.to ||
+                    (item.id === 'documents' && pathname.startsWith(`${item.to}/`));
 
-        return (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to !== PROFILE_SETTINGS_DOCUMENTS_PATH}
-            className={active ? settingsSidebarLinkActiveClass : settingsSidebarLinkClass}
-          >
-            {item.label}
-          </NavLink>
-        );
-      })}
+              return (
+                <li key={item.id}>
+                  <NavLink
+                    to={item.to}
+                    end={!item.matchPrefix}
+                    onClick={onNavigate}
+                    className={clientSettingsNavItemClass(active)}
+                  >
+                    <Icon className="shrink-0 opacity-90" />
+                    <span className="min-w-0 flex-1 leading-snug">{item.label}</span>
+                  </NavLink>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </nav>
   );
 }

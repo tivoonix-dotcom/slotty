@@ -11,6 +11,18 @@ import {
   type OverviewDayStat,
 } from '../../../features/master/model/demoMasterAppointments';
 import { previousOverviewReportPeriod } from './overviewFormat';
+import {
+  buildClientAnalyticsSnapshot,
+  emptyClientAnalytics,
+  type ClientAnalyticsRosterItem,
+  type ClientDayStat,
+} from './clientAnalyticsCore';
+import {
+  buildClientAnalyticsKey,
+  resolveClientAnalyticsDisplayName,
+  resolveClientEmail,
+  resolveClientPhone,
+} from './clientAnalyticsIdentity';
 
 function overviewAppointmentBounds(appointments: DemoMasterAppointment[]): { start: string; end: string } {
   const end = isoDateLocal(new Date());
@@ -58,17 +70,38 @@ export function overviewPeriodRange(
   const end = isoDateLocal(new Date());
   if (preset === 'today') return { start: end, end };
   if (preset === 'week') return { start: isoDateLocal(addDays(new Date(), -6)), end };
-  if (preset === 'month') return { start: isoDateLocal(addDays(new Date(), -29)), end };
+  if (preset === 'month') {
+    const now = new Date();
+    return { start: isoDateLocal(new Date(now.getFullYear(), now.getMonth(), 1)), end };
+  }
   return overviewAppointmentBounds(appointments);
 }
 
-function normalizeClient(name: string): string {
-  return name.trim().toLowerCase();
-}
+function toClientAnalyticsVisitRow(row: DemoMasterAppointment) {
+  const phoneFromContact =
+    row.contact?.trim() && /^\+?\d/.test(row.contact.trim()) ? row.contact.trim() : null;
+  const identityInput = {
+    appointmentId: row.id,
+    clientId: row.clientId,
+    nameSnapshot: row.clientName,
+    phoneSnapshot: phoneFromContact,
+    emailSnapshot: row.clientEmail,
+  };
 
-/** Завершённые и подтверждённые визиты для клиентской аналитики. */
-function isClientVisitRow(r: DemoMasterAppointment): boolean {
-  return r.status === 'completed' || r.status === 'confirmed';
+  const clientKey = buildClientAnalyticsKey(identityInput);
+
+  return {
+    appointmentId: row.id,
+    clientKey,
+    clientId: row.clientId?.trim() || null,
+    displayName: resolveClientAnalyticsDisplayName(identityInput),
+    phone: resolveClientPhone(identityInput),
+    email: resolveClientEmail(identityInput),
+    serviceTitle: row.serviceTitle,
+    visitDate: row.date,
+    dbStatus: row.status === 'completed' ? 'completed' : row.status,
+    unstableClientKey: clientKey.startsWith('appt:'),
+  };
 }
 
 function percentDelta(current: number, previous: number): number | null {
@@ -210,56 +243,16 @@ export function revenueChartDayStatsForSource(
   return aggregateOverviewByDay(filtered, chartStart, chartEnd);
 }
 
-export type ClientDayStat = {
-  date: string;
-  newClients: number;
-  repeatClients: number;
-};
-
-function aggregateClientsPerDay(
-  appointments: DemoMasterAppointment[],
-  chartStart: string,
-  chartEnd: string,
-): ClientDayStat[] {
-  const visits = appointments.filter(isClientVisitRow);
-  const firstCompletedByClient = new Map<string, string>();
-
-  for (const row of visits) {
-    const key = normalizeClient(row.clientName);
-    const cur = firstCompletedByClient.get(key);
-    if (!cur || row.date < cur) firstCompletedByClient.set(key, row.date);
-  }
-
-  return listIsoDatesInclusive(chartStart, chartEnd).map((date) => {
-    const dayRows = visits.filter((r) => r.date === date);
-    const seen = new Set<string>();
-    let newClients = 0;
-    let repeatClients = 0;
-
-    for (const row of dayRows) {
-      const key = normalizeClient(row.clientName);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      if (firstCompletedByClient.get(key) === date) newClients += 1;
-      else repeatClients += 1;
-    }
-
-    return { date, newClients, repeatClients };
-  });
-}
+export type { ClientDayStat } from './clientAnalyticsCore';
+export type OverviewClientRosterItem = ClientAnalyticsRosterItem;
 
 export type ClientCounts = {
   newClients: number;
+  newOnlyClients: number;
   repeatClients: number;
+  returningClients: number;
   totalClients: number;
-};
-
-export type OverviewClientRosterItem = {
-  key: string;
-  name: string;
-  visits: number;
-  isRepeat: boolean;
-  lastVisitDate: string;
+  returningRate: number;
 };
 
 export type ClientAnalytics = ClientCounts & {
@@ -273,79 +266,16 @@ export type ClientAnalytics = ClientCounts & {
   totalClientsDelta: number;
 };
 
-function buildClientRoster(
+export { emptyClientAnalytics };
+
+function clientSnapshotFromAppointments(
   appointments: DemoMasterAppointment[],
   start: string,
   end: string,
-): OverviewClientRosterItem[] {
-  const hadBefore = new Set(
-    appointments
-      .filter((r) => isClientVisitRow(r) && r.date < start)
-      .map((r) => normalizeClient(r.clientName)),
-  );
-  const inRange = appointments.filter(
-    (r) => isClientVisitRow(r) && r.date >= start && r.date <= end,
-  );
-  const byClient = new Map<string, { name: string; visits: number; lastDate: string }>();
-
-  for (const row of inRange) {
-    const key = normalizeClient(row.clientName);
-    const displayName = row.clientName.trim() || 'Клиент';
-    const cur = byClient.get(key);
-    if (!cur) {
-      byClient.set(key, { name: displayName, visits: 1, lastDate: row.date });
-      continue;
-    }
-    cur.visits += 1;
-    if (row.date > cur.lastDate) cur.lastDate = row.date;
-  }
-
-  return [...byClient.entries()]
-    .map(([key, v]) => ({
-      key,
-      name: v.name,
-      visits: v.visits,
-      isRepeat: hadBefore.has(key),
-      lastVisitDate: v.lastDate,
-    }))
-    .sort(
-      (a, b) =>
-        b.lastVisitDate.localeCompare(a.lastVisitDate) || b.visits - a.visits || a.name.localeCompare(b.name),
-    );
-}
-
-function clientCountsInPeriod(
-  appointments: DemoMasterAppointment[],
-  start: string,
-  end: string,
-): ClientCounts {
-  const completedInRange = appointments.filter(
-    (r) => isClientVisitRow(r) && r.date >= start && r.date <= end,
-  );
-  const hadBefore = new Set(
-    appointments
-      .filter((r) => isClientVisitRow(r) && r.date < start)
-      .map((r) => normalizeClient(r.clientName)),
-  );
-
-  const byClient = new Map<string, boolean>();
-  for (const row of completedInRange) {
-    const key = normalizeClient(row.clientName);
-    if (!byClient.has(key)) byClient.set(key, hadBefore.has(key));
-  }
-
-  let repeatClients = 0;
-  let newClients = 0;
-  for (const isRepeat of byClient.values()) {
-    if (isRepeat) repeatClients += 1;
-    else newClients += 1;
-  }
-
-  return {
-    newClients,
-    repeatClients,
-    totalClients: byClient.size,
-  };
+) {
+  const chartRange = overviewChartWindow(start, end, OVERVIEW_MAX_RANGE_DAYS);
+  const rows = appointments.map(toClientAnalyticsVisitRow);
+  return buildClientAnalyticsSnapshot(rows, start, end, chartRange.chartStart, chartRange.chartEnd);
 }
 
 export function computeClientAnalytics(
@@ -353,34 +283,39 @@ export function computeClientAnalytics(
   start: string,
   end: string,
 ): ClientAnalytics {
-  const { newClients, repeatClients, totalClients } = clientCountsInPeriod(appointments, start, end);
-  const prev = previousOverviewReportPeriod(start, end);
-  const prevCounts = prev
-    ? clientCountsInPeriod(appointments, prev.start, prev.end)
-    : { newClients: 0, repeatClients: 0, totalClients: 0 };
-
   const chartRange = overviewChartWindow(start, end, OVERVIEW_MAX_RANGE_DAYS);
+  const snapshot = clientSnapshotFromAppointments(appointments, start, end);
+  const prev = previousOverviewReportPeriod(start, end);
+  const prevSnapshot = prev
+    ? clientSnapshotFromAppointments(appointments, prev.start, prev.end)
+    : {
+        newClients: 0,
+        newOnlyClients: 0,
+        repeatClients: 0,
+        returningClients: 0,
+        totalClients: 0,
+        returningRate: 0,
+      };
+
   const visitsPerDay = aggregateOverviewByDay(appointments, chartRange.chartStart, chartRange.chartEnd);
-  const clientsPerDay = aggregateClientsPerDay(
-    appointments,
-    chartRange.chartStart,
-    chartRange.chartEnd,
-  );
 
   return {
-    newClients,
-    repeatClients,
-    totalClients,
-    roster: buildClientRoster(appointments, start, end),
-    newClientsDelta: newClients - prevCounts.newClients,
-    repeatClientsDelta: repeatClients - prevCounts.repeatClients,
-    totalClientsDelta: totalClients - prevCounts.totalClients,
+    newClients: snapshot.newClients,
+    newOnlyClients: snapshot.newOnlyClients,
+    repeatClients: snapshot.repeatClients,
+    returningClients: snapshot.returningClients,
+    totalClients: snapshot.totalClients,
+    returningRate: snapshot.returningRate,
+    roster: snapshot.roster,
+    newClientsDelta: snapshot.newClients - prevSnapshot.newClients,
+    repeatClientsDelta: snapshot.repeatClients - prevSnapshot.repeatClients,
+    totalClientsDelta: snapshot.totalClients - prevSnapshot.totalClients,
     visitsPerDay,
-    clientsPerDay,
+    clientsPerDay: snapshot.clientsPerDay,
     chartIsTruncated: chartRange.chartStart > start,
     hasData:
-      totalClients > 0 ||
-      clientsPerDay.some((d) => d.newClients > 0 || d.repeatClients > 0),
+      snapshot.totalClients > 0 ||
+      snapshot.clientsPerDay.some((d) => d.newClients > 0 || d.repeatClients > 0),
   };
 }
 

@@ -17,6 +17,7 @@ import {
   ADMIN_MAIN_NAV,
   ADMIN_NOTIFICATIONS_NAV,
   IconNavSettings,
+  AdminCabinetNavLink,
 } from '../../adminCabinetNav';
 import { MasterCabinetAvatar } from '../../profile/adminProfilePortrait';
 import { settingsRailItemClass, SETTINGS_RAIL_WIDTH } from './settingsWorkspaceTheme';
@@ -72,16 +73,19 @@ export function SettingsIconRail() {
         {ADMIN_MAIN_NAV.map((item) => {
           const Icon = item.icon;
           return (
-            <NavLink
+            <AdminCabinetNavLink
               key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `group/rail relative max-w-full ${settingsRailItemClass(isActive)}`}
+              item={item}
               title={item.label}
+              className={(isActive) => `group/rail relative max-w-full ${settingsRailItemClass(isActive)}`}
             >
-              <Icon className="h-5 w-5 shrink-0" />
-              <RailTooltip label={item.label} />
-            </NavLink>
+              {() => (
+                <>
+                  <Icon className="h-5 w-5 shrink-0" />
+                  <RailTooltip label={item.label} />
+                </>
+              )}
+            </AdminCabinetNavLink>
           );
         })}
 

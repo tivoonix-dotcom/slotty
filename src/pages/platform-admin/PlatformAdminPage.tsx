@@ -1,5 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { getLoginPath, PLATFORM_ADMIN_PATH } from '../../app/paths';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { buildAppPath, getLoginPath, PLATFORM_ADMIN_PATH } from '../../app/paths';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { isPlatformAdmin } from '../../features/auth/lib/isPlatformAdmin';
 import { getApiBaseUrl } from '../../shared/api/backendClient';
@@ -19,6 +19,8 @@ import { PlatformAdminSupportTab } from './tabs/PlatformAdminSupportTab';
 import { PlatformAdminSystemStatusTab } from './tabs/PlatformAdminSystemStatusTab';
 
 export function PlatformAdminPage() {
+  const location = useLocation();
+  const returnPath = buildAppPath(location.pathname, location.search);
   const { profile, isLoading, isAuthenticated } = useAuth();
   const backendConfigured = Boolean(getApiBaseUrl());
 
@@ -35,7 +37,7 @@ export function PlatformAdminPage() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={getLoginPath(PLATFORM_ADMIN_PATH)} replace />;
+    return <Navigate to={getLoginPath(returnPath)} replace />;
   }
 
   if (!isPlatformAdmin(profile)) {

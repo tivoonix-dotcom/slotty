@@ -9,20 +9,23 @@ import type { BookingEventRow } from '../modules/appointments/bookingEvents.serv
 
 function testHeroConfirmed() {
   const starts = new Date(Date.now() + 30 * 60_000).toISOString();
-  const hero = buildClientBookingHero({ status: 'confirmed', startsAt: starts, signal: { kind: null, lateMinutes: null, comment: null, at: null } });
+  const hero = buildClientBookingHero({
+    status: 'confirmed',
+    startsAt: starts,
+    signal: { kind: 'on_the_way', lateMinutes: null, comment: null, at: null },
+  });
   assert.equal(hero.title, 'Скоро запись');
   assert.ok(hero.countdown);
 }
 
-function testHeroLateSignal() {
+function testHeroIgnoresLegacyTravelSignal() {
   const hero = buildClientBookingHero({
     status: 'confirmed',
-    startsAt: new Date(Date.now() + 3_600_000).toISOString(),
+    startsAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(),
     signal: { kind: 'running_late', lateMinutes: 10, comment: 'Пробки', at: new Date().toISOString() },
   });
-  assert.equal(hero.title, 'Вы сообщили об опоздании');
-  assert.match(hero.subtitle, /10 минут/);
-  assert.equal(hero.lateBadge, 'Опаздываете на 10 мин');
+  assert.equal(hero.title, 'Запись подтверждена');
+  assert.equal(hero.lateBadge, null);
 }
 
 function testAvailableActionsConfirmedSoon() {
@@ -36,8 +39,8 @@ function testAvailableActionsConfirmedSoon() {
     hasAddress: true,
     hasDirectContact: true,
   });
-  assert.ok(actions.includes('on_the_way'));
-  assert.ok(actions.includes('running_late'));
+  assert.equal(actions.includes('on_the_way'), false);
+  assert.equal(actions.includes('running_late'), false);
   assert.ok(actions.includes('open_route'));
 }
 
@@ -62,7 +65,7 @@ function testCountdown() {
 }
 
 testHeroConfirmed();
-testHeroLateSignal();
+testHeroIgnoresLegacyTravelSignal();
 testAvailableActionsConfirmedSoon();
 testTimelineHidesTechnical();
 testCountdown();

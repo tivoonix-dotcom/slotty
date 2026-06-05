@@ -1,4 +1,5 @@
 import { notifyUser } from '../notifications/notifyUser.js';
+import { buildBookingNotificationMetadataForAppointment } from './appointmentNotifySnapshot.js';
 import {
   masterBookingClientConfirmed,
   masterBookingClientComment,
@@ -23,10 +24,12 @@ const related = (ctx: AppointmentNotifyContext) => ({
 /** Мастеру: новая заявка от клиента. */
 export async function notifyMasterBookingCreated(ctx: AppointmentNotifyContext): Promise<void> {
   const payload = masterBookingRequestCreated(ctx);
+  const metadata = await buildBookingNotificationMetadataForAppointment(ctx.appointmentId);
   await notifyUser({
     userId: ctx.masterId,
     ...payload,
     ...related(ctx),
+    metadata,
     telegramReplyMarkup: masterBookingTelegramKeyboard(ctx) as unknown as Record<string, unknown>,
     bookingCode: ctx.voucherNumber,
     email: masterBookingCreatedEmail(ctx),
@@ -74,6 +77,8 @@ export async function notifyMasterByAppointmentId(
     return immediate ? mapMasterImmediateNotifyKind(immediate) ?? undefined : undefined;
   })();
 
+  const metadata = await buildBookingNotificationMetadataForAppointment(ctx.appointmentId);
+
   switch (kind) {
     case 'completed': {
       const payload = masterBookingCompleted(ctx);
@@ -81,6 +86,7 @@ export async function notifyMasterByAppointmentId(
         userId: ctx.masterId,
         ...payload,
         ...related,
+        metadata,
         bookingCode: ctx.voucherNumber,
         telegramReplyMarkup: markup,
         masterPreferenceEvent,
@@ -93,6 +99,7 @@ export async function notifyMasterByAppointmentId(
         userId: ctx.masterId,
         ...payload,
         ...related,
+        metadata,
         bookingCode: ctx.voucherNumber,
         telegramReplyMarkup: markup,
         masterPreferenceEvent,
@@ -107,6 +114,7 @@ export async function notifyMasterByAppointmentId(
         userId: ctx.masterId,
         ...payload,
         ...related,
+        metadata,
         bookingCode: ctx.voucherNumber,
         telegramReplyMarkup: markup,
         masterPreferenceEvent,
@@ -119,6 +127,7 @@ export async function notifyMasterByAppointmentId(
         userId: ctx.masterId,
         ...payload,
         ...related,
+        metadata,
         bookingCode: ctx.voucherNumber,
         telegramReplyMarkup: markup,
         masterPreferenceEvent,
@@ -131,6 +140,7 @@ export async function notifyMasterByAppointmentId(
         userId: ctx.masterId,
         ...payload,
         ...related,
+        metadata,
         bookingCode: ctx.voucherNumber,
         telegramReplyMarkup: markup,
         masterPreferenceEvent,

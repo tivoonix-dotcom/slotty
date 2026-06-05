@@ -1,5 +1,11 @@
 import { query } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { computePendingExpiresAt } from '../../lib/bookingConfirmationDeadlines.js';
+import {
+  BOOKINGS_FROM_WITH_VOUCHER,
+  buildBookingSearchSql,
+  parseBookingSearchQuery,
+} from './platformAdminBookingsSearch.js';
 
 export type PlatformBookingListItem = {
   id: string;
@@ -25,6 +31,13 @@ export type PlatformBookingDetail = PlatformBookingListItem & {
   clientEmail: string | null;
   clientPhone: string | null;
   clientTelegramUsername: string | null;
+  pendingConfirmDeadline: string | null;
+  hasReview: boolean;
+  notificationJobs: {
+    total: number;
+    pending: number;
+    failed: number;
+  };
   clientStats: {
     totalBookings: number;
     cancellationsByClient: number;
@@ -164,23 +177,21 @@ export async function listPlatformBookings(params: {
     vals.push(params.clientId);
   }
 
-  if (params.q?.trim()) {
-    conditions.push(
-      `(cp.full_name ilike $${i} or mp.display_name ilike $${i} or a.service_title_snapshot ilike $${i} or a.id::text = $${i + 1})`,
-    );
-    vals.push(`%${params.q.trim()}%`, params.q.trim());
-    i += 2;
+  const searchParsed = parseBookingSearchQuery(params.q);
+  const searchBuilt = buildBookingSearchSql(searchParsed, vals, i);
+  if (searchBuilt.condition) {
+    conditions.push(searchBuilt.condition);
   }
+  i = searchBuilt.nextIndex;
 
   const where = conditions.length ? `where ${conditions.join(' and ')}` : '';
   const limit = Math.min(params.limit ?? 50, 100);
   const offset = params.offset ?? 0;
+  const fromClause = BOOKINGS_FROM_WITH_VOUCHER;
 
   const countR = await query<{ total: string }>(
     `select count(*)::text as total
-       from public.appointments a
-       join public.profiles cp on cp.id = a.client_id
-       join public.master_profiles mp on mp.master_id = a.master_id
+       ${fromClause}
        ${where}`,
     vals,
   );
@@ -188,7 +199,7 @@ export async function listPlatformBookings(params: {
   const listR = await query<BookingRow>(
     `${BOOKING_SELECT}
        ${where}
-       order by a.starts_at desc
+       order by ${searchBuilt.orderBy}
        limit $${i} offset $${i + 1}`,
     [...vals, limit, offset],
   );
@@ -259,11 +270,36 @@ export async function getPlatformBooking(bookingId: string): Promise<PlatformBoo
   const base = mapBookingRow(baseRow);
   const prof = profileR.rows[0];
 
+  const reviewR = await query<{ has_review: boolean }>(
+    `select exists (select 1 from public.reviews rv where rv.appointment_id = $1) as has_review`,
+    [bookingId],
+  );
+
+  const jobsR = await query<{ total: string; pending: string; failed: string }>(
+    `select count(*)::text as total,
+            count(*) filter (where status = 'pending')::text as pending,
+            count(*) filter (where status = 'failed')::text as failed
+       from public.notification_jobs
+      where appointment_id = $1`,
+    [bookingId],
+  );
+  const jobsRow = jobsR.rows[0];
+
   return {
     ...base,
     clientEmail: emailR.rows[0]?.email ?? null,
     clientPhone: prof?.phone ?? null,
     clientTelegramUsername: prof?.telegram_username ?? null,
+    pendingConfirmDeadline:
+      base.status === 'pending'
+        ? computePendingExpiresAt(base.createdAt, base.startsAt).toISOString()
+        : null,
+    hasReview: Boolean(reviewR.rows[0]?.has_review),
+    notificationJobs: {
+      total: Number(jobsRow?.total ?? 0),
+      pending: Number(jobsRow?.pending ?? 0),
+      failed: Number(jobsRow?.failed ?? 0),
+    },
     clientStats: await getClientBookingStats(baseRow.client_id),
     recentBookings: recentR.rows.map(mapBookingRow),
   };

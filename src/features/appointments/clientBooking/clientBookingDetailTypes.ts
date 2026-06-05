@@ -22,7 +22,10 @@ export type ClientBookingDetail = ServerClientAppointment & {
   cancel_reason?: string | null;
   cancel_reason_category?: string | null;
   can_leave_review?: boolean;
+  completed_at?: string | null;
+  auto_completed_at?: string | null;
   master_marked_completed_at?: string | null;
+  client_confirmed_completed_at?: string | null;
   dispute?: {
     id: string;
     reason: string;

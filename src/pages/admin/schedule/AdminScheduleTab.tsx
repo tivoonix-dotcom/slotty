@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { preloadTabIntroImages } from '../useTabIntroImage';
 import { useAdminSectionTab } from '../useAdminSectionTab';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
@@ -9,6 +10,7 @@ import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
 import { AdminToast } from '../shared/AdminToast';
 import { useAdminToast } from '../shared/useAdminToast';
 import { AddWindowSheet } from './AddWindowSheet';
+import { CreateMonthScheduleWizard } from './CreateMonthScheduleWizard';
 import { CreateTemplateModal } from './CreateTemplateModal';
 import { WindowTemplateMenuSheet } from './WindowTemplateMenuSheet';
 import type { WindowTemplate } from './scheduleTypes';
@@ -94,11 +96,57 @@ export function AdminScheduleTab({ draft }: Props) {
     templates,
     persistTemplates,
     scheduleHorizonDays,
+    reloadSlots,
     slotOverlaps,
     createSlots,
     updateSlot,
     removeSlot,
+    loadError,
   } = useScheduleData(masterId, visibleServices, useCabinetApi, appointments);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [monthWizardOpen, setMonthWizardOpen] = useState(false);
+  const [monthWizardDays, setMonthWizardDays] = useState<7 | 14 | 30>(30);
+
+  const monthWizardServiceId = searchParams.get('serviceId');
+
+  useEffect(() => {
+    const wizard = searchParams.get('wizard');
+    if (wizard === 'month') {
+      setMonthWizardDays(30);
+      setMonthWizardOpen(true);
+    } else if (wizard === 'week') {
+      setMonthWizardDays(7);
+      setMonthWizardOpen(true);
+    }
+  }, [searchParams]);
+
+  const closeMonthWizard = () => {
+    setMonthWizardOpen(false);
+    if (searchParams.get('wizard')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('wizard');
+      next.delete('serviceId');
+      setSearchParams(next, { replace: true });
+    }
+  };
+
+  const activeFutureSlotCount = useMemo(
+    () =>
+      windows.filter(
+        (w) => w.status === 'free' && new Date(w.slot.startsAt).getTime() > Date.now(),
+      ).length,
+    [windows],
+  );
+
+  const existingSlotRanges = useMemo(
+    () => windows.map((w) => ({ startsAt: w.slot.startsAt, endsAt: w.slot.endsAt })),
+    [windows],
+  );
+
+  const reloadWindows = useCallback(async () => {
+    await reloadSlots();
+  }, [reloadSlots]);
 
   const [pageTab, setPageTab] = useAdminSectionTab('tab', 'create', SCHEDULE_TABS);
 
@@ -117,7 +165,7 @@ export function AdminScheduleTab({ draft }: Props) {
   const [endTime, setEndTime] = useState('14:00');
   const [serviceId, setServiceId] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [manualMode, setManualMode] = useState(false);
+  const [manualMode, setManualMode] = useState(true);
   const [repeatSettings, setRepeatSettings] = useState<RepeatSettingsValue>(DEFAULT_REPEAT_SETTINGS);
 
   const [templateSheetOpen, setTemplateSheetOpen] = useState(false);
@@ -460,6 +508,9 @@ export function AdminScheduleTab({ draft }: Props) {
               templates={templates}
               selectedTemplateId={selectedTemplateId}
               createMetrics={tabMetrics.create}
+              activeSlotCount={activeFutureSlotCount}
+              masterId={draft.masterId}
+              slotsLoadError={loadError}
               onTemplateSelect={(id) => {
                 applyTemplate(id);
                 openAddSheet({ templateId: id });
@@ -467,6 +518,19 @@ export function AdminScheduleTab({ draft }: Props) {
               onTemplateMenu={setTemplateMenuTarget}
               onCreateTemplate={() => setTemplateSheetOpen(true)}
               onOpenWithoutTemplate={() => openAddSheet({ withoutTemplate: true })}
+              onAddToday={() => openAddSheet({ dateIso: todayIso() })}
+              onCreateWeek={() => {
+                setMonthWizardDays(7);
+                setMonthWizardOpen(true);
+              }}
+              onCreateMonth={() => {
+                setMonthWizardDays(30);
+                setMonthWizardOpen(true);
+              }}
+              onCreateFromSchedule={() => {
+                setMonthWizardDays(30);
+                setMonthWizardOpen(true);
+              }}
             />
           </div>
         ) : null}
@@ -529,6 +593,30 @@ export function AdminScheduleTab({ draft }: Props) {
         </div>
       </div>
 
+      <CreateMonthScheduleWizard
+        open={monthWizardOpen}
+        onClose={closeMonthWizard}
+        masterId={draft.masterId}
+        services={visibleServices
+          .filter((s) => isUuid(s.id))
+          .map((s) => ({
+            id: s.id,
+            title: s.title,
+            durationMin: s.durationMin ?? 60,
+          }))}
+        defaultWorkDays={draft.schedule?.workDays ?? []}
+        defaultStartTime={draft.schedule?.startTime ?? '10:00'}
+        defaultEndTime={draft.schedule?.endTime ?? '19:00'}
+        scheduleHorizonDays={scheduleHorizonDays}
+        existingSlots={existingSlotRanges}
+        initialPeriodDays={monthWizardDays}
+        initialServiceId={monthWizardServiceId}
+        useCabinetApi={useCabinetApi}
+        onCreated={() => {
+          void reloadWindows();
+        }}
+      />
+
       <AddWindowSheet
         open={addSheetOpen}
         onClose={() => setAddSheetOpen(false)}
@@ -584,6 +672,7 @@ export function AdminScheduleTab({ draft }: Props) {
           onClick={() => openAddSheet()}
           disabled={!masterWrite.canMutate}
           disabledTitle={masterWrite.mutateDisabledTitle}
+          variant="schedule"
         />
       ) : null}
 

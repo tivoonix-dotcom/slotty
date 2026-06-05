@@ -1,5 +1,6 @@
 const APPOINTMENT_MESSAGES: Record<string, string> = {
   BAD_STATUS: 'Запись уже обработана или её нельзя изменить в текущем статусе.',
+  BOOKING_EXPIRED: 'Заявка уже истекла — подтвердить её нельзя.',
   SLOT_UNAVAILABLE: 'Окно больше недоступно для записи.',
   SLOT_IN_PAST: 'Время окна уже прошло.',
   MASTER_OVERLAP: 'У мастера уже есть запись на это время.',
@@ -20,11 +21,20 @@ const SLOT_MESSAGES: Record<string, string> = {
     'Нельзя удалить окно: по нему уже была запись и оно сохранено в истории.',
   SLOT_NOT_AVAILABLE: 'Окно занято или недоступно для изменения.',
   SLOT_NOT_EDITABLE: 'Окно занято или недоступно для изменения.',
-  SLOT_OVERLAP: 'Время пересекается с другим свободным окном.',
-  SLOT_IN_PAST: 'Окно не может начинаться в прошлом.',
+  SLOT_OVERLAP: 'Это время уже занято.',
+  SLOT_IN_PAST: 'Нельзя создать окно в прошлом.',
   SLOT_TOO_LONG: 'Слишком длинный интервал окна.',
   BAD_SLOT_RANGE: 'Время окончания должно быть позже начала.',
-  BAD_SERVICE: 'Услуга не найдена или скрыта.',
+  SERVICE_DOES_NOT_FIT: 'Услуга не помещается в выбранное окно.',
+  NO_WEEKDAYS: 'Выберите хотя бы один рабочий день.',
+  NO_ACTIVE_SERVICE: 'Сначала добавьте активную услугу.',
+  NO_BOOKABLE_SLOTS: 'Создайте хотя бы одно окно для записи.',
+  PLAN_HORIZON_EXCEEDED: 'На вашем тарифе нельзя создавать окна так далеко.',
+};
+
+const SERVICE_MESSAGES: Record<string, string> = {
+  SERVICE_HAS_UPCOMING_APPOINTMENTS:
+    'Нельзя удалить услугу: есть будущие записи. Сначала отмените их или скройте услугу.',
 };
 
 const REVIEW_MESSAGES: Record<string, string> = {
@@ -33,6 +43,8 @@ const REVIEW_MESSAGES: Record<string, string> = {
   APPOINTMENT_NOT_REVIEWABLE: 'Отзыв можно оставить после завершённого визита.',
   REVIEW_EXISTS: 'Вы уже оставили отзыв к этой записи.',
   REVIEW_BODY_REQUIRED: 'Напишите текст отзыва.',
+  REVIEW_BODY_TOO_SHORT: 'Напишите не менее 10 символов.',
+  REVIEW_RATING_REQUIRED: 'Поставьте оценку.',
 };
 
 const FAVORITE_MESSAGES: Record<string, string> = {
@@ -85,7 +97,7 @@ const LIMIT_MESSAGES: Record<string, string> = {
   LIMIT_SERVICES_REACHED:
     'Достигнут лимит услуг по тарифу. Оформите Pro или деактивируйте лишние услуги.',
   LIMIT_SCHEDULE_DAYS_REACHED:
-    'Дата окна выходит за пределы горизонта расписания вашего тарифа. Выберите более близкую дату или смените тариф.',
+    'На вашем тарифе нельзя создавать окна так далеко.',
   LIMIT_MONTHLY_APPOINTMENTS_REACHED:
     'У мастера достигнут лимит записей на этот месяц по тарифу. Попробуйте позже или выберите другого мастера.',
   PLAN_LIMIT_REACHED:
@@ -114,6 +126,7 @@ export async function readSlottyApiErrorMessage(res: Response): Promise<string> 
   const accountMsg = code && ACCOUNT_MESSAGES[code];
   if (accountMsg) return accountMsg(j?.error?.reason);
   if (code && APPOINTMENT_MESSAGES[code]) return APPOINTMENT_MESSAGES[code];
+  if (code && SERVICE_MESSAGES[code]) return SERVICE_MESSAGES[code];
   if (code && SLOT_MESSAGES[code]) return SLOT_MESSAGES[code];
   if (code && REVIEW_MESSAGES[code]) return REVIEW_MESSAGES[code];
   if (code && FAVORITE_MESSAGES[code]) return FAVORITE_MESSAGES[code];

@@ -10,7 +10,6 @@ import {
 import {
   availableBillingActions,
   deriveSubscriptionUiState,
-  isProEntitled,
   type BillingAction,
   type SubscriptionUiState,
 } from './subscriptionBilling.state.js';
@@ -140,6 +139,24 @@ export async function expireDueSubscriptions(masterId?: string): Promise<void> {
   const masterFilter = masterId ? 'and ms.master_id = $1' : '';
   const expireParams = masterId ? [masterId] : [];
 
+  const { recordTrialExpired, recordTrialDowngradedToFree } = await import('./trial.service.js');
+
+  const expiredTrials = await query<{ master_id: string }>(
+    `update public.master_subscriptions ms
+        set status = 'expired'::public.subscription_status,
+            next_charge_at = null,
+            updated_at = now()
+      from public.subscription_plans sp
+      where sp.id = ms.plan_id
+        and sp.code = 'pro'
+        and ms.status::text = 'trialing'
+        and ms.trial_ends_at is not null
+        and ms.trial_ends_at < now()
+        ${masterFilter}
+      returning ms.master_id`,
+    expireParams,
+  );
+
   await query(
     `update public.master_subscriptions ms
         set status = 'expired'::public.subscription_status,
@@ -189,6 +206,35 @@ export async function expireDueSubscriptions(masterId?: string): Promise<void> {
         ${downgradeFilter}`,
     downgradeParams,
   );
+
+  for (const row of expiredTrials.rows) {
+    await recordTrialExpired(row.master_id).catch(() => {});
+  }
+
+  if (masterId && expiredTrials.rows.length > 0) {
+    await query(
+      `update public.master_profiles
+          set master_plan = 'basic',
+              pro_status = 'inactive',
+              updated_at = now()
+        where master_id = $1`,
+      [masterId],
+    );
+    await recordTrialDowngradedToFree(masterId).catch(() => {});
+  } else if (!masterId && expiredTrials.rows.length > 0) {
+    const ids = expiredTrials.rows.map((r) => r.master_id);
+    await query(
+      `update public.master_profiles
+          set master_plan = 'basic',
+              pro_status = 'inactive',
+              updated_at = now()
+        where master_id = any($1::uuid[])`,
+      [ids],
+    );
+    for (const id of ids) {
+      await recordTrialDowngradedToFree(id).catch(() => {});
+    }
+  }
 
   if (masterId) {
     await query(
@@ -286,6 +332,8 @@ function mapBillingPaymentRow(row: {
 
 export async function getBillingSubscription(masterId: string): Promise<BillingSubscriptionDto> {
   await expireDueSubscriptions(masterId);
+  const { getMasterEntitlements } = await import('./entitlements.service.js');
+  const ent = await getMasterEntitlements(masterId);
   const sub = await getMasterSubscriptionWithUsage(masterId);
   const row = await loadSubscriptionRow(masterId);
 
@@ -295,9 +343,10 @@ export async function getBillingSubscription(masterId: string): Promise<BillingS
     currentPeriodEnd: row.current_period_end,
     cancelAtPeriodEnd: row.cancel_at_period_end,
     proExpiresAt: row.pro_expires_at,
+    trialEndsAt: ent.trial.endsAt,
   };
   const uiState = deriveSubscriptionUiState(lite);
-  const entitled = isProEntitled(lite);
+  const entitled = ent.isProEntitled;
   const lastPayment = await getLastBillingPayment(masterId);
 
   const priceAmount =
@@ -332,9 +381,9 @@ export async function getBillingSubscription(masterId: string): Promise<BillingS
     cardExpYear: row.card_exp_year,
     availableActions: availableBillingActions(uiState),
     limits: {
-      maxServices: sub.plan.maxServices,
-      maxMonthlyAppointments: sub.plan.maxMonthlyAppointments,
-      maxScheduleDaysAhead: sub.plan.maxScheduleDaysAhead,
+      maxServices: ent.limits.maxServices,
+      maxMonthlyAppointments: ent.limits.maxMonthlyAppointments,
+      maxScheduleDaysAhead: ent.limits.scheduleHorizonDays,
     },
     lastPayment,
     nextPaymentHint,
@@ -680,14 +729,17 @@ export async function activateSubscriptionFromPayment(
 
   let scheduleRenewalSubId: string | null = null;
   let scheduleRenewalPeriodEnd: Date | null = null;
+  let wasTrialing = false;
 
   await withTransaction(async (client: PoolClient) => {
-    const sub = await client.query<{ id: string; current_period_end: Date }>(
-      `select id, current_period_end from public.master_subscriptions where master_id = $1 for update`,
+    const sub = await client.query<{ id: string; current_period_end: Date; status: string }>(
+      `select id, current_period_end, status::text as status from public.master_subscriptions where master_id = $1 for update`,
       [payment.masterId],
     );
     const subRow = sub.rows[0];
     if (!subRow) return;
+
+    wasTrialing = subRow.status === 'trialing';
 
     const periodStart = isRenewal ? subRow.current_period_end : new Date();
     const periodEnd = new Date(periodStart.getTime() + days * 24 * 60 * 60 * 1000);
@@ -794,6 +846,11 @@ export async function activateSubscriptionFromPayment(
     source: 'bepaid',
     metadata: { paymentId: payment.id },
   });
+
+  if (wasTrialing && !isRenewal) {
+    const { recordTrialConvertedToPaid } = await import('./trial.service.js');
+    await recordTrialConvertedToPaid(payment.masterId).catch(() => {});
+  }
 
   const dto = await getBillingSubscription(payment.masterId);
   const n = isRenewal

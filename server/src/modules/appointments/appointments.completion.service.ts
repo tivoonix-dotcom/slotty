@@ -119,6 +119,10 @@ export async function masterMarkServiceCompleted(
 
   const s = normalizeDbStatus(access.status);
 
+  if (s === 'expired') {
+    throw ApiError.conflict('Запись истекла', 'BOOKING_EXPIRED');
+  }
+
   if (s === 'client_confirmed_completed' || access.client_confirmed_completed_at) {
     await finalizeAppointmentCompleted({
       appointmentId,
@@ -206,18 +210,12 @@ export async function clientConfirmServiceCompleted(
   }
 
   if (normalizeDbStatus(refreshed.status) === 'in_progress') {
-    await setAppointmentStatus(appointmentId, 'client_confirmed_completed', {
-      client_confirmed_completed_at: true,
-    });
-    await insertBookingEvent({
+    await finalizeAppointmentCompleted({
       appointmentId,
-      eventType: 'booking.client_confirmed_completed',
-      oldStatus: 'in_progress',
-      newStatus: 'client_confirmed_completed',
       actorUserId: clientId,
       actorRole: 'client',
+      eventType: 'booking.completed',
     });
-    void notifyMasterByAppointmentId(appointmentId, 'client_confirmed_completed');
     return { masterId: refreshed.master_id };
   }
 

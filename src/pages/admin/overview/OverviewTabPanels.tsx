@@ -11,11 +11,13 @@ import {
 } from 'react-icons/hi2';
 import {
   appointmentStatusLabel,
-  isoDateLocal,
   type OverviewDayStat,
 } from '../../../features/master/model/demoMasterAppointments';
 import { ADMIN_SCHEDULE_PATH } from '../../../app/paths';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
+import { countActiveServices, assessMasterBookingReadiness } from '../masterReadiness';
+import { OverviewOpsPanel } from './OverviewOpsPanel';
+import type { OverviewOpsSnapshot } from './overviewOpsSnapshot';
 import {
   overviewCard,
   overviewCardPad,
@@ -27,34 +29,14 @@ import {
 import { OverviewKpiCarousel, OverviewKpiStatCard } from './OverviewKpiBlocks';
 import { formatAppointmentWhenRu, formatBynRu } from './overviewFormat';
 import {
-  OverviewBarChart,
+  OverviewVisitsBarChart,
+  OverviewRevenueLineChart,
   OverviewHeroEmpty,
   OverviewCompactMetricCard,
-  OverviewLineChart,
   OverviewSectionCard,
   OverviewWideMetricCard,
 } from './OverviewSharedUi';
 import { OverviewSummaryHeroBackground } from './OverviewSummaryHeroBackground';
-
-function jsToScheduleWeekday(d: Date): number {
-  const js = d.getDay();
-  return js === 0 ? 6 : js - 1;
-}
-
-function scheduleFillPercentToday(draft: MasterDraft, dayStats: OverviewDayStat[]): number {
-  const workDays = new Set(draft.schedule?.workDays ?? []);
-  const weekday = jsToScheduleWeekday(new Date());
-
-  if (!workDays.has(weekday)) return 0;
-
-  const today = isoDateLocal(new Date());
-  const stat = dayStats.find((s) => s.date === today);
-  const visits = stat?.activeVisits ?? 0;
-
-  if (visits <= 0) return 0;
-
-  return Math.min(100, Math.round((visits / 8) * 100));
-}
 
 type SummaryProps = {
   metrics: {
@@ -68,6 +50,16 @@ type SummaryProps = {
   dayStats: OverviewDayStat[];
   draft: MasterDraft;
   onOpenNearest: () => void;
+  ops: OverviewOpsSnapshot;
+  opsLoading?: boolean;
+  slotsLoadError?: string | null;
+  profileCompletionPercent?: number;
+  profileComplete?: boolean;
+  onOpenAppointmentId?: (id: string) => void;
+  publicationStatus?: import('../../../features/admin/lib/profileCompletion').MasterPublicationStatus | null;
+  useCabinetApi: boolean;
+  onPersistDraft: (next: MasterDraft) => void;
+  appointments: import('../../../features/master/model/demoMasterAppointments').DemoMasterAppointment[];
 };
 
 function SoftIcon({
@@ -151,8 +143,24 @@ function OverviewSummaryPanelMobile({
   dayStats,
   draft,
   onOpenNearest,
+  ops,
+  opsLoading,
+  slotsLoadError,
+  profileCompletionPercent,
+  profileComplete,
+  onOpenAppointmentId,
+  publicationStatus,
+  useCabinetApi,
+  onPersistDraft,
+  appointments,
 }: SummaryProps) {
   const { totalRevenue, totalVisits, nearest } = metrics;
+  const activeServiceCount = countActiveServices(draft.services);
+  const profileReady = assessMasterBookingReadiness({
+    draft,
+    activeSlotCount: ops.activeFutureSlotCount,
+    isPublished: publicationStatus === 'published',
+  }).readyToAcceptBookings;
   const hasAny = metrics.hasAny || totalRevenue > 0 || totalVisits > 0;
   const avgCheck = totalVisits > 0 ? Math.round(totalRevenue / totalVisits) : 0;
   const displayName = draft.name?.trim() || 'Мастер';
@@ -165,6 +173,22 @@ function OverviewSummaryPanelMobile({
         totalVisits={totalVisits}
         totalRevenue={totalRevenue}
         appointmentsPath={appointmentsPath}
+      />
+
+      <OverviewOpsPanel
+        ops={ops}
+        loading={opsLoading}
+        slotsLoadError={slotsLoadError}
+        profileCompletionPercent={profileCompletionPercent}
+        profileComplete={profileComplete}
+        onOpenAppointment={onOpenAppointmentId}
+        activeServiceCount={activeServiceCount}
+        masterId={draft.masterId}
+        profileReady={profileReady}
+        draft={draft}
+        useCabinetApi={useCabinetApi}
+        appointments={appointments}
+        onPersistDraft={onPersistDraft}
       />
 
       {!hasAny ? <OverviewHeroEmpty /> : null}
@@ -271,7 +295,7 @@ function OverviewSummaryPanelMobile({
         subtitle="Наведите на график — увидите число записей по дням"
         icon={<HiCalendar className="h-5 w-5" aria-hidden />}
       >
-        <OverviewLineChart stats={dayStats} mode="visits" size="large" emptyHint="Записей за период нет" />
+        <OverviewVisitsBarChart stats={dayStats} size="large" emptyHint="Записей за период нет" />
       </OverviewSectionCard>
 
       <OverviewSectionCard
@@ -279,15 +303,7 @@ function OverviewSummaryPanelMobile({
         subtitle="Выручка по завершённым записям за каждый день"
         icon={<HiBanknotes className="h-5 w-5" aria-hidden />}
       >
-        <OverviewLineChart stats={dayStats} mode="revenue" size="large" emptyHint="Дохода за период нет" />
-      </OverviewSectionCard>
-
-      <OverviewSectionCard
-        title="Записи по дням"
-        subtitle="Столбцы — количество активных и завершённых визитов"
-        icon={<HiCalendar className="h-5 w-5" aria-hidden />}
-      >
-        <OverviewBarChart stats={dayStats} mode="visits" emptyHint="Записей за период нет" />
+        <OverviewRevenueLineChart stats={dayStats} size="large" emptyHint="Дохода за период нет" />
       </OverviewSectionCard>
     </div>
   );
@@ -558,7 +574,7 @@ function DesktopChartCard({
           </h2>
 
           <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
-            Линия и столбцы — наведите курсор, чтобы увидеть детали по дням
+            Наведите на график — увидите детали по каждому дню
           </p>
         </div>
 
@@ -567,12 +583,7 @@ function DesktopChartCard({
         </span>
       </div>
 
-      <OverviewLineChart stats={dayStats} mode="visits" size="large" emptyHint="Записей за период нет" />
-
-      <div className="mt-6">
-        <p className="mb-3 text-[13px] font-semibold text-[#6B7280]">По дням (столбцы)</p>
-        <OverviewBarChart stats={dayStats} mode="visits" emptyHint="Записей за период нет" />
-      </div>
+      <OverviewVisitsBarChart stats={dayStats} size="large" emptyHint="Записей за период нет" />
     </section>
   );
 }
@@ -599,12 +610,7 @@ function DesktopRevenueChartCard({
         </span>
       </div>
 
-      <OverviewLineChart stats={dayStats} mode="revenue" size="large" emptyHint="Дохода за период нет" />
-
-      <div className="mt-6">
-        <p className="mb-3 text-[13px] font-semibold text-[#6B7280]">По дням (столбцы)</p>
-        <OverviewBarChart stats={dayStats} mode="revenue" emptyHint="Дохода за период нет" />
-      </div>
+      <OverviewRevenueLineChart stats={dayStats} size="large" emptyHint="Дохода за период нет" />
     </section>
   );
 }
@@ -616,10 +622,26 @@ function OverviewSummaryPanelDesktop({
   dayStats,
   draft,
   onOpenNearest,
+  ops,
+  opsLoading,
+  slotsLoadError,
+  profileCompletionPercent,
+  profileComplete,
+  onOpenAppointmentId,
+  publicationStatus,
+  useCabinetApi,
+  onPersistDraft,
+  appointments,
 }: SummaryProps) {
   const { totalRevenue, totalVisits, nearest } = metrics;
+  const activeServiceCount = countActiveServices(draft.services);
+  const profileReady = assessMasterBookingReadiness({
+    draft,
+    activeSlotCount: ops.activeFutureSlotCount,
+    isPublished: publicationStatus === 'published',
+  }).readyToAcceptBookings;
   const avgCheck = totalVisits > 0 ? Math.round(totalRevenue / totalVisits) : 0;
-  const fillPercent = scheduleFillPercentToday(draft, dayStats);
+  const fillPercent = ops.scheduleFillPercent;
   const displayName = draft.name?.trim() || 'Мастер';
   const firstName = displayName.split(/\s+/)[0] || 'Мастер';
 
@@ -667,6 +689,22 @@ function OverviewSummaryPanelDesktop({
           </OverviewKpiCarousel>
         </div>
       </div>
+
+      <OverviewOpsPanel
+        ops={ops}
+        loading={opsLoading}
+        slotsLoadError={slotsLoadError}
+        profileCompletionPercent={profileCompletionPercent}
+        profileComplete={profileComplete}
+        onOpenAppointment={onOpenAppointmentId}
+        activeServiceCount={activeServiceCount}
+        masterId={draft.masterId}
+        profileReady={profileReady}
+        draft={draft}
+        useCabinetApi={useCabinetApi}
+        appointments={appointments}
+        onPersistDraft={onPersistDraft}
+      />
 
       <DesktopChartCard dayStats={dayStats} totalVisits={totalVisits} />
 

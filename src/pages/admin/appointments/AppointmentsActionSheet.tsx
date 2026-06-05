@@ -7,7 +7,9 @@ import {
   catalogSheetPrimaryBtn,
   catalogSheetSecondaryBtn,
 } from '../shared/adminCatalogSheetTheme';
+import { AppointmentsClientSummary } from './AppointmentsClientSummary';
 import { formatAppointmentPrice } from './appointmentsFormat';
+import { PendingDeadlineHint, isPendingConfirmDisabled } from './PendingDeadlineHint';
 
 export type AppointmentActionKind = 'confirm' | 'reject' | 'complete' | 'cancel';
 
@@ -37,6 +39,9 @@ export function AppointmentsActionSheet({ config, apiError, onClose, onConfirm }
   const showCancelReason = config?.kind === 'reject' || config?.kind === 'cancel';
   const dangerAction = config?.kind === 'reject' || config?.kind === 'cancel';
   const cancelReasonRequired = config?.kind === 'reject' || config?.kind === 'cancel';
+  const confirmDisabled =
+    config?.kind === 'confirm' &&
+    isPendingConfirmDisabled(config.appointment.dbStatus, config.appointment.pendingExpiresAt);
 
   return (
     <AdminBottomSheet
@@ -57,8 +62,8 @@ export function AppointmentsActionSheet({ config, apiError, onClose, onConfirm }
                 if (cancelReasonRequired && !reason) return;
                 onConfirm(reason);
               }}
-              disabled={cancelReasonRequired && !rejectReason.trim()}
-              className={`${catalogSheetPrimaryBtn} ${dangerAction ? '!bg-[#EF4444] hover:!opacity-95' : ''}`}
+              disabled={(cancelReasonRequired && !rejectReason.trim()) || confirmDisabled}
+              className={`${catalogSheetPrimaryBtn} ${dangerAction ? '!bg-[#EF4444] hover:!opacity-95' : ''} disabled:opacity-50`}
             >
               {config.buttonLabel}
             </button>
@@ -68,22 +73,28 @@ export function AppointmentsActionSheet({ config, apiError, onClose, onConfirm }
     >
       {config ? (
         <div className="space-y-4">
-          <div className="rounded-[10px] bg-[#F5F5F5] px-4 py-4 lg:px-5 lg:py-5">
-            <p className="text-[17px] font-bold tracking-[-0.03em] text-[#111827] lg:text-[18px]">
-              {config.appointment.clientName}
-            </p>
-            <p className="mt-1 text-[14px] leading-relaxed text-[#6B7280]">
-              {config.appointment.serviceTitle}
-            </p>
-            <p className="mt-3 text-[14px] font-semibold text-[#374151]">
+          <AppointmentsClientSummary appointment={config.appointment} />
+
+          <div className="rounded-[10px] bg-white px-4 py-3 ring-1 ring-[#EEEEEE]">
+            <p className="text-[14px] font-semibold text-[#111827]">{config.appointment.serviceTitle}</p>
+            <p className="mt-2 text-[14px] font-semibold text-[#374151]">
               {config.appointment.date} · {config.appointment.time}
             </p>
             <p className="mt-1 text-[16px] font-bold text-[#F47C8C]">
               {formatAppointmentPrice(config.appointment.priceByn)}
             </p>
+            {config.appointment.clientNote?.trim() ? (
+              <p className="mt-3 border-t border-[#F3F4F6] pt-3 text-[13px] leading-relaxed text-[#6B7280]">
+                <span className="font-semibold text-[#374151]">Комментарий: </span>
+                {config.appointment.clientNote.trim()}
+              </p>
+            ) : null}
           </div>
 
           <p className="text-[15px] leading-relaxed text-[#6B7280]">{config.text}</p>
+          {config.kind === 'confirm' ? (
+            <PendingDeadlineHint pendingExpiresAt={config.appointment.pendingExpiresAt} />
+          ) : null}
 
           {showCancelReason ? (
             <label className="block">

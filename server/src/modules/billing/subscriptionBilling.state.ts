@@ -13,6 +13,7 @@ export type SubscriptionRowLite = {
   currentPeriodEnd: Date | string | null;
   cancelAtPeriodEnd: boolean;
   proExpiresAt?: Date | string | null;
+  trialEndsAt?: Date | string | null;
 };
 
 const GRACE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
@@ -35,10 +36,17 @@ export function isPeriodStillActive(row: SubscriptionRowLite, now = Date.now()):
 
 export function deriveSubscriptionUiState(row: SubscriptionRowLite, now = Date.now()): SubscriptionUiState {
   const plan = row.planCode.toLowerCase();
+  const status = row.status.toLowerCase();
+
+  if (status === 'trialing') {
+    const trialEnd = periodEndMs(row.trialEndsAt ?? row.currentPeriodEnd);
+    if (trialEnd != null && trialEnd > now) return 'pro_active';
+    return 'expired';
+  }
+
   if (plan !== 'pro') return 'free';
 
   const active = isPeriodStillActive(row, now);
-  const status = row.status.toLowerCase();
 
   if (!active) return 'expired';
 
@@ -56,6 +64,11 @@ export function deriveSubscriptionUiState(row: SubscriptionRowLite, now = Date.n
 }
 
 export function isProEntitled(row: SubscriptionRowLite, now = Date.now()): boolean {
+  const status = row.status.toLowerCase();
+  if (status === 'trialing') {
+    const trialEnd = periodEndMs(row.trialEndsAt ?? row.currentPeriodEnd);
+    return trialEnd != null && trialEnd > now;
+  }
   const ui = deriveSubscriptionUiState(row, now);
   return ui === 'pro_active' || ui === 'pro_canceled_at_period_end' || ui === 'past_due';
 }

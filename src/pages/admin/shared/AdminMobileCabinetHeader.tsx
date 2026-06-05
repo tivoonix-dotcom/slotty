@@ -32,7 +32,7 @@ export function AdminMobileCabinetHeader({
 }: Props) {
   const { pathname } = useLocation();
   const isNotifications = pathname === ADMIN_NOTIFICATIONS_PATH;
-  const { hasUnread, unreadCount } = useAdminNotifications();
+  const { hasAttention, bellCount } = useAdminNotifications();
 
   return (
     <div
@@ -64,11 +64,17 @@ export function AdminMobileCabinetHeader({
           <ProfileCompletionHeaderCard variant="header" className="hidden min-[380px]:flex" />
           <Link
             to={ADMIN_NOTIFICATIONS_PATH}
-            className={notificationBellLinkClass(isNotifications, hasUnread, 'mobile')}
-            aria-label={hasUnread ? `Уведомления, ${unreadCount} новых` : 'Уведомления'}
+            className={notificationBellLinkClass(isNotifications, hasAttention, 'mobile')}
+            aria-label={
+              bellCount > 0
+                ? `Уведомления, ${bellCount} непрочитанных`
+                : hasAttention
+                  ? 'Уведомления, есть задачи'
+                  : 'Уведомления'
+            }
           >
             <IconNavNotifications />
-            <NotificationBellBadge count={unreadCount} />
+            <NotificationBellBadge count={bellCount} />
           </Link>
           <button
             type="button"

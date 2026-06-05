@@ -178,6 +178,39 @@ export function countsTowardEarned(status: string): boolean {
   return normalizeDbStatus(status) === 'completed';
 }
 
+/** Квалифицирующий визит клиента для аналитики «Клиенты» (не pending/cancelled/expired/no_show). */
+export function isQualifyingClientVisit(status: string): boolean {
+  const s = normalizeDbStatus(status);
+  return (
+    s === 'confirmed' ||
+    s === 'completed' ||
+    s === 'in_progress' ||
+    s === 'client_arrived' ||
+    s === 'master_marked_completed' ||
+    s === 'client_confirmed_completed'
+  );
+}
+
+export function isCompletedClientVisit(status: string): boolean {
+  return normalizeDbStatus(status) === 'completed';
+}
+
+export function isUpcomingQualifyingClientVisit(
+  status: string,
+  visitDateIso: string,
+  todayIso: string,
+): boolean {
+  if (visitDateIso < todayIso) return false;
+  const s = normalizeDbStatus(status);
+  return (
+    s === 'confirmed' ||
+    s === 'client_arrived' ||
+    s === 'in_progress' ||
+    s === 'master_marked_completed' ||
+    s === 'client_confirmed_completed'
+  );
+}
+
 /** Ожидаемый доход — подтверждённые и активные визиты до финального completed. */
 export function countsTowardExpected(status: string): boolean {
   const s = normalizeDbStatus(status);

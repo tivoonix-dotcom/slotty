@@ -54,6 +54,11 @@ import {
   updateMasterProfileReportStatus,
   type MasterProfileReportStatus,
 } from '../masters/masterProfileReport.service.js';
+import {
+  listBookingClientReportsForAdmin,
+  updateBookingClientReportStatus,
+  type BookingClientReportStatus,
+} from '../appointments/bookingClientReport.service.js';
 import { getPlatformAdminOverview } from './platformAdmin.overview.service.js';
 import { listPlatformAuditLogs } from './platformAdmin.audit.service.js';
 import {
@@ -448,6 +453,37 @@ platformAdminRouter.patch(
     const body = profileReportStatusBody.parse(req.body);
     await updateMasterProfileReportStatus(id, req.user!.id, {
       status: body.status as MasterProfileReportStatus,
+      adminComment: body.adminComment,
+    });
+    res.json({ ok: true });
+  }),
+);
+
+const clientReportStatusBody = z.object({
+  status: z.enum(['in_review', 'closed', 'rejected']),
+  adminComment: z.string().max(2000).optional().nullable(),
+});
+
+platformAdminRouter.get(
+  '/client-reports',
+  asyncHandler(async (req, res) => {
+    const status = z
+      .enum(['all', 'pending', 'in_review', 'closed', 'rejected'])
+      .optional()
+      .parse(req.query.status);
+    const limit = z.coerce.number().int().min(1).max(100).optional().parse(req.query.limit);
+    const offset = z.coerce.number().int().min(0).optional().parse(req.query.offset);
+    res.json(await listBookingClientReportsForAdmin(status ?? 'pending', { limit, offset }));
+  }),
+);
+
+platformAdminRouter.patch(
+  '/client-reports/:id/status',
+  asyncHandler(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const body = clientReportStatusBody.parse(req.body);
+    await updateBookingClientReportStatus(id, req.user!.id, {
+      status: body.status as BookingClientReportStatus,
       adminComment: body.adminComment,
     });
     res.json({ ok: true });

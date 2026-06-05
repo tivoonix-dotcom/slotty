@@ -9,6 +9,7 @@ import {
   cancelClientAppointment,
   createAppointmentTx,
   getClientAppointmentByVoucher,
+  getMasterAppointmentById,
   getMasterAppointmentByVoucher,
   getMasterAppointmentStats,
   listClientAppointments,
@@ -173,6 +174,11 @@ const masterDisputeBody = z.object({
   comment: z.string().max(2000).optional(),
 });
 
+const masterClientReportBody = z.object({
+  reasonCode: z.enum(['client_misconduct', 'client_not_paid', 'client_harassment', 'client_fake_info', 'other']),
+  reasonText: z.string().max(2000).optional().nullable(),
+});
+
 const signalBody = z.object({
   comment: z.string().max(500).optional(),
   lateMinutes: z.coerce.number().int().min(1).max(240).optional(),
@@ -327,6 +333,15 @@ masterAppointmentsRouter.get(
   }),
 );
 
+masterAppointmentsRouter.get(
+  '/:appointmentId',
+  asyncHandler(async (req, res) => {
+    const appointmentId = z.string().uuid().parse(req.params.appointmentId);
+    const appointment = await getMasterAppointmentById(req.user!.id, appointmentId);
+    res.json({ appointment });
+  }),
+);
+
 masterAppointmentsRouter.patch(
   '/:appointmentId/confirm',
   asyncHandler(async (req, res) => {
@@ -360,6 +375,17 @@ masterAppointmentsRouter.post(
     const appointmentId = z.string().uuid().parse(req.params.appointmentId);
     const body = masterDisputeBody.parse(req.body ?? {});
     const out = await createMasterBookingDispute(req.user!.id, appointmentId, body);
+    res.status(201).json(out);
+  }),
+);
+
+masterAppointmentsRouter.post(
+  '/:appointmentId/report-client',
+  asyncHandler(async (req, res) => {
+    const appointmentId = z.string().uuid().parse(req.params.appointmentId);
+    const body = masterClientReportBody.parse(req.body ?? {});
+    const { createBookingClientReport } = await import('./bookingClientReport.service.js');
+    const out = await createBookingClientReport(req.user!.id, appointmentId, body);
     res.status(201).json(out);
   }),
 );

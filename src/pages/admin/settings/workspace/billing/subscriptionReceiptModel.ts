@@ -11,6 +11,31 @@ export const SUBSCRIPTION_RECEIPT_BG_SRC = '/photos/xtr/1.png';
 
 export type SubscriptionReceiptRow = { label: string; value: string };
 
+export type SubscriptionReceiptTotalLine = {
+  label: string;
+  value: string;
+  bold?: boolean;
+};
+
+export type SubscriptionReceiptDocumentData = {
+  receiptNumber: string;
+  issuedDate: string;
+  issuedTime: string;
+  statusLabel: string;
+  planName: string;
+  periodRange: string | null;
+  summaryLine: string;
+  lineItemTitle: string;
+  lineItemSubtitle: string | null;
+  lineItemQty: string;
+  lineItemUnitPrice: string;
+  lineItemAmount: string;
+  totals: SubscriptionReceiptTotalLine[];
+  detailRows: SubscriptionReceiptRow[];
+  paymentMethod: string | null;
+  paymentAmount: string;
+};
+
 function formatLimitServices(n: number | null): string {
   return n === null ? 'Безлимит' : `До ${n}`;
 }
@@ -82,42 +107,60 @@ export function buildSubscriptionReceiptRows(
   return [...rows, ...limitRows];
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
+export function buildSubscriptionReceiptDocumentData(params: {
+  planName: string;
+  statusLabel: string;
+  rows: SubscriptionReceiptRow[];
+  billing?: BillingSubscriptionResponse | null;
+  isProEntitled?: boolean;
+  uiState?: string;
+}): SubscriptionReceiptDocumentData {
+  const { planName, statusLabel, rows } = params;
+  const billing = params.billing ?? null;
+  const isProEntitled = params.isProEntitled ?? false;
+  const priceAmount = billing?.priceAmount ?? 0;
+  const currency = billing?.currency ?? 'BYN';
+  const priceLabel = formatBillingMoney(priceAmount, currency);
+  const zeroLabel = formatBillingMoney(0, currency);
+  const periodRange =
+    billing?.currentPeriodStart && billing?.currentPeriodEnd
+      ? formatPeriodRange(billing.currentPeriodStart, billing.currentPeriodEnd)
+      : rows.find((r) => r.label === 'Текущий период')?.value ?? null;
 
-function buildSubscriptionReceiptHtml(
-  planName: string,
-  statusLabel: string,
-  rows: SubscriptionReceiptRow[],
-): string {
-  const issuedAt = new Date().toLocaleDateString('ru-RU', {
+  const issuedDate = new Date().toLocaleDateString('ru-RU', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
-
   const issuedTime = new Date().toLocaleTimeString('ru-RU', {
     hour: '2-digit',
     minute: '2-digit',
   });
-
   const receiptNumber = `SL-${Date.now().toString().slice(-8)}`;
-  const logoUrl = escapeHtml(
-    typeof window !== 'undefined'
-      ? new URL(ADMIN_DESKTOP_LOGO_SRC, window.location.origin).href
-      : ADMIN_DESKTOP_LOGO_SRC,
-  );
-  const bgUrl = escapeHtml(
-    typeof window !== 'undefined'
-      ? new URL(SUBSCRIPTION_RECEIPT_BG_SRC, window.location.origin).href
-      : SUBSCRIPTION_RECEIPT_BG_SRC,
-  );
+
+  const paidLike =
+    statusLabel.toLowerCase().includes('актив') || statusLabel.toLowerCase().includes('оплачен');
+  const amountForSummary = isProEntitled && priceAmount > 0 ? priceLabel : zeroLabel;
+  const summaryLine = paidLike
+    ? `${amountForSummary} · ${statusLabel} · ${issuedDate}`
+    : `${amountForSummary} · ${statusLabel}`;
+
+  const lineItemTitle = isProEntitled ? `Подписка ${planName}` : `Тариф ${planName}`;
+  const lineItemSubtitle = periodRange;
+  const lineItemQty = '1';
+  const lineItemUnitPrice = isProEntitled && priceAmount > 0 ? priceLabel : zeroLabel;
+  const lineItemAmount = lineItemUnitPrice;
+
+  const totals: SubscriptionReceiptTotalLine[] = [
+    { label: 'Подытог', value: lineItemAmount },
+    { label: 'Без НДС', value: lineItemAmount },
+    { label: 'Итого', value: lineItemAmount, bold: true },
+    {
+      label: paidLike ? 'Оплачено' : 'К оплате',
+      value: lineItemAmount,
+      bold: true,
+    },
+  ];
 
   const importantLabels = new Set([
     'Тариф',
@@ -129,78 +172,212 @@ function buildSubscriptionReceiptHtml(
     'Оплата',
     'Карта',
   ]);
+  const detailRows = rows.filter(
+    (row) =>
+      !importantLabels.has(row.label) &&
+      row.label !== 'Стоимость' &&
+      row.label !== 'Тариф' &&
+      row.label !== 'Карта',
+  );
 
-  const detailRows = rows.filter((row) => importantLabels.has(row.label));
-  const limitRows = rows.filter((row) => !importantLabels.has(row.label));
-  const allRows = [...detailRows, ...limitRows];
+  const paymentMethod =
+    rows.find((row) => row.label === 'Карта')?.value ??
+    (billing ? formatMaskedCard(billing.cardBrand, billing.cardLast4) : null);
 
-  const renderRows = (items: SubscriptionReceiptRow[]) =>
-    items
-      .map(
-        (r) => `
-          <div class="receipt-row">
-            <span class="receipt-label">${escapeHtml(r.label)}</span>
-            <span class="receipt-value">${escapeHtml(r.value)}</span>
-          </div>
-        `,
-      )
-      .join('');
+  return {
+    receiptNumber,
+    issuedDate,
+    issuedTime,
+    statusLabel,
+    planName,
+    periodRange,
+    summaryLine,
+    lineItemTitle,
+    lineItemSubtitle,
+    lineItemQty,
+    lineItemUnitPrice,
+    lineItemAmount,
+    totals,
+    detailRows,
+    paymentMethod,
+    paymentAmount: lineItemAmount,
+  };
+}
 
-  const statusClass =
-    statusLabel.toLowerCase().includes('актив') || statusLabel.toLowerCase().includes('оплачен')
-      ? 'pill-success'
-      : statusLabel.toLowerCase().includes('ошиб') ||
-          statusLabel.toLowerCase().includes('просроч') ||
-          statusLabel.toLowerCase().includes('оплат')
-        ? 'pill-warning'
-        : statusLabel.toLowerCase().includes('период')
-          ? 'pill-pink'
-          : 'pill-neutral';
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
-  const priceValue = rows.find((r) => r.label === 'Стоимость')?.value ?? null;
-  const tableRows = allRows.filter((r) => r.label !== 'Стоимость' && r.label !== 'Тариф');
+function renderDetailRows(rows: SubscriptionReceiptRow[]): string {
+  if (!rows.length) return '';
+  return `
+    <section class="section-block">
+      <h2 class="section-heading">Детали подписки</h2>
+      ${rows
+        .map(
+          (row) => `
+            <div class="detail-row">
+              <span class="detail-label">${escapeHtml(row.label)}</span>
+              <span class="detail-value">${escapeHtml(row.value)}</span>
+            </div>
+          `,
+        )
+        .join('')}
+    </section>
+  `;
+}
+
+function renderTotals(lines: SubscriptionReceiptTotalLine[]): string {
+  return lines
+    .map(
+      (line) => `
+        <div class="total-row${line.bold ? ' total-row-bold' : ''}">
+          <span>${escapeHtml(line.label)}</span>
+          <span>${escapeHtml(line.value)}</span>
+        </div>
+      `,
+    )
+    .join('');
+}
+
+function buildSubscriptionReceiptHtml(data: SubscriptionReceiptDocumentData): string {
+  const logoUrl = escapeHtml(
+    typeof window !== 'undefined'
+      ? new URL(ADMIN_DESKTOP_LOGO_SRC, window.location.origin).href
+      : ADMIN_DESKTOP_LOGO_SRC,
+  );
+  const bgUrl = escapeHtml(
+    typeof window !== 'undefined'
+      ? new URL(SUBSCRIPTION_RECEIPT_BG_SRC, window.location.origin).href
+      : SUBSCRIPTION_RECEIPT_BG_SRC,
+  );
+
+  const paymentHistory = data.paymentMethod
+    ? `
+      <section class="section-block">
+        <h2 class="section-heading">История оплаты</h2>
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Способ</th>
+              <th>Дата</th>
+              <th class="num">Сумма</th>
+              <th class="num">№ квитанции</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${escapeHtml(data.paymentMethod)}</td>
+              <td>${escapeHtml(data.issuedDate)}</td>
+              <td class="num">${escapeHtml(data.paymentAmount)}</td>
+              <td class="num">${escapeHtml(data.receiptNumber)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    `
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8"/>
-<title>Справка о подписке SLOTTY — ${escapeHtml(planName)}</title>
+<title>Квитанция SLOTTY — ${escapeHtml(data.planName)}</title>
 <style>
-  @page { size: A4 portrait; margin: 10mm; }
+  @page { size: A4 portrait; margin: 12mm; }
 
   * { box-sizing: border-box; }
 
   body {
     margin: 0;
-    background: #fafafa;
+    background: #ffffff;
     color: #111827;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
   .page {
-    max-width: 680px;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 12px;
+    padding: 8px 0 24px;
   }
 
-  .receipt {
-    overflow: hidden;
-    background: #ffffff;
-    border: 1px solid #ebebeb;
-    border-radius: 20px;
-    box-shadow: 0 16px 48px rgba(17, 24, 39, 0.06);
+  .doc-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e5e5;
   }
 
-  .hero-card {
-    overflow: hidden;
-    border-radius: 16px;
-    border: 1px solid #f3f4f6;
-    margin-bottom: 14px;
-    background: #ffffff;
+  .doc-title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: #111827;
   }
 
-  .hero-card-bg {
+  .brand-logo {
+    display: block;
+    height: 34px;
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+    object-position: right center;
+  }
+
+  .meta-block {
+    padding: 16px 0;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .meta-line {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.55;
+    color: #525252;
+  }
+
+  .meta-label {
+    display: inline-block;
+    min-width: 9.5rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 20px 0;
+    border-bottom: 1px solid #e5e5e5;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #525252;
+  }
+
+  .columns strong {
+    display: block;
+    margin-bottom: 2px;
+    color: #111827;
+    font-weight: 600;
+  }
+
+  .columns p { margin: 0; }
+
+  .hero-wrap {
+    padding: 20px 0;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .hero-img {
     display: block;
     width: 100%;
     height: auto;
@@ -209,268 +386,194 @@ function buildSubscriptionReceiptHtml(
     object-position: center;
   }
 
-  .hero-card-body {
-    padding: 16px 18px;
-  }
-
-  .head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 20px 24px 16px;
-    border-bottom: 1px solid #f3f4f6;
-  }
-
-  .brand-logo-img {
-    display: block;
-    height: 48px;
-    width: auto;
-    max-width: 210px;
-    object-fit: contain;
-    object-position: left center;
-  }
-
-  .receipt-id {
-    font-size: 11px;
-    font-weight: 600;
-    color: #9ca3af;
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  .receipt-id strong {
-    display: block;
-    margin-top: 2px;
-    color: #6b7280;
-    font-weight: 700;
-  }
-
-  .intro {
-    padding: 18px 24px 0;
-  }
-
-  .eyebrow {
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #9ca3af;
-  }
-
-  .title-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-  }
-
-  h1 {
+  .summary-line {
     margin: 0;
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
+    padding: 20px 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
     color: #111827;
   }
 
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 11px;
-    border-radius: 999px;
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 11px;
-    font-weight: 700;
-    line-height: 1.2;
   }
 
-  .pill-success { background: #ecfdf5; color: #15803d; }
-  .pill-warning { background: #fffbeb; color: #b45309; }
-  .pill-pink { background: #fff1f4; color: #ff5f7a; }
-  .pill-neutral { background: #f6f7fb; color: #6b7280; }
+  .items-table th {
+    padding: 0 12px 8px 0;
+    border-bottom: 1px solid #e5e5e5;
+    font-weight: 500;
+    color: #737373;
+    text-align: left;
+  }
 
-  .subtitle {
-    margin: 8px 0 0;
+  .items-table th.num,
+  .items-table td.num {
+    text-align: right;
+    padding-right: 0;
+  }
+
+  .items-table td {
+    padding: 12px 12px 12px 0;
+    border-bottom: 1px solid #e5e5e5;
+    vertical-align: top;
+    color: #111827;
+  }
+
+  .item-title {
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .item-sub {
+    margin: 4px 0 0;
+    color: #737373;
+  }
+
+  .totals {
+    margin-left: auto;
+    width: 100%;
+    max-width: 16rem;
+    padding-top: 16px;
+  }
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 2px 0;
     font-size: 12px;
+    color: #525252;
+  }
+
+  .total-row-bold {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e5e5;
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .section-block {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e5e5;
+  }
+
+  .section-heading {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 4px 0;
+    font-size: 11px;
     line-height: 1.45;
-    color: #6b7280;
   }
 
-  .content {
-    padding: 16px 24px 20px;
-  }
+  .detail-label { color: #737373; }
+  .detail-value { text-align: right; font-weight: 500; color: #111827; }
 
-  .hero-plan {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: #111827;
-  }
-
-  .hero-price {
-    margin: 6px 0 0;
-    font-size: 26px;
-    font-weight: 900;
-    letter-spacing: -0.04em;
-    color: #111827;
-  }
-
-  .hero-price span {
-    font-size: 14px;
-    font-weight: 600;
-    color: #6b7280;
-  }
-
-  .hero-meta {
-    margin: 8px 0 0;
-    font-size: 11px;
-    color: #9ca3af;
-  }
-
-  .section {
-    overflow: hidden;
-    border: 1px solid #f3f4f6;
-    border-radius: 16px;
-    background: #ffffff;
-  }
-
-  .section-title {
-    margin: 0;
-    padding: 12px 16px;
-    border-bottom: 1px solid #f3f4f6;
-    background: #fafafa;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #6b7280;
-  }
-
-  .receipt-row {
+  .doc-footer {
     display: flex;
     justify-content: space-between;
     gap: 16px;
-    padding: 10px 16px;
-    border-bottom: 1px solid #f3f4f6;
-    font-size: 12px;
-    line-height: 1.4;
-  }
-
-  .receipt-row:last-child { border-bottom: 0; }
-
-  .receipt-label { color: #6b7280; flex-shrink: 0; }
-
-  .receipt-value {
-    max-width: 60%;
-    text-align: right;
-    font-weight: 600;
-    color: #111827;
-  }
-
-  .footer {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid #f3f4f6;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e5e5;
     font-size: 10px;
-    line-height: 1.45;
-    color: #9ca3af;
+    color: #737373;
   }
 
-  .footer-brand {
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    color: #ff5f7a;
+  .doc-footer-brand {
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: #111827;
   }
 
   @media print {
     body { background: #fff; }
     .page { padding: 0; max-width: none; }
-    .receipt {
-      border: 0;
-      border-radius: 0;
-      box-shadow: none;
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-    .head { padding: 14px 18px 12px; }
-    .brand-logo-img { height: 42px; }
-    .intro { padding: 14px 18px 0; }
-    h1 { font-size: 20px; }
-    .content { padding: 12px 18px 14px; }
-    .hero-card { margin-bottom: 10px; }
-    .hero-card-body { padding: 12px 14px; }
-    .hero-card-bg {
+    .hero-img {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-    }
-    .hero-price { font-size: 22px; }
-    .receipt-row { padding: 7px 14px; font-size: 11px; }
-    .footer { margin-top: 10px; padding-top: 8px; }
-    .hero-card, .section, .footer {
-      break-inside: avoid;
-      page-break-inside: avoid;
     }
   }
 </style>
 </head>
 <body>
   <main class="page">
-    <article class="receipt">
-      <header class="head">
-        <img src="${logoUrl}" alt="SLOTTY" class="brand-logo-img" crossorigin="anonymous" />
-        <div class="receipt-id">
-          Справка
-          <strong>№ ${escapeHtml(receiptNumber)}</strong>
-        </div>
-      </header>
+    <header class="doc-head">
+      <h1 class="doc-title">Квитанция</h1>
+      <img src="${logoUrl}" alt="SLOTTY" class="brand-logo" crossorigin="anonymous" />
+    </header>
 
-      <div class="intro">
-        <p class="eyebrow">Подписка Master</p>
-        <div class="title-row">
-          <h1>Справка о подписке</h1>
-          <span class="pill ${statusClass}">${escapeHtml(statusLabel)}</span>
-        </div>
-        <p class="subtitle">Тариф, период доступа и лимиты кабинета · ${escapeHtml(issuedAt)}, ${escapeHtml(issuedTime)}</p>
+    <div class="meta-block">
+      <p class="meta-line"><span class="meta-label">Номер квитанции</span>${escapeHtml(data.receiptNumber)}</p>
+      <p class="meta-line"><span class="meta-label">Дата</span>${escapeHtml(data.issuedDate)}, ${escapeHtml(data.issuedTime)}</p>
+      <p class="meta-line"><span class="meta-label">Статус</span>${escapeHtml(data.statusLabel)}</p>
+    </div>
+
+    <div class="columns">
+      <div>
+        <strong>SLOTTY</strong>
+        <p>Онлайн-запись к мастерам</p>
+        <p>slotty.by</p>
+        <p>Республика Беларусь</p>
       </div>
-
-      <div class="content">
-        <div class="hero-card">
-          <img src="${bgUrl}" alt="" class="hero-card-bg" crossorigin="anonymous" />
-          <div class="hero-card-body">
-            <p class="hero-plan">${escapeHtml(planName)}</p>
-            ${priceValue ? `<p class="hero-price">${escapeHtml(priceValue.split(' / ')[0] ?? priceValue)}${priceValue.includes(' / ') ? ` <span>/ ${escapeHtml(priceValue.split(' / ')[1] ?? '')}</span>` : ''}</p>` : ''}
-            <p class="hero-meta">SLOTTY · кабинет мастера и онлайн-запись</p>
-          </div>
-        </div>
-
-        ${
-          tableRows.length
-            ? `
-              <section class="section">
-                <h2 class="section-title">Детали подписки</h2>
-                ${renderRows(tableRows)}
-              </section>
-            `
-            : ''
-        }
-
-        <footer class="footer">
-          <div>
-            <div class="footer-brand">SLOTTY</div>
-            Онлайн-запись и кабинет мастера
-          </div>
-          <div style="text-align:right;">
-            slotty.by<br/>
-            Документ сформирован автоматически
-          </div>
-        </footer>
+      <div>
+        <strong>Подписка</strong>
+        <p>${escapeHtml(data.planName)}</p>
+        ${data.periodRange ? `<p>${escapeHtml(data.periodRange)}</p>` : ''}
+        <p>${escapeHtml(data.statusLabel)}</p>
       </div>
-    </article>
+    </div>
+
+    <div class="hero-wrap">
+      <img src="${bgUrl}" alt="" class="hero-img" crossorigin="anonymous" />
+    </div>
+
+    <p class="summary-line">${escapeHtml(data.summaryLine)}</p>
+
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Описание</th>
+          <th class="num">Кол-во</th>
+          <th class="num">Цена</th>
+          <th class="num">Сумма</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <p class="item-title">${escapeHtml(data.lineItemTitle)}</p>
+            ${data.lineItemSubtitle ? `<p class="item-sub">${escapeHtml(data.lineItemSubtitle)}</p>` : ''}
+          </td>
+          <td class="num">${escapeHtml(data.lineItemQty)}</td>
+          <td class="num">${escapeHtml(data.lineItemUnitPrice)}</td>
+          <td class="num">${escapeHtml(data.lineItemAmount)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="totals">${renderTotals(data.totals)}</div>
+
+    ${renderDetailRows(data.detailRows)}
+    ${paymentHistory}
+
+    <footer class="doc-footer">
+      <span class="doc-footer-brand">SLOTTY</span>
+      <span>slotty.by · документ сформирован автоматически</span>
+    </footer>
   </main>
 </body>
 </html>`;
@@ -478,7 +581,7 @@ function buildSubscriptionReceiptHtml(
 
 function printHtmlDocument(html: string): boolean {
   const iframe = document.createElement('iframe');
-  iframe.setAttribute('title', 'SLOTTY — справка о подписке');
+  iframe.setAttribute('title', 'SLOTTY — квитанция');
   iframe.setAttribute('aria-hidden', 'true');
   Object.assign(iframe.style, {
     position: 'fixed',
@@ -520,8 +623,8 @@ function printHtmlDocument(html: string): boolean {
     }
   };
 
-  const logoImg = win.document.querySelector('.brand-logo-img');
-  const bgImg = win.document.querySelector('.hero-card-bg');
+  const logoImg = win.document.querySelector('.brand-logo');
+  const bgImg = win.document.querySelector('.hero-img');
   const images = [logoImg, bgImg].filter((img): img is HTMLImageElement => img instanceof HTMLImageElement);
 
   const waitForImages = () => {
@@ -549,8 +652,17 @@ export function downloadSubscriptionReceiptPdf(
   planName: string,
   statusLabel: string,
   rows: SubscriptionReceiptRow[],
+  billing?: BillingSubscriptionResponse | null,
+  isProEntitled?: boolean,
 ): void {
-  const html = buildSubscriptionReceiptHtml(planName, statusLabel, rows);
+  const data = buildSubscriptionReceiptDocumentData({
+    planName,
+    statusLabel,
+    rows,
+    billing,
+    isProEntitled,
+  });
+  const html = buildSubscriptionReceiptHtml(data);
   const printed = printHtmlDocument(html);
   if (printed) return;
 

@@ -1,4 +1,8 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ADMIN_NOTIFICATIONS_PATH } from '../../../app/paths';
+import { countReviewNotificationsNeedingReply } from '../../../features/notifications/reviewNotificationAction';
+import { useAdminNotifications } from '../notifications/AdminNotificationsContext';
 import {
   HiArrowTrendingUp,
   HiChatBubbleLeftRight,
@@ -6,13 +10,11 @@ import {
   HiExclamationTriangle,
   HiStar,
 } from 'react-icons/hi2';
-import { OverviewRatingChart } from './OverviewRatingChart';
+import { OverviewRatingChart } from './charts';
 import {
   computeReputationFromReviews,
-  trySaveMasterReviewReply,
   type MasterOverviewReview,
 } from './overviewReputationDemo';
-import { formatReviewDayMonthRu } from './overviewFormat';
 import { ratingToneFromValue, ratingToneUi } from './overviewRatingTone';
 import {
   MINI_PICTURE,
@@ -22,6 +24,13 @@ import {
   overviewIconCircle,
 } from './adminOverviewTheme';
 import { OverviewKpiCarousel, OverviewKpiStatCard } from './OverviewKpiBlocks';
+import { OverviewReviewCard } from './OverviewReviewCard';
+import {
+  repAlertBanner,
+  repEmptyList,
+  repFilterChipClass,
+  repReplyHintBg,
+} from './overviewReputationTheme';
 import type { OverviewPeriodPreset } from './overviewAnalytics';
 import { overviewPeriodLabel } from './overviewAnalytics';
 import {
@@ -220,6 +229,7 @@ function ReputationMetricsCarousel({
         value={String(unansweredReviews)}
         hint={unansweredReviews > 0 ? 'Нужен ваш ответ' : 'Всё отвечено'}
         icon={<HiExclamationTriangle className="h-5 w-5" aria-hidden />}
+        alert={unansweredReviews > 0}
       />
     </OverviewKpiCarousel>
   );
@@ -300,140 +310,6 @@ function ReputationHeroShell({
   );
 }
 
-function ReviewReplyBlock({
-  review,
-  onReplied,
-  onReply,
-}: {
-  review: MasterOverviewReview;
-  onReplied: () => void;
-  onReply?: (reviewId: string, text: string) => Promise<void>;
-}) {
-  const [text, setText] = useState('');
-  const [error, setError] = useState('');
-  const canSubmit = text.trim().length > 0;
-
-  if (review.masterReply) {
-    return (
-      <div className="mt-4 rounded-[18px] bg-[#FFF7F9] p-4 ring-1 ring-[#FFE1E8]">
-        <p className="text-[11px] font-black uppercase tracking-wide text-[#ff5f7a]">
-          Ваш ответ
-        </p>
-        <p className="mt-2 text-[13px] leading-relaxed text-[#374151]">
-          {review.masterReply}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-4 space-y-3">
-      <textarea
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          if (error) setError('');
-        }}
-        rows={3}
-        placeholder="Напишите аккуратный ответ клиенту…"
-        className="w-full resize-none rounded-[18px] border border-[#EEF0F5] bg-[#F9FAFB] px-4 py-3 text-[13px] font-medium text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#ff9aad] focus:bg-white focus:ring-4 focus:ring-[#FFF1F4]"
-      />
-
-      {error ? (
-        <p className="text-[12px] font-bold text-[#EF4444]">{error}</p>
-      ) : null}
-
-      <button
-        type="button"
-        disabled={!canSubmit}
-        className="w-full rounded-[18px] bg-[#ff5f7a] px-5 py-3 text-[14px] font-black text-white transition hover:bg-[#f04f6c] disabled:cursor-not-allowed disabled:opacity-45"
-        onClick={() => {
-          void (async () => {
-            if (onReply) {
-              try {
-                await onReply(review.id, text);
-                setText('');
-                onReplied();
-              } catch (e) {
-                if (e instanceof Error && e.message === 'ALREADY_REPLIED') {
-                  setError('На этот отзыв уже можно ответить только один раз.');
-                } else {
-                  setError('Не удалось отправить ответ.');
-                }
-                onReplied();
-              }
-              return;
-            }
-
-            const result = trySaveMasterReviewReply(review.id, text);
-
-            if (!result.ok) {
-              if (result.reason === 'already_replied') {
-                setError('На этот отзыв уже можно ответить только один раз.');
-              } else {
-                setError('Не удалось отправить ответ.');
-              }
-              onReplied();
-              return;
-            }
-
-            setText('');
-            onReplied();
-          })();
-        }}
-      >
-        Ответить клиенту
-      </button>
-    </div>
-  );
-}
-
-function ReviewCard({
-  review,
-  onReplied,
-  onReply,
-  showReply = true,
-}: {
-  review: MasterOverviewReview;
-  onReplied: () => void;
-  onReply?: (reviewId: string, text: string) => Promise<void>;
-  showReply?: boolean;
-}) {
-  return (
-    <article className="rounded-[24px] bg-[#F9FAFB] p-4 ring-1 ring-[#EEF0F5]">
-      <div className="flex items-start gap-3">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#ff5f7a] text-[15px] font-black text-white">
-          {review.authorInitial}
-        </span>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[15px] font-black text-[#111827]">
-              {review.author}
-            </p>
-
-            <p className="text-[12px] font-semibold text-[#9CA3AF]">
-              {formatReviewDayMonthRu(review.dateIso)}
-            </p>
-          </div>
-
-          <div className="mt-1">
-            <RatingStars value={review.rating} />
-          </div>
-
-          <p className="mt-3 text-[13px] leading-relaxed text-[#374151]">
-            {review.text}
-          </p>
-        </div>
-      </div>
-
-      {showReply ? (
-        <ReviewReplyBlock review={review} onReplied={onReplied} onReply={onReply} />
-      ) : null}
-    </article>
-  );
-}
-
 function RatingChartCard({
   data,
   ratingTone,
@@ -457,12 +333,14 @@ function RatingChartCard({
             Динамика рейтинга
           </h2>
 
-          <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
+          <p className="mt-1 text-[13px] font-medium text-[#6B7280]">
             {data.ratingDelta !== null
               ? `${data.ratingDelta >= 0 ? '+' : ''}${data.ratingDelta.toFixed(
                   1,
                 )} к прошлому периоду`
-              : 'Средний рейтинг по дням'}
+              : data.ratingByDay.length <= 2
+                ? `Средняя оценка по ${data.ratingByDay.length === 1 ? 'дню' : 'дням'} с отзывами`
+                : 'Средняя оценка в дни с отзывами'}
           </p>
         </div>
 
@@ -485,199 +363,146 @@ function RatingChartCard({
   );
 }
 
-function LatestReviewCard({
-  review,
-  onReplied,
-  onReply,
-}: {
-  review: MasterOverviewReview;
-  onReplied: () => void;
-  onReply?: (reviewId: string, text: string) => Promise<void>;
-}) {
-  return (
-    <section className={`${overviewDesktopCard} ${overviewDesktopCardPad}`}>
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[22px] font-black tracking-[-0.05em] text-[#111827]">
-            Последний отзыв
-          </h2>
-
-          <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
-            Ответ можно отправить только один раз.
-          </p>
-        </div>
-
-        <SoftIcon>
-          <HiChatBubbleLeftRight className="h-6 w-6" />
-        </SoftIcon>
-      </div>
-
-      <ReviewCard review={review} onReplied={onReplied} onReply={onReply} />
-    </section>
-  );
-}
-
-function ReputationTrustCard() {
-  return (
-    <section className={`${overviewDesktopCard} ${overviewDesktopCardPad}`}>
-      <div className="flex items-start justify-between gap-4 lg:gap-6">
-        <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
-          <SoftIcon tone="green">
-            <HiCheckCircle className="h-6 w-6" aria-hidden />
-          </SoftIcon>
-
-          <div className="min-w-0">
-            <h2 className="text-[20px] font-black tracking-[-0.05em] text-[#111827] sm:text-[22px]">
-              Отвечайте на отзывы
-            </h2>
-            <p className="mt-3 max-w-[42rem] text-[14px] leading-7 text-[#6B7280]">
-              Вежливый ответ повышает доверие и помогает новым клиентам записаться.
-            </p>
-          </div>
-        </div>
-
-        <img
-          src={MINI_PICTURE.reviewsEmpty}
-          alt=""
-          decoding="async"
-          className="h-[72px] w-auto max-w-[38%] shrink-0 object-contain object-top sm:h-[100px] sm:max-w-none lg:h-[112px]"
-        />
-      </div>
-
-      <div className="mt-5 rounded-[12px] bg-[#F6F7FB] p-5 ring-1 ring-[#EEEEEE]/80 lg:mt-6 lg:rounded-[16px] lg:ring-0">
-        <p className="text-[14px] font-black text-[#111827]">Что важно смотреть?</p>
-        <p className="mt-2 text-[13px] leading-6 text-[#6B7280]">
-          Стабильный рейтинг, новые отзывы и быстрые ответы — главные сигналы качества
-          для клиентов в каталоге.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-type ReviewSentimentTab = 'good' | 'poor';
-
-function reviewSentimentTabLabel(tab: ReviewSentimentTab, count: number): string {
-  if (tab === 'good') return count > 0 ? `Хорошие · ${count}` : 'Хорошие';
-  return count > 0 ? `Требуют внимания · ${count}` : 'Требуют внимания';
-}
+type ReviewsFeedTab = 'unanswered' | 'all' | 'good' | 'poor';
 
 function isGoodReview(rating: number): boolean {
   return rating >= 4;
 }
 
-function MasterReviewsBySentimentCard({
+function reviewsFeedTabLabel(tab: ReviewsFeedTab, count: number): string {
+  switch (tab) {
+    case 'unanswered':
+      return count > 0 ? `Без ответа · ${count}` : 'Без ответа';
+    case 'all':
+      return count > 0 ? `Все · ${count}` : 'Все';
+    case 'good':
+      return count > 0 ? `4–5★ · ${count}` : '4–5★';
+    default:
+      return count > 0 ? `1–3★ · ${count}` : '1–3★';
+  }
+}
+
+function UnifiedReviewsSection({
   reviews,
+  unansweredCount,
+  activeTab,
+  onTabChange,
   onReplied,
   onReply,
+  sectionRef,
 }: {
   reviews: MasterOverviewReview[];
+  unansweredCount: number;
+  activeTab: ReviewsFeedTab;
+  onTabChange: (tab: ReviewsFeedTab) => void;
   onReplied: () => void;
   onReply?: (reviewId: string, text: string) => Promise<void>;
+  sectionRef: React.RefObject<HTMLElement>;
 }) {
+  const unanswered = useMemo(() => reviews.filter((r) => !r.masterReply), [reviews]);
   const good = useMemo(() => reviews.filter((r) => isGoodReview(r.rating)), [reviews]);
   const poor = useMemo(() => reviews.filter((r) => !isGoodReview(r.rating)), [reviews]);
-  const [tab, setTab] = useState<ReviewSentimentTab>(() =>
-    poor.length > 0 && good.length === 0 ? 'poor' : 'good',
-  );
-  const list = tab === 'good' ? good : poor;
+
+  const list = useMemo(() => {
+    if (activeTab === 'unanswered') return unanswered;
+    if (activeTab === 'good') return good;
+    if (activeTab === 'poor') return poor;
+    return reviews;
+  }, [activeTab, good, poor, reviews, unanswered]);
+
+  const emptyMessage =
+    activeTab === 'unanswered'
+      ? 'Все отзывы с ответом — отлично!'
+      : activeTab === 'good'
+        ? 'Пока нет отзывов 4–5★'
+        : activeTab === 'poor'
+          ? 'Нет отзывов 1–3★ — так держать!'
+          : 'Отзывов за период пока нет';
 
   return (
-    <section className={`${overviewDesktopCard} ${overviewDesktopCardPad}`}>
+    <section ref={sectionRef} className={`${overviewDesktopCard} ${overviewDesktopCardPad}`}>
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="text-[22px] font-black tracking-[-0.05em] text-[#111827]">Все отзывы</h2>
-          <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
-            4–5★ — хорошие, 1–3★ — требуют внимания и ответа.
+        <div className="min-w-0">
+          <h2 className="text-[22px] font-black tracking-[-0.05em] text-[#111827]">Отзывы</h2>
+          <p className="mt-1 text-[13px] font-medium leading-snug text-[#6B7280]">
+            {unansweredCount > 0
+              ? `${unansweredCount} ждут ответа — ответ можно отправить только один раз`
+              : 'Ответ можно отправить только один раз'}
           </p>
         </div>
         <SoftIcon>
-          <HiStar className="h-6 w-6" />
+          <HiChatBubbleLeftRight className="h-6 w-6" />
         </SoftIcon>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Тип отзывов">
-        {(['good', 'poor'] as const).map((id) => {
-          const count = id === 'good' ? good.length : poor.length;
-          const active = tab === id;
+      {unansweredCount > 0 ? (
+        <div className={`mb-5 ${repAlertBanner}`}>
+          <p className="text-[13px] font-semibold leading-snug text-[#92400E]">
+            Сначала ответьте на отзывы без ответа — это видят клиенты в каталоге.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="mb-5 flex flex-wrap gap-1.5" role="tablist" aria-label="Фильтр отзывов">
+        {(['unanswered', 'all', 'good', 'poor'] as const).map((id) => {
+          const count =
+            id === 'unanswered'
+              ? unanswered.length
+              : id === 'all'
+                ? reviews.length
+                : id === 'good'
+                  ? good.length
+                  : poor.length;
+          const active = activeTab === id;
           return (
             <button
               key={id}
               type="button"
               role="tab"
               aria-selected={active}
-              className={`rounded-full px-3.5 py-2 text-[13px] font-semibold transition ${
-                active
-                  ? id === 'good'
-                    ? 'bg-[#ECFDF5] text-[#059669] ring-1 ring-[#A7F3D0]'
-                    : 'bg-[#FFF1F4] text-[#F47C8C] ring-1 ring-[#FDE8ED]'
-                  : 'bg-white text-[#6B7280] ring-1 ring-[#E5E7EB] hover:bg-[#FAFAFA]'
-              }`}
-              onClick={() => setTab(id)}
+              className={repFilterChipClass(active, id)}
+              onClick={() => onTabChange(id)}
             >
-              {reviewSentimentTabLabel(id, count)}
+              {reviewsFeedTabLabel(id, count)}
             </button>
           );
         })}
       </div>
 
       {list.length === 0 ? (
-        <p className="rounded-[16px] bg-[#FAFAFA] px-4 py-8 text-center text-[14px] text-[#6B7280]">
-          {tab === 'good' ? 'Пока нет отзывов 4–5★ за период' : 'Нет отзывов 1–3★ — отлично!'}
-        </p>
+        <p className={repEmptyList}>{emptyMessage}</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {list.map((review) => (
-            <ReviewCard
+            <OverviewReviewCard
               key={review.id}
               review={review}
               onReplied={onReplied}
               onReply={onReply}
-              showReply
+              showReply={!review.masterReply}
             />
           ))}
         </div>
       )}
-    </section>
-  );
-}
 
-function UnansweredReviewsCard({
-  reviews,
-  onReplied,
-  onReply,
-}: {
-  reviews: MasterOverviewReview[];
-  onReplied: () => void;
-  onReply?: (reviewId: string, text: string) => Promise<void>;
-}) {
-  return (
-    <section className={`${overviewDesktopCard} ${overviewDesktopCardPad}`}>
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[22px] font-black tracking-[-0.05em] text-[#111827]">
-            Отзывы без ответа
-          </h2>
-
-          <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
-            Отвечайте спокойно и профессионально. Ответ изменить нельзя.
+      <div className="relative mt-6 overflow-hidden rounded-[16px]">
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${repReplyHintBg})` }}
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/94 via-white/88 to-white/78"
+          aria-hidden
+        />
+        <div className="relative flex items-start gap-3 px-4 py-3.5">
+          <SoftIcon tone="green">
+            <HiCheckCircle className="h-5 w-5" aria-hidden />
+          </SoftIcon>
+          <p className="min-w-0 text-[13px] leading-relaxed text-[#6B7280]">
+            Вежливый ответ повышает доверие и помогает новым клиентам записаться.
           </p>
         </div>
-
-        <SoftIcon tone="yellow">
-          <HiExclamationTriangle className="h-6 w-6" />
-        </SoftIcon>
-      </div>
-
-      <div className="space-y-4">
-        {reviews.map((review) => (
-          <ReviewCard
-            key={review.id}
-            review={review}
-            onReplied={onReplied}
-            onReply={onReply}
-          />
-        ))}
       </div>
     </section>
   );
@@ -741,8 +566,14 @@ export function OverviewReputationPanel({
   onReplied,
   onReply,
 }: ReputationPanelProps) {
-  const unansweredRef = useRef<HTMLDivElement>(null);
+  const reviewsRef = useRef<HTMLElement>(null);
+  const [reviewsTab, setReviewsTab] = useState<ReviewsFeedTab>('all');
   const [tick, setTick] = useState(0);
+  const { notifications } = useAdminNotifications();
+  const reviewNotificationsCount = useMemo(
+    () => countReviewNotificationsNeedingReply(notifications),
+    [notifications],
+  );
 
   const refreshLocal = useCallback(() => {
     setTick((n) => n + 1);
@@ -760,11 +591,9 @@ export function OverviewReputationPanel({
 
   const data = useApi ? dataProp : dataFromPeriod ?? dataProp;
 
-  const unansweredExceptLatest = useMemo(() => {
-    const latestId = data.latestReview?.id;
-
-    return data.unansweredList.filter((review) => review.id !== latestId);
-  }, [data.latestReview?.id, data.unansweredList]);
+  useEffect(() => {
+    if (data.unansweredReviews > 0) setReviewsTab('unanswered');
+  }, [data.unansweredReviews]);
 
   if (!data.hasReviews) {
     return <EmptyReputationPanel periodPreset={periodPreset} />;
@@ -774,14 +603,37 @@ export function OverviewReputationPanel({
   const ratingTone = ratingToneFromValue(average);
   const ratingUi = ratingToneUi[ratingTone];
 
-  const scrollToUnanswered = () =>
-    unansweredRef.current?.scrollIntoView({
+  const scrollToUnanswered = () => {
+    setReviewsTab('unanswered');
+    reviewsRef.current?.scrollIntoView({
       behavior: 'smooth',
       block: 'start',
     });
+  };
 
   return (
     <div className="min-w-0 space-y-6 overflow-x-hidden lg:space-y-8">
+      {reviewNotificationsCount > 0 ? (
+        <Link
+          to={`${ADMIN_NOTIFICATIONS_PATH}?filter=action_required`}
+          className="flex items-center justify-between gap-3 rounded-[16px] bg-[#FFF1F4] px-4 py-3.5 shadow-[0_0_18px_rgba(255,95,122,0.18)] transition hover:bg-[#FFE8EE] active:scale-[0.99]"
+        >
+          <div className="min-w-0">
+            <p className="text-[14px] font-bold text-[#111827]">
+              {reviewNotificationsCount === 1
+                ? '1 отзыв ждёт ответа в уведомлениях'
+                : `${reviewNotificationsCount} отзывов ждут ответа в уведомлениях`}
+            </p>
+            <p className="mt-0.5 text-[13px] font-medium text-[#6B7280]">
+              Откройте ленту — там же можно перейти к ответу
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-[#ff5f7a] px-2.5 py-1 text-[12px] font-bold text-white">
+            {reviewNotificationsCount > 9 ? '9+' : reviewNotificationsCount}
+          </span>
+        </Link>
+      ) : null}
+
       <ReputationHeroShell
         average={average}
         reviewsCount={data.reviewsCount}
@@ -802,53 +654,15 @@ export function OverviewReputationPanel({
 
       <RatingChartCard data={data} ratingTone={ratingTone} />
 
-      <MasterReviewsBySentimentCard
+      <UnifiedReviewsSection
         reviews={data.reviews}
+        unansweredCount={data.unansweredReviews}
+        activeTab={reviewsTab}
+        onTabChange={setReviewsTab}
         onReplied={refresh}
         onReply={onReply}
+        sectionRef={reviewsRef}
       />
-
-      <section className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
-        {data.latestReview ? (
-          <LatestReviewCard
-            review={data.latestReview}
-            onReplied={refresh}
-            onReply={onReply}
-          />
-        ) : (
-          <section className={`${overviewDesktopCard} ${overviewDesktopCardPad} h-full`}>
-            <div className="flex items-start gap-3">
-              <span className={`${overviewIconCircle} h-11 w-11 shrink-0 rounded-[18px]`}>
-                <HiChatBubbleLeftRight className="h-5 w-5" aria-hidden />
-              </span>
-
-              <div>
-                <h2 className="text-[22px] font-black tracking-[-0.05em] text-[#111827]">
-                  Последний отзыв
-                </h2>
-
-                <p className="mt-2 text-[14px] leading-7 text-[#6B7280]">
-                  Когда клиент оставит отзыв, он появится здесь.
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        <ReputationTrustCard />
-      </section>
-
-      {unansweredExceptLatest.length > 0 ? (
-        <div ref={unansweredRef}>
-          <UnansweredReviewsCard
-            reviews={unansweredExceptLatest}
-            onReplied={refresh}
-            onReply={onReply}
-          />
-        </div>
-      ) : data.unansweredReviews > 0 && data.latestReview ? (
-        <div ref={unansweredRef} />
-      ) : null}
     </div>
   );
 }

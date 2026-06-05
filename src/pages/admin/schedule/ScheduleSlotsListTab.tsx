@@ -13,13 +13,14 @@ import {
 import {
   scheduleListGroupCard,
   scheduleListToolbar,
+  scheduleSegmentClass,
+  scheduleSheetGhostBtn,
   scheduleSlotsDayHeader,
   scheduleSlotsFilterBtn,
   scheduleSlotsFilterBtnActive,
   scheduleSlotsStatChip,
 } from './adminScheduleTheme';
-import { sheetSegmentClass } from '../profile/adminProfileCabinetTheme';
-import { catalogSheetField, catalogSheetGhostBtn } from '../shared/adminCatalogSheetTheme';
+import { catalogSheetField } from '../shared/adminCatalogSheetTheme';
 import { formatGroupHeader, parseIsoDate, startOfLocalDay, windowsCountRu } from './scheduleUtils';
 import { LoadingVideo } from '../../../shared/ui/LoadingVideo';
 
@@ -204,7 +205,7 @@ export function ScheduleSlotsListTab({ windows, loading, onWindowClick }: Props)
                 role="tab"
                 aria-selected={selected}
                 onClick={() => patchFilters({ status: opt.value })}
-                className={`min-h-10 ${sheetSegmentClass(selected)}`}
+                className={`min-h-10 ${scheduleSegmentClass(selected)}`}
               >
                 {opt.label}
               </button>
@@ -228,7 +229,7 @@ export function ScheduleSlotsListTab({ windows, loading, onWindowClick }: Props)
             <button
               type="button"
               onClick={() => setFilters(DEFAULT_SLOTS_FILTERS)}
-              className={`${catalogSheetGhostBtn} shrink-0`}
+              className={`${scheduleSheetGhostBtn} shrink-0`}
             >
               Сбросить
             </button>
@@ -275,7 +276,7 @@ export function ScheduleSlotsListTab({ windows, loading, onWindowClick }: Props)
           {windows.length > 0 && filtersActive ? (
             <button
               type="button"
-              className={`${catalogSheetGhostBtn} mt-4`}
+              className={`${scheduleSheetGhostBtn} mt-4`}
               onClick={() => setFilters(DEFAULT_SLOTS_FILTERS)}
             >
               Сбросить фильтры

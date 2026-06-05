@@ -37,7 +37,7 @@ export function clientBookingRequestCreated(ctx: AppointmentNotifyContext): Appo
   return {
     type: 'appointment_pending',
     title: 'Заявка отправлена',
-    body: 'Заявка на запись отправлена мастеру. Мы сообщим, когда мастер подтвердит время.',
+    body: 'Заявка отправлена мастеру. Мы уведомим вас после подтверждения.',
     telegramHtml:
       `<b>📩 Заявка отправлена</b>\n\n` +
       `Вы записались на:\n` +
@@ -56,8 +56,8 @@ export function masterBookingRequestCreated(ctx: AppointmentNotifyContext): Appo
 
   return {
     type: 'appointment_new',
-    title: 'Новая заявка на запись',
-    body: `Новая заявка: ${ctx.clientName}, ${ctx.serviceTitle}, ${plain}.`,
+    title: 'Новая заявка',
+    body: `Новая заявка: ${ctx.clientName}, ${ctx.serviceTitle}, ${plain}. Примите или отклоните.`,
     telegramHtml:
       `<b>🔔 Новая запись</b>\n\n` +
       `Клиент: <b>${escapeTelegramHtml(ctx.clientName)}</b>` +
@@ -71,12 +71,12 @@ export function masterBookingRequestCreated(ctx: AppointmentNotifyContext): Appo
 }
 
 export function clientBookingConfirmed(ctx: AppointmentNotifyContext): AppointmentNotificationPayload {
-  const { date, time, plain } = formatWhen(ctx);
+  const { date, time } = formatWhen(ctx);
 
   return {
     type: 'appointment_confirmed',
     title: 'Запись подтверждена',
-    body: `Запись подтверждена: ${plain}. Ждём вас!`,
+    body: 'Запись подтверждена. Мастер ждёт вас.',
     telegramHtml:
       `<b>✅ Запись подтверждена</b>\n\n` +
       `Вы записаны на:\n` +
@@ -110,7 +110,7 @@ export function clientBookingCompleted(ctx: AppointmentNotifyContext): Appointme
   return {
     type: 'review_request',
     title: 'Визит завершён',
-    body: `Спасибо за визит к ${ctx.masterName} (${ctx.serviceTitle}, ${plain}). Оставьте отзыв в профиле.`,
+    body: 'Визит завершён. Оставьте отзыв о мастере.',
     telegramHtml:
       `<b>Визит завершён</b>\n\n` +
       `Услуга: ${escapeTelegramHtml(ctx.serviceTitle)}\n` +
@@ -195,10 +195,19 @@ export function clientBookingDisputedByMaster(ctx: AppointmentNotifyContext): Ap
 
 export function masterBookingCompleted(ctx: AppointmentNotifyContext): AppointmentNotificationPayload {
   const { plain } = formatWhen(ctx);
+  const body = [
+    `Клиент: ${ctx.clientName}`,
+    ctx.clientPhone ? `Телефон: ${ctx.clientPhone}` : null,
+    `Услуга: ${ctx.serviceTitle}`,
+    `Когда: ${plain}`,
+    ctx.voucherNumber ? `Номер: ${ctx.voucherNumber}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
   return {
     type: 'appointment_confirmed',
     title: 'Запись завершена',
-    body: `Визит завершён: ${ctx.clientName}, ${ctx.serviceTitle}, ${plain}.`,
+    body,
     telegramHtml:
       `<b>Запись завершена</b>\n\n` +
       `Клиент: ${escapeTelegramHtml(ctx.clientName)}\n` +
@@ -280,15 +289,68 @@ export function masterBookingDisputedByClient(ctx: AppointmentNotifyContext): Ap
   };
 }
 
+export function clientBookingExpired(ctx: AppointmentNotifyContext): AppointmentNotificationPayload {
+  return {
+    type: 'appointment_cancelled',
+    title: 'Заявка истекла',
+    body: 'Мастер не успел подтвердить заявку. Выберите другое время.',
+    telegramHtml:
+      `<b>Заявка истекла</b>\n\n` +
+      `Мастер не успел подтвердить заявку на «${escapeTelegramHtml(ctx.serviceTitle)}».\n` +
+      `Выберите другое время у мастера ${escapeTelegramHtml(ctx.masterName)}.` +
+      voucherFooter(ctx, true),
+  };
+}
+
+export function masterBookingPendingReminder(ctx: AppointmentNotifyContext): AppointmentNotificationPayload {
+  const { plain } = formatWhen(ctx);
+  return {
+    type: 'appointment_new',
+    title: 'Заявка ждёт решения',
+    body: `Заявка всё ещё ждёт решения: ${ctx.clientName}, ${ctx.serviceTitle}, ${plain}. Подтвердите или отклоните её.`,
+    telegramHtml:
+      `<b>Заявка ждёт решения</b>\n\n` +
+      `Клиент: <b>${escapeTelegramHtml(ctx.clientName)}</b>\n` +
+      `Услуга: ${escapeTelegramHtml(ctx.serviceTitle)}\n` +
+      `Когда: ${escapeTelegramHtml(plain)}` +
+      voucherFooter(ctx, true),
+  };
+}
+
+export function masterBookingPendingDeadline(ctx: AppointmentNotifyContext): AppointmentNotificationPayload {
+  const { plain } = formatWhen(ctx);
+  return {
+    type: 'appointment_new',
+    title: 'Заявка скоро истечёт',
+    body: `Заявка скоро истечёт, если вы её не подтвердите: ${ctx.clientName}, ${ctx.serviceTitle}, ${plain}.`,
+    telegramHtml:
+      `<b>Заявка скоро истечёт</b>\n\n` +
+      `Подтвердите или отклоните заявку, иначе она будет отменена автоматически.\n` +
+      `Клиент: ${escapeTelegramHtml(ctx.clientName)}\n` +
+      `Услуга: ${escapeTelegramHtml(ctx.serviceTitle)}\n` +
+      `Когда: ${escapeTelegramHtml(plain)}` +
+      voucherFooter(ctx, true),
+  };
+}
+
 export function masterClientCancelledBooking(
   ctx: AppointmentNotifyContext,
 ): AppointmentNotificationPayload {
   const { plain } = formatWhen(ctx);
+  const body = [
+    `Клиент: ${ctx.clientName}`,
+    ctx.clientPhone ? `Телефон: ${ctx.clientPhone}` : null,
+    `Услуга: ${ctx.serviceTitle}`,
+    `Когда: ${plain}`,
+    ctx.voucherNumber ? `Номер: ${ctx.voucherNumber}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   return {
     type: 'appointment_cancelled',
     title: 'Клиент отменил запись',
-    body: `${ctx.clientName} отменил запись: ${ctx.serviceTitle} (${plain}).`,
+    body,
     telegramHtml:
       `<b>Клиент отменил запись</b>\n\n` +
       `Клиент: <b>${escapeTelegramHtml(ctx.clientName)}</b>\n` +

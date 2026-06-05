@@ -3,8 +3,7 @@ import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import { AdminFormSheetSection } from '../shared/AdminFormSheetLayout';
 import { SlottyDatePicker } from '../../../shared/ui/SlottyDatePicker';
 import type { ScheduleSlotsStatusFilter } from './scheduleTypes';
-import { catalogSheetPrimaryBtn, catalogSheetSecondaryBtn } from '../shared/adminCatalogSheetTheme';
-import { sheetChipClass } from '../profile/adminProfileCabinetTheme';
+import { scheduleChipClass, scheduleSheetPrimaryBtn, scheduleSheetSecondaryBtn } from './adminScheduleTheme';
 
 export type ScheduleSlotsFilters = {
   status: ScheduleSlotsStatusFilter;
@@ -66,7 +65,7 @@ export function ScheduleSlotsFiltersSheet({
                   key={opt.value}
                   type="button"
                   onClick={() => onChange({ ...filters, status: opt.value })}
-                  className={`min-h-11 ${sheetChipClass(selected)}`}
+                  className={`min-h-11 ${scheduleChipClass(selected)}`}
                 >
                   {opt.label}
                 </button>
@@ -96,7 +95,7 @@ export function ScheduleSlotsFiltersSheet({
           ) : (
             <button
               type="button"
-              className={catalogSheetSecondaryBtn}
+              className={scheduleSheetSecondaryBtn}
               onClick={() => onChange({ ...filters, dayIso: todayIso() })}
             >
               Выбрать конкретный день
@@ -110,7 +109,7 @@ export function ScheduleSlotsFiltersSheet({
             onClick={() => onChange({ ...filters, onlyUpcoming: !filters.onlyUpcoming })}
             className={`flex w-full items-center justify-between gap-3 rounded-[10px] px-4 py-3.5 text-left transition active:scale-[0.99] ${
               filters.onlyUpcoming
-                ? 'bg-[#F47C8C] text-white'
+                ? 'bg-[#3B4CCA] text-white'
                 : 'bg-[#EBEBEB] text-[#111827] hover:bg-[#E4E4E4]'
             }`}
           >
@@ -135,13 +134,13 @@ export function ScheduleSlotsFiltersSheet({
         </p>
 
         <div className="flex flex-col gap-2 pt-1">
-          <button type="button" className={catalogSheetPrimaryBtn} onClick={onClose}>
+          <button type="button" className={scheduleSheetPrimaryBtn} onClick={onClose}>
             Показать {resultCount > 0 ? `(${resultCount})` : ''}
           </button>
           {hasActive ? (
             <button
               type="button"
-              className={catalogSheetSecondaryBtn}
+              className={scheduleSheetSecondaryBtn}
               onClick={() => {
                 onReset();
                 onClose();

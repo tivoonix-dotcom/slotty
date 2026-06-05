@@ -3,11 +3,8 @@ import type { MasterOnboardingService } from '../../../features/profile/lib/demo
 import { SlottySelect } from '../../../shared/ui/SlottySelect';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import { AdminFormSheetLayout, AdminFormSheetSection } from '../shared/AdminFormSheetLayout';
-import {
-  catalogSheetField,
-  catalogSheetLabel,
-  catalogSheetPrimaryBtn,
-} from '../shared/adminCatalogSheetTheme';
+import { catalogSheetField, catalogSheetLabel } from '../shared/adminCatalogSheetTheme';
+import { scheduleSheetPrimaryBtn } from './adminScheduleTheme';
 import {
   createTemplatePayload,
   DUPLICATE_WINDOW_TEMPLATE_MSG,
@@ -74,7 +71,7 @@ export function CreateTemplateModal({ open, onClose, services, templates, onSave
       onClose={onClose}
       title="Создать шаблон"
       footer={
-        <button type="button" className={`${catalogSheetPrimaryBtn} w-full`} onClick={handleSave}>
+        <button type="button" className={`${scheduleSheetPrimaryBtn} w-full`} onClick={handleSave}>
           Сохранить шаблон
         </button>
       }

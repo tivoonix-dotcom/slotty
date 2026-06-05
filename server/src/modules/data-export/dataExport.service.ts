@@ -341,6 +341,9 @@ export async function requestDataExport(userId: string): Promise<DataExportJobDt
     throw ApiError.serviceUnavailable('Экспорт данных пока недоступен', 'DATA_EXPORT_DISABLED');
   }
 
+  const { assertCanUseDataExport } = await import('../billing/entitlements.service.js');
+  await assertCanUseDataExport(userId);
+
   const masterCheck = await query(`select 1 from public.master_profiles where master_id = $1 limit 1`, [
     userId,
   ]);

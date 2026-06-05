@@ -379,6 +379,7 @@ export function ClientProfileDesktop({
                   />
                 </div>
               </section>
+
               </div>
             ) : null}
           </div>

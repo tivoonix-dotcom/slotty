@@ -8,7 +8,7 @@ import { ProfileCompletionHeaderCard } from './profile/ProfileCompletionHeaderCa
 export function AdminDesktopTopBar() {
   const headerRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
-  const { hasUnread, unreadCount } = useAdminNotifications();
+  const { hasAttention, bellCount } = useAdminNotifications();
   const title = pathname.startsWith(MASTER_SETTINGS_PATH)
     ? (resolveAdminSectionMeta(pathname)?.title ?? 'Настройки')
     : (ADMIN_PAGE_TITLES[pathname] ?? 'Кабинет мастера');
@@ -46,11 +46,17 @@ export function AdminDesktopTopBar() {
 
           <Link
             to={ADMIN_NOTIFICATIONS_PATH}
-            className={notificationBellLinkClass(isNotifications, hasUnread, 'desktop')}
-            aria-label={hasUnread ? `Уведомления, ${unreadCount} новых` : 'Уведомления'}
+            className={notificationBellLinkClass(isNotifications, hasAttention, 'desktop')}
+            aria-label={
+              bellCount > 0
+                ? `Уведомления, ${bellCount} непрочитанных`
+                : hasAttention
+                  ? 'Уведомления, есть задачи'
+                  : 'Уведомления'
+            }
           >
             <IconNavNotifications />
-            <NotificationBellBadge count={unreadCount} ringClass="ring-[#F5F6FA]" />
+            <NotificationBellBadge count={bellCount} ringClass="ring-[#F5F6FA]" />
           </Link>
         </div>
       </div>

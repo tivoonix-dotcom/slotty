@@ -3,21 +3,24 @@ import { PlatformAdminPageIntro } from '../shared/PlatformAdminPageIntro';
 import { paFilterChip } from '../platformAdminTheme';
 import { PlatformAdminAccountDeletionTab } from './PlatformAdminAccountDeletionTab';
 import { PlatformAdminProfileReportsTab } from './PlatformAdminProfileReportsTab';
+import { PlatformAdminClientReportsTab } from './PlatformAdminClientReportsTab';
 import { PlatformAdminRequestsTab } from './PlatformAdminRequestsTab';
 import { PlatformAdminSponsorRequestsTab } from './PlatformAdminSponsorRequestsTab';
 
-type RequestKind = 'category' | 'sponsor' | 'profile-reports' | 'account-deletion';
+type RequestKind = 'category' | 'sponsor' | 'profile-reports' | 'client-reports' | 'account-deletion';
 
 const SEGMENTS: { id: RequestKind; label: string }[] = [
   { id: 'category', label: 'Смена категории' },
   { id: 'account-deletion', label: 'Удаление аккаунтов' },
   { id: 'sponsor', label: 'Спонсор SLOTTY' },
   { id: 'profile-reports', label: 'Жалобы на профили' },
+  { id: 'client-reports', label: 'Жалобы на клиентов' },
 ];
 
 function parseKind(raw: string | null): RequestKind {
   if (raw === 'sponsor') return 'sponsor';
   if (raw === 'profile-reports') return 'profile-reports';
+  if (raw === 'client-reports') return 'client-reports';
   if (raw === 'account-deletion') return 'account-deletion';
   return 'category';
 }
@@ -54,6 +57,8 @@ export function PlatformAdminRequestsHub() {
         <PlatformAdminAccountDeletionTab />
       ) : kind === 'sponsor' ? (
         <PlatformAdminSponsorRequestsTab />
+      ) : kind === 'client-reports' ? (
+        <PlatformAdminClientReportsTab />
       ) : (
         <PlatformAdminProfileReportsTab />
       )}

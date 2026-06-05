@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import { AdminFormSheetLayout, AdminFormSheetStepper } from '../shared/AdminFormSheetLayout';
-import {
-  catalogSheetGhostBtn,
-  catalogSheetPrimaryBtn,
-  catalogSheetSecondaryBtn,
-} from '../shared/adminCatalogSheetTheme';
+import { catalogSheetSecondaryBtn } from '../shared/adminCatalogSheetTheme';
+import { scheduleSheetGhostBtn, scheduleSheetPrimaryBtn } from './adminScheduleTheme';
 import { AddWindowForm } from './AddWindowForm';
 import type { MasterOnboardingService } from '../../../features/profile/lib/demoMasterStorage';
 import type { PlannedSlot, WindowTemplate } from './scheduleTypes';
@@ -168,7 +165,7 @@ export function AddWindowSheet({ open, onClose, createError, ...form }: Props) {
               Назад
             </button>
           ) : null}
-          <button type="button" className={catalogSheetPrimaryBtn} disabled={saving} onClick={handleNext}>
+          <button type="button" className={scheduleSheetPrimaryBtn} disabled={saving} onClick={handleNext}>
             Далее
           </button>
         </div>
@@ -180,13 +177,13 @@ export function AddWindowSheet({ open, onClose, createError, ...form }: Props) {
       <div className="flex flex-col gap-2">
         <button
           type="button"
-          className={catalogSheetPrimaryBtn}
+          className={scheduleSheetPrimaryBtn}
           disabled={saving || creatableCount === 0}
           onClick={handleSubmit}
         >
           {saving ? 'Сохранение…' : submitLabel}
         </button>
-        <button type="button" className={catalogSheetGhostBtn} disabled={saving} onClick={handleBack}>
+        <button type="button" className={scheduleSheetGhostBtn} disabled={saving} onClick={handleBack}>
           Назад
         </button>
       </div>
@@ -199,7 +196,7 @@ export function AddWindowSheet({ open, onClose, createError, ...form }: Props) {
       onClose={onClose}
       title="Новое окно"
       headerAfter={
-        <AdminFormSheetStepper step={stepperIndex} steps={[...stepperSteps]} variant="catalog" />
+        <AdminFormSheetStepper step={stepperIndex} steps={[...stepperSteps]} variant="catalog" accent="schedule" />
       }
       footer={footer}
     >

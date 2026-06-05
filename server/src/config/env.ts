@@ -127,6 +127,11 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === 'true'),
+  /** Автостарт 7-дневного Pro trial после onboarding. В production — только при `true`. */
+  AUTO_START_PRO_TRIAL_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => (v === 'false' ? false : v === 'true' ? true : undefined)),
   /** Supabase project URL (для загрузки аватаров в Storage с сервера). */
   SUPABASE_URL: z.preprocess(
     (v) => normalizeEnvUrl(v, 'SUPABASE_URL', true),

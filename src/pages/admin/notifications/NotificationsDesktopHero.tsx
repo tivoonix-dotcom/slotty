@@ -1,58 +1,101 @@
-import { HiBellAlert, HiCheckBadge, HiInbox } from 'react-icons/hi2';
-import { notificationsDesktopCard } from './adminNotificationsTheme';
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { HiBellAlert, HiCheckBadge, HiCog6Tooth, HiExclamationTriangle, HiSun } from 'react-icons/hi2';
+import { MASTER_SETTINGS_NOTIFICATIONS_PATH } from '../../../app/paths';
+import {
+  notifHeroActionLink,
+  notifHeroActionMuted,
+  notifHeroSubtitle,
+  notificationsDesktopCard,
+} from './adminNotificationsTheme';
 import { NotificationsKpiStatCard } from './NotificationsKpiStatCard';
+import type { MasterNotificationStats } from './masterNotificationModel';
 
 type Props = {
-  unreadCount: number;
-  totalCount: number;
+  stats: MasterNotificationStats;
+  onMarkAllRead?: () => void;
+  mobileFilter?: ReactNode;
 };
 
-export function NotificationsDesktopHero({ unreadCount, totalCount }: Props) {
-  const readCount = Math.max(0, totalCount - unreadCount);
-  const subtitle =
-    unreadCount === 0
-      ? 'Все прочитаны — новые появятся здесь'
-      : unreadCount === 1
-        ? '1 непрочитанное уведомление'
-        : `${unreadCount} непрочитанных`;
-
+export function NotificationsDesktopHero({ stats, onMarkAllRead, mobileFilter }: Props) {
   return (
     <section className={`${notificationsDesktopCard} p-4 sm:p-5 lg:p-6`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-[22px] font-bold tracking-[-0.03em] text-[#111827] sm:text-[24px]">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-[20px] font-bold tracking-[-0.03em] text-[#111827] sm:text-[24px]">
             Уведомления
           </h1>
-          <p className="mt-1.5 text-[14px] font-medium leading-snug text-[#6B7280]">{subtitle}</p>
+          <p className={notifHeroSubtitle}>
+            Все события по записям, клиентам и напоминаниям
+          </p>
         </div>
-        {unreadCount > 0 ? (
-          <span className="shrink-0 rounded-full bg-[#FFF1F4] px-3 py-1.5 text-[13px] font-semibold text-[#F47C8C] ring-1 ring-[#FDE8ED]">
-            {unreadCount} новых
-          </span>
-        ) : null}
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <Link
+            to={MASTER_SETTINGS_NOTIFICATIONS_PATH}
+            className={`${notifHeroActionMuted} !min-h-9 !px-2.5 sm:!px-3.5`}
+            aria-label="Настроить уведомления"
+          >
+            <HiCog6Tooth className="h-4 w-4 shrink-0 sm:mr-1.5" aria-hidden />
+            <span className="hidden sm:inline">Настроить</span>
+          </Link>
+          {onMarkAllRead ? (
+            <button
+              type="button"
+              onClick={onMarkAllRead}
+              className={`${notifHeroActionLink} hidden whitespace-nowrap sm:inline-flex`}
+            >
+              Прочитать все
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
+      {onMarkAllRead ? (
+        <button type="button" onClick={onMarkAllRead} className={`${notifHeroActionLink} mt-3 w-full sm:hidden`}>
+          Отметить все как прочитанные
+        </button>
+      ) : null}
+
+      <div className="mt-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3">
+        <NotificationsKpiStatCard
+          label="Требуют действия"
+          value={String(stats.actionRequired)}
+          hint="Нужен ваш ответ"
+          accentValue={stats.actionRequired > 0}
+          compact
+          iconClassName="bg-[#FFF4E8] text-[#EA580C]"
+          icon={<HiExclamationTriangle className="h-5 w-5" aria-hidden />}
+        />
         <NotificationsKpiStatCard
           label="Новые"
-          value={String(unreadCount)}
-          hint="Ждут просмотра"
-          accentValue={unreadCount > 0}
+          value={String(stats.unread)}
+          hint="Ещё не открыты"
+          accentValue={stats.unread > 0}
+          compact
+          iconClassName="bg-[#FFF1F4] text-[#F47C8C]"
           icon={<HiBellAlert className="h-5 w-5" aria-hidden />}
         />
         <NotificationsKpiStatCard
-          label="Всего"
-          value={String(totalCount)}
-          hint="В ленте"
-          icon={<HiInbox className="h-5 w-5" aria-hidden />}
+          label="Сегодня"
+          value={String(stats.today)}
+          hint="За текущий день"
+          compact
+          iconClassName="bg-[#EFF6FF] text-[#2563EB]"
+          icon={<HiSun className="h-5 w-5" aria-hidden />}
         />
         <NotificationsKpiStatCard
           label="Прочитано"
-          value={String(readCount)}
-          hint="Уже открыты"
+          value={String(stats.read)}
+          hint="Уже просмотрены"
+          compact
+          iconClassName="bg-[#ECFDF5] text-[#15803D]"
           icon={<HiCheckBadge className="h-5 w-5" aria-hidden />}
         />
       </div>
+
+      {mobileFilter ? (
+        <div className="mt-4 border-t border-[#EEEEEE] pt-3 lg:hidden">{mobileFilter}</div>
+      ) : null}
     </section>
   );
 }

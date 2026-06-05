@@ -39,6 +39,10 @@ function cancelledByLabel(by: PlatformBookingListItem['cancelledBy']) {
   return null;
 }
 
+function isBookingCodeQuery(raw: string): boolean {
+  return /^SL-/i.test(raw.trim());
+}
+
 export function PlatformAdminBookingsTab() {
   const [view, setView] = useState<'bookings' | 'problem_clients'>('bookings');
   const [status, setStatus] = useState('all');
@@ -169,7 +173,11 @@ export function PlatformAdminBookingsTab() {
       {view === 'bookings' ? (
         <>
           <PlatformAdminToolbar
-            search={{ value: q, onChange: setQ, placeholder: 'Клиент, мастер, услуга или ID записи' }}
+            search={{
+              value: q,
+              onChange: setQ,
+              placeholder: 'Поиск по клиенту, мастеру, услуге или SL-коду',
+            }}
             resultCount={loading ? undefined : bookingsTotal}
             filterGroups={[
               {
@@ -261,7 +269,14 @@ export function PlatformAdminBookingsTab() {
       ) : null}
 
       {view === 'bookings' && !loading && !error && bookings.length === 0 ? (
-        <PlatformAdminEmpty title="Записей нет" text="Измените фильтры или сбросьте клиента." />
+        <PlatformAdminEmpty
+          title={isBookingCodeQuery(q) ? 'Запись с таким кодом не найдена.' : 'Записей нет'}
+          text={
+            isBookingCodeQuery(q)
+              ? 'Проверьте SL-код или сбросьте фильтры.'
+              : 'Измените фильтры или сбросьте клиента.'
+          }
+        />
       ) : null}
 
       {view === 'problem_clients' && !loading && !error && problemClients.length === 0 ? (
@@ -295,6 +310,9 @@ export function PlatformAdminBookingsTab() {
                   </div>
 
                   <p className="mt-3 text-[15px] font-semibold text-[#111827]">{formatWhen(b.startsAt)}</p>
+                  {b.bookingCode ? (
+                    <p className="mt-1 font-mono text-[12px] text-[#6B7280]">{b.bookingCode}</p>
+                  ) : null}
                   <p className="text-[13px] text-[#6B7280]">
                     {b.priceSnapshot.toLocaleString('ru-RU')} ₽ · создана {formatWhen(b.createdAt)}
                   </p>

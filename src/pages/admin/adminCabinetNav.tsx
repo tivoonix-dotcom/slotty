@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import type { Location } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   ADMIN_APPOINTMENTS_PATH,
   ADMIN_BILLING_PATH,
@@ -9,6 +11,7 @@ import {
   ADMIN_PATH,
   ADMIN_SCHEDULE_PATH,
   ADMIN_SERVICES_PATH,
+  getMasterAdminAppointmentsPath,
   HUB_PATH,
 } from '../../app/paths';
 
@@ -58,6 +61,25 @@ export function IconNavAppointments({ className }: { className?: string }) {
       <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
       <path d="M9 2v4M15 2v4M8 6h8" />
       <path d="M9 12h6M9 16h4" />
+    </svg>
+  );
+}
+
+export function IconNavClients({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden {...iconStroke}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+export function IconNavReviews({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden {...iconStroke}>
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
     </svg>
   );
 }
@@ -120,9 +142,9 @@ export type AdminSectionMeta = {
 
 export const ADMIN_SECTION_META: Record<string, AdminSectionMeta> = {
   [ADMIN_PATH]: {
-    title: 'Профиль мастера',
+    title: 'Профиль',
     description:
-      'Имя, фото, портфолио, адрес и правила — то, что клиенты видят в каталоге. Заполните профиль, чтобы получать записи.',
+      'Витрина мастера: имя, фото, портфолио, адрес и правила — то, что клиенты видят в каталоге.',
   },
   [ADMIN_PROFILE_COMPLETION_PATH]: {
     title: 'Заполненность профиля',
@@ -139,14 +161,22 @@ export const ADMIN_SECTION_META: Record<string, AdminSectionMeta> = {
       'Создайте окна для записи: когда вы свободны, клиенты смогут выбрать время в каталоге.',
   },
   [ADMIN_OVERVIEW_PATH]: {
-    title: 'Сводка',
+    title: 'Сегодня',
     description:
-      'Цифры по доходу, клиентам и рейтингу. Помогает понять, как идут дела и что улучшить.',
+      'Рабочий день: заявки, записи на сегодня, свободные окна и быстрые действия.',
   },
   [ADMIN_APPOINTMENTS_PATH]: {
     title: 'Записи',
     description:
       'Заявки от клиентов, предстоящие визиты и история. Подтверждайте заявки, чтобы они попали в календарь.',
+  },
+  [`${ADMIN_OVERVIEW_PATH}?tab=clients`]: {
+    title: 'Клиенты',
+    description: 'Кто записывался, как часто возвращается и сколько приносит выручки.',
+  },
+  [`${ADMIN_OVERVIEW_PATH}?tab=reputation`]: {
+    title: 'Отзывы',
+    description: 'Отзывы клиентов и ваши ответы — влияют на доверие в каталоге.',
   },
   [ADMIN_BILLING_PATH]: {
     title: 'Мой тариф',
@@ -170,12 +200,79 @@ export function resolveAdminSectionMeta(pathname: string): AdminSectionMeta | nu
   return null;
 }
 
+function overviewNavTabFromTo(to: string): 'summary' | 'clients' | 'reputation' | null {
+  const [pathname, search = ''] = to.split('?');
+  if (pathname !== ADMIN_OVERVIEW_PATH) return null;
+  const tab = new URLSearchParams(search).get('tab');
+  if (tab === 'clients' || tab === 'reputation') return tab;
+  return 'summary';
+}
+
+function pathnameMatchesNavItem(item: AdminNavItem, pathname: string): boolean {
+  const pathOnly = item.to.split('?')[0] ?? item.to;
+  if (item.end) return pathname === pathOnly;
+  return pathname === pathOnly || pathname.startsWith(`${pathOnly}/`);
+}
+
+/** NavLink active state: overview sidebar items share one pathname and differ by ?tab=. */
+export function isAdminNavItemActive(item: AdminNavItem, location: Location): boolean {
+  const overviewTab = overviewNavTabFromTo(item.to);
+  if (overviewTab !== null) {
+    if (location.pathname !== ADMIN_OVERVIEW_PATH) return false;
+    const currentTab = new URLSearchParams(location.search).get('tab') ?? 'summary';
+    return currentTab === overviewTab;
+  }
+  return pathnameMatchesNavItem(item, location.pathname);
+}
+
+type AdminCabinetNavLinkProps = {
+  item: AdminNavItem;
+  className: (active: boolean) => string;
+  children: (props: { isActive: boolean }) => ReactNode;
+  onClick?: () => void;
+  title?: string;
+};
+
+export function AdminCabinetNavLink({ item, className, children, onClick, title }: AdminCabinetNavLinkProps) {
+  const location = useLocation();
+  const isActive = isAdminNavItemActive(item, location);
+
+  return (
+    <NavLink
+      to={item.to}
+      end={item.end}
+      onClick={onClick}
+      title={title}
+      className={className(isActive)}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      {children({ isActive })}
+    </NavLink>
+  );
+}
+
+export function resolveAdminNavItemMeta(item: AdminNavItem): AdminSectionMeta | null {
+  if (ADMIN_SECTION_META[item.to]) return ADMIN_SECTION_META[item.to];
+
+  const pathname = item.to.split('?')[0] ?? item.to;
+  if (pathname === ADMIN_APPOINTMENTS_PATH) {
+    return ADMIN_SECTION_META[ADMIN_APPOINTMENTS_PATH];
+  }
+
+  return ADMIN_SECTION_META[pathname] ?? null;
+}
+
 export const ADMIN_MAIN_NAV: AdminNavItem[] = [
-  { to: ADMIN_PATH, label: 'Профиль мастера', end: true, icon: IconNavProfile },
-  { to: ADMIN_SERVICES_PATH, label: 'Услуги', icon: IconNavServices },
+  {
+    to: getMasterAdminAppointmentsPath({ tab: 'requests' }),
+    label: 'Заявки',
+    icon: IconNavAppointments,
+  },
   { to: ADMIN_SCHEDULE_PATH, label: 'Расписание', icon: IconNavSchedule },
-  { to: ADMIN_OVERVIEW_PATH, label: 'Сводка', icon: IconNavOverview },
-  { to: ADMIN_APPOINTMENTS_PATH, label: 'Записи', icon: IconNavAppointments },
+  { to: ADMIN_SERVICES_PATH, label: 'Услуги', icon: IconNavServices },
+  { to: ADMIN_PATH, label: 'Профиль', end: true, icon: IconNavProfile },
+  { to: `${ADMIN_OVERVIEW_PATH}?tab=clients`, label: 'Клиенты', icon: IconNavClients },
+  { to: `${ADMIN_OVERVIEW_PATH}?tab=reputation`, label: 'Отзывы', icon: IconNavReviews },
 ];
 
 export const ADMIN_NOTIFICATIONS_NAV = {

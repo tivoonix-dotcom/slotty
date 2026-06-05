@@ -35,6 +35,10 @@ import {
   type PutMasterBookingRulesBody,
 } from './masterBookingRulesStructured.service.js';
 import {
+  getMyPaymentSettings,
+  patchMyPaymentSettings,
+} from './masterPaymentSettings.service.js';
+import {
   insertCertificates,
   replaceScheduleRules,
   upsertPrimaryLocation,
@@ -343,12 +347,22 @@ const bookingRulesPutBody = z.object({
   rescheduleBeforeMinutes: z.number().int().min(0).optional(),
   rescheduleLimit: z.number().int().min(0).nullable().optional(),
   paymentMethods: z.array(z.string().max(80)).max(30).optional(),
+  preferredBankIds: z.array(z.string().max(80)).max(30).optional(),
   paymentComment: z.string().max(2000).nullable().optional(),
   prepaymentRequired: z.boolean().optional(),
   refundPolicyEnabled: z.boolean().optional(),
   refundPolicyText: z.string().max(2000).nullable().optional(),
   visitPreparationText: z.string().max(2000).nullable().optional(),
   contraindicationsText: z.string().max(2000).nullable().optional(),
+});
+
+const paymentMethodCodeEnum = z.enum(['cash', 'card', 'transfer', 'online_later']);
+
+const paymentSettingsPatchBody = z.object({
+  paymentMethods: z.array(paymentMethodCodeEnum).max(10).optional(),
+  prepaymentRequired: z.boolean().optional(),
+  preferredBankIds: z.array(z.string().max(80)).max(30).optional(),
+  paymentComment: z.string().max(2000).nullable().optional(),
 });
 
 const careerTypeEnum = z.enum(['education', 'course', 'practice', 'work']);
@@ -820,6 +834,29 @@ mastersRouter.patch(
 );
 
 mastersRouter.get(
+  '/me/payment-settings',
+  authMiddleware,
+  requireMasterDbAccess,
+  requireMasterPlatformWrite,
+  asyncHandler(async (req, res) => {
+    const settings = await getMyPaymentSettings(req.user!.id);
+    res.json(settings);
+  }),
+);
+
+mastersRouter.patch(
+  '/me/payment-settings',
+  authMiddleware,
+  requireMasterDbAccess,
+  requireMasterPlatformWrite,
+  asyncHandler(async (req, res) => {
+    const body = paymentSettingsPatchBody.parse(req.body);
+    const settings = await patchMyPaymentSettings(req.user!.id, body);
+    res.json(settings);
+  }),
+);
+
+mastersRouter.get(
   '/me/career',
   authMiddleware,
   requireMasterDbAccess,
@@ -1088,6 +1125,18 @@ mastersRouter.use(
   authMiddleware,
   requireMasterDbAccess,
   masterOverviewRouter,
+);
+
+mastersRouter.get(
+  '/me/entitlements',
+  authMiddleware,
+  requireMasterDbAccess,
+  requireMasterPlatformWrite,
+  asyncHandler(async (req, res) => {
+    const { getMasterEntitlements } = await import('../billing/entitlements.service.js');
+    const entitlements = await getMasterEntitlements(req.user!.id);
+    res.json({ entitlements });
+  }),
 );
 
 mastersRouter.get(

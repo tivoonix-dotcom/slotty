@@ -16,7 +16,7 @@ import {
 import { subscribeToNewsletter } from '../features/newsletter/api/newsletterApi';
 import { PaymentLogos } from '../shared/ui/PaymentLogos';
 import { homeShell } from './home/homeLayout';
-import { TIVONIX_SITE_URL } from './legal/legalSiteInfo';
+import { SITE_PUBLIC_URL } from './legal/legalSiteInfo';
 
 const FOOTER_MARQUEE_SERVICES = [
   'Лимфодренаж',
@@ -253,12 +253,12 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
                 <ul className="flex flex-col gap-2.5">
                   <li>
                     <a
-                      href={TIVONIX_SITE_URL}
+                      href={SITE_PUBLIC_URL}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={navLinkClass}
                     >
-                      tivonix.tech
+                      slotty.of.by
                     </a>
                   </li>
                   <li>

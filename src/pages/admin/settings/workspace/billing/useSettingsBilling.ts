@@ -12,6 +12,8 @@ import {
 import { PAYMENT_SUCCESS_PATH } from '../../../../../app/paths';
 import { readPublicAppOrigin } from '../../../../../shared/lib/masterBookingLink';
 import { useAdminMasterCabinet } from '../../../AdminMasterCabinetContext';
+import { getMyMasterEntitlements, type MasterEntitlementsDto } from '../../../../../features/billing/api/masterEntitlementsApi';
+import { billingPlanDisplayFromEntitlements } from '../../../../../features/billing/billingTrialCopy';
 import { useAdminToast } from '../../../shared/useAdminToast';
 
 const RECENT_PAYMENTS_LIMIT = 5;
@@ -28,14 +30,18 @@ export function useSettingsBilling() {
   const [selectedPayment, setSelectedPayment] = useState<BillingPaymentDto | null>(null);
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [entitlements, setEntitlements] = useState<MasterEntitlementsDto | null>(null);
 
   const reloadBilling = useCallback(async () => {
     if (!useCabinetApi) return;
     try {
-      setBillingDetail(await getBillingSubscription());
+      const [billing, ent] = await Promise.all([getBillingSubscription(), getMyMasterEntitlements()]);
+      setBillingDetail(billing);
+      setEntitlements(ent);
       setLoadError(null);
     } catch {
       setBillingDetail(null);
+      setEntitlements(null);
       setLoadError('Не удалось загрузить данные подписки');
     }
   }, [useCabinetApi]);
@@ -64,14 +70,16 @@ export function useSettingsBilling() {
     (async () => {
       setApiLoading(true);
       try {
-        const billing = await getBillingSubscription();
+        const [billing, ent] = await Promise.all([getBillingSubscription(), getMyMasterEntitlements()]);
         if (!cancelled) {
           setBillingDetail(billing);
+          setEntitlements(ent);
           setLoadError(null);
         }
       } catch {
         if (!cancelled) {
           setBillingDetail(null);
+          setEntitlements(null);
           setLoadError('Не удалось загрузить данные подписки');
         }
       } finally {
@@ -88,7 +96,8 @@ export function useSettingsBilling() {
   }, [apiLoading, useCabinetApi, cabinetLoading, loadPayments]);
 
   const uiState = billingDetail?.uiState ?? 'free';
-  const isProEntitled = billingDetail?.isProEntitled ?? false;
+  const isProEntitled = entitlements?.isProEntitled ?? billingDetail?.isProEntitled ?? false;
+  const planDisplay = billingPlanDisplayFromEntitlements(entitlements, uiState);
 
   const runBillingAction = useCallback(
     async (fn: () => Promise<void>) => {
@@ -131,6 +140,8 @@ export function useSettingsBilling() {
     billingBusy,
     uiState,
     isProEntitled,
+    entitlements,
+    planDisplay,
     payments,
     recentPayments,
     paymentsLoading,

@@ -29,6 +29,7 @@ import {
   settingsCabinetStack,
 } from '../settingsCabinetUi';
 import { SettingsErrorState } from '../settingsUi';
+import { BillingTrialStatusCard } from '../../../../../features/billing/BillingTrialStatusCard';
 import { useSettingsBilling } from './useSettingsBilling';
 import { SubscriptionDetailsButton, SubscriptionReceiptModal } from './SubscriptionReceiptModal';
 
@@ -42,30 +43,6 @@ function cardBrandMethod(brand: string | null) {
   if (b.includes('master')) return MASTERCARD;
   if (b.includes('belkart') || b.includes('belcart')) return PAYMENT_METHODS.find((m) => m.id === 'belkart');
   return null;
-}
-
-function subscriptionStatusTone(
-  uiState: string,
-): 'success' | 'warning' | 'pink' | 'neutral' {
-  if (uiState === 'pro_active') return 'success';
-  if (uiState === 'past_due') return 'warning';
-  if (uiState === 'pro_canceled_at_period_end') return 'pink';
-  return 'neutral';
-}
-
-function subscriptionStatusLabel(uiState: string, isPro: boolean): string {
-  switch (uiState) {
-    case 'pro_active':
-      return 'Активен';
-    case 'pro_canceled_at_period_end':
-      return 'До конца периода';
-    case 'past_due':
-      return 'Требует оплаты';
-    case 'expired':
-      return 'Pro истёк';
-    default:
-      return isPro ? 'Активен' : 'Бесплатный';
-  }
 }
 
 function planSubtitle(
@@ -113,14 +90,15 @@ export function SettingsBillingWorkspace() {
     return <SettingsErrorState message={b.loadError} onRetry={b.reload} />;
   }
 
-  const planName = b.isProEntitled ? 'Master Pro' : 'Бесплатный тариф';
-  const statusTone = subscriptionStatusTone(b.uiState);
-  const statusLabel = subscriptionStatusLabel(b.uiState, b.isProEntitled);
+  const planName = b.planDisplay.title;
+  const statusTone = b.planDisplay.tone;
+  const statusLabel = b.planDisplay.badge;
   const canUpdateCard = detail?.availableActions.includes('update_payment_method') ?? false;
   const hasCard = Boolean(detail?.cardLast4);
 
   return (
     <div className={`${settingsCabinetStack} pb-8`}>
+      <BillingTrialStatusCard entitlements={b.entitlements} uiState={b.uiState} />
       {b.uiState === 'past_due' ? (
         <div className="rounded-[14px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3.5">
           <p className="text-[14px] font-semibold text-[#991B1B]">Не удалось продлить подписку</p>
@@ -170,7 +148,7 @@ export function SettingsBillingWorkspace() {
         <SettingsCabinetFeatureCard
           icon={<HiReceiptPercent className="h-5 w-5" aria-hidden />}
           title={planName}
-          subtitle={detail ? planSubtitle(b.uiState, detail) : '—'}
+          subtitle={detail ? (b.planDisplay.subtitle || planSubtitle(b.uiState, detail)) : '—'}
           badge={<SettingsCabinetStatusPill tone={statusTone}>{statusLabel}</SettingsCabinetStatusPill>}
         >
           {detail ? (

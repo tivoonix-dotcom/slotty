@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { createMySlot, deleteMySlot, listMySlots, listPublicSlots, patchMySlot } from './slots.service.js';
+import { createMySlotsBatch } from './slotsBatch.service.js';
 import { publicCatalogRateLimit } from '../../middlewares/rateLimit.js';
 
 export const slotsPublicRouter = Router();
@@ -63,6 +64,32 @@ masterSlotsRouter.post(
       serviceId: body.serviceId,
     });
     res.status(201).json(row);
+  }),
+);
+
+const batchCreateBody = z
+  .object({
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    weekdays: z.array(z.number().int().min(0).max(6)).min(1),
+    dayStartTime: z.string().regex(/^\d{2}:\d{2}$/),
+    dayEndTime: z.string().regex(/^\d{2}:\d{2}$/),
+    breakStartTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+    breakEndTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+    slotDurationMinutes: z.number().int().min(15).max(480),
+    serviceId: z.string().uuid().nullable().optional(),
+  })
+  .refine((b) => b.endDate >= b.startDate, {
+    message: 'Дата окончания должна быть не раньше начала',
+    path: ['endDate'],
+  });
+
+masterSlotsRouter.post(
+  '/batch',
+  asyncHandler(async (req, res) => {
+    const body = batchCreateBody.parse(req.body);
+    const result = await createMySlotsBatch(req.user!.id, body);
+    res.status(201).json(result);
   }),
 );
 

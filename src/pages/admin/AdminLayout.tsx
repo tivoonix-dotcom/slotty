@@ -15,16 +15,19 @@ import {
 import { AdminNotificationsProvider, useAdminNotifications } from './notifications/AdminNotificationsContext';
 import { planBadgeLabel } from '../../features/billing/model/masterPlans';
 import { useMasterPlanEntitlements } from '../../features/billing/useMasterPlanEntitlements';
+import { TrialProBanner } from '../../features/billing/TrialProBanner';
 import { AdminMasterCabinetProvider, useAdminMasterCabinet } from './AdminMasterCabinetContext';
 import { ProfileSectionTabsBar, ProfileTabProvider } from './profile/profileTabContext';
 import { ADMIN_CABINET_SHELL_MAX } from './overview/adminOverviewTheme';
 import { ADMIN_DESKTOP_CANVAS } from './adminCabinetLayout';
 import {
   ADMIN_MAIN_NAV,
+  resolveAdminNavItemMeta,
   ADMIN_SECTION_META,
   ADMIN_SETTINGS_NAV,
   IconNavBilling,
   IconNavNotifications,
+  AdminCabinetNavLink,
 } from './adminCabinetNav';
 import { AdminDesktopSidebar } from './AdminDesktopSidebar';
 import { AdminDesktopTopBar } from './AdminDesktopTopBar';
@@ -110,7 +113,7 @@ function AdminLayoutInner() {
   const accountAccess = useAccountAccess();
   const { profile } = useAuth();
   const showPlatformAdmin = isPlatformAdmin(profile);
-  const { planId } = useMasterPlanEntitlements();
+  const { planId, entitlements } = useMasterPlanEntitlements();
   const { hasUnread, unreadCount } = useAdminNotifications();
   const [menuOpen, setMenuOpen] = useState(false);
   const stickyShellRef = useRef<HTMLDivElement>(null);
@@ -220,6 +223,7 @@ function AdminLayoutInner() {
           <AdminDesktopTopBar />
 
           {!isProfileHome ? <AdminCabinetStatusBanner /> : null}
+          {!isBilling ? <TrialProBanner entitlements={entitlements} className="mx-4 mb-3 lg:mx-0" /> : null}
 
           {accountAccess.showBlockedScreen || accountAccess.showDeletedScreen ? (
             <div className={`mx-auto w-full min-w-0 flex-1 ${ADMIN_CABINET_SHELL_MAX} px-4 py-6`}>
@@ -263,16 +267,15 @@ function AdminLayoutInner() {
         <AdminBottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Разделы">
         <nav className="flex flex-col gap-2 pb-1" aria-label="Разделы кабинета">
           {ADMIN_MAIN_NAV.map((item) => (
-            <NavLink
+            <AdminCabinetNavLink
               key={item.to}
-              to={item.to}
-              end={item.end}
+              item={item}
               onClick={() => setMenuOpen(false)}
-              className={({ isActive }) => navClass(isActive)}
+              className={(isActive) => navClass(isActive)}
             >
               {({ isActive }) => {
                 const Icon = item.icon;
-                const meta = ADMIN_SECTION_META[item.to];
+                const meta = resolveAdminNavItemMeta(item);
                 return (
                   <>
                     <span className="flex min-w-0 flex-1 items-start gap-3">
@@ -293,7 +296,7 @@ function AdminLayoutInner() {
                   </>
                 );
               }}
-            </NavLink>
+            </AdminCabinetNavLink>
           ))}
 
           <NavLink

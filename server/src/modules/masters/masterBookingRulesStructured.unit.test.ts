@@ -20,6 +20,7 @@ const sample: MasterBookingRulesStructured = {
   rescheduleBeforeMinutes: 720,
   rescheduleLimit: 2,
   paymentMethods: ['Наличные', 'Карта'],
+  preferredBankIds: [],
   paymentComment: 'Оплата после услуги',
   prepaymentRequired: false,
   refundPolicyEnabled: false,

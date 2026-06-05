@@ -19,8 +19,9 @@ export function formFromDto(dto: StructuredBookingRulesDto): BookingRulesFormSta
     rescheduleBeforeMinutes: dto.rescheduleBeforeMinutes,
     rescheduleLimit: dto.rescheduleLimit,
     paymentMethods: [...dto.paymentMethods],
+    preferredBankIds: [...(dto.preferredBankIds ?? [])],
     paymentComment: dto.paymentComment,
-    prepaymentRequired: dto.prepaymentRequired,
+    prepaymentRequired: false,
     refundPolicyEnabled: dto.refundPolicyEnabled,
     refundPolicyText: dto.refundPolicyText,
     visitPreparationText: dto.visitPreparationText,
@@ -159,7 +160,7 @@ export function cardClientText(form: BookingRulesFormState) {
           form.rescheduleLimit == null ? ', без ограничений' : `, до ${form.rescheduleLimit} раз`
         }.`
       : 'Перенос записи недоступен.',
-    payment: form.paymentComment?.trim() || (form.prepaymentRequired ? 'Требуется предоплата.' : 'Оплата после оказания услуги.'),
+    payment: form.paymentComment?.trim() || 'Оплата после оказания услуги.',
     refund: form.refundPolicyText?.trim() || 'Возврат по условиям мастера.',
     preparation:
       form.contraindicationsText?.trim() ||
@@ -169,10 +170,7 @@ export function cardClientText(form: BookingRulesFormState) {
 }
 
 export function refundsCardEnabled(form: BookingRulesFormState): boolean {
-  return (
-    form.prepaymentRequired ||
-    form.paymentMethods.some((m: string) => /онлайн/i.test(m))
-  );
+  return form.paymentMethods.some((m: string) => /онлайн/i.test(m));
 }
 
 export const DEFAULT_FORM: BookingRulesFormState = {
@@ -188,6 +186,7 @@ export const DEFAULT_FORM: BookingRulesFormState = {
   rescheduleBeforeMinutes: 720,
   rescheduleLimit: 2,
   paymentMethods: ['Наличные', 'Карта'],
+  preferredBankIds: [],
   paymentComment: null,
   prepaymentRequired: false,
   refundPolicyEnabled: false,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { HiClock } from 'react-icons/hi2';
 import type { PlannedSlot } from './scheduleTypes';
 import { formatSlotDayParts, serviceTitleById, windowsCountRu } from './scheduleUtils';
@@ -62,14 +62,14 @@ export function SchedulePreview({
       className={
         cabinet
           ? 'overflow-hidden rounded-[10px] bg-white ring-1 ring-[#EEEEEE]'
-          : 'overflow-hidden rounded-[20px] border border-[#FDE8ED] bg-white'
+          : 'overflow-hidden rounded-[20px] border border-[#D8DCF5] bg-white'
       }
     >
       <div
         className={
           cabinet
             ? 'border-b border-[#EEEEEE] bg-[#F5F5F5] px-4 py-3'
-            : 'border-b border-[#FDE8ED] bg-gradient-to-r from-[#FFF9FB] to-white px-4 py-3.5'
+            : 'border-b border-[#D8DCF5] bg-gradient-to-r from-[#F5F6FD] to-white px-4 py-3.5'
         }
       >
         <p className="text-[15px] font-bold tracking-[-0.03em] text-[#111827]">{title}</p>
@@ -98,7 +98,7 @@ export function SchedulePreview({
                   parts.isToday
                     ? cabinet
                       ? 'bg-white ring-1 ring-[#EEEEEE]'
-                      : 'bg-[#FFF1F4] ring-1 ring-[#FDE8ED]'
+                      : 'bg-[#EEF0FC] ring-1 ring-[#D8DCF5]'
                     : 'bg-white'
                 }`}
               >
@@ -114,7 +114,7 @@ export function SchedulePreview({
               <div className="min-w-0 flex-1 py-0.5">
                 <div className="flex items-center gap-1.5">
                   <HiClock
-                    className={`h-4 w-4 shrink-0 ${cabinet ? 'text-[#6B7280]' : 'text-[#ff5f7a]'}`}
+                    className={`h-4 w-4 shrink-0 ${cabinet ? 'text-[#6B7280]' : 'text-[#3B4CCA]'}`}
                     aria-hidden
                   />
                   <p className="text-[15px] font-black tabular-nums tracking-[-0.02em] text-[#111827]">
@@ -133,7 +133,7 @@ export function SchedulePreview({
                     className={
                       cabinet
                         ? 'mt-1.5 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#111827] ring-1 ring-[#EEEEEE]'
-                        : 'mt-1.5 inline-flex rounded-full bg-[#FFF1F4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#ff5f7a]'
+                        : 'mt-1.5 inline-flex rounded-full bg-[#EEF0FC] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#3B4CCA]'
                     }
                   >
                     Сегодня
@@ -146,14 +146,14 @@ export function SchedulePreview({
       </ul>
 
       {needsCollapse ? (
-        <div className={cabinet ? 'border-t border-[#EEEEEE] px-4 py-2.5' : 'border-t border-[#FDE8ED] px-4 py-2.5'}>
+        <div className={cabinet ? 'border-t border-[#EEEEEE] px-4 py-2.5' : 'border-t border-[#D8DCF5] px-4 py-2.5'}>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
             className={
               cabinet
                 ? 'text-[13px] font-semibold text-[#111827]'
-                : 'text-[13px] font-bold text-[#ff5f7a]'
+                : 'text-[13px] font-bold text-[#3B4CCA]'
             }
           >
             {expanded ? 'Свернуть' : `Показать все ${dayRows.length} дат`}
@@ -166,7 +166,7 @@ export function SchedulePreview({
           className={
             cabinet
               ? 'border-t border-[#EEEEEE] px-4 py-3 text-[12px] font-medium leading-snug text-[#B45309]'
-              : 'border-t border-[#FDE8ED] px-4 py-3 text-[12px] font-semibold leading-snug text-[#B66A24]'
+              : 'border-t border-[#D8DCF5] px-4 py-3 text-[12px] font-semibold leading-snug text-[#B66A24]'
           }
         >
           {beyondHorizon} {beyondHorizon === 1 ? 'дата выходит' : 'дат выходят'} за горизонт тарифа ({horizonDays}{' '}

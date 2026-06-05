@@ -1,16 +1,16 @@
-import { HiChevronRight } from 'react-icons/hi2';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import {
   apptBadgeHighlight,
   apptCardBody,
-  apptCardShellInteractive,
-  apptChevron,
+  apptCardShell,
   apptMetaMuted,
   apptPriceText,
   apptTimeStrip,
   apptTimeStripHighlight,
 } from './adminAppointmentsTheme';
+import { resolveClientDisplayName } from './appointmentDetailHelpers';
 import { AppointmentsClientAvatar } from './AppointmentsClientAvatar';
+import { AppointmentsCardDetailFooter } from './AppointmentsCardDetailFooter';
 import {
   estimateDurationLabel,
   formatAppointmentPrice,
@@ -24,10 +24,11 @@ type Props = {
 };
 
 export function AppointmentsNearestCard({ appointment, onOpen }: Props) {
+  const displayName = resolveClientDisplayName(appointment);
   const dateTime = formatCardDateTime(appointment.date, appointment.time);
 
   return (
-    <button type="button" onClick={onOpen} className={`group w-full text-left ${apptCardShellInteractive}`}>
+    <article className={apptCardShell}>
       <div className="border-b border-[#EEEEEE] px-3.5 py-2 sm:px-4">
         <span className={apptBadgeHighlight}>Ближайшая запись</span>
       </div>
@@ -40,11 +41,14 @@ export function AppointmentsNearestCard({ appointment, onOpen }: Props) {
         </div>
 
         <div className="flex min-w-0 flex-1 items-start gap-3 p-3.5 sm:p-4">
-          <AppointmentsClientAvatar name={appointment.clientName} size="lg" />
+          <AppointmentsClientAvatar
+            name={displayName}
+            phone={appointment.contact}
+            photoUrl={appointment.clientAvatarUrl}
+            size="lg"
+          />
           <div className="min-w-0 flex-1">
-            <p className="text-[17px] font-bold tracking-[-0.02em] text-[#111827]">
-              {appointment.clientName}
-            </p>
+            <p className="text-[17px] font-bold tracking-[-0.02em] text-[#111827]">{displayName}</p>
             <p className="mt-1 line-clamp-2 text-[14px] font-medium leading-snug text-[#6B7280]">
               {appointment.serviceTitle}
             </p>
@@ -57,9 +61,9 @@ export function AppointmentsNearestCard({ appointment, onOpen }: Props) {
               {formatAppointmentPrice(appointment.priceByn)}
             </p>
           </div>
-          <HiChevronRight className={`mt-1 ${apptChevron}`} aria-hidden />
         </div>
       </div>
-    </button>
+      <AppointmentsCardDetailFooter onClick={onOpen} />
+    </article>
   );
 }

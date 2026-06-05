@@ -5,6 +5,15 @@ import { notifyUser } from '../notifications/notifyUser.js';
 const TOP_RATING = 4.5;
 const TOP_REVIEWS = 10;
 
+function formatReviewsRu(count: number): string {
+  const n = Math.abs(Math.round(count));
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${n} отзыв`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} отзыва`;
+  return `${n} отзывов`;
+}
+
 export function isCatalogTopMaster(rating: number, reviewsCount: number): boolean {
   return rating >= TOP_RATING || reviewsCount >= TOP_REVIEWS;
 }
@@ -35,7 +44,7 @@ export async function notifyMasterEnteredTopIfNeeded(masterId: string): Promise<
     userId: masterId,
     type: 'system',
     title: 'Вы в топе мастеров',
-    body: `Рейтинг ${ratingLabel}★ и ${reviewsCount} отзывов — ваш профиль показывается в блоке «Топ мастера» в каталоге SLOTTY.`,
+    body: `Рейтинг ${ratingLabel}★ и ${formatReviewsRu(reviewsCount)} — ваш профиль показывается в блоке «Топ мастера» в каталоге SLOTTY.`,
     relatedEntityType: 'master',
     relatedEntityId: masterId,
     telegramHtml:

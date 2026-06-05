@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { preloadTabIntroImages } from '../useTabIntroImage';
 import { useAdminSectionTab } from '../useAdminSectionTab';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
@@ -23,13 +23,21 @@ import { OverviewReputationPanel } from './OverviewReputationPanel';
 import { OverviewRevenuePanel } from './OverviewRevenuePanel';
 import { OverviewSummaryPanel } from './OverviewTabPanels';
 import { useOverviewTabData } from './useOverviewTabData';
+import { useOverviewOpsData } from './useOverviewOpsData';
+import { useProfileCompletionOverview } from '../profile/useProfileCompletionOverview';
+import type { OverviewOpsSnapshot } from './overviewOpsSnapshot';
 import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
 import { LoadingPanel } from '../../../shared/ui/LoadingVideo';
 import { isProRequiredApiMessage } from '../../../features/billing/masterProUpsell';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
+import { useAdminNotifications } from '../notifications/AdminNotificationsContext';
+import { countReviewNotificationsNeedingReply } from '../../../features/notifications/reviewNotificationAction';
+import { afterBookingMutation } from '../../../features/appointments/bookingDataSync';
 import { MasterProUpsellBanner } from '../shared/MasterProUpsellBanner';
 
 const OVERVIEW_TABS = ['summary', 'revenue', 'clients', 'reputation'] as const satisfies readonly OverviewAnalyticsTab[];
+
+const OVERVIEW_PERIOD_PRESETS = ['today', 'week', 'month', 'all'] as const satisfies readonly OverviewPeriodPreset[];
 
 type Props = {
   draft: MasterDraft;
@@ -37,6 +45,7 @@ type Props = {
   appointmentsPath: string;
   onOpenAppointment: (a: DemoMasterAppointment) => void;
   useCabinetApi: boolean;
+  onPersistDraft: (next: MasterDraft) => void;
 };
 
 function OverviewPanelContent({
@@ -61,6 +70,14 @@ function OverviewPanelContent({
   useCabinetApi,
   onOpenNearest,
   refreshReputation,
+  ops,
+  opsLoading,
+  slotsLoadError,
+  profileCompletionPercent,
+  profileComplete,
+  onOpenAppointmentId,
+  publicationStatus,
+  onPersistDraft,
 }: {
   loading: boolean;
   awaitingSubscription?: boolean;
@@ -83,12 +100,21 @@ function OverviewPanelContent({
   useCabinetApi: boolean;
   onOpenNearest: () => void;
   refreshReputation: () => void;
+  ops: OverviewOpsSnapshot;
+  opsLoading?: boolean;
+  slotsLoadError?: string | null;
+  profileCompletionPercent?: number;
+  profileComplete?: boolean;
+  onOpenAppointmentId?: (id: string) => void;
+  publicationStatus?: import('../../../features/admin/lib/profileCompletion').MasterPublicationStatus | null;
+  onPersistDraft: (next: MasterDraft) => void;
 }) {
   if (proAnalyticsLocked && isOverviewProTab(activeTab)) {
     return <MasterProUpsellBanner variant="analytics" />;
   }
 
-  if (loading || awaitingSubscription) {
+  const blockEntirePanel = activeTab !== 'summary' && (loading || awaitingSubscription);
+  if (blockEntirePanel) {
     return (
       <LoadingPanel
         className="border-[#F3F4F6] lg:border-0 lg:shadow-none"
@@ -134,6 +160,7 @@ function OverviewPanelContent({
             onReplied={refreshReputation}
             onReply={async (reviewId, text) => {
               await postOverviewReviewReply(reviewId, text);
+              afterBookingMutation();
               refreshReputation();
             }}
           />
@@ -148,6 +175,16 @@ function OverviewPanelContent({
             appointmentsPath={appointmentsPath}
             dayStats={dayStats}
             onOpenNearest={onOpenNearest}
+            ops={ops}
+            opsLoading={opsLoading}
+            slotsLoadError={slotsLoadError}
+            profileCompletionPercent={profileCompletionPercent}
+            profileComplete={profileComplete}
+            onOpenAppointmentId={onOpenAppointmentId}
+            publicationStatus={publicationStatus}
+            useCabinetApi={useCabinetApi}
+            onPersistDraft={onPersistDraft}
+            appointments={appointments}
           />
         );
     }
@@ -162,10 +199,27 @@ export function AdminOverviewTab({
   appointmentsPath,
   onOpenAppointment,
   useCabinetApi,
+  onPersistDraft,
 }: Props) {
   const [activeTab, setActiveTab] = useAdminSectionTab('tab', 'summary', OVERVIEW_TABS);
-  const [periodPreset, setPeriodPreset] = useState<OverviewPeriodPreset>('month');
-  const { subscription, cabinetLoading } = useAdminMasterCabinet();
+  const [periodPreset, setPeriodPreset] = useAdminSectionTab('period', 'month', OVERVIEW_PERIOD_PRESETS);
+  const { subscription, cabinetLoading, publicationStatus } = useAdminMasterCabinet();
+  const { notifications } = useAdminNotifications();
+  const { snapshot: ops, loading: opsLoading, slotsLoadError } = useOverviewOpsData({
+    appointments,
+    useCabinetApi,
+    cabinetLoading,
+  });
+  const { percent: profileCompletionPercent, isComplete: profileComplete } =
+    useProfileCompletionOverview();
+
+  const onOpenAppointmentId = useMemo(
+    () => (id: string) => {
+      const row = appointments.find((a) => a.id === id);
+      if (row) onOpenAppointment(row);
+    },
+    [appointments, onOpenAppointment],
+  );
 
   const awaitingSubscription = useCabinetApi && cabinetLoading && subscription == null;
   const overviewReady = !useCabinetApi || !cabinetLoading;
@@ -199,6 +253,12 @@ export function AdminOverviewTab({
 
   const serviceCount = draft.services?.length ?? 0;
 
+  const reputationAlertCount = useMemo(() => {
+    const fromNotifications = countReviewNotificationsNeedingReply(notifications);
+    const fromReputation = reputation.unansweredReviews ?? 0;
+    return Math.max(fromNotifications, fromReputation);
+  }, [notifications, reputation.unansweredReviews]);
+
   const panel = useMemo(
     () => (
       <OverviewPanelContent
@@ -225,12 +285,19 @@ export function AdminOverviewTab({
           if (summary.nearest) onOpenAppointment(summary.nearest);
         }}
         refreshReputation={refreshReputation}
+        ops={ops}
+        opsLoading={opsLoading}
+        slotsLoadError={slotsLoadError}
+        profileCompletionPercent={profileCompletionPercent}
+        profileComplete={profileComplete}
+        onOpenAppointmentId={onOpenAppointmentId}
+        publicationStatus={publicationStatus}
+        onPersistDraft={onPersistDraft}
       />
     ),
     [
       activeTab,
       proAnalyticsLocked,
-      overviewReady,
       awaitingSubscription,
       appointmentsPath,
       appointments,
@@ -240,7 +307,13 @@ export function AdminOverviewTab({
       error,
       loading,
       onOpenAppointment,
+      onOpenAppointmentId,
+      ops,
+      opsLoading,
+      slotsLoadError,
       periodPreset,
+      profileComplete,
+      profileCompletionPercent,
       setPeriodPreset,
       reportRange.end,
       reportRange.start,
@@ -250,6 +323,8 @@ export function AdminOverviewTab({
       serviceCount,
       summary,
       useCabinetApi,
+      onPersistDraft,
+      appointments,
     ],
   );
 
@@ -266,12 +341,22 @@ export function AdminOverviewTab({
           {panel}
         </AdminTabContentTransition>
       </section>
-      <OverviewAnalyticsTabBar variant="mobile" active={activeTab} onChange={setActiveTab} />
+      <OverviewAnalyticsTabBar
+        variant="mobile"
+        active={activeTab}
+        onChange={setActiveTab}
+        reputationAlertCount={reputationAlertCount}
+      />
 
       {/* Desktop: как кабинет мастера — серое полотно, белые/серые блоки без ring */}
       <div className={`${overviewShellCard} space-y-6`}>
         <div className={`${overviewDesktopCard} ${overviewDesktopTabsSticky}`}>
-          <OverviewAnalyticsTabBar variant="desktop" active={activeTab} onChange={setActiveTab} />
+          <OverviewAnalyticsTabBar
+            variant="desktop"
+            active={activeTab}
+            onChange={setActiveTab}
+            reputationAlertCount={reputationAlertCount}
+          />
         </div>
         <OverviewPeriodFilter value={periodPreset} onChange={setPeriodPreset} />
         <AdminTabContentTransition activeKey={transitionKey} className="min-w-0 space-y-6">

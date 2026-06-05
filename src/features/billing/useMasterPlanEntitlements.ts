@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
-import type { MasterSubscriptionDto } from '../admin/api/adminBillingApi';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAdminMasterCabinet } from '../../pages/admin/AdminMasterCabinetContext';
+import { isDevDemoAllowed } from '../../shared/lib/appMode';
+import { getMyMasterEntitlements, type MasterEntitlementsDto } from './api/masterEntitlementsApi';
 import type { PlanId, PlanLimits } from './model/masterPlans';
 import {
   canCreateMoreAppointments,
@@ -11,28 +12,71 @@ import {
   isFreeServiceLimitReached as isFreeServiceLimitReachedLocal,
 } from './model/masterPlans';
 
-function planIdFromSubscription(sub: MasterSubscriptionDto | null): PlanId {
-  if (!sub) return getCurrentMasterPlan().plan;
-  return sub.plan.code === 'pro' ? 'pro' : 'free';
-}
-
-function limitsFromSubscription(sub: MasterSubscriptionDto | null, planId: PlanId): PlanLimits {
-  if (!sub) return getPlanLimits(planId);
+function limitsFromEntitlements(ent: MasterEntitlementsDto): PlanLimits {
   return {
-    maxServices: sub.plan.maxServices,
-    maxMonthlyAppointments: sub.plan.maxMonthlyAppointments,
-    scheduleHorizonDays: sub.plan.maxScheduleDaysAhead,
+    maxServices: ent.limits.maxServices,
+    maxMonthlyAppointments: ent.limits.maxMonthlyAppointments,
+    scheduleHorizonDays: ent.limits.scheduleHorizonDays,
   };
 }
 
-/** Лимиты и счётчики тарифа: с API в кабинете мастера, иначе localStorage/demo. */
+/** Entitlements с API — единственный источник прав в live mode. */
+export function useMasterEntitlements(): {
+  entitlements: MasterEntitlementsDto | null;
+  loading: boolean;
+  refresh: () => Promise<void>;
+} {
+  const { useCabinetApi, subscription } = useAdminMasterCabinet();
+  const [entitlements, setEntitlements] = useState<MasterEntitlementsDto | null>(null);
+  const [loading, setLoading] = useState(useCabinetApi);
+
+  const refresh = useCallback(async () => {
+    if (!useCabinetApi) {
+      setEntitlements(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      setEntitlements(await getMyMasterEntitlements());
+    } catch {
+      setEntitlements(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [useCabinetApi]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh, subscription?.status, subscription?.currentPeriodEnd]);
+
+  return { entitlements, loading, refresh };
+}
+
+/** Лимиты и счётчики тарифа: entitlements API в кабинете, localStorage только в dev demo. */
 export function useMasterPlanEntitlements() {
-  const { useCabinetApi, subscription, draft, appointments } = useAdminMasterCabinet();
+  const { useCabinetApi, subscription, draft, appointments, cabinetLoading } = useAdminMasterCabinet();
+  const { entitlements, loading: entitlementsLoading } = useMasterEntitlements();
 
   return useMemo(() => {
-    const localPlan = getCurrentMasterPlan();
-    const planId: PlanId = useCabinetApi && subscription ? planIdFromSubscription(subscription) : localPlan.plan;
-    const limits = useCabinetApi && subscription ? limitsFromSubscription(subscription, planId) : getPlanLimits(planId);
+    const demoPlanAllowed = isDevDemoAllowed();
+    const localPlan =
+      demoPlanAllowed && !useCabinetApi
+        ? getCurrentMasterPlan()
+        : { plan: 'free' as PlanId, billingPeriod: 'month' as const, updatedAt: '' };
+
+    const subscriptionPending =
+      useCabinetApi && (cabinetLoading || entitlementsLoading) && entitlements == null;
+
+    const planId: PlanId =
+      useCabinetApi && entitlements
+        ? entitlements.isProEntitled
+          ? 'pro'
+          : 'free'
+        : localPlan.plan;
+
+    const limits: PlanLimits =
+      useCabinetApi && entitlements ? limitsFromEntitlements(entitlements) : getPlanLimits(planId);
 
     const servicesCount =
       useCabinetApi && subscription ? subscription.usage.activeServices : draft.services.length;
@@ -58,23 +102,40 @@ export function useMasterPlanEntitlements() {
 
     return {
       planId,
-      billingPeriod: useCabinetApi && subscription
-        ? (subscription.billingPeriod === 'year' ? 'year' : 'month')
-        : localPlan.billingPeriod,
+      effectivePlan: entitlements?.effectivePlan ?? (planId === 'pro' ? 'pro' : 'free'),
+      isProEntitled: entitlements?.isProEntitled ?? planId === 'pro',
+      entitlements,
+      entitlementsLoading,
+      subscriptionPending,
+      billingPeriod:
+        useCabinetApi && subscription
+          ? subscription.billingPeriod === 'year'
+            ? 'year'
+            : 'month'
+          : localPlan.billingPeriod,
       limits,
       servicesCount,
       monthlyAppointments,
-      canUseBundlesAndPromotions: planId === 'pro',
+      canUseBundlesAndPromotions: entitlements?.features.bundlesAndPromotions ?? planId === 'pro',
+      canUseAdvancedAnalytics: entitlements?.features.advancedAnalytics ?? planId === 'pro',
+      canUseDataExport: entitlements?.features.dataExport ?? planId === 'pro',
       freeServiceLimitReached,
       freeAppointmentLimitReached,
       freeAppointmentLimitAlmostReached,
-      /** @deprecated prefer freeServiceLimitReached in API mode */
       isFreeServiceLimitReached: (count: number) =>
-        useCabinetApi && subscription ? freeServiceLimitReached : isFreeServiceLimitReachedLocal(count),
+        useCabinetApi && entitlements ? freeServiceLimitReached : isFreeServiceLimitReachedLocal(count),
       isFreeAppointmentLimitReached: (count: number) =>
-        useCabinetApi && subscription
+        useCabinetApi && entitlements
           ? planId === 'free' && !canCreateMoreAppointments('free', count)
           : isFreeAppointmentLimitReachedLocal(count),
     };
-  }, [appointments, draft.services.length, subscription, useCabinetApi]);
+  }, [
+    appointments,
+    cabinetLoading,
+    draft.services.length,
+    entitlements,
+    entitlementsLoading,
+    subscription,
+    useCabinetApi,
+  ]);
 }

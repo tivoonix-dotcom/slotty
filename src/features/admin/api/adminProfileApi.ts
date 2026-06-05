@@ -27,6 +27,7 @@ export type StructuredBookingRulesDto = {
   rescheduleBeforeMinutes: number;
   rescheduleLimit: number | null;
   paymentMethods: string[];
+  preferredBankIds: string[];
   paymentComment: string | null;
   prepaymentRequired: boolean;
   refundPolicyEnabled: boolean;

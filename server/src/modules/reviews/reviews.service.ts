@@ -5,6 +5,8 @@ import { ApiError } from '../../utils/ApiError.js';
 import { canClientLeaveReview, normalizeDbStatus } from '../../lib/appointmentStatus.js';
 import { insertBookingEvent } from '../appointments/bookingEvents.service.js';
 import { getOpenDisputeForAppointment } from '../appointments/bookingDisputes.service.js';
+import { buildBookingNotificationMetadataForAppointment } from '../appointments/appointmentNotifySnapshot.js';
+import { formatAppointmentDateTime } from '../telegram/formatAppointmentDateTime.js';
 
 export type CreateReviewInput = {
   appointmentId: string;
@@ -56,9 +58,16 @@ export async function createReviewForCompletedAppointment(
     throw ApiError.conflict('Вы уже оставили отзыв к этой записи', 'REVIEW_EXISTS');
   }
 
+  if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) {
+    throw ApiError.badRequest('Поставьте оценку', 'REVIEW_RATING_REQUIRED');
+  }
+
   const body = input.body.trim();
   if (body.length < 1) {
-    throw ApiError.badRequest('Текст отзыва обязателен', 'REVIEW_BODY_REQUIRED');
+    throw ApiError.badRequest('Напишите текст отзыва', 'REVIEW_BODY_REQUIRED');
+  }
+  if (body.length < 10) {
+    throw ApiError.badRequest('Напишите не менее 10 символов', 'REVIEW_BODY_TOO_SHORT');
   }
 
   const ins = await query<{ id: string }>(
@@ -82,14 +91,61 @@ export async function createReviewForCompletedAppointment(
     metadata: { reviewId, rating: input.rating },
   });
 
+  const bookingMeta = await buildBookingNotificationMetadataForAppointment(input.appointmentId);
+  const clientName = bookingMeta?.clientName?.trim() || 'Клиент';
+  const serviceName = bookingMeta?.serviceName?.trim() || 'Услуга';
+  const whenPlain = bookingMeta?.startsAt
+    ? (() => {
+        const { date, time } = formatAppointmentDateTime(bookingMeta.startsAt);
+        return `${date}, ${time}`;
+      })()
+    : null;
+
+  const notifyBody = [
+    `Клиент: ${clientName}`,
+    `Услуга: ${serviceName}`,
+    whenPlain ? `Когда: ${whenPlain}` : null,
+    `Оценка: ${input.rating}★`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const metadata = {
+    bookingId: input.appointmentId,
+    bookingCode: bookingMeta?.bookingCode ?? null,
+    clientName: bookingMeta?.clientName ?? clientName,
+    clientPhone: bookingMeta?.clientPhone ?? null,
+    serviceName: bookingMeta?.serviceName ?? serviceName,
+    serviceCategory: bookingMeta?.serviceCategory ?? null,
+    servicePrice: bookingMeta?.servicePrice ?? null,
+    serviceDurationMinutes: bookingMeta?.serviceDurationMinutes ?? null,
+    startsAt: bookingMeta?.startsAt ?? null,
+    endsAt: bookingMeta?.endsAt ?? null,
+    address: bookingMeta?.address ?? null,
+    format: bookingMeta?.format ?? null,
+    bookingStatus: bookingMeta?.bookingStatus ?? 'completed',
+    source: bookingMeta?.source ?? null,
+    reviewId,
+    reviewRating: input.rating,
+    reviewBody: body,
+    needsMasterReply: true,
+  };
+
   await notifyUser({
     userId: appt.master_id,
     type: 'system',
     title: 'Новый отзыв',
-    body: `Клиент оставил отзыв (${input.rating}★) после визита.`,
+    body: notifyBody,
     relatedEntityType: 'review',
     relatedEntityId: reviewId,
-    telegramHtml: `<b>Новый отзыв</b>\nКлиент поставил ${input.rating}★ и оставил отзыв.`,
+    metadata,
+    bookingCode: bookingMeta?.bookingCode ?? undefined,
+    telegramHtml:
+      `<b>Новый отзыв</b>\n` +
+      `Клиент: <b>${clientName}</b>\n` +
+      `Услуга: ${serviceName}\n` +
+      (whenPlain ? `Визит: ${whenPlain}\n` : '') +
+      `Оценка: ${input.rating}★`,
     masterPreferenceEvent: 'reviews',
   });
 

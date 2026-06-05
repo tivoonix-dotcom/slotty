@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import {
   HiArrowPath,
   HiBriefcase,
@@ -69,7 +69,7 @@ function KindCard({
         type="button"
         onClick={onClick}
         className={`flex w-full items-center gap-3 rounded-[10px] px-3.5 py-3 text-left transition active:scale-[0.99] ${
-          selected ? 'bg-[#F47C8C] text-white' : 'bg-[#EBEBEB] text-[#111827] hover:bg-[#E4E4E4]'
+          selected ? 'bg-[#3B4CCA] text-white' : 'bg-[#EBEBEB] text-[#111827] hover:bg-[#E4E4E4]'
         }`}
       >
         <span
@@ -102,14 +102,14 @@ function KindCard({
       onClick={onClick}
       className={`flex w-full items-start gap-3 rounded-[18px] border px-4 py-3.5 text-left transition active:scale-[0.99] ${
         selected
-          ? 'border-[#F9A8B4] bg-gradient-to-br from-[#FFF9FB] to-white shadow-[0_8px_24px_rgba(255,95,122,0.12)] ring-2 ring-[#FFF1F4]'
-          : 'border-[#EAECEF] bg-white hover:border-[#FDE8ED] hover:bg-[#FFFBFC]'
+          ? 'border-[#A8B0E8] bg-gradient-to-br from-[#F5F6FD] to-white shadow-[0_8px_24px_rgba(59,76,202,0.12)] ring-2 ring-[#EEF0FC]'
+          : 'border-[#EAECEF] bg-white hover:border-[#D8DCF5] hover:bg-[#F4F5FD]'
       }`}
     >
       <span
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${
           selected
-            ? 'bg-gradient-to-br from-[#ff6f88] to-[#ff5f7a] text-white shadow-[0_8px_20px_rgba(255,95,122,0.28)]'
+            ? 'bg-gradient-to-br from-[#4558D4] to-[#3B4CCA] text-white shadow-[0_8px_20px_rgba(59,76,202,0.28)]'
             : 'bg-[#f6f7fb] text-[#9CA3AF]'
         }`}
       >
@@ -119,7 +119,7 @@ function KindCard({
         <span className="flex items-center gap-2">
           <span className="text-[15px] font-black text-[#111827]">{label}</span>
           {selected ? (
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#ff5f7a] text-white">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#3B4CCA] text-white">
               <HiCheck className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
             </span>
           ) : null}
@@ -208,7 +208,7 @@ export function RepeatSettings({ value, onChange, dateIso = '', cabinet }: Props
           className={
             cabinet
               ? 'space-y-4 rounded-[10px] bg-[#EBEBEB] p-4'
-              : 'space-y-4 rounded-[20px] border border-[#FDE8ED] bg-[#f6f7fb] p-4'
+              : 'space-y-4 rounded-[20px] border border-[#D8DCF5] bg-[#f6f7fb] p-4'
           }
         >
           {value.kind === 'weekly' ? (
@@ -289,11 +289,11 @@ export function RepeatSettings({ value, onChange, dateIso = '', cabinet }: Props
                         className={`min-h-[2.75rem] min-w-[2.75rem] rounded-[10px] px-3 text-[14px] font-bold transition active:scale-[0.97] ${
                           on
                             ? cabinet
-                              ? 'bg-[#F47C8C] text-white'
-                              : 'bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] text-white shadow-[0_6px_18px_rgba(255,95,122,0.28)]'
+                              ? 'bg-[#3B4CCA] text-white'
+                              : 'bg-gradient-to-r from-[#4558D4] to-[#3B4CCA] text-white shadow-[0_6px_18px_rgba(59,76,202,0.28)]'
                             : cabinet
                               ? 'bg-white text-[#6B7280] ring-1 ring-[#EEEEEE] hover:bg-[#F5F5F5]'
-                              : 'border border-[#EAECEF] bg-white text-[#6B7280] hover:border-[#FDE8ED] hover:text-[#ff5f7a]'
+                              : 'border border-[#EAECEF] bg-white text-[#6B7280] hover:border-[#D8DCF5] hover:text-[#3B4CCA]'
                         }`}
                         aria-pressed={on}
                       >
@@ -332,7 +332,7 @@ export function RepeatSettings({ value, onChange, dateIso = '', cabinet }: Props
                 className={
                   cabinet
                     ? 'text-[13px] font-semibold text-[#111827] underline decoration-[#D1D5DB] underline-offset-2'
-                    : 'text-[13px] font-bold text-[#ff5f7a]'
+                    : 'text-[13px] font-bold text-[#3B4CCA]'
                 }
                 onClick={() =>
                   onChange(patchRepeatSettings(value, { pickWeekdayMask: [...DEFAULT_WEEKDAY_MASK] }))
@@ -355,7 +355,7 @@ export function RepeatSettings({ value, onChange, dateIso = '', cabinet }: Props
             ? 'rounded-[10px] bg-[#EBEBEB] px-4 py-3'
             : `rounded-[16px] px-4 py-3 ${
                 seriesMode && dateCount > 0
-                  ? 'bg-[#FFF1F4] ring-1 ring-[#FDE8ED]'
+                  ? 'bg-[#EEF0FC] ring-1 ring-[#D8DCF5]'
                   : 'bg-white ring-1 ring-[#EAECEF]'
               }`
         }
@@ -366,7 +366,7 @@ export function RepeatSettings({ value, onChange, dateIso = '', cabinet }: Props
             cabinet
               ? 'text-[#111827]'
               : seriesMode && dateCount > 0
-                ? 'text-[#ff5f7a]'
+                ? 'text-[#3B4CCA]'
                 : 'text-[#374151]'
           }`}
         >

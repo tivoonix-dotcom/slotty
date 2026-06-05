@@ -2,7 +2,7 @@ import type { AppointmentNotifyContext } from '../appointments/appointmentNotify
 import {
   clientAppointmentsUrl,
   clientBookingDeepLink,
-  masterBookingDeepLink,
+  masterAdminAppointmentsUrl,
   masterPendingAppointmentsUrl,
   masterScheduleUrl,
 } from './appointmentNotifyLinks.js';
@@ -16,15 +16,13 @@ function bookingCode(ctx: AppointmentNotifyContext): string | null {
   return code && /^SL-[A-Z0-9]{12}$/i.test(code) ? code.toUpperCase() : null;
 }
 
-function openBookingRow(
+function openClientBookingRow(
   label: string,
-  role: 'client' | 'master',
   ctx: AppointmentNotifyContext,
 ): Array<{ text: string; web_app: { url: string } }> | null {
   const code = bookingCode(ctx);
   if (!code) return null;
-  const url = role === 'client' ? clientBookingDeepLink(code) : masterBookingDeepLink(code);
-  return [{ text: label, web_app: { url } }];
+  return [{ text: label, web_app: { url: clientBookingDeepLink(code) } }];
 }
 
 /** Клиент: deep link на конкретную запись. */
@@ -33,7 +31,7 @@ export function clientBookingTelegramKeyboard(
   opts?: { allowCancel?: boolean; mapsUrl?: string | null },
 ): TelegramReplyMarkup {
   const rows: TelegramReplyMarkup['inline_keyboard'] = [];
-  const open = openBookingRow('Открыть запись', 'client', ctx);
+  const open = openClientBookingRow('Открыть запись', ctx);
   const code = bookingCode(ctx);
   if (open) {
     rows.push(open);
@@ -49,12 +47,17 @@ export function clientBookingTelegramKeyboard(
   return { inline_keyboard: rows };
 }
 
-/** Мастер: запись, расписание, звонок клиенту. */
+/** Мастер: заявки в кабинете, расписание, звонок клиенту. */
 export function masterBookingTelegramKeyboard(ctx: AppointmentNotifyContext): TelegramReplyMarkup {
   const rows: TelegramReplyMarkup['inline_keyboard'] = [];
-  const open = openBookingRow('Открыть запись', 'master', ctx);
-  if (open) rows.push(open);
-  else rows.push([{ text: 'Открыть заявки', web_app: { url: masterPendingAppointmentsUrl() } }]);
+  rows.push([
+    {
+      text: 'К заявкам',
+      web_app: {
+        url: masterAdminAppointmentsUrl({ focusAppointmentId: ctx.appointmentId }),
+      },
+    },
+  ]);
   rows.push([{ text: 'Расписание', web_app: { url: masterScheduleUrl() } }]);
   const phone = ctx.clientPhone?.trim();
   if (phone) {

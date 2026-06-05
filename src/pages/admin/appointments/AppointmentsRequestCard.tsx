@@ -12,17 +12,29 @@ import {
   apptTimeStrip,
   apptTimeStripNew,
 } from './adminAppointmentsTheme';
-import { AppointmentsClientAvatar } from './AppointmentsClientAvatar';
+import { AppointmentsClientSummary } from './AppointmentsClientSummary';
 import { formatAppointmentPrice, formatCardDateTime } from './appointmentsFormat';
+import { AppointmentsCardDetailFooter } from './AppointmentsCardDetailFooter';
+import { PendingDeadlineHint, isPendingConfirmDisabled } from './PendingDeadlineHint';
 
 type Props = {
   appointment: DemoMasterAppointment;
   onConfirm: () => void;
   onReject: () => void;
+  onOpenDetail: () => void;
 };
 
-export function AppointmentsRequestCard({ appointment, onConfirm, onReject }: Props) {
+export function AppointmentsRequestCard({
+  appointment,
+  onConfirm,
+  onReject,
+  onOpenDetail,
+}: Props) {
   const dateTime = formatCardDateTime(appointment.date, appointment.time);
+  const confirmDisabled = isPendingConfirmDisabled(
+    appointment.dbStatus ?? appointment.status,
+    appointment.pendingExpiresAt,
+  );
 
   return (
     <article className={apptCardShell}>
@@ -36,18 +48,14 @@ export function AppointmentsRequestCard({ appointment, onConfirm, onReject }: Pr
         </div>
 
         <div className="min-w-0 flex-1 p-3.5 sm:p-4">
-          <div className="flex items-start gap-3">
-            <AppointmentsClientAvatar name={appointment.clientName} />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <p className="truncate text-[16px] font-bold tracking-[-0.02em] text-[#111827]">
-                  {appointment.clientName}
-                </p>
-                <span className={`shrink-0 lg:hidden ${apptBadgeNew}`}>Новая</span>
-              </div>
-              <p className="mt-1 line-clamp-2 text-[14px] font-medium leading-snug text-[#6B7280]">
+          <AppointmentsClientSummary appointment={appointment} compact />
+          <div className="mt-3">
+            <div className="flex items-start justify-between gap-2">
+              <p className="line-clamp-2 text-[14px] font-medium leading-snug text-[#6B7280]">
                 {appointment.serviceTitle}
               </p>
+              <span className={`shrink-0 lg:hidden ${apptBadgeNew}`}>Новая</span>
+            </div>
               {appointment.clientReferencePhotoUrl ? (
                 <p className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-semibold text-[#F47C8C]">
                   <HiPhoto className="h-3.5 w-3.5" aria-hidden />
@@ -58,7 +66,7 @@ export function AppointmentsRequestCard({ appointment, onConfirm, onReject }: Pr
               <p className={`mt-2 text-[16px] ${apptPriceText}`}>
                 {formatAppointmentPrice(appointment.priceByn)}
               </p>
-            </div>
+              <PendingDeadlineHint pendingExpiresAt={appointment.pendingExpiresAt} className="mt-2" />
           </div>
         </div>
       </div>
@@ -68,11 +76,17 @@ export function AppointmentsRequestCard({ appointment, onConfirm, onReject }: Pr
           <HiXMark className="h-4 w-4" aria-hidden />
           Отклонить
         </button>
-        <button type="button" onClick={onConfirm} className={apptPinkBtn}>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={confirmDisabled}
+          className={`${apptPinkBtn} disabled:opacity-50`}
+        >
           <HiCheck className="h-4 w-4" aria-hidden />
           Подтвердить
         </button>
       </div>
+      <AppointmentsCardDetailFooter onClick={onOpenDetail} />
     </article>
   );
 }

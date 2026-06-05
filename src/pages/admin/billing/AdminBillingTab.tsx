@@ -36,6 +36,8 @@ import { BillingMobileHeader } from './BillingMobileHeader';
 import { BillingPlansSection } from './BillingPlansSection';
 import { getProManualPaymentState } from '../../../features/billing/api/proPaymentRequestApi';
 import { isDevDemoAllowed } from '../../../shared/lib/appMode';
+import { useMasterPlanEntitlements } from '../../../features/billing/useMasterPlanEntitlements';
+import { BillingTrialStatusCard } from '../../../features/billing/BillingTrialStatusCard';
 import { PAYMENT_SUCCESS_PATH } from '../../../app/paths';
 import { readPublicAppOrigin } from '../../../shared/lib/masterBookingLink';
 import {
@@ -47,7 +49,7 @@ import {
   BILLING_PAGE_BG,
 } from './adminBillingTheme';
 import { BillingSubscriptionStatusPanel } from './BillingSubscriptionStatusPanel';
-import { BillingPaymentHistory } from './BillingPaymentHistory';
+import { BillingPaymentHistorySheet } from './BillingPaymentHistorySheet';
 import { BillingPaymentDetailSheet } from './BillingPaymentDetailSheet';
 import { ProSubscriptionConsentModal } from './ProSubscriptionConsentModal';
 
@@ -73,6 +75,7 @@ function splitPlanPrice(line: string): { value: string; unit: string } {
 export function AdminBillingTab() {
   const { useCabinetApi, subscription, applySubscription, cabinetLoading, refreshSubscription } =
     useAdminMasterCabinet();
+  const { entitlements, limits: entitlementsLimits } = useMasterPlanEntitlements();
 
   const [planState, setPlanState] = useState<MasterPlanState>(() => getCurrentMasterPlan());
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(() => getCurrentMasterPlan().billingPeriod);
@@ -138,7 +141,8 @@ export function AdminBillingTab() {
   const apiSub = subscription;
   const useLiveBilling = Boolean(useCabinetApi && apiSub);
   const uiState = billingDetail?.uiState;
-  const isProEntitled = billingDetail?.isProEntitled ?? apiSub?.plan.code === 'pro';
+  const isProEntitled =
+    useCabinetApi && entitlements ? entitlements.isProEntitled : (billingDetail?.isProEntitled ?? false);
 
   const appointments = useMemo(() => ensureDemoAppointmentsSeeded(), []);
   const monthlyCountDemo = useMemo(() => countAppointmentsInCurrentMonth(appointments), [appointments]);
@@ -172,11 +176,17 @@ export function AdminBillingTab() {
     };
   }, [useLiveBilling, billingPeriodView, consentOpen, subscription?.plan.code]);
 
-  const limits = useLiveBilling && apiSub
+  const limits = useLiveBilling && entitlements
+    ? {
+        maxServices: entitlements.limits.maxServices,
+        maxMonthlyAppointments: entitlements.limits.maxMonthlyAppointments,
+        scheduleHorizonDays: entitlements.limits.scheduleHorizonDays,
+      }
+    : useLiveBilling && apiSub
     ? {
         maxServices: apiSub.plan.maxServices,
         maxMonthlyAppointments: apiSub.plan.maxMonthlyAppointments,
-        scheduleHorizonDays: apiSub.plan.maxScheduleDaysAhead,
+        scheduleHorizonDays: entitlementsLimits.scheduleHorizonDays,
       }
     : getPlanLimits(planStateView.plan);
 
@@ -325,7 +335,7 @@ export function AdminBillingTab() {
 
   const maxSvc = Math.max(1, limits.maxServices ?? 3);
   const maxAppt = Math.max(1, limits.maxMonthlyAppointments ?? 20);
-  const isPro = planStateView.plan === 'pro';
+  const isPro = isProEntitled || planStateView.plan === 'pro';
   const servicesHeroLabel = isPro ? '∞' : `${servicesLen}/${maxSvc}`;
   const appointmentsHeroLabel = isPro ? '∞' : `${monthlyCount}/${maxAppt}`;
 
@@ -458,16 +468,10 @@ export function AdminBillingTab() {
         {statusBanners}
         {!apiLoading && !(useCabinetApi && cabinetLoading) ? (
           <>
+            <BillingTrialStatusCard entitlements={entitlements} uiState={uiState ?? 'free'} />
             {subscriptionPanel}
             {demoNote}
             <div className="lg:hidden">{plansSection}</div>
-            {showHistory ? (
-              <BillingPaymentHistory
-                payments={payments}
-                loading={paymentsLoading}
-                onView={(p) => setSelectedPayment(p)}
-              />
-            ) : null}
           </>
         ) : null}
       </section>
@@ -485,19 +489,21 @@ export function AdminBillingTab() {
           {statusBanners}
           {!apiLoading && !(useCabinetApi && cabinetLoading) ? (
             <div className="hidden w-full min-w-0 space-y-4 lg:block">
+              <BillingTrialStatusCard entitlements={entitlements} uiState={uiState ?? 'free'} />
               {subscriptionPanel}
               {plansSection}
-              {showHistory ? (
-                <BillingPaymentHistory
-                  payments={payments}
-                  loading={paymentsLoading}
-                  onView={(p) => setSelectedPayment(p)}
-                />
-              ) : null}
             </div>
           ) : null}
         </div>
       </div>
+
+      <BillingPaymentHistorySheet
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        payments={payments}
+        loading={paymentsLoading}
+        onView={(p) => setSelectedPayment(p)}
+      />
 
       <ProSubscriptionConsentModal
         open={consentOpen && useLiveBilling}

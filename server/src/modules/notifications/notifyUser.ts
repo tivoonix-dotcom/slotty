@@ -2,6 +2,7 @@ import { sendSlottyEmailDetailed } from '../auth/email/resendMail.js';
 import { isResendConfigured, resolveResendFrom } from '../email/emailConfig.js';
 import { resolveAccountEmail } from '../profiles/profiles.service.js';
 import { insertUserNotification, type NotificationType } from './notificationsInsert.js';
+import type { BookingNotificationMetadata } from './bookingNotificationMetadata.js';
 import { logNotificationDelivery } from './notificationDeliveriesInsert.js';
 import { sendNotificationToProfile } from '../telegram/telegramProfileNotifications.js';
 import type { SendTelegramMessageResult } from '../telegram/telegram.service.js';
@@ -30,6 +31,7 @@ export type NotifyUserParams = {
   telegramReplyMarkup?: Record<string, unknown>;
   email?: NotifyUserEmail;
   bookingCode?: string | null;
+  metadata?: BookingNotificationMetadata | null;
   /** Если задано — применяются master notification preferences (только для мастера). */
   masterPreferenceEvent?: MasterNotificationEventKey | null;
 };
@@ -203,6 +205,7 @@ export async function deliverInAppAndTelegram(
       body: params.body,
       relatedEntityType: params.relatedEntityType,
       relatedEntityId: params.relatedEntityId,
+      metadata: params.metadata ?? null,
     });
   } else if (event) {
     await logPreferenceDisabledDelivery({
@@ -266,6 +269,7 @@ export async function notifyUser(params: NotifyUserParams): Promise<void> {
       body: params.body,
       relatedEntityType: params.relatedEntityType,
       relatedEntityId: params.relatedEntityId,
+      metadata: params.metadata ?? null,
     });
   } else if (event) {
     await logPreferenceDisabledDelivery({

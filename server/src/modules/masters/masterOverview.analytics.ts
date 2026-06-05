@@ -6,17 +6,29 @@ import {
   overviewChartWindow,
   previousOverviewReportPeriod,
 } from './masterOverview.dateUtils.js';
+import {
+  buildClientAnalyticsSnapshot,
+  type ClientAnalyticsRosterItem,
+  type ClientDayStat,
+} from '../../lib/clientAnalyticsCore.js';
 
 export type OverviewPeriodPreset = 'today' | 'week' | 'month' | 'all';
 
 export type OverviewAppointmentRow = {
   id: string;
+  clientId: string;
+  /** @deprecated Используйте clientDisplayName */
   clientName: string;
+  clientDisplayName: string;
+  clientPhone: string | null;
+  clientEmail: string | null;
+  clientKey: string;
   serviceTitle: string;
   date: string;
   time: string;
   priceByn: number;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  dbStatus: string;
 };
 
 export type OverviewDayStat = {
@@ -29,6 +41,7 @@ export type MasterOverviewReviewRow = {
   id: string;
   author: string;
   authorInitial: string;
+  authorAvatarUrl?: string | null;
   dateIso: string;
   rating: number;
   text: string;
@@ -37,10 +50,6 @@ export type MasterOverviewReviewRow = {
 };
 
 export type RatingDayStat = { date: string; averageRating: number };
-
-function normalizeClient(name: string): string {
-  return name.trim().toLowerCase();
-}
 
 function percentDelta(current: number, previous: number): number | null {
   if (previous <= 0) return current > 0 ? 100 : null;
@@ -65,12 +74,11 @@ export function resolveOverviewPeriodRange(
   const end = isoDateLocal(new Date());
   if (preset === 'today') return { start: end, end };
   if (preset === 'week') return { start: isoDateLocal(addDays(new Date(), -6)), end };
-  if (preset === 'month') return { start: isoDateLocal(addDays(new Date(), -29)), end };
+  if (preset === 'month') {
+    const now = new Date();
+    return { start: isoDateLocal(new Date(now.getFullYear(), now.getMonth(), 1)), end };
+  }
   return overviewAppointmentBounds(appointments);
-}
-
-function isClientVisitRow(r: OverviewAppointmentRow): boolean {
-  return r.status === 'completed' || r.status === 'confirmed';
 }
 
 function sumCompletedRevenueBetween(rows: OverviewAppointmentRow[], startIso: string, endIso: string): number {
@@ -221,134 +229,32 @@ export function computeOverviewRevenue(
   };
 }
 
-export type ClientDayStat = {
-  date: string;
-  newClients: number;
-  repeatClients: number;
-};
+export type { ClientDayStat } from '../../lib/clientAnalyticsCore.js';
 
-function aggregateClientsPerDay(
-  appointments: OverviewAppointmentRow[],
-  chartStart: string,
-  chartEnd: string,
-): ClientDayStat[] {
-  const visits = appointments.filter(isClientVisitRow);
-  const firstCompletedByClient = new Map<string, string>();
-
-  for (const row of visits) {
-    const key = normalizeClient(row.clientName);
-    const cur = firstCompletedByClient.get(key);
-    if (!cur || row.date < cur) firstCompletedByClient.set(key, row.date);
-  }
-
-  return listIsoDatesInclusive(chartStart, chartEnd).map((date) => {
-    const dayRows = visits.filter((r) => r.date === date);
-    const seen = new Set<string>();
-    let newClients = 0;
-    let repeatClients = 0;
-
-    for (const row of dayRows) {
-      const key = normalizeClient(row.clientName);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      if (firstCompletedByClient.get(key) === date) newClients += 1;
-      else repeatClients += 1;
-    }
-
-    return { date, newClients, repeatClients };
-  });
-}
-
-type OverviewClientCounts = {
-  newClients: number;
-  repeatClients: number;
-  totalClients: number;
-};
-
-function clientCountsInPeriod(
-  appointments: OverviewAppointmentRow[],
-  start: string,
-  end: string,
-): OverviewClientCounts {
-  const completedInRange = appointments.filter(
-    (r) => isClientVisitRow(r) && r.date >= start && r.date <= end,
-  );
-  const hadBefore = new Set(
-    appointments
-      .filter((r) => isClientVisitRow(r) && r.date < start)
-      .map((r) => normalizeClient(r.clientName)),
-  );
-
-  const byClient = new Map<string, boolean>();
-  for (const row of completedInRange) {
-    const key = normalizeClient(row.clientName);
-    if (!byClient.has(key)) byClient.set(key, hadBefore.has(key));
-  }
-
-  let repeatClients = 0;
-  let newClients = 0;
-  for (const isRepeat of byClient.values()) {
-    if (isRepeat) repeatClients += 1;
-    else newClients += 1;
-  }
-
+function toClientAnalyticsVisitRow(row: OverviewAppointmentRow) {
   return {
-    newClients,
-    repeatClients,
-    totalClients: byClient.size,
+    appointmentId: row.id,
+    clientKey: row.clientKey,
+    clientId: row.clientId,
+    displayName: row.clientDisplayName,
+    phone: row.clientPhone,
+    email: row.clientEmail,
+    serviceTitle: row.serviceTitle,
+    visitDate: row.date,
+    dbStatus: row.dbStatus,
+    unstableClientKey: row.clientKey.startsWith('appt:'),
   };
 }
 
-export type OverviewClientRosterItem = {
-  key: string;
-  name: string;
-  visits: number;
-  isRepeat: boolean;
-  lastVisitDate: string;
-};
+export type OverviewClientRosterItem = ClientAnalyticsRosterItem;
 
-function buildClientRoster(
-  appointments: OverviewAppointmentRow[],
-  start: string,
-  end: string,
-): OverviewClientRosterItem[] {
-  const hadBefore = new Set(
-    appointments
-      .filter((r) => isClientVisitRow(r) && r.date < start)
-      .map((r) => normalizeClient(r.clientName)),
-  );
-  const inRange = appointments.filter(
-    (r) => isClientVisitRow(r) && r.date >= start && r.date <= end,
-  );
-  const byClient = new Map<string, { name: string; visits: number; lastDate: string }>();
-
-  for (const row of inRange) {
-    const key = normalizeClient(row.clientName);
-    const displayName = row.clientName.trim() || 'Клиент';
-    const cur = byClient.get(key);
-    if (!cur) {
-      byClient.set(key, { name: displayName, visits: 1, lastDate: row.date });
-      continue;
-    }
-    cur.visits += 1;
-    if (row.date > cur.lastDate) cur.lastDate = row.date;
-  }
-
-  return [...byClient.entries()]
-    .map(([key, v]) => ({
-      key,
-      name: v.name,
-      visits: v.visits,
-      isRepeat: hadBefore.has(key),
-      lastVisitDate: v.lastDate,
-    }))
-    .sort(
-      (a, b) =>
-        b.lastVisitDate.localeCompare(a.lastVisitDate) || b.visits - a.visits || a.name.localeCompare(b.name),
-    );
-}
-
-export type OverviewClientsDto = OverviewClientCounts & {
+export type OverviewClientsDto = {
+  newClients: number;
+  newOnlyClients: number;
+  repeatClients: number;
+  returningClients: number;
+  totalClients: number;
+  returningRate: number;
   roster: OverviewClientRosterItem[];
   visitsPerDay: OverviewDayStat[];
   clientsPerDay: ClientDayStat[];
@@ -361,38 +267,54 @@ export type OverviewClientsDto = OverviewClientCounts & {
   periodEnd: string;
 };
 
+function clientCountsFromSnapshot(
+  appointments: OverviewAppointmentRow[],
+  start: string,
+  end: string,
+) {
+  const chartRange = overviewChartWindow(start, end, OVERVIEW_MAX_RANGE_DAYS);
+  const rows = appointments.map(toClientAnalyticsVisitRow);
+  return buildClientAnalyticsSnapshot(rows, start, end, chartRange.chartStart, chartRange.chartEnd);
+}
+
 export function computeOverviewClients(
   appointments: OverviewAppointmentRow[],
   start: string,
   end: string,
 ): OverviewClientsDto {
-  const { newClients, repeatClients, totalClients } = clientCountsInPeriod(appointments, start, end);
-  const prev = previousOverviewReportPeriod(start, end);
-  const prevCounts = prev
-    ? clientCountsInPeriod(appointments, prev.start, prev.end)
-    : { newClients: 0, repeatClients: 0, totalClients: 0 };
-
   const chartRange = overviewChartWindow(start, end, OVERVIEW_MAX_RANGE_DAYS);
+  const snapshot = clientCountsFromSnapshot(appointments, start, end);
+  const prev = previousOverviewReportPeriod(start, end);
+  const prevSnapshot = prev
+    ? clientCountsFromSnapshot(appointments, prev.start, prev.end)
+    : {
+        newClients: 0,
+        newOnlyClients: 0,
+        repeatClients: 0,
+        returningClients: 0,
+        totalClients: 0,
+        returningRate: 0,
+      };
+
   const visitsPerDay = aggregateOverviewByDay(appointments, chartRange.chartStart, chartRange.chartEnd);
-  const clientsPerDay = aggregateClientsPerDay(
-    appointments,
-    chartRange.chartStart,
-    chartRange.chartEnd,
-  );
 
   return {
-    newClients,
-    repeatClients,
-    totalClients,
-    roster: buildClientRoster(appointments, start, end),
-    newClientsDelta: newClients - prevCounts.newClients,
-    repeatClientsDelta: repeatClients - prevCounts.repeatClients,
-    totalClientsDelta: totalClients - prevCounts.totalClients,
+    newClients: snapshot.newClients,
+    newOnlyClients: snapshot.newOnlyClients,
+    repeatClients: snapshot.repeatClients,
+    returningClients: snapshot.returningClients,
+    totalClients: snapshot.totalClients,
+    returningRate: snapshot.returningRate,
+    roster: snapshot.roster,
+    newClientsDelta: snapshot.newClients - prevSnapshot.newClients,
+    repeatClientsDelta: snapshot.repeatClients - prevSnapshot.repeatClients,
+    totalClientsDelta: snapshot.totalClients - prevSnapshot.totalClients,
     visitsPerDay,
-    clientsPerDay,
+    clientsPerDay: snapshot.clientsPerDay,
     chartIsTruncated: chartRange.chartStart > start,
     hasData:
-      totalClients > 0 || clientsPerDay.some((d) => d.newClients > 0 || d.repeatClients > 0),
+      snapshot.totalClients > 0 ||
+      snapshot.clientsPerDay.some((d) => d.newClients > 0 || d.repeatClients > 0),
     periodStart: start,
     periodEnd: end,
   };
@@ -408,39 +330,50 @@ function averageRating(reviews: MasterOverviewReviewRow[]): number | null {
   return Math.round((sum / reviews.length) * 10) / 10;
 }
 
+function ratingDailyAverages(reviews: MasterOverviewReviewRow[]): RatingDayStat[] {
+  const ratingsByDate = new Map<string, number[]>();
+  for (const r of reviews) {
+    const list = ratingsByDate.get(r.dateIso) ?? [];
+    list.push(r.rating);
+    ratingsByDate.set(r.dateIso, list);
+  }
+  return [...ratingsByDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, ratings]) => {
+      const avg = ratings.reduce((s, n) => s + n, 0) / ratings.length;
+      return { date, averageRating: Math.round(avg * 10) / 10 };
+    });
+}
+
 function ratingSeriesByDay(
   reviews: MasterOverviewReviewRow[],
   chartStart: string,
   chartEnd: string,
 ): RatingDayStat[] {
+  const inWindow = reviews.filter((r) => r.dateIso >= chartStart && r.dateIso <= chartEnd);
+  const source = inWindow.length > 0 ? inWindow : reviews;
+
+  if (source.length <= 6) {
+    return ratingDailyAverages(source);
+  }
+
   const dates = listIsoDatesInclusive(chartStart, chartEnd);
-  const sorted = [...reviews].sort((a, b) => a.dateIso.localeCompare(b.dateIso));
   const ratingsByDate = new Map<string, number[]>();
-  sorted.forEach((r) => {
+  for (const r of source) {
     const list = ratingsByDate.get(r.dateIso) ?? [];
     list.push(r.rating);
     ratingsByDate.set(r.dateIso, list);
-  });
+  }
 
-  let runningSum = 0;
-  let runningCount = 0;
   const series: RatingDayStat[] = [];
+  for (const date of dates) {
+    const dayRatings = ratingsByDate.get(date);
+    if (!dayRatings?.length) continue;
+    const avg = dayRatings.reduce((s, n) => s + n, 0) / dayRatings.length;
+    series.push({ date, averageRating: Math.round(avg * 10) / 10 });
+  }
 
-  dates.forEach((date) => {
-    const dayRatings = ratingsByDate.get(date) ?? [];
-    dayRatings.forEach((rating) => {
-      runningSum += rating;
-      runningCount += 1;
-    });
-    if (runningCount > 0) {
-      series.push({
-        date,
-        averageRating: Math.round((runningSum / runningCount) * 10) / 10,
-      });
-    }
-  });
-
-  return series;
+  return series.length > 0 ? series : ratingDailyAverages(source);
 }
 
 export type OverviewReputationDto = {

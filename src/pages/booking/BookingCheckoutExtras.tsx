@@ -49,7 +49,7 @@ export function BookingCheckoutExtras({
   const canSubmit = canConfirm && acceptedTerms && !submitting;
   const showReferencePhoto = categorySupportsReferencePhoto(categoryCode);
   const trustItems = ruleLines?.length
-    ? ruleLines.slice(0, 4)
+    ? ruleLines
     : ['Бесплатная отмена за 24 часа', ...DEFAULT_TRUST_ITEMS, 'Оплата на месте у мастера'];
 
   return (

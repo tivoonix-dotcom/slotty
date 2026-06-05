@@ -47,6 +47,31 @@ export const billingErrorBanner =
 export const billingSoftNote =
   'rounded-[18px] bg-[#F9FAFB] px-4 py-3 text-[13px] font-medium leading-relaxed text-[#6B7280] ring-1 ring-[#F3F4F6]';
 
+/** SaaS-строка в карточке подписки: заголовок слева, pill-кнопка справа. */
+export const billingSaasSectionTitle = 'text-[15px] font-bold tracking-[-0.02em] text-[#111827]';
+
+export const billingSaasSectionHint = 'mt-0.5 text-[13px] font-medium leading-snug text-[#6B7280]';
+
+export const billingSaasRowDivider = 'border-b border-[#EEEEEE]';
+
+export const billingSaasPillBtn =
+  'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full border border-[#EAECEF] bg-white px-4 text-[13px] font-semibold text-[#111827] transition hover:bg-[#FAFAFA] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50';
+
+export const billingSaasPillBtnDanger =
+  'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full border border-[#FECACA] bg-white px-4 text-[13px] font-semibold text-[#DC2626] transition hover:bg-[#FEF2F2] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50';
+
+export const billingSaasPillBtnPrimary =
+  'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full bg-[#111827] px-4 text-[13px] font-semibold text-white transition hover:bg-[#2d2d2d] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50';
+
+export const billingSaasMethodCard =
+  'flex items-center gap-3 rounded-[14px] bg-[#F9FAFB] px-4 py-3 ring-1 ring-[#F3F4F6]';
+
+export const billingSaasStatusActive =
+  'rounded-full bg-[#ECFDF5] px-3 py-1 text-[12px] font-semibold text-[#047857] ring-1 ring-[#A7F3D0]';
+
+export const billingSaasStatusMuted =
+  'rounded-full bg-[#F3F4F6] px-3 py-1 text-[12px] font-semibold text-[#6B7280] ring-1 ring-[#E5E7EB]';
+
 /** @deprecated use billingPanel */
 export const billingLandingPanel = billingPanel;
 

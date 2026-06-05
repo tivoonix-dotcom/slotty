@@ -34,8 +34,57 @@ export function isBlockedDisplayValue(value: string | null | undefined): boolean
   return t.length === 0 || BLOCKED_CLIENT_TOKENS.has(t);
 }
 
+export function isUsableProfileFullName(value: string | null | undefined): boolean {
+  const trimmed = value?.trim() || '';
+  return trimmed.length > 0 && !isBlockedDisplayValue(trimmed) && !looksLikePhoneNumber(trimmed);
+}
+
+/** Имя из Google/Telegram — только если в профиле ещё нет нормального имени. */
+export function pickProfileFullNameOnOAuthSync(
+  currentFullName: string | null | undefined,
+  incomingOAuthName: string | null | undefined,
+): string {
+  if (isUsableProfileFullName(currentFullName)) {
+    return currentFullName!.trim();
+  }
+
+  const incoming = incomingOAuthName?.trim() || '';
+  if (incoming && !isBlockedDisplayValue(incoming) && !looksLikePhoneNumber(incoming)) {
+    return incoming;
+  }
+
+  const current = currentFullName?.trim() || '';
+  return current || incoming || '';
+}
+
 function looksLikeRealSingleName(word: string): boolean {
   return /^[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z-]{2,}$/.test(word.trim());
+}
+
+/** Телефон в snapshot вместо имени (часто при записи без ФИО в профиле). */
+export function looksLikePhoneNumber(value: string | null | undefined): boolean {
+  const normalized = (value ?? '').trim().replace(/\s/g, '');
+  if (!normalized) return false;
+  return /^\+?\d[\d()-]{5,}$/.test(normalized);
+}
+
+/** Актуальное имя профиля важнее snapshot, если snapshot пустой или похож на телефон. */
+export function pickClientFullNameForDisplay(
+  nameSnapshot: string | null | undefined,
+  profileFullName: string | null | undefined,
+): string {
+  const snapshot = nameSnapshot?.trim() || '';
+  const profile = profileFullName?.trim() || '';
+
+  const profileIsUsable =
+    profile.length > 0 && !isBlockedDisplayValue(profile) && !looksLikePhoneNumber(profile);
+  if (profileIsUsable) return profile;
+
+  if (snapshot && !isBlockedDisplayValue(snapshot) && !looksLikePhoneNumber(snapshot)) {
+    return snapshot;
+  }
+
+  return profile || snapshot;
 }
 
 /** Имя клиента для уведомлений и кабинета мастера. */
@@ -51,15 +100,15 @@ export function formatClientName(row: ClientNameFields): string {
   const phone = row.phone?.trim() || null;
   const username = row.telegram_username?.trim().replace(/^@+/, '') || null;
 
-  if (parts.length >= 2 && !parts.some((p) => isBlockedDisplayValue(p))) {
+  if (isUsableProfileFullName(name)) {
+    if (parts.length >= 2) return name;
+    if (phone) return `${name} · ${phone}`;
+    if (username) return `${name} (@${username})`;
     return name;
   }
 
-  if (phone) {
-    if (parts.length === 1 && looksLikeRealSingleName(parts[0]!) && !isBlockedDisplayValue(parts[0])) {
-      return `${name} · ${phone}`;
-    }
-    return phone;
+  if (parts.length >= 2 && !parts.some((p) => isBlockedDisplayValue(p))) {
+    return name;
   }
 
   if (username) {
@@ -73,6 +122,13 @@ export function formatClientName(row: ClientNameFields): string {
       return `${name} (${handle})`;
     }
     return handle;
+  }
+
+  if (phone) {
+    if (parts.length === 1 && looksLikeRealSingleName(parts[0]!) && !isBlockedDisplayValue(parts[0])) {
+      return `${name} · ${phone}`;
+    }
+    return phone;
   }
 
   if (parts.length === 1 && name.length >= 2 && !isBlockedDisplayValue(parts[0])) {

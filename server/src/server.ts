@@ -5,6 +5,7 @@ import { getGoogleOAuthDiagnostics } from './modules/auth/googleOAuth.service.js
 import { startAppointmentRemindersScheduler } from './modules/appointments/appointmentReminders.scheduler.js';
 import { startNotificationJobsWorker } from './modules/notifications/notificationJobs.worker.js';
 import { startBookingAutoCompleteWorker } from './modules/appointments/bookingAutoComplete.worker.js';
+import { startPendingExpiryWorker } from './modules/appointments/pendingExpiry.worker.js';
 import { startBillingWorker } from './modules/billing/billingWorker.js';
 import { startSystemStatusWorker } from './modules/system-status/systemStatus.worker.js';
 import { initTelegramBotTransport } from './modules/telegram/telegram.service.js';
@@ -41,6 +42,7 @@ app.listen(env.PORT, () => {
   void logAuthSessionsTableStatus();
   void initTelegramBotTransport();
   startNotificationJobsWorker();
+  startPendingExpiryWorker();
   startBookingAutoCompleteWorker();
   startAppointmentRemindersScheduler();
   startBillingWorker();

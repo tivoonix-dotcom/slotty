@@ -1,7 +1,10 @@
 import type { FC } from 'react';
+import { Link } from 'react-router-dom';
+import { LEGAL_CONSENT_PATH, LEGAL_PRIVACY_PATH } from '../../app/paths';
 import {
-  PD_POLICY_PDF_HREF,
-  SITE_OPERATOR_LEGAL,
+  formatSiteOperatorLegal,
+  SITE_BRAND_NAME,
+  SITE_PUBLIC_URL,
   SITE_SUPPORT_EMAIL,
 } from './legalSiteInfo';
 import { PrivacyLegalPageShell } from './PrivacyLegalPageShell';
@@ -21,10 +24,12 @@ const TOC: LegalTocItem[] = [
   { id: 'legal-basis', label: '5. Правовые основания' },
   { id: 'transfer', label: '6. Передача и хранение' },
   { id: 'rights', label: '7. Права субъекта ПД' },
-  { id: 'pdf', label: '8. PDF-версия' },
+  { id: 'contacts', label: '8. Контакты оператора' },
 ];
 
 export const PrivacyPolicyPage: FC = () => {
+  const operator = formatSiteOperatorLegal();
+
   return (
     <PrivacyLegalPageShell
       title="Политика в отношении обработки персональных данных"
@@ -32,15 +37,22 @@ export const PrivacyPolicyPage: FC = () => {
       toc={TOC}
     >
       <LegalDocDarkIntro>
-        Настоящая политика действует в отношении сервиса <strong>SLOTTY</strong> (онлайн-запись к мастерам). Текст
-        на сайте — рабочая версия под продукт; юридически значимый архив можно вести в PDF.
+        Настоящая политика действует в отношении сервиса <strong>{SITE_BRAND_NAME}</strong> ({SITE_PUBLIC_URL}) —
+        платформы онлайн-запись к мастерам. Согласие на обработку ПД:{' '}
+        <Link to={LEGAL_CONSENT_PATH} className={legalDocDarkLinkClass}>
+          {SITE_PUBLIC_URL}/legal/consent
+        </Link>
+        .
       </LegalDocDarkIntro>
 
       <LegalDocDarkSection id="general" title="1. Общие положения">
         <p>
-          {SITE_OPERATOR_LEGAL} Обработка персональных данных осуществляется в соответствии с законодательством о
-          персональных данных (в т.ч. Закон РБ от 07.05.2021 № 99-З «О защите персональных данных») и настоящей
-          Политикой.
+          <strong>Оператор персональных данных:</strong> {operator}.
+        </p>
+        <p>
+          Обработка персональных данных осуществляется в соответствии с законодательством Республики Беларусь о
+          персональных данных (в т.ч. Закон от 07.05.2021 № 99-З «О защите персональных данных») и настоящей
+          Политикой, размещённой на сайте {SITE_PUBLIC_URL}.
         </p>
       </LegalDocDarkSection>
 
@@ -124,18 +136,20 @@ export const PrivacyPolicyPage: FC = () => {
         </p>
       </LegalDocDarkSection>
 
-      <LegalDocDarkSection id="pdf" title="8. PDF-версия">
+      <LegalDocDarkSection id="contacts" title="8. Контакты оператора">
         <p>
-          Скачать политику:{' '}
-          <a
-            className={legalDocDarkLinkClass}
-            href={PD_POLICY_PDF_HREF}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Политика обработки ПД (PDF)
+          По вопросам обработки персональных данных, отзыва согласия и реализации прав субъекта ПД обращайтесь:{' '}
+          <a className={legalDocDarkLinkClass} href={`mailto:${SITE_SUPPORT_EMAIL}`}>
+            {SITE_SUPPORT_EMAIL}
           </a>
           .
+        </p>
+        <p>
+          Актуальная версия политики всегда доступна по адресу{' '}
+          <Link to={LEGAL_PRIVACY_PATH} className={legalDocDarkLinkClass}>
+            {SITE_PUBLIC_URL}/legal/privacy
+          </Link>
+          . Устаревшие PDF-архивы с иными реквизитами (в т.ч. tivonix.tech) не применяются.
         </p>
       </LegalDocDarkSection>
     </PrivacyLegalPageShell>

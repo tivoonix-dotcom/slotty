@@ -8,7 +8,7 @@ import type {
   MasterOnboardingService,
 } from '../../../features/profile/lib/demoMasterStorage';
 import { useMasterPlanEntitlements } from '../../../features/billing/useMasterPlanEntitlements';
-import { ADMIN_BILLING_PATH } from '../../../app/paths';
+import { ADMIN_BILLING_PATH, ADMIN_SCHEDULE_PATH } from '../../../app/paths';
 import {
   deleteMasterService,
   patchMasterService,
@@ -48,6 +48,9 @@ import { computeServicesTabMetrics } from './servicesTabMetrics';
 import { ServicesBundleFormSheet } from './ServicesBundleFormSheet';
 import { ServicesBundleMenuSheet } from './ServicesBundleMenuSheet';
 import { ServicesBundlesTab } from './ServicesBundlesTab';
+import { getMySlots, type MySlotDto } from '../../../features/admin/api/adminSlotsApi';
+import { subscribeMasterSlotsChanged } from '../shared/masterSlotsInvalidation';
+import { useServiceBookingStats } from './useServiceBookingStats';
 import { ServicesCatalogTab } from './ServicesCatalogTab';
 import { ServicesPageHeader } from './ServicesPageHeader';
 import { SERVICES_TAB_INTRO_IMAGES } from './ServicesTabIntro';
@@ -86,7 +89,7 @@ type PriceType = 'fixed' | 'from';
 
 type ServiceSheetMode = 'create' | 'full' | 'price';
 
-/** API требует длительность; в кабинете задаётся только в расписании (окошки). */
+/** API требует длительность; в форме не показываем — подставляем по умолчанию или из шаблона. */
 const DEFAULT_SERVICE_DURATION_MIN = 60;
 
 type ManagedService = MasterOnboardingService & {
@@ -138,6 +141,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<ManagedService | null>(null);
   const [previewTarget, setPreviewTarget] = useState<ManagedService | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [slotsPromptServiceId, setSlotsPromptServiceId] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useAdminSectionTab('tab', 'catalog', SERVICES_TABS);
@@ -151,6 +155,32 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
   const [bundleFormOpen, setBundleFormOpen] = useState(false);
   const [editingBundle, setEditingBundle] = useState<ServiceBundle | null>(null);
   const [bundleMenuTarget, setBundleMenuTarget] = useState<ServiceBundle | null>(null);
+  const [catalogSlots, setCatalogSlots] = useState<MySlotDto[] | null>(null);
+  const [catalogSlotsError, setCatalogSlotsError] = useState<string | null>(null);
+
+  const reloadCatalogSlots = useCallback(() => {
+    if (!useCabinetApi) {
+      setCatalogSlots(null);
+      setCatalogSlotsError(null);
+      return;
+    }
+    setCatalogSlotsError(null);
+    void getMySlots()
+      .then((rows) => {
+        setCatalogSlots(rows);
+        setCatalogSlotsError(null);
+      })
+      .catch(() => {
+        setCatalogSlots(null);
+        setCatalogSlotsError('Не удалось проверить окна для записи. Обновите страницу или попробуйте позже.');
+      });
+  }, [useCabinetApi]);
+
+  useEffect(() => {
+    reloadCatalogSlots();
+  }, [reloadCatalogSlots, draft.services.length]);
+
+  useEffect(() => subscribeMasterSlotsChanged(reloadCatalogSlots), [reloadCatalogSlots]);
 
   useEffect(() => {
     preloadTabIntroImages(SERVICES_TAB_INTRO_IMAGES);
@@ -193,6 +223,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
   const [priceType, setPriceType] = useState<PriceType>('fixed');
   const [isActive, setIsActive] = useState(true);
   const [desc, setDesc] = useState('');
+  const [durationMin, setDurationMin] = useState(String(DEFAULT_SERVICE_DURATION_MIN));
   const [formError, setFormError] = useState<string | null>(null);
   const [templateHighlightId, setTemplateHighlightId] = useState<string | null>(null);
   const { busy: serviceActionBusy, run: runServiceAction } = useSingleFlight();
@@ -204,6 +235,14 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
         .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
     [draft.services],
   );
+
+  const serviceStats = useServiceBookingStats(services, catalogSlotsError ? null : catalogSlots, appointments);
+  const hasAnyBookableSlots = useMemo(() => {
+    if (catalogSlotsError || catalogSlots === null) return false;
+    return catalogSlots.some(
+      (slot) => slot.status === 'available' && new Date(slot.startsAt).getTime() > Date.now(),
+    );
+  }, [catalogSlots, catalogSlotsError]);
 
   const serviceCategoryCode = draft.primaryCategoryCode ?? draft.category;
 
@@ -217,6 +256,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     setPrice(String(tm.price));
     setPriceType(templatePriceTypeToApp(tm.priceType));
     setDesc(tm.description ?? '');
+    setDurationMin(String(tm.durationMinutes));
     setTemplateHighlightId(tm.id);
     setFormError(null);
   }, []);
@@ -249,6 +289,15 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     window.setTimeout(() => setToast(null), 1800);
   }, []);
 
+  const openServiceScheduleWizard = useCallback(
+    (serviceId: string) => {
+      navigate(
+        `${ADMIN_SCHEDULE_PATH}?tab=create&wizard=month&serviceId=${encodeURIComponent(serviceId)}`,
+      );
+    },
+    [navigate],
+  );
+
   const resetForm = useCallback(() => {
     setEditingId(null);
     setTitle('');
@@ -256,6 +305,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     setPriceType('fixed');
     setIsActive(true);
     setDesc('');
+    setDurationMin(String(DEFAULT_SERVICE_DURATION_MIN));
     setFormError(null);
     setTemplateHighlightId(null);
   }, []);
@@ -267,6 +317,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     setPriceType(service.priceType ?? 'fixed');
     setIsActive(service.isActive ?? true);
     setDesc(service.description ?? '');
+    setDurationMin(String(service.durationMin ?? DEFAULT_SERVICE_DURATION_MIN));
     setFormError(null);
     setTemplateHighlightId(null);
   }, []);
@@ -308,7 +359,9 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
 
     let preparedTitle = title.trim();
     let preparedDescription = desc.trim();
-    const durationNumber = existing?.durationMin ?? DEFAULT_SERVICE_DURATION_MIN;
+    const durationNumber = quickPrice && existing
+      ? (existing.durationMin ?? DEFAULT_SERVICE_DURATION_MIN)
+      : Number.parseInt(durationMin, 10) || DEFAULT_SERVICE_DURATION_MIN;
     let priceNumber = Number.parseFloat(price.replace(',', '.').trim());
     let activeFlag = isActive;
     let priceTypeValue = priceType;
@@ -362,8 +415,11 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
         ? 'Цена обновлена'
         : editingId
           ? 'Услуга обновлена'
-          : 'Услуга добавлена';
+          : 'Услуга создана';
       persistServices(nextServices, okMsg);
+      if (!editingId && !quickPrice) {
+        setSlotsPromptServiceId(nextService.id);
+      }
       closeSheet();
       return;
     }
@@ -378,7 +434,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
       ? 'Цена обновлена'
       : editingId
         ? 'Услуга обновлена'
-        : 'Услуга добавлена';
+        : 'Услуга создана';
 
     setFormError(null);
     try {
@@ -415,6 +471,10 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
 
       commitServices(syncedServices);
       showSuccessToast(okMsg);
+      if (!editingId && !quickPrice) {
+        const created = syncedServices[syncedServices.length - 1];
+        if (created) setSlotsPromptServiceId(created.id);
+      }
       closeSheet();
     } catch (e) {
       setFormError(e instanceof Error ? e.message : 'Не удалось сохранить');
@@ -905,9 +965,42 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
         </p>
       ) : null}
 
+      {catalogSlotsError ? (
+        <p className="rounded-[16px] border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 text-[14px] font-semibold text-[#92400E] lg:rounded-[20px]">
+          {catalogSlotsError}
+        </p>
+      ) : null}
+
       {toast ? (
         <div className="rounded-full bg-[#ECFDF5] px-5 py-3 text-center text-[14px] font-semibold text-[#16A34A] shadow-sm">
           {toast}
+        </div>
+      ) : null}
+
+      {slotsPromptServiceId ? (
+        <div className="rounded-[16px] border border-[#D1FAE5] bg-[#ECFDF5] px-4 py-4 lg:rounded-[20px]">
+          <p className="text-[14px] font-semibold leading-relaxed text-[#065F46]">
+            Услуга создана. Теперь добавьте окна, чтобы клиенты могли записаться.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                openServiceScheduleWizard(slotsPromptServiceId);
+                setSlotsPromptServiceId(null);
+              }}
+              className="inline-flex min-h-11 items-center justify-center rounded-[12px] bg-[#F47C8C] px-4 text-[13px] font-bold text-white transition hover:opacity-95"
+            >
+              Добавить окна
+            </button>
+            <button
+              type="button"
+              onClick={() => setSlotsPromptServiceId(null)}
+              className="inline-flex min-h-11 items-center justify-center rounded-[12px] bg-white px-4 text-[13px] font-semibold text-[#374151]"
+            >
+              Позже
+            </button>
+          </div>
         </div>
       ) : null}
     </>
@@ -921,6 +1014,10 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
             services={services}
             onAdd={openCreate}
             onOpenMenu={setMenuTarget}
+            serviceStats={serviceStats}
+            categoryLabel={draft.category}
+            masterId={draft.masterId}
+            hasAnySlots={hasAnyBookableSlots}
           />
       ) : null}
       {activeTab === 'price' ? (
@@ -1014,6 +1111,10 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
         }}
         onPreview={() => {
           if (menuTarget) setPreviewTarget(menuTarget);
+          setMenuTarget(null);
+        }}
+        onAddWindow={() => {
+          if (menuTarget) openServiceScheduleWizard(menuTarget.id);
           setMenuTarget(null);
         }}
         onMoveUp={() => {

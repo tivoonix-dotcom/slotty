@@ -11,6 +11,8 @@ type Props = {
   payments: BillingPaymentDto[];
   loading?: boolean;
   onView: (payment: BillingPaymentDto) => void;
+  /** Внутри bottom sheet — без обводки и заголовка. */
+  embedded?: boolean;
 };
 
 function statusPillClass(status: string): string {
@@ -20,48 +22,66 @@ function statusPillClass(status: string): string {
   return 'bg-[#FFFBEB] text-[#92400E] ring-[#FDE68A]';
 }
 
-export function BillingPaymentHistory({ payments, loading, onView }: Props) {
-  return (
-    <section className={`${billingPanel} space-y-4`}>
-      <h3 className="text-[18px] font-bold tracking-[-0.03em] text-[#111827]">История платежей</h3>
-
+export function BillingPaymentHistory({ payments, loading, onView, embedded = false }: Props) {
+  const body = (
+    <>
       {loading ? (
         <p className="py-6 text-center text-[14px] text-[#6B7280]">Загрузка…</p>
       ) : payments.length === 0 ? (
         <p className="py-6 text-center text-[14px] text-[#6B7280]">Платежей пока нет</p>
       ) : (
-        <ul className="divide-y divide-[#F3F4F6]">
+        <ul className={embedded ? 'space-y-2' : 'divide-y divide-[#F3F4F6]'}>
           {payments.map((p) => {
             const date = formatBillingDate(p.paidAt ?? p.createdAt);
             const card = formatMaskedCard(p.cardBrand, p.cardLast4);
             return (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                <div className="min-w-0">
-                  <p className="text-[14px] font-semibold text-[#111827]">{date ?? '—'}</p>
-                  <p className="text-[13px] text-[#6B7280]">
-                    {formatBillingMoney(p.amount, p.currency)}
-                    {card ? ` · ${card}` : ''}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ring-1 ${statusPillClass(p.status)}`}
-                  >
-                    {billingPaymentStatusLabel(p.status)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onView(p)}
-                    className="text-[13px] font-semibold text-[#E29595] underline underline-offset-2 hover:text-[#F47C8C]"
-                  >
-                    Просмотр
-                  </button>
+              <li
+                key={p.id}
+                className={
+                  embedded
+                    ? 'rounded-[12px] bg-[#EBEBEB] px-4 py-3.5'
+                    : 'flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0'
+                }
+              >
+                <div className={embedded ? 'flex flex-wrap items-center justify-between gap-3' : 'contents'}>
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold text-[#111827]">{date ?? '—'}</p>
+                    <p className="text-[13px] text-[#6B7280]">
+                      {formatBillingMoney(p.amount, p.currency)}
+                      {card ? ` · ${card}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ring-1 ${statusPillClass(p.status)}`}
+                    >
+                      {billingPaymentStatusLabel(p.status)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onView(p)}
+                      className="text-[13px] font-semibold text-[#111827] underline underline-offset-2 transition hover:text-[#6B7280]"
+                    >
+                      Просмотр
+                    </button>
+                  </div>
                 </div>
               </li>
             );
           })}
         </ul>
       )}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="pb-1">{body}</div>;
+  }
+
+  return (
+    <section className={`${billingPanel} space-y-4`}>
+      <h3 className="text-[18px] font-bold tracking-[-0.03em] text-[#111827]">История платежей</h3>
+      {body}
     </section>
   );
 }

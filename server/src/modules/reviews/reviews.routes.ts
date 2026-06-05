@@ -14,7 +14,7 @@ reviewsRouter.post(
       .object({
         appointmentId: z.string().uuid(),
         rating: z.number().int().min(1).max(5),
-        body: z.string().min(1).max(5000),
+        body: z.string().min(10).max(1000),
       })
       .parse(req.body);
     const created = await createReviewForCompletedAppointment(req.user!.id, body);

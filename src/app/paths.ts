@@ -9,6 +9,11 @@ export const MASTER_LOGIN_PATH = '/master/login';
 export const MASTER_START_PATH = '/master/start';
 export const MASTER_REGISTER_PATH = '/master/register';
 
+/** Текущий маршрут целиком (path + query) — для ?from= после входа. */
+export function buildAppPath(pathname: string, search = ''): string {
+  return `${pathname}${search}`;
+}
+
 /** /master/login с возвратом после входа. */
 export function getMasterLoginPath(fromPath?: string): string {
   if (!fromPath || fromPath === MASTER_LOGIN_PATH || fromPath.startsWith(`${MASTER_LOGIN_PATH}?`)) {
@@ -104,9 +109,12 @@ export const PROFILE_NOTIFICATIONS_PATH = `${PROFILE_PATH}/notifications`;
 /** Настройки клиента. */
 export const PROFILE_SETTINGS_PATH = `${PROFILE_PATH}/settings`;
 export const PROFILE_SETTINGS_LOGIN_METHODS_PATH = `${PROFILE_SETTINGS_PATH}/login-methods`;
+export const PROFILE_SETTINGS_PRIVACY_PATH = `${PROFILE_SETTINGS_PATH}/privacy`;
 export const PROFILE_SETTINGS_SUPPORT_PATH = `${PROFILE_SETTINGS_PATH}/support`;
+export const PROFILE_SETTINGS_SYSTEM_STATUS_PATH = `${PROFILE_SETTINGS_PATH}/system-status`;
 export const PROFILE_SETTINGS_DOCUMENTS_PATH = `${PROFILE_SETTINGS_PATH}/documents`;
 
+/** @deprecated Старый URL в настройках; ведёт на отдельную legal-страницу. */
 export function getProfileSettingsDocumentPath(docId: string): string {
   return `${PROFILE_SETTINGS_DOCUMENTS_PATH}/${encodeURIComponent(docId)}`;
 }
@@ -122,6 +130,13 @@ export const MASTER_APPOINTMENT_PATH = '/master/appointments/:bookingCode';
 
 export function getClientAppointmentPath(bookingCode: string): string {
   return `/client/appointments/${encodeURIComponent(bookingCode.trim().toUpperCase())}`;
+}
+
+/** Форма отзыва клиента по завершённой записи. */
+export const CLIENT_APPOINTMENT_REVIEW_PATH = '/client/appointments/:bookingCode/review';
+
+export function getClientAppointmentReviewPath(bookingCode: string): string {
+  return `${getClientAppointmentPath(bookingCode)}/review`;
 }
 
 export function getMasterAppointmentPath(bookingCode: string): string {
@@ -172,7 +187,26 @@ export function getUnsubscribeNewsletterPath(token: string): string {
 export const ADMIN_SERVICES_PATH = '/admin/services';
 export const ADMIN_SCHEDULE_PATH = '/admin/schedule';
 export const ADMIN_APPOINTMENTS_PATH = '/admin/appointments';
+
+export type MasterAppointmentsTabParam = 'requests' | 'upcoming' | 'history';
+
+/** Кабинет мастера: список записей с опциональным фокусом на заявке. */
+export function getMasterAdminAppointmentsPath(opts?: {
+  focus?: string;
+  tab?: MasterAppointmentsTabParam;
+}): string {
+  const params = new URLSearchParams();
+  if (opts?.tab && opts.tab !== 'requests') params.set('tab', opts.tab);
+  if (opts?.focus) params.set('focus', opts.focus);
+  const qs = params.toString();
+  return qs ? `${ADMIN_APPOINTMENTS_PATH}?${qs}` : ADMIN_APPOINTMENTS_PATH;
+}
+
 export const ADMIN_OVERVIEW_PATH = '/admin/overview';
+
+export function getAdminOverviewReputationPath(): string {
+  return `${ADMIN_OVERVIEW_PATH}?tab=reputation`;
+}
 export const ADMIN_BILLING_PATH = '/admin/billing';
 export const ADMIN_NOTIFICATIONS_PATH = '/admin/notifications';
 /** Кабинет мастера: workspace настроек (SaaS layout). */
@@ -256,6 +290,19 @@ export function getProfilePath(tab?: 'appointments' | 'favorites' | 'settings'):
   if (tab === 'settings') return PROFILE_SETTINGS_PATH;
   if (!tab) return PROFILE_PATH;
   return `${PROFILE_PATH}?${new URLSearchParams({ tab }).toString()}`;
+}
+
+/** Клиентский профиль: «Мои записи» с фокусом на карточке (sheet). */
+export function getProfileAppointmentFocusPath(opts: {
+  appointmentId?: string | null;
+  bookingCode?: string | null;
+}): string {
+  const params = new URLSearchParams({ tab: 'appointments' });
+  const id = opts.appointmentId?.trim();
+  const code = opts.bookingCode?.trim().toUpperCase();
+  if (id) params.set('focus', id);
+  if (code) params.set('code', code);
+  return `${PROFILE_PATH}?${params.toString()}`;
 }
 
 /**

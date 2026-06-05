@@ -10,7 +10,7 @@ import {
   type PlatformBookingEventRow,
   type PlatformBookingNotificationJob,
 } from '../api/platformAdminApi';
-import { PlatformAdminError, PlatformAdminLoading } from '../shared/PlatformAdminSharedUi';
+import { PlatformAdminError, PlatformAdminLoading, StatusBadge } from '../shared/PlatformAdminSharedUi';
 import { afterBookingMutation } from '../../../features/appointments/bookingDataSync';
 import { paGhostBtn } from '../platformAdminTheme';
 
@@ -141,7 +141,9 @@ export function PlatformAdminBookingAuditPanel({ bookingCode, onResolved }: Prop
         <dl className="space-y-2 text-[14px]">
           <div>
             <dt className="text-[#9CA3AF]">Статус</dt>
-            <dd className="font-semibold text-[#111827]">{audit.status}</dd>
+            <dd className="mt-1">
+              <StatusBadge status={audit.status} />
+            </dd>
           </div>
           {audit.clientSignal?.kind ? (
             <div className="rounded-xl bg-amber-50 px-3 py-2">

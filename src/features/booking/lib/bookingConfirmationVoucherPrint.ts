@@ -1,4 +1,6 @@
-/** Печать / «Сохранить как PDF» подтверждения записи — без сторонних библиотек. */
+/** Печать / «Сохранить как PDF» подтверждения записи — в стиле справки о подписке. */
+
+import { SUBSCRIPTION_RECEIPT_BG_SRC } from '../../../pages/admin/settings/workspace/billing/subscriptionReceiptModel';
 
 export type BookingVoucherPayload = {
   masterName: string;
@@ -15,6 +17,8 @@ export type BookingVoucherPayload = {
   voucherNumber?: string;
 };
 
+type BookingReceiptRow = { label: string; value: string };
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -24,162 +28,357 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
-function buildVoucherHtml(
-  payload: BookingVoucherPayload,
-  logoAbsoluteUrl: string,
-  issuedLabel: string,
-  siteHost: string,
-): string {
-  const m = escapeHtml(payload.masterName);
-  const s = escapeHtml(payload.serviceTitle);
-  const d = escapeHtml(payload.dateLabel);
-  const t = escapeHtml(payload.timeLabel);
-  const loc = payload.locationLine?.trim()
-    ? `<div class="row"><span class="lbl">Адрес</span><span class="val">${escapeHtml(payload.locationLine.trim())}</span></div>`
-    : '';
-  const price = payload.priceLabel?.trim()
-    ? `<div class="row"><span class="lbl">Стоимость</span><span class="val">${escapeHtml(payload.priceLabel.trim())}</span></div>`
-    : '';
-  const status = payload.statusLabel?.trim()
-    ? `<div class="row"><span class="lbl">Статус</span><span class="val">${escapeHtml(payload.statusLabel.trim())}</span></div>`
-    : '';
-  const voucher = payload.voucherNumber?.trim()
-    ? `<div class="row"><span class="lbl">Талон</span><span class="val">${escapeHtml(payload.voucherNumber.trim())}</span></div>`
-    : '';
+function buildBookingReceiptRows(payload: BookingVoucherPayload): BookingReceiptRow[] {
+  const rows: BookingReceiptRow[] = [
+    { label: 'Мастер', value: payload.masterName },
+    { label: 'Услуга', value: payload.serviceTitle },
+    { label: 'Когда', value: `${payload.dateLabel}, ${payload.timeLabel}` },
+  ];
+
+  if (payload.locationLine?.trim()) {
+    rows.push({ label: 'Адрес', value: payload.locationLine.trim() });
+  }
+  if (payload.priceLabel?.trim()) {
+    rows.push({ label: 'Стоимость', value: payload.priceLabel.trim() });
+  }
+  if (payload.statusLabel?.trim()) {
+    rows.push({ label: 'Статус', value: payload.statusLabel.trim() });
+  }
+  if (payload.voucherNumber?.trim()) {
+    rows.push({ label: 'Талон', value: payload.voucherNumber.trim() });
+  }
+
+  return rows;
+}
+
+function buildVoucherHtml(payload: BookingVoucherPayload, logoAbsoluteUrl: string): string {
+  const issuedAt = new Date().toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const issuedTime = new Date().toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const receiptNumber =
+    payload.voucherNumber?.trim() || `SL-${Date.now().toString().slice(-8)}`;
+  const logoUrl = escapeHtml(logoAbsoluteUrl);
+  const bgUrl = escapeHtml(new URL(SUBSCRIPTION_RECEIPT_BG_SRC, window.location.origin).href);
+  const whenLine = escapeHtml(`${payload.dateLabel}, ${payload.timeLabel}`);
+  const statusLabel = escapeHtml(payload.statusLabel?.trim() || 'Подтверждено');
+  const rows = buildBookingReceiptRows(payload);
+
+  const renderRows = (items: BookingReceiptRow[]) =>
+    items
+      .map(
+        (r) => `
+          <div class="receipt-row">
+            <span class="receipt-label">${escapeHtml(r.label)}</span>
+            <span class="receipt-value">${escapeHtml(r.value)}</span>
+          </div>
+        `,
+      )
+      .join('');
 
   return `<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SLOTTY — подтверждение записи</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; }
-    body {
-      font-family: Inter, system-ui, -apple-system, sans-serif;
-      color: #171717;
-      background: #fdfcfb;
+<meta charset="utf-8"/>
+<title>Подтверждение записи SLOTTY — ${escapeHtml(payload.serviceTitle)}</title>
+<style>
+  @page { size: A4 portrait; margin: 10mm; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #fafafa;
+    color: #111827;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 12px;
+  }
+
+  .receipt {
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #ebebeb;
+    border-radius: 20px;
+  }
+
+  .hero-card {
+    overflow: hidden;
+    border-radius: 16px;
+    border: 1px solid #f3f4f6;
+    margin-bottom: 14px;
+    background: #ffffff;
+  }
+
+  .hero-card-bg {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2.4 / 1;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .hero-card-body {
+    padding: 16px 18px;
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .brand-logo-img {
+    display: block;
+    height: 48px;
+    width: auto;
+    max-width: 210px;
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  .receipt-id {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .receipt-id strong {
+    display: block;
+    margin-top: 2px;
+    color: #6b7280;
+    font-weight: 700;
+  }
+
+  .intro {
+    padding: 18px 24px 0;
+  }
+
+  .eyebrow {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9ca3af;
+  }
+
+  .title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #111827;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    background: #ecfdf5;
+    color: #15803d;
+  }
+
+  .subtitle {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #6b7280;
+  }
+
+  .content {
+    padding: 16px 24px 20px;
+  }
+
+  .hero-plan {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #111827;
+  }
+
+  .hero-price {
+    margin: 6px 0 0;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: #111827;
+    text-transform: capitalize;
+  }
+
+  .hero-meta {
+    margin: 8px 0 0;
+    font-size: 11px;
+    color: #9ca3af;
+  }
+
+  .section {
+    overflow: hidden;
+    border: 1px solid #f3f4f6;
+    border-radius: 16px;
+    background: #ffffff;
+  }
+
+  .section-title {
+    margin: 0;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    background: #fafafa;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+
+  .receipt-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .receipt-row:last-child { border-bottom: 0; }
+
+  .receipt-label { color: #6b7280; flex-shrink: 0; }
+
+  .receipt-value {
+    max-width: 60%;
+    text-align: right;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+    font-size: 10px;
+    line-height: 1.45;
+    color: #9ca3af;
+  }
+
+  .footer-brand {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #ff5f7a;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .page { padding: 0; max-width: none; }
+    .receipt {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .head { padding: 14px 18px 12px; }
+    .brand-logo-img { height: 42px; }
+    .intro { padding: 14px 18px 0; }
+    h1 { font-size: 20px; }
+    .content { padding: 12px 18px 14px; }
+    .hero-card { margin-bottom: 10px; }
+    .hero-card-body { padding: 12px 14px; }
+    .hero-card-bg {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .sheet {
-      max-width: 560px;
-      margin: 0 auto;
-      padding: 48px 40px 40px;
+    .hero-price { font-size: 22px; }
+    .receipt-row { padding: 7px 14px; font-size: 11px; }
+    .footer { margin-top: 10px; padding-top: 8px; }
+    .hero-card, .section, .footer {
+      break-inside: avoid;
+      page-break-inside: avoid;
     }
-    .logo-wrap {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-    .logo-wrap img {
-      height: 44px;
-      width: auto;
-      object-fit: contain;
-    }
-    .brand {
-      text-align: center;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: #a3a3a3;
-      margin-bottom: 8px;
-    }
-    h1 {
-      text-align: center;
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: -0.045em;
-      margin: 0 0 8px;
-      color: #0a0a0a;
-    }
-    .sub {
-      text-align: center;
-      font-size: 15px;
-      color: #737373;
-      line-height: 1.45;
-      margin: 0 0 32px;
-    }
-    .card {
-      background: #f1efef;
-      border-radius: 28px;
-      padding: 24px 22px;
-      margin-bottom: 28px;
-    }
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(23, 23, 23, 0.06);
-      font-size: 15px;
-      line-height: 1.4;
-    }
-    .row:last-child { border-bottom: none; padding-bottom: 0; }
-    .row:first-child { padding-top: 0; }
-    .lbl {
-      color: #737373;
-      font-weight: 500;
-      min-width: 6.5rem;
-    }
-    .val {
-      font-weight: 600;
-      color: #171717;
-      flex: 1;
-      min-width: 12rem;
-    }
-    .accent {
-      height: 4px;
-      width: 72px;
-      border-radius: 999px;
-      background: #e29595;
-      margin: 0 auto 28px;
-    }
-    .hint {
-      text-align: center;
-      font-size: 13px;
-      color: #a3a3a3;
-      line-height: 1.5;
-      margin: 0 0 8px;
-    }
-    .issued {
-      text-align: center;
-      font-size: 12px;
-      color: #a3a3a3;
-      margin: 0;
-    }
-    @media print {
-      body { background: #fff; }
-      .sheet { padding: 24px 20px; max-width: none; }
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
-  <div class="sheet">
-    <p class="brand">SLOTTY</p>
-    <div class="logo-wrap">
-      <img src="${escapeHtml(logoAbsoluteUrl)}" alt="SLOTTY" crossorigin="anonymous" />
-    </div>
-    <div class="accent" aria-hidden="true"></div>
-    <h1>Подтверждение записи</h1>
-    <p class="sub">Сохраните бланк или распечатайте — напоминание также придёт в Telegram.</p>
-    <div class="card">
-      <div class="row"><span class="lbl">Мастер</span><span class="val">${m}</span></div>
-      <div class="row"><span class="lbl">Услуга</span><span class="val">${s}</span></div>
-      <div class="row"><span class="lbl">Дата</span><span class="val">${d}</span></div>
-      <div class="row"><span class="lbl">Время</span><span class="val">${t}</span></div>
-      ${loc}
-      ${price}
-      ${status}
-      ${voucher}
-    </div>
-    <p class="hint">${escapeHtml(siteHost)} · запись к мастерам в Telegram</p>
-    <p class="issued">Сформировано: ${escapeHtml(issuedLabel)}</p>
-  </div>
+  <main class="page">
+    <article class="receipt">
+      <header class="head">
+        <img src="${logoUrl}" alt="SLOTTY" class="brand-logo-img" crossorigin="anonymous" />
+        <div class="receipt-id">
+          Подтверждение
+          <strong>№ ${escapeHtml(receiptNumber)}</strong>
+        </div>
+      </header>
+
+      <div class="intro">
+        <p class="eyebrow">Онлайн-запись</p>
+        <div class="title-row">
+          <h1>Запись подтверждена</h1>
+          <span class="pill">${statusLabel}</span>
+        </div>
+        <p class="subtitle">Напомним о визите в Telegram · ${escapeHtml(issuedAt)}, ${escapeHtml(issuedTime)}</p>
+      </div>
+
+      <div class="content">
+        <div class="hero-card">
+          <img src="${bgUrl}" alt="" class="hero-card-bg" crossorigin="anonymous" />
+          <div class="hero-card-body">
+            <p class="hero-plan">${escapeHtml(payload.serviceTitle)}</p>
+            <p class="hero-price">${whenLine}</p>
+            <p class="hero-meta">${escapeHtml(payload.masterName)} · SLOTTY</p>
+          </div>
+        </div>
+
+        <section class="section">
+          <h2 class="section-title">Детали записи</h2>
+          ${renderRows(rows)}
+        </section>
+
+        <footer class="footer">
+          <div>
+            <div class="footer-brand">SLOTTY</div>
+            Онлайн-запись к мастерам
+          </div>
+          <div style="text-align:right;">
+            slotty.by<br/>
+            Документ сформирован автоматически
+          </div>
+        </footer>
+      </div>
+    </article>
+  </main>
 </body>
 </html>`;
 }
@@ -190,18 +389,13 @@ function buildVoucherHtml(
  */
 export function openBookingVoucherPrint(payload: BookingVoucherPayload, logoPathFromRoot: string): void {
   const logoUrl = new URL(logoPathFromRoot, window.location.origin).href;
-  const issuedLabel = new Intl.DateTimeFormat('ru-RU', {
-    dateStyle: 'long',
-    timeStyle: 'short',
-  }).format(new Date());
-
-  const html = buildVoucherHtml(payload, logoUrl, issuedLabel, window.location.host || 'SLOTTY');
+  const html = buildVoucherHtml(payload, logoUrl);
 
   const iframe = document.createElement('iframe');
-  iframe.setAttribute('title', 'SLOTTY — печать бланка');
+  iframe.setAttribute('title', 'SLOTTY — подтверждение записи');
   iframe.setAttribute('aria-hidden', 'true');
   Object.assign(iframe.style, {
-    position: 'absolute',
+    position: 'fixed',
     left: '-9999px',
     top: '0',
     width: '816px',
@@ -223,12 +417,7 @@ export function openBookingVoucherPrint(payload: BookingVoucherPayload, logoPath
   const detach = () => {
     if (finished) return;
     finished = true;
-    win.removeEventListener('afterprint', onAfterPrint);
     if (iframe.isConnected) iframe.remove();
-  };
-
-  const onAfterPrint = () => {
-    detach();
   };
 
   win.document.open();
@@ -237,7 +426,7 @@ export function openBookingVoucherPrint(payload: BookingVoucherPayload, logoPath
 
   const triggerPrint = () => {
     try {
-      win.addEventListener('afterprint', onAfterPrint, { once: true });
+      win.addEventListener('afterprint', detach, { once: true });
       win.focus();
       win.print();
       window.setTimeout(detach, 90_000);
@@ -247,11 +436,26 @@ export function openBookingVoucherPrint(payload: BookingVoucherPayload, logoPath
     }
   };
 
-  const logoImg = win.document.querySelector('img');
-  if (logoImg && !logoImg.complete) {
-    logoImg.addEventListener('load', () => window.setTimeout(triggerPrint, 120), { once: true });
-    logoImg.addEventListener('error', () => window.setTimeout(triggerPrint, 120), { once: true });
-  } else {
-    window.setTimeout(triggerPrint, 200);
-  }
+  const logoImg = win.document.querySelector('.brand-logo-img');
+  const bgImg = win.document.querySelector('.hero-card-bg');
+  const images = [logoImg, bgImg].filter((img): img is HTMLImageElement => img instanceof HTMLImageElement);
+
+  const waitForImages = () => {
+    const pending = images.filter((img) => !img.complete);
+    if (pending.length === 0) {
+      window.setTimeout(triggerPrint, 200);
+      return;
+    }
+    let left = pending.length;
+    const done = () => {
+      left -= 1;
+      if (left <= 0) window.setTimeout(triggerPrint, 120);
+    };
+    for (const img of pending) {
+      img.addEventListener('load', done, { once: true });
+      img.addEventListener('error', done, { once: true });
+    }
+  };
+
+  waitForImages();
 }

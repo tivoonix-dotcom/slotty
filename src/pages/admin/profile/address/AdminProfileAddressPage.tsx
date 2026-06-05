@@ -313,7 +313,11 @@ export function AdminProfileAddressPage({ draft, cabinetLoading, saving = false,
 
       <div className={`${cabinetCard} ${cabinetCardPad}`}>
         <Block title="Формат">
-          <div className="grid grid-cols-3 gap-1.5 rounded-[10px] bg-[#F5F5F5] p-1.5 max-[360px]:grid-cols-1">
+          <div
+            className="grid grid-cols-1 gap-1.5 rounded-[10px] bg-[#F5F5F5] p-1.5 sm:grid-cols-3"
+            role="group"
+            aria-label="Формат приёма"
+          >
             {VISIT_FORMATS.map(({ id, label, Icon, disabled }) => (
               <button
                 key={id}
@@ -325,15 +329,20 @@ export function AdminProfileAddressPage({ draft, cabinetLoading, saving = false,
                   setFieldErrors({});
                   setSubmitAttempted(false);
                 }}
-                className={`flex min-h-10 w-full items-center justify-center gap-1.5 ${sheetSegmentClass(form.visitType === id)} disabled:opacity-45 max-[360px]:min-h-11`}
+                className={`flex min-h-11 w-full items-center justify-start gap-2.5 px-3 sm:min-h-10 sm:justify-center sm:gap-1.5 sm:px-2 ${sheetSegmentClass(form.visitType === id)} disabled:opacity-45`}
               >
                 <Icon className="h-4 w-4 shrink-0" aria-hidden />
-                <span className="text-[13px] font-semibold max-[360px]:text-[14px]">{label}</span>
+                <span className="text-[14px] font-semibold leading-none sm:text-[13px]">{label}</span>
+                {disabled ? (
+                  <span className="ml-auto rounded-full bg-[#EBEBEB] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#9CA3AF] sm:ml-0 sm:hidden">
+                    Скоро
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
           {form.visitType === 'client_visit' ? (
-            <p className="mt-3 text-center text-[13px] text-[#9CA3AF]">Скоро</p>
+            <p className="mt-3 hidden text-center text-[13px] text-[#9CA3AF] sm:block">Скоро</p>
           ) : null}
         </Block>
 

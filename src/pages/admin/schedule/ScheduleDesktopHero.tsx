@@ -9,7 +9,13 @@ import {
 } from 'react-icons/hi2';
 import { OverviewKpiCarousel, OverviewKpiStatCard } from '../overview/OverviewKpiBlocks';
 import { useTabIntroImage } from '../useTabIntroImage';
-import { scheduleDesktopCard, SCHEDULE_HERO_BG } from './adminScheduleTheme';
+import {
+  scheduleDesktopCard,
+  scheduleKpiCarouselDot,
+  scheduleKpiIconCircle,
+  SCHEDULE_HERO_BG,
+} from './adminScheduleTheme';
+import { SCHEDULE_QUICK_SETUP_IMAGES } from './scheduleQuickSetupAssets';
 import type { ScheduleTabMetrics } from './scheduleTabMetrics';
 import type { SchedulePageTab } from './scheduleTypes';
 
@@ -39,20 +45,22 @@ function HeroBlock({
   value,
   subtitle,
   description,
+  backgroundSrc = SCHEDULE_HERO_BG,
 }: {
   badgeIcon: ReactNode;
   badge: string;
   value: string;
   subtitle: string;
   description: string;
+  backgroundSrc?: string;
 }) {
-  const backgroundSrc = useTabIntroImage(SCHEDULE_HERO_BG);
+  const resolvedBackgroundSrc = useTabIntroImage(backgroundSrc);
 
   return (
     <section className="relative overflow-hidden p-5 text-white lg:p-8">
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${backgroundSrc})` }}
+        style={{ backgroundImage: `url(${resolvedBackgroundSrc})` }}
         aria-hidden
       />
       <div className="pointer-events-none absolute inset-0 bg-black/45" aria-hidden />
@@ -187,16 +195,18 @@ function ListHero({ metrics }: { metrics: ScheduleTabMetrics['list'] }) {
           value={String(m.total)}
           subtitle={m.total === 1 ? '1 окно в списке' : `${m.total} окон в списке`}
           description="Фильтруйте по статусу и дате — редактируйте или удаляйте слоты."
+          backgroundSrc={SCHEDULE_QUICK_SETUP_IMAGES.listHeroBg}
         />
       }
     >
-      <OverviewKpiCarousel>
+      <OverviewKpiCarousel indicatorBgClass={scheduleKpiCarouselDot}>
         <OverviewKpiStatCard
           surface="carousel"
           label="Свободно"
           value={String(m.free)}
           hint="Открыты для записи"
           icon={<HiClock className="h-5 w-5" aria-hidden />}
+          iconClassName={scheduleKpiIconCircle}
         />
         <OverviewKpiStatCard
           surface="carousel"
@@ -204,6 +214,7 @@ function ListHero({ metrics }: { metrics: ScheduleTabMetrics['list'] }) {
           value={String(m.booked)}
           hint="Клиент записан"
           icon={<HiUser className="h-5 w-5" aria-hidden />}
+          iconClassName={scheduleKpiIconCircle}
         />
         <OverviewKpiStatCard
           surface="carousel"
@@ -211,6 +222,7 @@ function ListHero({ metrics }: { metrics: ScheduleTabMetrics['list'] }) {
           value={String(m.blocked)}
           hint="Не для записи"
           icon={<HiRectangleStack className="h-5 w-5" aria-hidden />}
+          iconClassName={scheduleKpiIconCircle}
         />
         <OverviewKpiStatCard
           surface="carousel"
@@ -218,6 +230,7 @@ function ListHero({ metrics }: { metrics: ScheduleTabMetrics['list'] }) {
           value={String(m.total)}
           hint="Все статусы"
           icon={<HiCalendarDays className="h-5 w-5" aria-hidden />}
+          iconClassName={scheduleKpiIconCircle}
         />
       </OverviewKpiCarousel>
     </HeroShell>

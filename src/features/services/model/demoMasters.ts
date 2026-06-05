@@ -42,6 +42,8 @@ export type ServiceListingRecord = {
   portfolioPreview?: string[];
   /** Всего работ в портфолио (для «+N работ»). */
   portfolioTotal?: number;
+  /** Pro / trial — бейдж в каталоге. */
+  isProEntitled?: boolean;
 };
 
 /** Услуга мастера (каталог). TODO: маппинг с таблицы services. */
@@ -73,10 +75,13 @@ export type DemoAvailableDay = {
 export type DemoReview = {
   id: string;
   author: string;
+  authorAvatarUrl?: string | null;
   rating: number;
   /** Отображаемая дата: относительная строка или дата. */
   date: string;
   text: string;
+  masterReply?: string | null;
+  masterReplyAt?: string | null;
 };
 
 export type DemoMasterProfile = {

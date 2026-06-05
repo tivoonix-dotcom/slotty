@@ -34,6 +34,10 @@ type KpiCardProps = {
   trailing?: ReactNode;
   /** `carousel` — белая карточка в ленте сводки; `tile` — серая плитка (доход и т.д.). */
   surface?: 'tile' | 'carousel';
+  /** Подсветка «требует внимания» (например, отзывы без ответа). */
+  alert?: boolean;
+  /** Переопределение стиля иконки (например, синий акцент расписания). */
+  iconClassName?: string;
 };
 
 export function OverviewKpiStatCard({
@@ -43,12 +47,17 @@ export function OverviewKpiStatCard({
   icon,
   trailing,
   surface = 'tile',
+  alert = false,
+  iconClassName,
 }: KpiCardProps) {
   const surfaceClass = surface === 'carousel' ? overviewDesktopKpiCarouselCard : overviewDesktopKpiTile;
+  const alertClass = alert
+    ? 'shadow-[0_0_0_2px_rgba(255,95,122,0.18),0_0_20px_rgba(255,95,122,0.22)] ring-1 ring-[#FDE8ED]'
+    : '';
 
   return (
     <article
-      className={`${surfaceClass} flex min-h-[8.25rem] flex-col justify-between`}
+      className={`${surfaceClass} ${alertClass} flex min-h-[8.25rem] flex-col justify-between`}
     >
       <div className="flex items-start justify-between gap-3">
         <p className="min-w-0 flex-1 pt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#9CA3AF]">
@@ -57,12 +66,16 @@ export function OverviewKpiStatCard({
 
         <div className="flex shrink-0 flex-col items-end gap-2">
           {trailing}
-          <span className={`${overviewIconCircle} h-11 w-11 rounded-[18px]`}>{icon}</span>
+          <span className={`${iconClassName ?? overviewIconCircle} h-11 w-11 rounded-[18px]`}>{icon}</span>
         </div>
       </div>
 
       <div className="min-w-0">
-        <p className="truncate text-[clamp(1.5rem,2.4vw,1.75rem)] font-black tabular-nums leading-none tracking-[-0.06em] text-[#111827]">
+        <p
+          className={`truncate text-[clamp(1.5rem,2.4vw,1.75rem)] font-black tabular-nums leading-none tracking-[-0.06em] ${
+            alert ? 'text-[#ff5f7a]' : 'text-[#111827]'
+          }`}
+        >
           {value}
         </p>
         {hint ? (
@@ -99,11 +112,14 @@ export function OverviewKpiCarousel({
   children,
   autoPlay = true,
   autoPlayIntervalMs = KPI_CAROUSEL_AUTOPLAY_MS,
+  indicatorBgClass = 'bg-[#ff5f7a]',
 }: {
   children: ReactNode;
   /** Автолистание слайдов (пауза при наведении и если включён reduced motion). */
   autoPlay?: boolean;
   autoPlayIntervalMs?: number;
+  /** Цвет точек карусели (Tailwind bg-*). */
+  indicatorBgClass?: string;
 }) {
   const slides = Children.toArray(children);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -219,7 +235,7 @@ export function OverviewKpiCarousel({
                   pauseAutoPlayRef.current = false;
                 }, autoPlayIntervalMs);
               }}
-              className={`h-2.5 w-2.5 shrink-0 rounded-full bg-[#ff5f7a] transition hover:opacity-90 ${
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${indicatorBgClass} transition hover:opacity-90 ${
                 selected ? 'opacity-100' : 'opacity-45'
               }`}
             />

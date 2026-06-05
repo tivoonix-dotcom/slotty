@@ -34,6 +34,17 @@ export function isBlockedDisplayValue(value: string | null | undefined): boolean
   return t.length === 0 || BLOCKED_CLIENT_TOKENS.has(t);
 }
 
+function looksLikePhoneNumber(value: string | null | undefined): boolean {
+  const normalized = (value ?? '').trim().replace(/\s/g, '');
+  if (!normalized) return false;
+  return /^\+?\d[\d()-]{5,}$/.test(normalized);
+}
+
+export function isUsableProfileFullName(value: string | null | undefined): boolean {
+  const trimmed = value?.trim() || '';
+  return trimmed.length > 0 && !isBlockedDisplayValue(trimmed) && !looksLikePhoneNumber(trimmed);
+}
+
 function looksLikeRealSingleName(word: string): boolean {
   return /^[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z-]{2,}$/.test(word.trim());
 }
@@ -50,15 +61,15 @@ export function formatClientName(row: ClientNameFields): string {
   const phone = row.phone?.trim() || null;
   const username = row.telegram_username?.trim().replace(/^@+/, '') || null;
 
-  if (parts.length >= 2 && !parts.some((p) => isBlockedDisplayValue(p))) {
+  if (isUsableProfileFullName(name)) {
+    if (parts.length >= 2) return name;
+    if (phone) return `${name} · ${phone}`;
+    if (username) return `${name} (@${username})`;
     return name;
   }
 
-  if (phone) {
-    if (parts.length === 1 && looksLikeRealSingleName(parts[0]!) && !isBlockedDisplayValue(parts[0])) {
-      return `${name} · ${phone}`;
-    }
-    return phone;
+  if (parts.length >= 2 && !parts.some((p) => isBlockedDisplayValue(p))) {
+    return name;
   }
 
   if (username) {
@@ -72,6 +83,13 @@ export function formatClientName(row: ClientNameFields): string {
       return `${name} (${handle})`;
     }
     return handle;
+  }
+
+  if (phone) {
+    if (parts.length === 1 && looksLikeRealSingleName(parts[0]!) && !isBlockedDisplayValue(parts[0])) {
+      return `${name} · ${phone}`;
+    }
+    return phone;
   }
 
   if (parts.length === 1 && name.length >= 2 && !isBlockedDisplayValue(parts[0])) {

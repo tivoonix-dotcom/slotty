@@ -61,6 +61,15 @@ async function setStatus(
     );
     return;
   }
+  if (next === 'confirmed') {
+    await query(
+      `update public.appointments
+          set status = $2::public.appointment_status, confirmed_at = now(), updated_at = now()
+        where id = $1`,
+      [appointmentId, next],
+    );
+    return;
+  }
   await query(
     `update public.appointments set status = $2::public.appointment_status, updated_at = now() where id = $1`,
     [appointmentId, next],
@@ -160,14 +169,33 @@ async function transition(
   return { clientId: row.client_id };
 }
 
+async function assertPendingCanBeConfirmed(appointmentId: string, status: string): Promise<void> {
+  const s = normalizeDbStatus(status);
+  if (s === 'expired') {
+    throw ApiError.conflict('Заявка уже истекла', 'BOOKING_EXPIRED');
+  }
+  if (s !== 'pending') {
+    throw ApiError.conflict('Only pending appointments can be confirmed', 'BAD_STATUS');
+  }
+  const r = await query<{ pending_expires_at: Date | string | null }>(
+    `select pending_expires_at from public.appointments where id = $1`,
+    [appointmentId],
+  );
+  const expires = r.rows[0]?.pending_expires_at;
+  if (expires) {
+    const t = expires instanceof Date ? expires.getTime() : new Date(expires).getTime();
+    if (Number.isFinite(t) && t <= Date.now()) {
+      throw ApiError.conflict('Заявка уже истекла', 'BOOKING_EXPIRED');
+    }
+  }
+}
+
 export async function masterConfirmAppointmentLifecycle(
   masterId: string,
   appointmentId: string,
 ): Promise<{ clientId: string }> {
   const row = await loadForMaster(masterId, appointmentId);
-  if (normalizeDbStatus(row.status) !== 'pending') {
-    throw ApiError.conflict('Only pending appointments can be confirmed', 'BAD_STATUS');
-  }
+  await assertPendingCanBeConfirmed(appointmentId, row.status);
   return transition(masterId, appointmentId, 'confirmed', {
     eventType: 'booking.confirmed',
     notify: 'confirmed',

@@ -13,6 +13,7 @@ export type MasterOverviewReview = {
   id: string;
   author: string;
   authorInitial: string;
+  authorAvatarUrl?: string | null;
   dateIso: string;
   rating: number;
   text: string;
@@ -177,39 +178,50 @@ function averageRating(reviews: MasterOverviewReview[]): number | null {
   return Math.round((sum / reviews.length) * 10) / 10;
 }
 
+function ratingDailyAverages(reviews: MasterOverviewReview[]): RatingDayStat[] {
+  const ratingsByDate = new Map<string, number[]>();
+  for (const r of reviews) {
+    const list = ratingsByDate.get(r.dateIso) ?? [];
+    list.push(r.rating);
+    ratingsByDate.set(r.dateIso, list);
+  }
+  return [...ratingsByDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, ratings]) => {
+      const avg = ratings.reduce((s, n) => s + n, 0) / ratings.length;
+      return { date, averageRating: Math.round(avg * 10) / 10 };
+    });
+}
+
 function ratingSeriesByDay(
   reviews: MasterOverviewReview[],
   chartStart: string,
   chartEnd: string,
 ): RatingDayStat[] {
+  const inWindow = reviews.filter((r) => r.dateIso >= chartStart && r.dateIso <= chartEnd);
+  const source = inWindow.length > 0 ? inWindow : reviews;
+
+  if (source.length <= 6) {
+    return ratingDailyAverages(source);
+  }
+
   const dates = listIsoDatesInclusive(chartStart, chartEnd);
-  const sorted = [...reviews].sort((a, b) => a.dateIso.localeCompare(b.dateIso));
   const ratingsByDate = new Map<string, number[]>();
-  sorted.forEach((r) => {
+  for (const r of source) {
     const list = ratingsByDate.get(r.dateIso) ?? [];
     list.push(r.rating);
     ratingsByDate.set(r.dateIso, list);
-  });
+  }
 
-  let runningSum = 0;
-  let runningCount = 0;
   const series: RatingDayStat[] = [];
+  for (const date of dates) {
+    const dayRatings = ratingsByDate.get(date);
+    if (!dayRatings?.length) continue;
+    const avg = dayRatings.reduce((s, n) => s + n, 0) / dayRatings.length;
+    series.push({ date, averageRating: Math.round(avg * 10) / 10 });
+  }
 
-  dates.forEach((date) => {
-    const dayRatings = ratingsByDate.get(date) ?? [];
-    dayRatings.forEach((rating) => {
-      runningSum += rating;
-      runningCount += 1;
-    });
-    if (runningCount > 0) {
-      series.push({
-        date,
-        averageRating: Math.round((runningSum / runningCount) * 10) / 10,
-      });
-    }
-  });
-
-  return series;
+  return series.length > 0 ? series : ratingDailyAverages(source);
 }
 
 export type ReputationAnalyticsPayload = {

@@ -26,6 +26,8 @@ type Props = {
   headerAfter?: ReactNode;
   /** `catalog` — плоский стиль как в каталоге (#F5F5F5, без теней у футера). */
   variant?: 'default' | 'catalog';
+  /** `schedule` — синий акцент бейджа (страница расписания). */
+  accent?: 'brand' | 'schedule';
   children: ReactNode;
   footer?: ReactNode;
 };
@@ -41,10 +43,15 @@ export function AdminBottomSheet({
   headerContent,
   headerAfter,
   variant = 'default',
+  accent = 'brand',
   children,
   footer,
 }: Props) {
   const isCatalog = variant === 'catalog';
+  const badgeClass =
+    accent === 'schedule'
+      ? 'inline-flex max-w-full items-center rounded-full bg-[#EEF0FC] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-[#3B4CCA]'
+      : 'inline-flex max-w-full items-center rounded-full bg-[#FFF1F4] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-[#ff5f7a]';
   const suppressBackdropCloseRef = useRef(false);
 
   useLayoutEffect(() => {
@@ -95,7 +102,7 @@ export function AdminBottomSheet({
               ) : (
                 <>
                   {badge ? (
-                    <p className="inline-flex max-w-full items-center rounded-full bg-[#FFF1F4] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-[#ff5f7a]">
+                    <p className={badgeClass}>
                       {badge}
                     </p>
                   ) : null}

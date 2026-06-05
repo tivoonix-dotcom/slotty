@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { HiMagnifyingGlass, HiPlus } from 'react-icons/hi2';
 import { catalogSheetField } from '../shared/adminCatalogSheetTheme';
 import {
@@ -15,7 +15,7 @@ import { WindowTemplateCard } from './WindowTemplateCard';
 const SEARCH_THRESHOLD = 5;
 
 const schedulePrimaryBtn =
-  'inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#ff5f7a] px-4 py-2.5 text-[14px] font-bold text-white transition hover:opacity-95 active:scale-[0.98]';
+  'inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#3B4CCA] px-4 py-2.5 text-[14px] font-bold text-white transition hover:opacity-95 active:scale-[0.98]';
 
 type Props = {
   templates: WindowTemplate[];
@@ -87,7 +87,7 @@ export function WindowTemplateList({
 
       {templates.length === 0 ? (
         <div className="w-full rounded-[18px] bg-[#F6F7FB] px-4 py-10 text-center lg:py-12">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#FFF1F4] text-[#ff5f7a]">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#EEF0FC] text-[#3B4CCA]">
             <HiPlus className="h-7 w-7" aria-hidden />
           </span>
           <p className="mt-4 text-[16px] font-bold text-[#111827]">Пока нет шаблонов</p>
@@ -136,7 +136,7 @@ export function WindowTemplateList({
                     </div>
                   ))}
                   <button type="button" onClick={onCreate} className={scheduleTemplateAddBtn}>
-                    <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-white text-[#ff5f7a]">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-white text-[#3B4CCA]">
                       <HiPlus className="h-5 w-5" aria-hidden />
                     </span>
                     <span>Добавить</span>

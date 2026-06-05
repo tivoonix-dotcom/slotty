@@ -1,5 +1,6 @@
 import { query } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { paymentLabelsToCodes, sanitizePreferredBankIds } from '../../lib/belarusBanks.js';
 import {
   decodePaymentNote,
   listMasterPaymentMethodNames,
@@ -22,6 +23,7 @@ export type MasterBookingRulesStructured = {
   rescheduleBeforeMinutes: number;
   rescheduleLimit: number | null;
   paymentMethods: string[];
+  preferredBankIds: string[];
   paymentComment: string | null;
   prepaymentRequired: boolean;
   refundPolicyEnabled: boolean;
@@ -52,6 +54,7 @@ const DEFAULT: MasterBookingRulesStructured = {
   rescheduleBeforeMinutes: 720,
   rescheduleLimit: 2,
   paymentMethods: ['Наличные', 'Карта'],
+  preferredBankIds: [],
   paymentComment: null,
   prepaymentRequired: false,
   refundPolicyEnabled: false,
@@ -83,6 +86,7 @@ type DbRow = {
   booking_rules: string | null;
   cancellation_policy: string | null;
   payment_note: string | null;
+  preferred_bank_ids: string[] | null;
   updated_at: Date | string | null;
 };
 
@@ -157,6 +161,8 @@ function buildLegacyCancelText(rules: MasterBookingRulesStructured): string {
 }
 
 function mapRow(row: DbRow, paymentMethods: string[]): MasterBookingRulesStructured {
+  const methodCodes = paymentLabelsToCodes(paymentMethods);
+  const preferredBankIds = sanitizePreferredBankIds(methodCodes, row.preferred_bank_ids ?? []);
   return {
     minBookingNoticeMinutes: row.min_booking_notice_minutes,
     requiresMasterConfirmation: row.requires_master_confirmation,
@@ -170,6 +176,7 @@ function mapRow(row: DbRow, paymentMethods: string[]): MasterBookingRulesStructu
     rescheduleBeforeMinutes: row.reschedule_before_minutes,
     rescheduleLimit: row.reschedule_limit,
     paymentMethods,
+    preferredBankIds,
     paymentComment: decodePaymentNote(row.payment_note).paymentNote || null,
     prepaymentRequired: row.prepayment_required,
     refundPolicyEnabled: row.refund_policy_enabled,
@@ -187,7 +194,7 @@ const SELECT_COLS = `
   no_show_after_minutes, no_show_policy, reschedule_enabled, reschedule_before_minutes,
   reschedule_limit, prepayment_required, refund_policy_enabled, refund_policy_text,
   visit_preparation_text, contraindications_text, completion_score,
-  booking_rules, cancellation_policy, payment_note, updated_at
+  booking_rules, cancellation_policy, payment_note, preferred_bank_ids, updated_at
 `;
 
 async function ensureRow(masterId: string): Promise<DbRow> {
@@ -251,9 +258,10 @@ export async function getMasterBookingRulesStructured(masterId: string): Promise
 }
 
 export type PutMasterBookingRulesBody = Partial<
-  Omit<MasterBookingRulesStructured, 'completionScore' | 'updatedAt' | 'paymentMethods'>
+  Omit<MasterBookingRulesStructured, 'completionScore' | 'updatedAt' | 'paymentMethods' | 'preferredBankIds'>
 > & {
   paymentMethods?: string[];
+  preferredBankIds?: string[];
 };
 
 export function validatePutMasterBookingRules(body: PutMasterBookingRulesBody): void {
@@ -286,10 +294,17 @@ export async function putMasterBookingRulesStructured(
 ): Promise<MasterBookingRulesResponse> {
   validatePutMasterBookingRules(body);
   const current = await getMasterBookingRulesStructured(masterId);
+  const paymentMethods = body.paymentMethods ?? current.paymentMethods;
+  const methodCodes = paymentLabelsToCodes(paymentMethods);
+  const preferredBankIds =
+    body.preferredBankIds !== undefined
+      ? sanitizePreferredBankIds(methodCodes, body.preferredBankIds)
+      : sanitizePreferredBankIds(methodCodes, current.preferredBankIds);
   const next: MasterBookingRulesStructured = {
     ...current,
     ...body,
-    paymentMethods: body.paymentMethods ?? current.paymentMethods,
+    paymentMethods,
+    preferredBankIds,
     paymentComment:
       body.paymentComment !== undefined ? body.paymentComment : current.paymentComment,
   };
@@ -319,6 +334,7 @@ export async function putMasterBookingRulesStructured(
        booking_rules = $19,
        cancellation_policy = $20,
        payment_note = $21,
+       preferred_bank_ids = $22,
        updated_at = now()
      where master_id = $1`,
     [
@@ -343,6 +359,7 @@ export async function putMasterBookingRulesStructured(
       legacyBooking,
       legacyCancel,
       next.paymentComment,
+      next.preferredBankIds,
     ],
   );
 

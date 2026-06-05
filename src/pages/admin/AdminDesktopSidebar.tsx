@@ -17,6 +17,7 @@ import {
   ADMIN_MAIN_NAV,
   ADMIN_NOTIFICATIONS_NAV,
   ADMIN_SETTINGS_NAV,
+  AdminCabinetNavLink,
 } from './adminCabinetNav';
 import {
   ADMIN_SIDEBAR_WIDTH,
@@ -68,11 +69,10 @@ export function AdminDesktopSidebar() {
         </p>
 
         {ADMIN_MAIN_NAV.map((item) => (
-          <NavLink
+          <AdminCabinetNavLink
             key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => adminDesktopNavItemClass(isActive)}
+            item={item}
+            className={(isActive) => adminDesktopNavItemClass(isActive)}
           >
             {({ isActive }) => {
               const Icon = item.icon;
@@ -83,7 +83,7 @@ export function AdminDesktopSidebar() {
                 </>
               );
             }}
-          </NavLink>
+          </AdminCabinetNavLink>
         ))}
 
         <NavLink

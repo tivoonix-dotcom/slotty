@@ -7,6 +7,7 @@ import {
   formatBookingTimelineEventForClient,
   formatTimelineCreatedAt,
 } from '../../lib/bookingClientDetail.js';
+import { dedupeTimelineItems } from '../../lib/bookingTimelinePolicy.js';
 import { parseContactsJson, type MasterContactPayload } from '../masters/masterContactsCodec.js';
 import type { BookingEventRow } from './bookingEvents.service.js';
 
@@ -197,20 +198,21 @@ export function enrichClientAppointmentDetail(params: {
     hasDirectContact: params.master.contacts_visible && params.master.contact_actions.some((a) => a.type !== 'slotty'),
   });
 
-  const timeline = params.events
-    .map((ev) => {
-      const label = formatBookingTimelineEventForClient(ev);
-      if (!label) return null;
-      return {
-        id: ev.id,
-        eventType: ev.event_type,
-        label,
-        createdAt: ev.created_at instanceof Date ? ev.created_at.toISOString() : String(ev.created_at),
-        timeLabel: formatTimelineCreatedAt(ev.created_at),
-      };
-    })
-    .filter((x): x is NonNullable<typeof x> => x != null)
-    .slice(-20);
+  const timeline = dedupeTimelineItems(
+    params.events
+      .map((ev) => {
+        const label = formatBookingTimelineEventForClient(ev);
+        if (!label) return null;
+        return {
+          id: ev.id,
+          eventType: ev.event_type,
+          label,
+          createdAt: ev.created_at instanceof Date ? ev.created_at.toISOString() : String(ev.created_at),
+          timeLabel: formatTimelineCreatedAt(ev.created_at),
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null),
+  ).slice(-20);
 
   return {
     hero,

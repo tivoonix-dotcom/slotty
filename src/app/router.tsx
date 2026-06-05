@@ -27,6 +27,7 @@ import { AdminPage } from '../pages/admin/AdminPage';
 import { MasterSettingsPage } from '../pages/admin/settings/MasterSettingsPage';
 import { PlatformAdminPage } from '../pages/platform-admin/PlatformAdminPage';
 import { BookingPage } from '../pages/booking/BookingPage';
+import { ClientAppointmentReviewPage } from '../pages/booking/ClientAppointmentReviewPage';
 import { ClientBookingDetailPage } from '../pages/booking/ClientBookingDetailPage';
 import { MasterBookingDetailPage } from '../pages/booking/MasterBookingDetailPage';
 import { Home } from '../pages/Home';
@@ -108,6 +109,7 @@ export function AppRoutes() {
           <Route path={SERVICES_PATH} element={<ServicesCatalogPage />} />
           <Route path={`${SERVICES_PATH}/category/:categoryCode`} element={<ServiceCategoryPage />} />
           <Route path={MASTERS_PATH} element={<MastersCatalogPage />} />
+          <Route path="/client/appointments/:bookingCode/review" element={<ClientAppointmentReviewPage />} />
           <Route path="/client/appointments/:bookingCode" element={<ClientBookingDetailPage />} />
           <Route path="/master/appointments/:bookingCode" element={<MasterBookingDetailPage />} />
           <Route path={PROFILE_PATH} element={<ProfilePage />} />
@@ -132,6 +134,8 @@ export function AppRoutes() {
         <Route path={BECOME_MASTER_PATH} element={<BecomeMasterPage />} />
         <Route path="/settings" element={<Navigate to={PROFILE_SETTINGS_PATH} replace />} />
         <Route path={HELP_PATH} element={<Navigate to={MASTER_SETTINGS_SUPPORT_DOCS_PATH} replace />} />
+        <Route path="/doc/SLOTTY_politika_pd.pdf" element={<Navigate to={LEGAL_PRIVACY_PATH} replace />} />
+        <Route path="/doc/SLOTTY_soglasie_pd.pdf" element={<Navigate to={LEGAL_CONSENT_PATH} replace />} />
         <Route path={LEGAL_PRIVACY_PATH} element={<PrivacyPolicyPage />} />
         <Route path={LEGAL_CONSENT_PATH} element={<PersonalDataConsentPage />} />
         <Route path={LEGAL_PD_CONSENT_PATH} element={<PersonalDataConsentLegacyRedirect />} />

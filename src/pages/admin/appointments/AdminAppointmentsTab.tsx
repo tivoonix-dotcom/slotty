@@ -12,15 +12,13 @@ import { AdminToast } from '../shared/AdminToast';
 import { useAdminToast } from '../shared/useAdminToast';
 import {
   APPOINTMENTS_PAGE_BG,
+  APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC,
   apptBillingBanner,
+  apptCardShell,
   apptGroupLabel,
   apptListGap,
-  apptHistoryDesktopPanel,
-  apptHistoryMonthDivider,
   apptMonthLabel,
-  apptHistoryTableHead,
-  apptHistoryTableHeadCell,
-  apptHistoryTableHeadCellEnd,
+  apptOutlineBtn,
   apptPinkBtn,
   appointmentsDesktopCard,
   appointmentsDesktopCardPad,
@@ -40,6 +38,11 @@ import { AppointmentsFiltersSheet } from './AppointmentsFiltersSheet';
 import { AppointmentsQuickFilters } from './AppointmentsQuickFilters';
 import { AppointmentsHistoryRow } from './AppointmentsHistoryRow';
 import { AppointmentsHistorySummary } from './AppointmentsHistorySummary';
+import { tabSummaryCopy } from './appointmentsTabSummaryModel';
+import {
+  computeHistoryEarnedTrend,
+  historyEarnedTrendPercent as computeHistoryEarnedTrendPercent,
+} from './historyEarnedTrend';
 import { AppointmentsNearestCard } from './AppointmentsNearestCard';
 import { AppointmentsRequestCard } from './AppointmentsRequestCard';
 import { AppointmentsUpcomingRow } from './AppointmentsUpcomingRow';
@@ -66,9 +69,10 @@ import type {
   UpcomingSort,
 } from './appointmentsTypes';
 import { AppointmentsLoadMore } from './AppointmentsLoadMore';
+import { AppointmentsListSkeleton } from './AppointmentsListSkeleton';
+import { listLoadErrorTitle } from './appointmentsTabSummaryModel';
 import { useMasterAppointmentsPage } from './useMasterAppointmentsPage';
 import { useAdminSectionTab } from '../useAdminSectionTab';
-import { AdminCabinetCrossLink } from '../shared/AdminCabinetCrossLink';
 import {
   fetchMasterAppointments,
   type MasterAppointmentsTab,
@@ -309,9 +313,18 @@ export function AdminAppointmentsTab({
     return rows;
   }, [historyRows, historyService, historyStatus, historyPeriod]);
 
+  const historyAttentionIds = useMemo(
+    () => new Set(historyAttentionRows.map((a) => a.id)),
+    [historyAttentionRows],
+  );
+
   const historyGroups = useMemo(
-    () => groupAppointmentsByMonth(historyFiltered, historySortFn),
-    [historyFiltered, historySortFn],
+    () =>
+      groupAppointmentsByMonth(
+        historyFiltered.filter((a) => !historyAttentionIds.has(a.id)),
+        historySortFn,
+      ),
+    [historyAttentionIds, historyFiltered, historySortFn],
   );
 
   const historySummary = useMemo(() => {
@@ -331,6 +344,16 @@ export function AdminAppointmentsTab({
       earnedTotal: earned,
     };
   }, [historyRows, remote.stats, useRemoteList]);
+
+  const historyEarnedTrend = useMemo(
+    () => computeHistoryEarnedTrend(historyRows),
+    [historyRows],
+  );
+
+  const historyEarnedTrendPercent = useMemo(
+    () => computeHistoryEarnedTrendPercent(historyRows),
+    [historyRows],
+  );
 
   const {
     planId: billingPlanId,
@@ -355,38 +378,60 @@ export function AdminAppointmentsTab({
   const applyAction = useCallback(
     async (rejectReason?: string) => {
       if (!actionConfig) return;
-      const { appointment, nextStatus } = actionConfig;
+      const { appointment, nextStatus, kind } = actionConfig;
       const nextRows = updateStatus(appointments, appointment.id, nextStatus);
       setActionApiError(null);
+      setActionConfig(null);
+
+      if (useRemoteList) {
+        const leavesCurrentTab =
+          (tab === 'requests' && (nextStatus === 'confirmed' || kind === 'reject')) ||
+          (tab === 'upcoming' &&
+            (nextStatus === 'completed' || nextStatus === 'cancelled')) ||
+          (tab === 'history' && nextStatus === 'cancelled');
+        if (leavesCurrentTab) {
+          remote.removeFromList(appointment.id);
+        } else {
+          remote.patchItem(appointment.id, { status: nextStatus });
+        }
+        void remote.loadStats();
+      }
+
+      if (nextStatus === 'confirmed') {
+        showToast('Запись подтверждена');
+        setTab('upcoming');
+      } else if (nextStatus === 'completed') {
+        showToast('Запись завершена');
+        setTab('history');
+      } else if (nextStatus === 'cancelled') {
+        const suffix = rejectReason ? `: ${rejectReason}` : '';
+        showToast(kind === 'reject' ? `Заявка отклонена${suffix}` : `Запись отменена${suffix}`);
+        setTab('history');
+      }
+
       try {
         await Promise.resolve(
           onChangeAppointments(nextRows, {
-            cancelReason:
-              nextStatus === 'cancelled' ? rejectReason?.trim() : undefined,
+            cancelReason: nextStatus === 'cancelled' ? rejectReason?.trim() : undefined,
           }),
         );
-        if (useRemoteList) {
-          await remote.reload();
-        }
-        if (nextStatus === 'confirmed') {
-          showToast('Запись подтверждена');
-          setTab('upcoming');
-        } else if (nextStatus === 'completed') {
-          showToast('Запись завершена');
-          setTab('history');
-        } else if (nextStatus === 'cancelled') {
-          const suffix = rejectReason ? `: ${rejectReason}` : '';
-          showToast(
-            actionConfig.kind === 'reject' ? `Заявка отклонена${suffix}` : `Запись отменена${suffix}`,
-          );
-          setTab('history');
-        }
-        setActionConfig(null);
       } catch (e) {
+        if (useRemoteList) {
+          void remote.reload();
+        }
         showErrorToast(e instanceof Error ? e.message : 'Не удалось обновить запись');
       }
     },
-    [actionConfig, listAppointments, onChangeAppointments, remote, showErrorToast, showToast, useRemoteList],
+    [
+      actionConfig,
+      appointments,
+      onChangeAppointments,
+      remote,
+      showErrorToast,
+      showToast,
+      tab,
+      useRemoteList,
+    ],
   );
 
   const listPagination = useRemoteList ? (
@@ -400,15 +445,28 @@ export function AdminAppointmentsTab({
   ) : null;
 
   const listLoadingBlock =
-    useRemoteList && remote.loading && remote.items.length === 0 ? (
-      <p className="py-10 text-center text-[14px] font-medium text-[#9CA3AF]">Загрузка записей…</p>
-    ) : null;
+    useRemoteList && remote.loading && remote.items.length === 0 ? <AppointmentsListSkeleton /> : null;
 
-  const listErrorBlock = useRemoteList && remote.error ? (
-    <p className="rounded-[18px] bg-[#FFF0F0] px-4 py-3 text-center text-[14px] font-semibold text-[#9B2C2C]">
-      {remote.error}
-    </p>
-  ) : null;
+  const historyInitialLoading = Boolean(useRemoteList && remote.loading && remote.items.length === 0);
+  const historySummaryLoading = historyInitialLoading && !remote.stats;
+  const showHistorySummaryHeader = tab === 'history' && (stats.history > 0 || historyInitialLoading);
+
+  const listErrorBlock =
+    useRemoteList && remote.error ? (
+      <section className={`${apptCardShell} flex flex-col items-center px-6 py-8 text-center`}>
+        <h3 className="text-[16px] font-bold tracking-[-0.02em] text-[#111827]">
+          {listLoadErrorTitle(tab)}
+        </h3>
+        <p className="mt-2 max-w-[20rem] text-[14px] leading-relaxed text-[#6B7280]">{remote.error}</p>
+        <button
+          type="button"
+          onClick={() => void remote.reload()}
+          className={`${apptPinkBtn} mt-5 w-full max-w-[14rem]`}
+        >
+          Повторить
+        </button>
+      </section>
+    ) : null;
 
   const servicePills = (rows: DemoMasterAppointment[]) => [
     { id: 'all', label: 'Все услуги' },
@@ -456,13 +514,26 @@ export function AdminAppointmentsTab({
       return (
         <AppointmentsEmptyState
           title="Новых заявок пока нет"
-          text="Когда клиент отправит заявку на запись, она появится здесь"
-          hint="Чтобы клиенты могли записаться, проверьте услуги и откройте окна в расписании"
+          text="Когда клиент отправит заявку, она появится здесь."
+          illustrationSrc={APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC}
+          detail={{
+            title: 'Как работают заявки',
+            illustrationSrc: APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC,
+            paragraphs: [
+              'Клиент выбирает услугу и время на вашей странице и отправляет заявку.',
+              'Заявка появляется здесь — вы можете подтвердить или отклонить её. Клиент сразу увидит статус.',
+              'Чтобы принимать записи, добавьте услуги и откройте свободные окна в расписании.',
+            ],
+          }}
           action={
-            <div className="flex w-full flex-col gap-2">
-              <AdminCabinetCrossLink to={ADMIN_SCHEDULE_PATH}>Открыть расписание</AdminCabinetCrossLink>
-              <AdminCabinetCrossLink to={ADMIN_SERVICES_PATH}>Настроить услуги</AdminCabinetCrossLink>
-            </div>
+            <>
+              <Link to={ADMIN_SCHEDULE_PATH} className={`${apptPinkBtn} w-full`}>
+                Открыть расписание
+              </Link>
+              <Link to={ADMIN_SERVICES_PATH} className={`${apptOutlineBtn} w-full`}>
+                Настроить услуги
+              </Link>
+            </>
           }
         />
       );
@@ -474,6 +545,7 @@ export function AdminAppointmentsTab({
             <li key={a.id}>
               <AppointmentsRequestCard
                 appointment={a}
+                onOpenDetail={() => onOpenDetail(a, 'requests')}
                 onConfirm={() =>
                   openAction({
                     kind: 'confirm',
@@ -521,13 +593,24 @@ export function AdminAppointmentsTab({
         <AppointmentsEmptyState
           title="Предстоящих записей нет"
           text="Подтверждённые записи появятся здесь после того, как вы примете заявку"
+          illustrationSrc={APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC}
+          detail={{
+            title: 'Предстоящие записи',
+            illustrationSrc: APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC,
+            paragraphs: [
+              'После подтверждения заявки запись переходит во вкладку «Предстоящие».',
+              'Здесь видны ближайшие визиты — можно открыть карточку, начать или завершить визит.',
+            ],
+          }}
           action={
             stats.requests > 0 ? (
               <button type="button" onClick={() => setTab('requests')} className={apptPinkBtn}>
                 Перейти к заявкам ({stats.requests})
               </button>
             ) : (
-              <AdminCabinetCrossLink to={ADMIN_SCHEDULE_PATH}>Открыть расписание</AdminCabinetCrossLink>
+              <Link to={ADMIN_SCHEDULE_PATH} className={`${apptPinkBtn} w-full`}>
+                Открыть расписание
+              </Link>
             )
           }
         />
@@ -568,9 +651,9 @@ export function AdminAppointmentsTab({
   };
 
   const renderHistory = () => {
-    if (listLoadingBlock) return listLoadingBlock;
     if (listErrorBlock) return listErrorBlock;
-    if (!historyRows.length) {
+
+    if (!historyRows.length && !historyInitialLoading && stats.history === 0) {
       return (
         <AppointmentsEmptyState
           title="Истории записей пока нет"
@@ -578,79 +661,91 @@ export function AdminAppointmentsTab({
         />
       );
     }
-    if (!historyFiltered.length) {
-      return (
-        <AppointmentsEmptyState
-          title="Ничего не найдено"
-          text="Попробуйте изменить фильтры статуса или периода"
-        />
-      );
-    }
+
     const historyFilters = (
       <AppointmentsQuickFilters
+        compact
         sheetActive={sheetFilterActive}
         sheetOpen={filterOpen}
         onOpenSheet={() => setFilterOpen(true)}
         sheetAriaLabel={sheetAriaLabel}
       />
     );
+    const historyMobileHeader = tabSummaryCopy('history', stats);
+
+    const historySummaryBlock = (
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-5">
+        <AppointmentsHistorySummary
+          completedCount={historySummary.completedCount}
+          earnedTotal={historySummary.earnedTotal}
+          cancelledCount={historySummary.cancelledCount}
+          earnedTrend={historyEarnedTrend}
+          earnedTrendPercent={historyEarnedTrendPercent}
+          loading={historySummaryLoading}
+          mobileHeader={{
+            title: historyMobileHeader.title,
+            subtitle: historyMobileHeader.subtitle,
+          }}
+          mobileFilter={historyFilters}
+        />
+        <div className="hidden shrink-0 pt-1 lg:block">
+          <AppointmentsQuickFilters
+            sheetActive={sheetFilterActive}
+            sheetOpen={filterOpen}
+            onOpenSheet={() => setFilterOpen(true)}
+            sheetAriaLabel={sheetAriaLabel}
+          />
+        </div>
+      </div>
+    );
+
+    if (historyInitialLoading) {
+      return (
+        <div className="space-y-3 lg:space-y-5">
+          {historySummaryBlock}
+          {listLoadingBlock}
+        </div>
+      );
+    }
+
+    if (!historyFiltered.length) {
+      return (
+        <div className="space-y-3 lg:space-y-5">
+          {historySummaryBlock}
+          <AppointmentsEmptyState
+            title="Ничего не найдено"
+            text="Попробуйте изменить фильтры статуса или периода"
+            picture="searchEmpty"
+          />
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-3 lg:space-y-5">
-        <div className="relative lg:hidden">
-          <AppointmentsHistorySummary
-            completedCount={historySummary.completedCount}
-            earnedTotal={historySummary.earnedTotal}
-            cancelledCount={historySummary.cancelledCount}
-          />
-          <div className="absolute right-3 top-3.5">{historyFilters}</div>
-        </div>
+        {historySummaryBlock}
 
-        <div className="hidden items-start justify-between gap-5 lg:flex">
-          <AppointmentsHistorySummary
-            completedCount={historySummary.completedCount}
-            earnedTotal={historySummary.earnedTotal}
-            cancelledCount={historySummary.cancelledCount}
-          />
-          <div className="shrink-0 pt-1">{historyFilters}</div>
-        </div>
-
-        <div className={apptHistoryDesktopPanel}>
-          {historyAttentionRows.length ? (
-            <section className="border-b border-[#FEE2E2] bg-[#FFF5F5] px-4 py-3">
-              <h3 className={`mb-2 ${apptGroupLabel} !text-[#B91C1C]`}>Требуют внимания</h3>
-              <ul className={apptListGap}>
-                {historyAttentionRows.map((a) => (
-                  <li key={a.id}>
-                    <AppointmentsHistoryRow appointment={a} onOpen={() => onOpenDetail(a, 'history')} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-          <div className={apptHistoryTableHead} role="row">
-            <span className={apptHistoryTableHeadCell}>Клиент</span>
-            <span className={apptHistoryTableHeadCell}>Услуга</span>
-            <span className={apptHistoryTableHeadCell}>Дата</span>
-            <span className={apptHistoryTableHeadCellEnd}>Сумма</span>
-            <span className={apptHistoryTableHeadCellEnd}>Статус</span>
-          </div>
-          {historyGroups.map((group, groupIndex) => (
-            <section key={group.monthKey} className={groupIndex > 0 ? 'border-t border-[#F0F0F0]' : undefined}>
-              <h3 className={apptHistoryMonthDivider}>{group.label}</h3>
-              <ul className="flex flex-col" role="list">
-                {group.items.map((a, rowIndex) => (
-                  <li key={a.id} className={rowIndex === group.items.length - 1 ? 'last:[&_button]:border-b-0' : undefined}>
-                    <AppointmentsHistoryRow appointment={a} onOpen={() => onOpenDetail(a, 'history')} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+        {historyAttentionRows.length ? (
+          <section>
+            <h3 className={`${apptGroupLabel} !text-[#B91C1C] before:bg-[#F47C8C]`}>
+              Требуют внимания
+            </h3>
+            <ul className={`mt-2 ${apptListGap}`}>
+              {historyAttentionRows.map((a) => (
+                <li key={a.id}>
+                  <AppointmentsHistoryRow
+                    appointment={a}
+                    attention
+                    onOpen={() => onOpenDetail(a, 'history')}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         {historyGroups.map((group) => (
-          <section key={`${group.monthKey}-mobile`} className="lg:hidden">
+          <section key={group.monthKey}>
             <h3 className={apptMonthLabel}>{group.label}</h3>
             <ul className={apptListGap}>
               {group.items.map((a) => (
@@ -774,7 +869,9 @@ export function AdminAppointmentsTab({
     <section
       className={`-mx-4 min-w-0 space-y-4 px-4 pb-[calc(5.75rem+1.25rem+env(safe-area-inset-bottom,0px))] lg:hidden ${APPOINTMENTS_PAGE_BG}`}
     >
-      <AppointmentsPageHeader tab={tab} stats={stats} />
+      {tab !== 'history' || !showHistorySummaryHeader ? (
+        <AppointmentsPageHeader tab={tab} stats={stats} />
+      ) : null}
       {billingBanner}
       {tab === 'history' ? null : toolbar}
       {tabPanels}

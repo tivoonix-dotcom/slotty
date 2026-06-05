@@ -1,20 +1,63 @@
-import { SUPPORT_EMAIL } from '../../constants/support';
+import { SUPPORT_EMAIL, SUPPORT_TELEGRAM } from '../../constants/support';
+import { SEO_SITE_ORIGIN } from '../../shared/seo/seoSite';
 
 /**
- * Юридические контакты SLOTTY.
- * TODO: заменить на полные реквизиты ИП/юрлица (наименование, УНП, адрес, банк).
- * TODO: финальная юридическая проверка текстов документов.
+ * Реквизиты оператора персональных данных (РБ).
+ * Заполните константы ниже — без них в документах остаётся обобщённая формулировка про SLOTTY.
  */
-export const SITE_OPERATOR_LEGAL =
-  'Владелец интернет-сервиса онлайн-записи SLOTTY (далее — Оператор персональных данных). TODO: указать наименование и реквизиты.';
+export const OPERATOR_LEGAL_NAME: string | null = null;
+/** УНП (10 цифр) */
+export const OPERATOR_UNP: string | null = null;
+/** Юридический адрес (как в регистрации) */
+export const OPERATOR_LEGAL_ADDRESS: string | null = null;
+/** ФИО ответственного за обработку ПД (если отличается от ИП) */
+export const OPERATOR_PD_CONTACT_PERSON: string | null = null;
 
-/** Почта для обращений по вопросам ПД и сервиса (тот же адрес, что в кабинете и настройках). */
+export const SITE_BRAND_NAME = 'SLOTTY';
+export const SITE_PUBLIC_URL = SEO_SITE_ORIGIN;
+
+/** Почта для обращений по вопросам ПД и сервиса. */
 export const SITE_SUPPORT_EMAIL = SUPPORT_EMAIL;
 
-export const PD_POLICY_PDF_HREF = '/doc/SLOTTY_politika_pd.pdf';
-export const PD_CONSENT_PDF_HREF = '/doc/SLOTTY_soglasie_pd.pdf';
+export const SITE_SUPPORT_TELEGRAM = SUPPORT_TELEGRAM;
 
-export const TIVONIX_SITE_URL = 'https://tivonix.tech';
+/** Ссылки на актуальные тексты на сайте (вместо устаревших PDF с tivonix.tech). */
+export const PD_POLICY_WEB_HREF = '/legal/privacy';
+export const PD_CONSENT_WEB_HREF = '/legal/consent';
+
+/** @deprecated Используйте PD_POLICY_WEB_HREF */
+export const PD_POLICY_PDF_HREF = PD_POLICY_WEB_HREF;
+
+/** @deprecated Используйте PD_CONSENT_WEB_HREF */
+export const PD_CONSENT_PDF_HREF = PD_CONSENT_WEB_HREF;
+
+function hasFullOperatorRequisites(): boolean {
+  return Boolean(
+    OPERATOR_LEGAL_NAME?.trim() &&
+      OPERATOR_UNP?.trim() &&
+      OPERATOR_LEGAL_ADDRESS?.trim(),
+  );
+}
+
+/** Оператор ПД для вставки в согласия и политики. */
+export function formatSiteOperatorLegal(): string {
+  if (hasFullOperatorRequisites()) {
+    const person = OPERATOR_PD_CONTACT_PERSON?.trim();
+    const contactSuffix = person ? `, ответственный за обработку ПД: ${person}` : '';
+    return (
+      `${OPERATOR_LEGAL_NAME!.trim()}, УНП ${OPERATOR_UNP!.trim()}, ` +
+      `юридический адрес: ${OPERATOR_LEGAL_ADDRESS!.trim()}${contactSuffix} ` +
+      `(оператор интернет-сервиса ${SITE_BRAND_NAME}, ${SITE_PUBLIC_URL})`
+    );
+  }
+  return (
+    `Владелец интернет-сервиса онлайн-записи ${SITE_BRAND_NAME} (${SITE_PUBLIC_URL}) ` +
+    `— оператор персональных данных в отношении пользователей сервиса ${SITE_BRAND_NAME}`
+  );
+}
+
+/** @deprecated Используйте formatSiteOperatorLegal() */
+export const SITE_OPERATOR_LEGAL = formatSiteOperatorLegal();
 
 /** Фон блока «Оплата и возвраты» на юридических страницах. */
 export const PAYMENT_LEGAL_TRUST_BLOCK_BG =

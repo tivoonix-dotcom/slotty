@@ -68,28 +68,6 @@ export function ClientProfileDesktopSidebar({
 }: Props) {
   return (
     <aside className="flex min-h-0 flex-col gap-4">
-      {clientShell && isMasterCabinet ? (
-        <Link
-          to={ADMIN_PATH}
-          className={`${catalogDesktopPanel} flex items-center gap-3.5 p-4 transition hover:bg-[#FAFAFA]`}
-        >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[#F5F5F5]">
-            <img
-              src={HEADER_LOGO_SRC}
-              alt="SLOTTY"
-              width={44}
-              height={44}
-              decoding="async"
-              className="h-9 w-auto origin-center object-contain [transform:scale(1.65)]"
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-bold text-[#111827]">Вы мастер</p>
-            <p className="mt-0.5 text-[13px] text-[#6B7280]">Перейти в кабинет</p>
-          </div>
-        </Link>
-      ) : null}
-
       <div className={`${catalogDesktopPanel} p-5`}>
         {authLoading ? (
           <div className="flex items-center gap-4">
@@ -169,10 +147,10 @@ export function ClientProfileDesktopSidebar({
               </Link>
               <Link
                 to={PROFILE_SETTINGS_PATH}
-                aria-label="Настройки"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#F5F5F5] text-[#374151] transition hover:bg-[#EBEBEB]"
+                className="relative flex flex-1 min-h-10 items-center justify-center gap-2 rounded-[10px] bg-[#F5F5F5] text-[14px] font-semibold text-[#374151] transition hover:bg-[#EBEBEB]"
               >
-                <HiCog6Tooth className="h-5 w-5" />
+                <HiCog6Tooth className="h-4 w-4" />
+                Настройки
               </Link>
             </div>
           </>
@@ -213,7 +191,27 @@ export function ClientProfileDesktopSidebar({
         })}
       </nav>
 
-      {!(clientShell && isMasterCabinet) ? (
+      {clientShell && isMasterCabinet ? (
+        <Link
+          to={ADMIN_PATH}
+          className={`${catalogDesktopPanel} flex items-center gap-3 p-4 transition hover:bg-[#FAFAFA]`}
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[#FFF1F4] text-[#F47C8C]">
+            <img
+              src={HEADER_LOGO_SRC}
+              alt=""
+              width={28}
+              height={28}
+              decoding="async"
+              className="h-7 w-auto origin-center object-contain [transform:scale(1.65)]"
+            />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[14px] font-bold text-[#111827]">Кабинет мастера</p>
+            <p className="mt-0.5 text-[12px] text-[#6B7280]">Управление записями и услугами</p>
+          </div>
+        </Link>
+      ) : !(clientShell && isMasterCabinet) ? (
         <Link
           to={isMasterCabinet ? ADMIN_PATH : BECOME_MASTER_PATH}
           className={`${catalogDesktopPanel} flex items-center gap-3 p-4 transition hover:bg-[#FAFAFA]`}

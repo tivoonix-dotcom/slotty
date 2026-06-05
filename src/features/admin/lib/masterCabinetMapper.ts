@@ -2,6 +2,8 @@ import { LOCATION_EMPTY_SENTINEL } from '../../../shared/lib/emptyDisplayText';
 import { addDays } from '../../booking/lib/calendar';
 import type { DemoAppointmentStatus, DemoMasterAppointment } from '../../master/model/demoMasterAppointments';
 import { dbStatusToUi } from '../../appointments/appointmentStatus';
+import { resolveNotificationClientName } from '../../notifications/resolveNotificationClientName';
+import { clientNameInputForResolve } from '../../../pages/admin/appointments/appointmentsFormat';
 import { formatServiceName } from '../../../shared/lib/displayFormat';
 import { isoDateLocal } from '../../master/model/demoMasterAppointments';
 import type {
@@ -284,7 +286,7 @@ export function cabinetDtoToMasterDraft(cabinet: MasterCabinetDto): MasterDraft 
     services: mappedServices,
     schedule: scheduleRulesToDraftSchedule(scheduleRules),
     location: primaryLocation ? cabinetLocationToDraft(primaryLocation) : { visitType: 'studio', street: '', building: '' },
-    createdAt: new Date().toISOString(),
+    createdAt: profile.createdAt,
     certificates: certs.length ? certs : undefined,
     portfolio: port.length ? port : undefined,
     portfolioCoverId: resolvePortfolioCoverId(port, profile.portfolioCoverItemId),
@@ -336,12 +338,14 @@ export function mapMasterAppointmentRowToDemo(row: {
   client_telegram_username_snapshot?: string | null;
   client_telegram_username?: string | null;
   client_telegram_id_snapshot?: string | null;
+  client_telegram_id?: string | null;
   booking_source?: string | null;
   voucher_number?: string | null;
   cancel_reason?: string | null;
   client_avatar_url?: string | null;
   client_note: string | null;
   client_reference_photo_url?: string | null;
+  pending_expires_at?: string | null;
 }): DemoMasterAppointment {
   const d = new Date(row.starts_at);
   const date = isoDateLocal(d);
@@ -359,13 +363,20 @@ export function mapMasterAppointmentRowToDemo(row: {
     slotId: row.slot_id,
     startsAt: row.starts_at,
     endsAt: row.ends_at,
-    clientName: row.client_name || 'Клиент SLOTTY',
+    clientName:
+      resolveNotificationClientName({
+        full_name: clientNameInputForResolve(row.client_name),
+        phone,
+        telegram_username: telegram?.replace(/^@+/, '') || null,
+      }) ??
+      clientNameInputForResolve(row.client_name) ??
+      'Клиент',
     clientAvatarUrl: row.client_avatar_url?.trim() || null,
     serviceTitle: formatServiceName(row.service_title_snapshot || 'Услуга'),
     date,
     time,
     priceByn: Number.isFinite(price) ? price : 0,
-    contact: phone || telegram || email || undefined,
+    contact: phone || undefined,
     clientNote: note || undefined,
     clientReferencePhotoUrl: photoUrl,
     status: mapDbAppointmentStatus(dbStatus),
@@ -375,7 +386,10 @@ export function mapMasterAppointmentRowToDemo(row: {
     bookingSource: row.booking_source ?? null,
     clientEmail: email || null,
     clientTelegramUsername: telegram?.replace(/^@+/, '') || null,
+    clientTelegramId:
+      (row.client_telegram_id_snapshot ?? row.client_telegram_id)?.trim() || null,
     cancelReason: row.cancel_reason?.trim() || null,
+    pendingExpiresAt: row.pending_expires_at?.trim() || null,
   };
 }
 

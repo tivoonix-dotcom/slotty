@@ -10,6 +10,8 @@ import {
   clientBookingRequestCreated,
   clientBookingConfirmed,
   masterBookingRequestCreated,
+  masterBookingPendingReminder,
+  masterBookingPendingDeadline,
 } from './templates/appointmentNotificationTemplates.js';
 import {
   clientBookingTelegramKeyboard,
@@ -41,9 +43,17 @@ async function appointmentStillActive(appointmentId: string): Promise<boolean> {
   );
   const row = r.rows[0];
   if (!row) return false;
-  if (!['pending', 'confirmed'].includes(row.status)) return false;
+  if (row.status !== 'confirmed') return false;
   const startsAt = row.starts_at instanceof Date ? row.starts_at : new Date(row.starts_at);
   return startsAt.getTime() > Date.now();
+}
+
+async function appointmentStillPending(appointmentId: string): Promise<boolean> {
+  const r = await query<{ status: string }>(
+    `select status::text from public.appointments where id = $1`,
+    [appointmentId],
+  );
+  return r.rows[0]?.status === 'pending';
 }
 
 function isReminderJob(jobType: string): boolean {
@@ -52,6 +62,10 @@ function isReminderJob(jobType: string): boolean {
 
 function isVisitStartJob(jobType: string): boolean {
   return jobType === 'booking_visit_start';
+}
+
+function isPendingDecisionJob(jobType: string): boolean {
+  return jobType === 'booking_master_pending_reminder' || jobType === 'booking_master_pending_deadline';
 }
 
 async function appointmentAwaitingMasterAtStart(appointmentId: string): Promise<boolean> {
@@ -108,6 +122,13 @@ export async function processNotificationJob(job: NotificationJobRow): Promise<P
     const awaiting = await appointmentAwaitingMasterAtStart(job.appointment_id);
     if (!awaiting) {
       return { status: 'skipped', reason: 'VISIT_ALREADY_STARTED_OR_CLOSED' };
+    }
+  }
+
+  if (isPendingDecisionJob(job.job_type)) {
+    const pending = await appointmentStillPending(job.appointment_id);
+    if (!pending) {
+      return { status: 'skipped', reason: 'APPOINTMENT_NOT_PENDING' };
     }
   }
 
@@ -171,6 +192,12 @@ export async function processNotificationJob(job: NotificationJobRow): Promise<P
       mail = clientBookingConfirmedEmail(ctx);
     } else if (job.job_type === 'booking_master_new') {
       mail = masterBookingCreatedEmail(ctx);
+    } else if (job.job_type === 'booking_master_pending_reminder') {
+      const p = masterBookingPendingReminder(ctx);
+      mail = { subject: p.title, text: p.body, html: `<p><strong>${p.title}</strong></p><p>${p.body}</p>` };
+    } else if (job.job_type === 'booking_master_pending_deadline') {
+      const p = masterBookingPendingDeadline(ctx);
+      mail = { subject: p.title, text: p.body, html: `<p><strong>${p.title}</strong></p><p>${p.body}</p>` };
     } else {
       mail = clientBookingCreatedEmail(ctx);
     }
@@ -209,6 +236,14 @@ export async function processNotificationJob(job: NotificationJobRow): Promise<P
       body = p.body;
     } else if (job.job_type === 'booking_master_new') {
       const p = masterBookingRequestCreated(ctx);
+      title = p.title;
+      body = p.body;
+    } else if (job.job_type === 'booking_master_pending_reminder') {
+      const p = masterBookingPendingReminder(ctx);
+      title = p.title;
+      body = p.body;
+    } else if (job.job_type === 'booking_master_pending_deadline') {
+      const p = masterBookingPendingDeadline(ctx);
       title = p.title;
       body = p.body;
     } else {

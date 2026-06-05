@@ -93,6 +93,22 @@ export type ProfileReportAdmin = {
   reporterName: string | null;
 };
 
+export type ClientReportAdmin = {
+  id: string;
+  status: 'pending' | 'in_review' | 'closed' | 'rejected';
+  reasonCode: string;
+  reasonText: string | null;
+  adminComment: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  appointmentId: string;
+  voucherNumber: string | null;
+  masterId: string;
+  masterName: string;
+  clientUserId: string | null;
+  clientName: string | null;
+};
+
 export type CategoryChangeRequestAdmin = {
   id: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -274,6 +290,13 @@ export type PlatformBookingDetail = PlatformBookingListItem & {
   clientEmail: string | null;
   clientPhone: string | null;
   clientTelegramUsername: string | null;
+  pendingConfirmDeadline: string | null;
+  hasReview: boolean;
+  notificationJobs: {
+    total: number;
+    pending: number;
+    failed: number;
+  };
   clientStats: {
     totalBookings: number;
     cancellationsByClient: number;

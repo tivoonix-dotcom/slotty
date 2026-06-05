@@ -1,50 +1,50 @@
-import { sheetSegmentClass } from '../profile/adminProfileCabinetTheme';
-import { notifListToolbar, notifTrayLabel } from './adminNotificationsTheme';
+import {
+  notifFilterBadgeActive,
+  notifFilterBadgeIdle,
+  notifFilterChip,
+  notifFilterChipActive,
+  notifFilterChipIdle,
+  notifFilterScroll,
+  notifListToolbar,
+} from './adminNotificationsTheme';
+import {
+  countByFilter,
+  type MasterNotificationFilter,
+} from './masterNotificationModel';
+import type { MeNotificationRow } from '../../../features/profile/api/clientNotifications';
 
-export type NotificationsFilter = 'all' | 'unread';
+export type NotificationsFilter = MasterNotificationFilter;
+
+type FilterChip = {
+  id: MasterNotificationFilter;
+  label: string;
+  showCount?: boolean;
+};
+
+const FILTER_CHIPS: FilterChip[] = [
+  { id: 'all', label: 'Все', showCount: true },
+  { id: 'action_required', label: 'Действия', showCount: true },
+  { id: 'appointments', label: 'Записи', showCount: true },
+  { id: 'reminders', label: 'Напоминания', showCount: true },
+  { id: 'reviews', label: 'Отзывы', showCount: true },
+  { id: 'cancellations', label: 'Отмены', showCount: true },
+  { id: 'system', label: 'Системные', showCount: true },
+];
 
 type Props = {
   filter: NotificationsFilter;
   onFilter: (filter: NotificationsFilter) => void;
-  unreadCount: number;
-  totalCount: number;
-  onMarkAllRead?: () => void;
+  notifications: MeNotificationRow[];
 };
 
-export function NotificationsFilterBar({
-  filter,
-  onFilter,
-  unreadCount,
-  totalCount,
-  onMarkAllRead,
-}: Props) {
-  const chips: Array<{ id: NotificationsFilter; label: string; count?: number }> = [
-    { id: 'all', label: 'Все', count: totalCount },
-    { id: 'unread', label: 'Новые', count: unreadCount },
-  ];
-
+export function NotificationsFilterBar({ filter, onFilter, notifications }: Props) {
   return (
     <div className={notifListToolbar}>
-      <div className="flex items-center justify-between gap-3">
-        <p className={notifTrayLabel}>Лента</p>
-        {onMarkAllRead ? (
-          <button
-            type="button"
-            onClick={onMarkAllRead}
-            className="shrink-0 text-[13px] font-semibold text-[#F47C8C] transition hover:opacity-80 active:scale-[0.98]"
-          >
-            Прочитать все
-          </button>
-        ) : null}
-      </div>
-
-      <div
-        className="mt-3 grid grid-cols-2 gap-1.5 rounded-[10px] bg-[#F5F5F5] p-1.5"
-        role="tablist"
-        aria-label="Фильтр уведомлений"
-      >
-        {chips.map((chip) => {
+      <div className={notifFilterScroll} role="tablist" aria-label="Фильтр уведомлений">
+        {FILTER_CHIPS.map((chip) => {
           const active = filter === chip.id;
+          const count = chip.showCount ? countByFilter(notifications, chip.id) : 0;
+          const showBadge = count > 0 && (active || chip.id === 'action_required');
           return (
             <button
               key={chip.id}
@@ -52,16 +52,12 @@ export function NotificationsFilterBar({
               role="tab"
               aria-selected={active}
               onClick={() => onFilter(chip.id)}
-              className={`flex min-h-11 items-center justify-center gap-2 ${sheetSegmentClass(active)}`}
+              className={`${notifFilterChip} ${active ? notifFilterChipActive : notifFilterChipIdle}`}
             >
               <span>{chip.label}</span>
-              {chip.count != null && chip.count > 0 ? (
-                <span
-                  className={`min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${
-                    active ? 'bg-white/25 text-white' : 'bg-[#EBEBEB] text-[#6B7280]'
-                  }`}
-                >
-                  {chip.count > 99 ? '99+' : chip.count}
+              {showBadge ? (
+                <span className={active ? notifFilterBadgeActive : notifFilterBadgeIdle}>
+                  {count > 99 ? '99+' : count}
                 </span>
               ) : null}
             </button>

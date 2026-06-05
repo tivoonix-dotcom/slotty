@@ -27,6 +27,7 @@ export type MasterAppointmentActionId =
   | 'cancel_visit'
   | 'report_no_show'
   | 'report_problem'
+  | 'report_client'
   | 'contact_client'
   | 'view_details';
 
@@ -133,6 +134,7 @@ const ACTION: Record<MasterAppointmentActionId, MasterAppointmentAction> = {
   cancel_visit: { id: 'cancel_visit', label: 'Отменить визит', variant: 'danger' },
   report_no_show: { id: 'report_no_show', label: 'Клиент не пришёл?', variant: 'secondary' },
   report_problem: { id: 'report_problem', label: 'Есть проблема', variant: 'secondary' },
+  report_client: { id: 'report_client', label: 'Пожаловаться на клиента', variant: 'secondary' },
   contact_client: { id: 'contact_client', label: 'Связаться с клиентом', variant: 'secondary' },
   view_details: { id: 'view_details', label: 'Смотреть детали', variant: 'secondary' },
 };
@@ -160,7 +162,7 @@ function phaseCopy(phase: MasterAppointmentPhase, hasClientOnSiteSignal: boolean
         warning: 'Время визита уже прошло',
       };
     case 'completed':
-      return { phaseLabel: 'Завершена', helperText: 'Визит завершён. Детали доступны в истории.', warning: null };
+      return { phaseLabel: 'Завершена', helperText: 'Визит завершён. Запись сохранена в истории.', warning: null };
     default:
       return { phaseLabel: 'Запись закрыта', helperText: 'Дополнительные действия недоступны.', warning: null };
   }
@@ -173,6 +175,14 @@ function buildActionsForPhase(phase: MasterAppointmentPhase, tab: MasterAppointm
         primaryAction: ACTION.close_record,
         secondaryAction: ACTION.report_no_show,
         moreActions: [ACTION.report_problem],
+        allowsActiveLifecycle: true,
+      };
+    }
+    if (phase === 'completed') {
+      return {
+        primaryAction: ACTION.report_client,
+        secondaryAction: null,
+        moreActions: [],
         allowsActiveLifecycle: true,
       };
     }
@@ -207,6 +217,13 @@ function buildActionsForPhase(phase: MasterAppointmentPhase, tab: MasterAppointm
         primaryAction: ACTION.close_record,
         secondaryAction: ACTION.report_no_show,
         moreActions: [ACTION.report_problem],
+        allowsActiveLifecycle: true,
+      };
+    case 'completed':
+      return {
+        primaryAction: ACTION.report_client,
+        secondaryAction: null,
+        moreActions: [],
         allowsActiveLifecycle: true,
       };
     default:

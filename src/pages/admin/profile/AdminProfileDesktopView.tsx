@@ -18,6 +18,7 @@ import { MasterVerificationStatusBadge } from '../../../shared/ui/MasterVerifica
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
 import { CabinetIcon } from './cabinetIcons';
 import { ScheduleWorkCard, type ProfileStatsRatingMeta } from './AdminProfileCabinetUi';
+import { ScheduleBookingWindowsHintContainer } from './ScheduleBookingWindowsHintContainer';
 import { MasterCategorySection } from './MasterCategorySection';
 import { MasterProfileActiveToggle } from './MasterProfileActiveToggle';
 import { ProfileInformationPanel, ProfileSectionHeading } from './ProfileInformationPanel';
@@ -277,6 +278,7 @@ export function AdminProfileDesktopMainGrid({
       </div>
 
       <ScheduleWorkCard draft={draft} onEditSchedule={onEditSchedule} />
+      <ScheduleBookingWindowsHintContainer />
 
       <section className={`${profileDashboardCard} ${profileDashboardCardPad}`}>
         <div className="flex items-center justify-between gap-3">

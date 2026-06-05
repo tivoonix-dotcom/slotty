@@ -66,6 +66,17 @@ const CARD_STAT_LABEL = 'mt-1 text-[11px] font-medium leading-snug text-[#9CA3AF
 const AVAILABILITY_BADGE =
   'inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[11px] font-semibold leading-none text-[#15803D] shadow-[0_2px_10px_rgba(0,0,0,0.14)] ring-1 ring-black/10 backdrop-blur-[2px]';
 
+const PRO_BADGE =
+  'inline-flex shrink-0 items-center rounded-full bg-[#FFE8EA] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#E29595] ring-1 ring-[#E29595]/20';
+
+function MasterProBadge({ className = '' }: { className?: string }) {
+  return (
+    <span className={`${PRO_BADGE} ${className}`} title="Мастер Pro">
+      Pro
+    </span>
+  );
+}
+
 function StatDivider() {
   return <div className="mx-1.5 w-px self-stretch min-h-[2.25rem] bg-[#F3F4F6]" aria-hidden />;
 }
@@ -196,6 +207,7 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
   const hasSlot = Boolean(listing.nextSlotStartsAt);
   const slotSubline = formatSlotCardSubline(listing.nextSlotStartsAt);
   const showVerified = masterShowsVerifiedBadge(listing);
+  const showPro = listing.isProEntitled === true;
 
   const priceLabel = listing.priceFrom > 0 ? formatPriceFrom(listing.priceFrom) : null;
 
@@ -289,10 +301,11 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
             <p className="pr-10 text-[12px] font-medium text-[#8E8E93] lg:pr-12">
               {formatMasterCardSpecialty(listing.category)}
             </p>
-            <div className="mt-1 flex items-start gap-1 pr-10 lg:pr-12">
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 pr-10 lg:pr-12">
               <h3 className="text-[18px] font-bold leading-snug tracking-[-0.02em] text-[#111827]">
                 {listing.masterName}
               </h3>
+              {showPro ? <MasterProBadge className="mt-0.5" /> : null}
               {showVerified ? (
                 <MasterVerifiedBadge className="mt-1 h-4 w-4 shrink-0 text-[#F47C8C]" />
               ) : null}
@@ -383,10 +396,11 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
         <div className={`min-w-0 flex-1 ${plainHome ? 'flex min-h-[8.5rem] flex-col' : ''}`}>
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 items-center gap-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-1">
                 <h3 className="min-w-0 truncate text-[16px] font-semibold leading-snug tracking-[-0.02em] text-[#111827]">
                   {listing.masterName}
                 </h3>
+                {showPro ? <MasterProBadge /> : null}
                 {showVerified ? (
                   <MasterVerifiedBadge className="h-4 w-4 shrink-0 text-[#F47C8C]" />
                 ) : null}

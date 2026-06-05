@@ -6,8 +6,64 @@ import {
   PROFILE_DESKTOP_PAGE_BG,
 } from '../profile/adminProfileDashboardTheme';
 
-/** Фон hero расписания (`public/photos/fon.webp`), как в записях. */
+/** Акцент расписания — синий (только страница /admin/schedule). */
+export const SCHEDULE_ACCENT = '#3B4CCA';
+export const SCHEDULE_ACCENT_GRADIENT_FROM = '#4558D4';
+export const SCHEDULE_ACCENT_SOFT = '#EEF0FC';
+export const SCHEDULE_ACCENT_SOFT_HOVER = '#E0E4F8';
+export const SCHEDULE_ACCENT_SURFACE = '#F4F5FD';
+export const SCHEDULE_ACCENT_SURFACE_HOVER = '#F5F6FD';
+export const SCHEDULE_ACCENT_RING = '#D8DCF5';
+export const SCHEDULE_ACCENT_FOCUS = '#A8B0E8';
+export const SCHEDULE_ACCENT_MUTED = '#B8BEE8';
+
+export const scheduleAccentBtn =
+  'inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-[12px] bg-[#3B4CCA] px-4 text-[14px] font-semibold text-white transition hover:opacity-95 active:scale-[0.98] disabled:opacity-50';
+
+export const scheduleAccentTextLink =
+  'text-[13px] font-semibold text-[#3B4CCA] transition hover:opacity-80';
+
+/** Кнопки шитов на странице расписания (вместо розового catalogSheet*). */
+export const scheduleSheetPrimaryBtn =
+  'flex min-h-11 flex-1 items-center justify-center rounded-[10px] bg-[#3B4CCA] px-4 text-[15px] font-semibold text-white transition hover:opacity-95 active:scale-[0.98] disabled:opacity-50';
+
+export const scheduleSheetSecondaryBtn =
+  'flex min-h-11 flex-1 items-center justify-center rounded-[10px] bg-[#EBEBEB] px-4 text-[15px] font-semibold text-[#111827] transition hover:bg-[#E4E4E4] active:scale-[0.98] disabled:opacity-50';
+
+export const scheduleSheetGhostBtn =
+  'rounded-[10px] bg-[#EEF0FC] px-3 py-2 text-[12px] font-semibold text-[#3B4CCA] transition hover:bg-[#E0E4F8] active:scale-[0.98] disabled:opacity-50';
+
+export const scheduleTabFabClass =
+  'fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#4558D4] to-[#3B4CCA] text-white shadow-[0_14px_36px_rgba(59,76,202,0.42)] transition hover:scale-[1.04] active:scale-[0.96] max-lg:bottom-[calc(5.75rem+1rem+env(safe-area-inset-bottom,0px))] lg:bottom-8 lg:right-8 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100';
+
+export function scheduleSegmentClass(active: boolean): string {
+  return `min-h-11 rounded-[10px] px-3 text-[14px] font-semibold leading-snug transition active:scale-[0.98] ${
+    active ? 'bg-[#3B4CCA] text-white' : 'bg-[#F5F5F5] text-[#111827] ring-1 ring-[#EEEEEE]'
+  }`;
+}
+
+export function scheduleChipClass(active: boolean): string {
+  return `rounded-full px-4 py-2.5 text-[14px] font-semibold transition active:scale-[0.98] ${
+    active ? 'bg-[#3B4CCA] text-white' : 'bg-[#F5F5F5] text-[#111827] ring-1 ring-[#EEEEEE]'
+  }`;
+}
+
+export const scheduleSheetPrimaryBtnFull =
+  `${scheduleSheetPrimaryBtn} w-full min-h-12 rounded-[18px] text-[15px] font-bold shadow-[0_10px_28px_rgba(59,76,202,0.32)]`;
+
+export const scheduleSheetDangerBtn =
+  'flex min-h-11 w-full items-center justify-center rounded-[10px] border border-[#FECACA] bg-white px-4 text-[14px] font-semibold text-[#DC2626] transition hover:bg-[#FEF2F2] active:scale-[0.98] disabled:opacity-50';
+
+export const scheduleSheetSummaryPanel = 'rounded-[10px] bg-[#EBEBEB] px-4 py-3.5';
+
 export const SCHEDULE_HERO_BG = APPOINTMENTS_HERO_BG;
+
+/** Иконка KPI-карусели расписания (синий акцент вместо розового overview). */
+export const scheduleKpiIconCircle =
+  'flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] bg-[#EEF0FC] text-[#3B4CCA] lg:h-10 lg:w-10 lg:rounded-[14px]';
+
+/** Точки карусели KPI на странице расписания. */
+export const scheduleKpiCarouselDot = 'bg-[#3B4CCA]';
 
 /** Высота нижней панели раздела «Расписание». */
 export const SCHEDULE_TAB_BAR_HEIGHT = '5.75rem';
@@ -32,7 +88,7 @@ export const scheduleDesktopTabsSticky = profileDesktopTabsSticky;
 
 /** @deprecated Используйте фото вкладок (`scheduleTabHeroBg`). */
 export const SCHEDULE_GRADIENT =
-  'bg-gradient-to-br from-[#111827] via-[#2b2430] to-[#ff5f7a]';
+  'bg-gradient-to-br from-[#111827] via-[#2b2430] to-[#3B4CCA]';
 
 export const scheduleTabPanelShell =
   'relative w-full min-w-0 max-w-none max-lg:space-y-4 max-lg:bg-transparent lg:h-fit lg:w-full lg:max-w-none lg:self-stretch lg:rounded-[16px] lg:bg-white lg:ring-1 lg:ring-[#EEEEEE]';
@@ -60,12 +116,12 @@ export const scheduleTemplatesTray = 'w-full';
 
 export function scheduleTemplateCardClass(selected: boolean): string {
   return `relative min-h-[5.75rem] overflow-hidden rounded-[16px] bg-[#F6F7FB] transition active:scale-[0.99] lg:min-h-[8rem] lg:rounded-[18px] ${
-    selected ? 'z-[1] bg-[#FFF1F4] ring-2 ring-[#ff5f7a]/35' : 'hover:bg-[#F0F1F5]'
+    selected ? 'z-[1] bg-[#EEF0FC] ring-2 ring-[#3B4CCA]/35' : 'hover:bg-[#F0F1F5]'
   }`;
 }
 
 export const scheduleTemplateAddBtn =
-  'flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-[16px] bg-[#EBEBEB] text-[13px] font-semibold text-[#111827] transition hover:bg-[#E4E4E4] active:scale-[0.98] lg:min-h-[8rem] lg:min-w-[9.5rem] lg:flex-1 lg:rounded-[18px] lg:bg-[#F6F7FB] lg:text-[#ff5f7a] hover:lg:bg-[#FFF1F4]';
+  'flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-[16px] bg-[#EBEBEB] text-[13px] font-semibold text-[#111827] transition hover:bg-[#E4E4E4] active:scale-[0.98] lg:min-h-[8rem] lg:min-w-[9.5rem] lg:flex-1 lg:rounded-[18px] lg:bg-[#F6F7FB] lg:text-[#3B4CCA] hover:lg:bg-[#EEF0FC]';
 
 /** Ошибки в шитах расписания. */
 export const scheduleSheetErrorBox =
@@ -85,7 +141,7 @@ export const scheduleSlotsFilterBtn =
   'relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] bg-[#EBEBEB] text-[#6B7280] transition active:scale-[0.96]';
 
 export const scheduleSlotsFilterBtnActive =
-  'bg-[#F47C8C] text-white ring-1 ring-[#F9A8B4]';
+  'bg-[#3B4CCA] text-white ring-1 ring-[#A8B0E8]';
 
 export const scheduleSlotsStatChip =
   'inline-flex min-w-0 items-center gap-1.5 rounded-full bg-[#EBEBEB] px-3 py-1.5 text-[12px] font-semibold text-[#111827]';
@@ -102,16 +158,16 @@ export const scheduleWindowCardShell =
 
 /** Карточка окна в календаре — без обводки, на серой плашке. */
 export const scheduleWindowCardShellFlat =
-  'flex w-full overflow-hidden rounded-[16px] bg-white transition active:scale-[0.99] hover:bg-[#FFF9FB] lg:rounded-[18px]';
+  'flex w-full overflow-hidden rounded-[16px] bg-white transition active:scale-[0.99] hover:bg-[#F5F6FD] lg:rounded-[18px]';
 
 export function scheduleWindowTimeStrip(status: 'free' | 'booked' | 'blocked'): string {
-  if (status === 'booked') return 'bg-[#FFF1F4] text-[#F47C8C]';
+  if (status === 'booked') return 'bg-[#EEF0FC] text-[#3B4CCA]';
   if (status === 'blocked') return 'bg-[#F5F5F5] text-[#9CA3AF]';
   return 'bg-[#EBEBEB] text-[#111827]';
 }
 
 export function scheduleWindowStatusPill(status: 'free' | 'booked' | 'blocked'): string {
-  if (status === 'booked') return 'bg-[#FFF1F4] text-[#F47C8C]';
+  if (status === 'booked') return 'bg-[#EEF0FC] text-[#3B4CCA]';
   if (status === 'blocked') return 'bg-[#F5F5F5] text-[#6B7280]';
   return 'bg-[#EBEBEB] text-[#111827]';
 }
@@ -124,7 +180,7 @@ export const scheduleCalendarDayPanel = `${scheduleCalendarCard} max-lg:px-4 max
 
 /** Кнопки навигации месяца / экспорт в календаре. */
 export const scheduleCalendarIconBtn =
-  'flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#F6F7FB] text-[#6B7280] transition hover:bg-[#FFF1F4] hover:text-[#ff5f7a] active:scale-[0.97] disabled:cursor-wait disabled:opacity-60';
+  'flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#F6F7FB] text-[#6B7280] transition hover:bg-[#EEF0FC] hover:text-[#3B4CCA] active:scale-[0.97] disabled:cursor-wait disabled:opacity-60';
 
 /** Горизонтальная лента «Дни с окнами» на мобиле (без роста вниз). */
 export const scheduleBusyDaysStrip =
@@ -132,7 +188,7 @@ export const scheduleBusyDaysStrip =
 
 export function scheduleBusyDayChipClass(selected: boolean): string {
   return `flex min-w-[4.75rem] shrink-0 flex-col items-center justify-center rounded-[12px] px-2.5 py-2.5 transition active:scale-[0.98] ${
-    selected ? 'bg-[#ff5f7a] text-white' : 'bg-[#EBEBEB] text-[#111827] hover:bg-white'
+    selected ? 'bg-[#3B4CCA] text-white' : 'bg-[#EBEBEB] text-[#111827] hover:bg-white'
   }`;
 }
 

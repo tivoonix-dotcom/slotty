@@ -57,46 +57,50 @@ function useHeroMetrics(
   return { isNewMaster, bookingsCount, distanceLabel, ratingText, reviewsText };
 }
 
-/** Список метрик справа — Kwork-стиль, цвета SLOTTY. */
-function HeroStatsColumn({ metrics, className = '' }: { metrics: HeroMetrics; className?: string }) {
+/** Метрики под именем и чипами — не у баннера справа. */
+function HeroStatsDesktopBand({ metrics }: { metrics: HeroMetrics }) {
   const { isNewMaster, bookingsCount, distanceLabel, ratingText, reviewsText } = metrics;
 
   return (
-    <div className={`space-y-2 text-[14px] leading-snug ${className}`}>
-      <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-        <HiStar className="h-4 w-4 shrink-0 text-[#F59E0B]" aria-hidden />
-        {isNewMaster ? (
-          <span className="font-semibold text-[#374151]">Новый мастер</span>
-        ) : (
-          <>
-            <span className="font-bold tabular-nums text-[#111827]">{ratingText}</span>
-            {reviewsText ? (
-              <span className="text-[#6B7280]">· {reviewsText}</span>
-            ) : (
-              <span className="text-[#6B7280]">· пока без отзывов</span>
-            )}
-          </>
-        )}
-      </p>
-      <p className="text-[#374151]">
-        {bookingsCount != null && bookingsCount > 0 ? (
-          <>
-            <span className="font-semibold tabular-nums text-[#F47C8C]">{bookingsCount}</span>
-            <span className="text-[#6B7280]"> записей выполнено</span>
-          </>
-        ) : (
-          <span className="text-[#6B7280]">Пока нет выполненных записей</span>
-        )}
-      </p>
-      <p className="text-[#6B7280]">
-        {distanceLabel ? (
-          <>
-            <span className="font-semibold tabular-nums text-[#111827]">{distanceLabel}</span> от вас
-          </>
-        ) : (
-          'Расстояние не определено'
-        )}
-      </p>
+    <div className="mt-5 border-t border-[#F0F0F0] pt-4 lg:pl-[calc(7.5rem+1.25rem)] xl:pl-[calc(8.25rem+1.75rem)]">
+      <div className="flex flex-col gap-2.5 text-[14px] leading-snug sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8 sm:gap-y-2">
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+          <HiStar className="h-4 w-4 shrink-0 text-[#F59E0B]" aria-hidden />
+          {isNewMaster ? (
+            <span className="font-semibold text-[#374151]">Новый мастер</span>
+          ) : (
+            <>
+              <span className="font-bold tabular-nums text-[#111827]">{ratingText}</span>
+              {reviewsText ? (
+                <span className="text-[#6B7280]">· {reviewsText}</span>
+              ) : (
+                <span className="text-[#6B7280]">· пока без отзывов</span>
+              )}
+            </>
+          )}
+        </p>
+
+        <p className="text-[#374151]">
+          {bookingsCount != null && bookingsCount > 0 ? (
+            <>
+              <span className="font-bold tabular-nums text-[#F47C8C]">{bookingsCount}</span>
+              <span className="text-[#6B7280]"> записей выполнено</span>
+            </>
+          ) : (
+            <span className="text-[#6B7280]">Пока нет записей</span>
+          )}
+        </p>
+
+        <p className="text-[#6B7280]">
+          {distanceLabel ? (
+            <>
+              <span className="font-bold tabular-nums text-[#111827]">{distanceLabel}</span> от вас
+            </>
+          ) : (
+            'Расстояние не определено'
+          )}
+        </p>
+      </div>
     </div>
   );
 }
@@ -188,7 +192,7 @@ function LocationChips({
 }
 
 /**
- * Шапка публичного профиля: обложка + аватар на стыке + имя справа + метрики (Kwork-раскладка, стиль SLOTTY).
+ * Шапка публичного профиля: обложка + аватар + имя; метрики полосой под именем (не у фото).
  */
 export function MasterPublicHeroSection({
   master,
@@ -211,16 +215,16 @@ export function MasterPublicHeroSection({
   const avatarSize = isMobile
     ? 'h-[104px] w-[104px]'
     : 'h-[120px] w-[120px] lg:h-[132px] lg:w-[132px]';
-  const overlapMt = isMobile ? '-mt-[52px]' : '-mt-[60px] lg:-mt-[66px]';
-  const identityPt = isMobile ? 'pt-[52px]' : 'pt-[60px] lg:pt-[66px]';
+  const overlapMt = isMobile ? '-mt-[48px]' : '-mt-[60px] lg:-mt-[66px]';
+  const identityPt = isMobile ? 'pt-[70px]' : 'pt-[60px] lg:pt-[66px]';
 
   return (
     <header className={`${catalogDesktopPanel} overflow-hidden ${className}`}>
       <MasterPublicCoverBanner master={master} heightClass={coverHeight} />
 
       <div className={`bg-white ${isMobile ? 'px-4 pb-4' : 'px-6 pb-6 lg:px-8'}`}>
-        <div className={`${overlapMt} flex flex-col lg:flex-row lg:items-start lg:gap-10`}>
-          <div className="flex min-w-0 flex-1 gap-3 lg:gap-5">
+        <div className={overlapMt}>
+          <div className="flex min-w-0 gap-4 sm:gap-5 lg:gap-7 xl:gap-8">
             <MasterPublicPortraitOverlap
               master={master}
               className={`relative shrink-0 ${avatarSize}`}
@@ -261,20 +265,7 @@ export function MasterPublicHeroSection({
             </div>
           </div>
 
-          {!isMobile ? (
-            <div className={`hidden w-full max-w-[220px] shrink-0 lg:block ${identityPt}`}>
-              <HeroStatsColumn metrics={metrics} />
-              {onChooseTime ? (
-                <button
-                  type="button"
-                  onClick={onChooseTime}
-                  className="mt-4 flex min-h-11 w-full items-center justify-center rounded-[10px] border border-[#F47C8C] bg-white text-[14px] font-semibold text-[#F47C8C] transition hover:bg-[#FFF1F4] active:scale-[0.99]"
-                >
-                  {hasSlot ? 'Записаться' : 'Смотреть услуги'}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
+          {!isMobile ? <HeroStatsDesktopBand metrics={metrics} /> : null}
         </div>
 
         {isMobile ? (

@@ -527,5 +527,8 @@ export async function completeMyMasterOnboarding(masterId: string, body: Complet
     }).catch(() => {});
   }
 
+  const { tryStartProTrial } = await import('../billing/trial.service.js');
+  await tryStartProTrial(masterId);
+
   return result;
 }

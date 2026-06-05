@@ -1,4 +1,5 @@
 import { apiFetch } from '../../../shared/api/backendClient';
+import type { MasterPublicPaymentDto } from '../../../shared/payments/paymentMethodCodes';
 import type { MasterVisitType } from '../../profile/model/masterLocation';
 import type { MasterLocation } from '../../profile/model/masterLocation';
 import type { DemoMasterProfile, DemoMasterService, DemoReview } from '../../services/model/demoMasters';
@@ -70,6 +71,7 @@ export type MasterPublicDetailDto = {
     paymentMethods?: string[];
     clientPreview?: string[];
   } | null;
+  payment: MasterPublicPaymentDto | null;
   certificates: {
     id: string;
     title: string;
@@ -103,6 +105,9 @@ export type MasterPublicDetailDto = {
     createdAt: string | Date;
     clientId: string;
     clientName: string | null;
+    clientAvatarUrl?: string | null;
+    masterReply?: string | null;
+    masterReplyAt?: string | null;
   }[];
 };
 
@@ -191,9 +196,12 @@ export function mapMasterDetailToDemoProfile(detail: MasterPublicDetailDto): Dem
   const reviews: DemoReview[] = detail.reviews.map((r) => ({
     id: r.id,
     author: r.clientName?.trim() || 'Клиент',
+    authorAvatarUrl: r.clientAvatarUrl ?? null,
     rating: typeof r.rating === 'number' ? r.rating : Number(r.rating),
     date: formatReviewDate(r.createdAt),
     text: r.body ?? '',
+    masterReply: r.masterReply?.trim() || null,
+    masterReplyAt: r.masterReplyAt ?? null,
   }));
 
   const categoryLabel = master.category?.name?.trim() || master.category?.code || 'Мастер';

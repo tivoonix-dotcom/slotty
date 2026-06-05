@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ADMIN_SCHEDULE_PATH } from '../../../app/paths';
+import { MasterPublicPreviewLink } from '../shared/MasterPublicPreviewLink';
 import { HiChevronLeft, HiChevronRight, HiFunnel, HiMagnifyingGlass } from 'react-icons/hi2';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import {
@@ -26,23 +29,22 @@ import {
   type CatalogFiltersState,
 } from './ServicesCatalogFiltersSheet';
 
+type ServiceStats = {
+  serviceId: string;
+  availableSlotsCount: number;
+  upcomingAppointmentsCount: number;
+};
+
 type Props = {
   draft: MasterDraft;
   services: ManagedService[];
   onAdd: () => void;
   onOpenMenu: (service: ManagedService) => void;
+  serviceStats?: ServiceStats[];
+  categoryLabel?: string | null;
+  masterId?: string | null;
+  hasAnySlots?: boolean;
 };
-
-function serviceCountLabel(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-
-  if (mod100 >= 11 && mod100 <= 14) return `${n} услуг`;
-  if (mod10 === 1) return `${n} услуга`;
-  if (mod10 >= 2 && mod10 <= 4) return `${n} услуги`;
-
-  return `${n} услуг`;
-}
 
 const CATALOG_PAGE_SIZE = 10;
 
@@ -95,7 +97,16 @@ function CatalogPagination({
   );
 }
 
-export function ServicesCatalogTab({ draft, services, onAdd, onOpenMenu }: Props) {
+export function ServicesCatalogTab({
+  draft,
+  services,
+  onAdd,
+  onOpenMenu,
+  serviceStats = [],
+  categoryLabel,
+  masterId,
+  hasAnySlots = true,
+}: Props) {
   const masterWrite = useMasterPlatformAccess();
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<CatalogFiltersState>(DEFAULT_CATALOG_FILTERS);
@@ -130,20 +141,45 @@ export function ServicesCatalogTab({ draft, services, onAdd, onOpenMenu }: Props
     setFilters((prev) => ({ ...prev, ...patch }));
   };
 
+  const statsById = useMemo(() => new Map(serviceStats.map((s) => [s.serviceId, s])), [serviceStats]);
+
   return (
     <div className={servicesTabPanelShell}>
       <div className={`${servicesTabContentPad} ${servicesTabScrollBottomPad}`}>
-      <div>
-        <h2 className="text-[18px] font-black tracking-[-0.04em] text-[#111827] lg:text-[22px] lg:tracking-[-0.05em]">
-          Каталог услуг
-        </h2>
-        <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
-          {services.length === 0
-            ? 'Нажмите «+» внизу справа, чтобы добавить услугу'
-            : filterIsActive
-              ? `Найдено ${serviceCountLabel(filtered.length)} из ${serviceCountLabel(services.length)}`
-              : serviceCountLabel(services.length)}
-        </p>
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-[18px] font-black tracking-[-0.04em] text-[#111827] lg:text-[22px] lg:tracking-[-0.05em]">
+            Услуги
+          </h2>
+          <p className="mt-1 text-[13px] font-semibold text-[#6B7280]">
+            Создайте услуги, которые клиенты смогут выбрать при записи.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onAdd}
+            disabled={!masterWrite.canMutate}
+            title={masterWrite.mutateDisabledTitle}
+            className="inline-flex min-h-11 min-w-0 w-full items-center justify-center rounded-[12px] bg-[#F47C8C] px-3 text-[12px] font-bold text-white transition hover:opacity-95 active:scale-[0.98] disabled:opacity-45 sm:px-4 sm:text-[13px]"
+          >
+            Добавить услугу
+          </button>
+          <MasterPublicPreviewLink
+            masterId={masterId}
+            ready={hasAnySlots}
+            variant="secondary"
+            className="min-w-0 w-full px-2.5 text-[11px] sm:px-4 sm:text-[13px]"
+          />
+          {services.length > 0 && !hasAnySlots ? (
+            <Link
+              to={`${ADMIN_SCHEDULE_PATH}?tab=create&wizard=month`}
+              className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-[12px] bg-[#FFF1F4] px-4 text-[13px] font-bold text-[#F47C8C] transition hover:bg-[#FFE4EA] active:scale-[0.98]"
+            >
+              Добавить окна для услуг
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex gap-2 lg:gap-3">
@@ -196,7 +232,7 @@ export function ServicesCatalogTab({ draft, services, onAdd, onOpenMenu }: Props
           </h3>
           <p className="mx-auto mt-2 max-w-[20rem] text-[13px] leading-relaxed text-[#6B7280]">
             {services.length === 0
-              ? 'Нажмите «+» внизу справа — укажите название, цену и видимость'
+              ? 'Добавьте первую услугу. Например: маникюр, стрижка, массаж или консультация.'
               : activeFilterChips.length > 0
                 ? `По фильтрам «${activeFilterChips.map((c) => c.label).join('», «')}» ничего не нашлось. Ослабьте условия или сбросьте фильтры.`
                 : 'Попробуйте другой запрос'}
@@ -214,14 +250,20 @@ export function ServicesCatalogTab({ draft, services, onAdd, onOpenMenu }: Props
       ) : (
         <>
           <ul className="flex w-full max-w-none flex-col gap-2.5 lg:gap-3">
-            {pageItems.map((service) => (
+            {pageItems.map((service) => {
+              const stats = statsById.get(service.id);
+              return (
               <CatalogServiceCard
                 key={service.id}
                 service={service}
                 imageSrc={serviceCatalogThumbnailUrl(service, draft)}
+                categoryLabel={categoryLabel}
+                availableSlotsCount={stats?.availableSlotsCount}
+                upcomingAppointmentsCount={stats?.upcomingAppointmentsCount}
                 onOpenMenu={onOpenMenu}
               />
-            ))}
+            );
+            })}
           </ul>
           {filtered.length > CATALOG_PAGE_SIZE ? (
             <CatalogPagination

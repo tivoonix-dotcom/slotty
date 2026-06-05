@@ -20,6 +20,7 @@ export type CatalogListingItemDto = {
   rating: number;
   reviewsCount: number;
   isVerified: boolean;
+  isProEntitled?: boolean;
   category: { code: string; name: string } | null;
   location: {
     publicAddress: string;
@@ -132,6 +133,7 @@ export function catalogItemToListingRecord(item: CatalogListingItemDto): Service
     rating: item.rating,
     reviewsCount: item.reviewsCount,
     isVerified: item.isVerified,
+    isProEntitled: item.isProEntitled === true,
     location: baseLoc,
     priceFrom: price,
     photoUrl: masterListingPortraitUrl(item.photoUrl),

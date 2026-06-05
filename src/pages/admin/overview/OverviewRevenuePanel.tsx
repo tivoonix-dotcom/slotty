@@ -16,8 +16,7 @@ import {
   type RevenueAnalytics,
 } from './overviewAnalytics';
 import { formatBynRu } from './overviewFormat';
-import { OverviewRevenueBarChart } from './OverviewRevenueBarChart';
-import { OverviewLineChart } from './OverviewLineChart';
+import { OverviewRevenueBarChart, OverviewRevenueLineChart } from './charts';
 import { OverviewRevenuePeriodMenu } from './OverviewRevenuePeriodMenu';
 import { OverviewRevenueSourcesMenu } from './OverviewRevenueSourcesMenu';
 
@@ -104,9 +103,8 @@ function RevenueChartSection({
         />
       </div>
 
-      <OverviewLineChart
+      <OverviewRevenueLineChart
         stats={dayStats}
-        mode="revenue"
         size="large"
         emptyHint={
           sourceHint ? `Нет дохода по услуге «${sourceHint}» за период` : 'Дохода за период нет'

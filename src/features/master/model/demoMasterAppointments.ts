@@ -19,6 +19,8 @@ export type DemoAppointmentStatus =
 
 export type DemoMasterAppointment = {
   id: string;
+  /** UUID клиента из API — для группировки в аналитике. */
+  clientId?: string;
   clientName: string;
   serviceTitle: string;
   /** UUID услуги (из API), для проверок удаления. */
@@ -73,6 +75,8 @@ export type DemoMasterAppointment = {
   price?: number;
   /** Фото клиента из профиля (Telegram / загрузка). */
   clientAvatarUrl?: string | null;
+  /** Когда pending-заявка истечёт без ответа мастера. */
+  pendingExpiresAt?: string | null;
 };
 
 function normalizeTime(t: string): string {

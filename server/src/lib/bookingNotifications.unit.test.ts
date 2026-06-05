@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { buildBookingLink, buildBookingPath, normalizeBookingCode } from './buildBookingLink.js';
-import { formatClientName, formatServiceName, isBlockedDisplayValue } from './displayFormat.js';
+import {
+  formatClientName,
+  formatServiceName,
+  isBlockedDisplayValue,
+  pickClientFullNameForDisplay,
+} from './displayFormat.js';
 import { clientBookingRequestCreated } from '../modules/notifications/templates/appointmentNotificationTemplates.js';
-import { clientBookingTelegramKeyboard } from '../modules/notifications/telegramAppointmentKeyboard.js';
+import { clientBookingTelegramKeyboard, masterBookingTelegramKeyboard } from '../modules/notifications/telegramAppointmentKeyboard.js';
 import type { AppointmentNotifyContext } from '../modules/appointments/appointmentNotifyContext.js';
 
 const sampleCtx: AppointmentNotifyContext = {
@@ -20,7 +25,10 @@ const sampleCtx: AppointmentNotifyContext = {
 
 describe('buildBookingLink', () => {
   it('builds client and master paths', () => {
-    assert.equal(buildBookingPath('client', 'sl-abd1866e7cce'), '/client/appointments/SL-ABD1866E7CCE');
+    assert.equal(
+      buildBookingPath('client', 'sl-abd1866e7cce'),
+      '/client/appointments/SL-ABD1866E7CCE',
+    );
     assert.equal(buildBookingPath('master', 'SL-ABD1866E7CCE'), '/master/appointments/SL-ABD1866E7CCE');
   });
 
@@ -56,6 +64,20 @@ describe('displayFormat', () => {
     assert.equal(isBlockedDisplayValue('undefined'), true);
     assert.equal(isBlockedDisplayValue('Анна'), false);
   });
+
+  it('prefers profile name when snapshot is phone', () => {
+    assert.equal(
+      pickClientFullNameForDisplay('+375 44 543 45 32', 'Иванова Мария'),
+      'Иванова Мария',
+    );
+    assert.equal(
+      formatClientName({
+        full_name: pickClientFullNameForDisplay('+375 44 543 45 32', 'Иванова Мария'),
+        phone: '+375 44 543 45 32',
+      }),
+      'Иванова Мария',
+    );
+  });
 });
 
 describe('notification payloads', () => {
@@ -72,9 +94,16 @@ describe('notification payloads', () => {
     assert.doesNotMatch(html, /undefined|null/i);
   });
 
-  it('telegram keyboard contains open booking button', () => {
+  it('client telegram keyboard contains open booking button', () => {
     const kb = clientBookingTelegramKeyboard(sampleCtx, { allowCancel: true });
     const flat = kb.inline_keyboard.flat();
     assert.ok(flat.some((b) => b.text === 'Открыть запись' && b.web_app?.url?.includes('SL-ABD1866E7CCE')));
+  });
+
+  it('master keyboard opens admin appointments', () => {
+    const kb = masterBookingTelegramKeyboard(sampleCtx);
+    const flat = kb.inline_keyboard.flat();
+    assert.ok(flat.some((b) => b.text === 'К заявкам' && b.web_app?.url?.includes('/admin/appointments')));
+    assert.ok(flat.some((b) => b.web_app?.url?.includes('focus=')));
   });
 });

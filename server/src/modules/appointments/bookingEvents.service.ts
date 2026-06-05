@@ -111,8 +111,12 @@ export function eventLabel(eventType: string, role: 'client' | 'master' | 'admin
       return master ? 'Жалоба клиента' : 'Вы отправили обращение';
     case 'booking.disputed_by_master':
       return 'Мастер отправил обращение';
+    case 'booking.client_reported_by_master':
+      return master ? 'Жалоба на клиента отправлена' : 'Мастер пожаловался на клиента';
     case 'booking.review_left':
       return 'Оставлен отзыв';
+    case 'booking.expired':
+      return role === 'admin' ? 'Заявка истекла' : 'Заявка истекла';
     case 'booking.dispute_resolved':
       return admin ? 'Спор закрыт администратором' : 'Спор рассмотрен';
     case 'booking.notification_sent':

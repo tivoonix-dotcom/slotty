@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { HiTrash } from 'react-icons/hi2';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
-import {
-  catalogSheetPrimaryBtn,
-  catalogSheetSecondaryBtn,
-  catalogSheetTitle,
-} from '../shared/adminCatalogSheetTheme';
+import { catalogSheetSecondaryBtn, catalogSheetTitle } from '../shared/adminCatalogSheetTheme';
+import { scheduleSheetPrimaryBtn } from './adminScheduleTheme';
 import { sheetSectionClass, sheetSectionTitleClass } from '../profile/adminProfileCabinetTheme';
 import type { WindowTemplate } from './scheduleTypes';
 import { formatDurationRu, templateDisplayLabel } from './scheduleUtils';
@@ -49,7 +46,7 @@ export function WindowTemplateMenuSheet({ open, template, onClose, onDelete }: P
             </button>
             <button
               type="button"
-              className={`${catalogSheetPrimaryBtn} !bg-[#EF4444] hover:!opacity-95`}
+              className={`${scheduleSheetPrimaryBtn} !bg-[#EF4444] hover:!opacity-95`}
               onClick={() => {
                 onDelete();
                 handleClose();
@@ -102,7 +99,7 @@ export function WindowTemplateMenuSheet({ open, template, onClose, onDelete }: P
           <button
             type="button"
             onClick={() => setConfirming(true)}
-            className={`${catalogSheetPrimaryBtn} mt-3 w-full !bg-[#FEF2F2] !text-[#EF4444] hover:!opacity-95`}
+            className={`${scheduleSheetPrimaryBtn} mt-3 w-full !bg-[#FEF2F2] !text-[#EF4444] hover:!opacity-95`}
           >
             <span className="inline-flex items-center justify-center gap-2">
               <HiTrash className="h-5 w-5" aria-hidden />

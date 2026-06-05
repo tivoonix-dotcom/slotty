@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+﻿import type { ComponentType } from 'react';
 import { HiCalendarDays, HiPlusCircle, HiRectangleStack } from 'react-icons/hi2';
 import type { SchedulePageTab } from './scheduleTypes';
 
@@ -34,14 +34,14 @@ export function ScheduleSectionTabs({ active, onChange, className = '' }: Props)
             type="button"
             onClick={() => onChange(tab.id)}
             className={`relative flex min-h-[3.25rem] min-w-0 flex-1 items-center justify-center gap-2 px-3 text-[14px] font-bold transition lg:min-h-[3.5rem] lg:px-5 lg:text-[15px] ${
-              selected ? 'text-[#ff5f7a]' : 'text-[#6B7280] hover:text-[#374151]'
+              selected ? 'text-[#3B4CCA]' : 'text-[#6B7280] hover:text-[#374151]'
             }`}
           >
             <Icon className="h-5 w-5 shrink-0" aria-hidden />
             <span className="truncate">{tab.label}</span>
             {selected ? (
               <span
-                className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-full bg-[#ff5f7a] lg:inset-x-5"
+                className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-full bg-[#3B4CCA] lg:inset-x-5"
                 aria-hidden
               />
             ) : null}

@@ -232,7 +232,10 @@ export function MasterPublicPage() {
       <ServiceDetailSheet
         open={Boolean(serviceSheet)}
         service={serviceSheet}
+        categoryCode={master.categoryCode}
+        categoryLabel={master.category}
         paymentMethods={master.paymentMethods}
+        payment={master.payment}
         paymentNote={master.paymentNote}
         onClose={() => setServiceSheet(null)}
         onChooseTime={() => goToBooking(serviceSheet?.id)}

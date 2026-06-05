@@ -9,7 +9,7 @@ import type { OverviewAnalyticsTab } from './overviewAnalytics';
 import { OverviewSectionTabs } from './OverviewSectionTabs';
 
 const TABS = [
-  { id: 'summary' as const, label: 'Сводка', Icon: HiChartBarSquare },
+  { id: 'summary' as const, label: 'Сегодня', Icon: HiChartBarSquare },
   { id: 'revenue' as const, label: 'Доход', Icon: HiWallet },
   { id: 'clients' as const, label: 'Клиенты', Icon: HiUsers },
   { id: 'reputation' as const, label: 'Репутация', Icon: HiStar },
@@ -20,16 +20,39 @@ type Props = {
   onChange: (tab: OverviewAnalyticsTab) => void;
   /** Mobile: фиксированная панель снизу. Desktop: табы в шапке карточки. */
   variant?: 'mobile' | 'desktop';
+  reputationAlertCount?: number;
 };
 
-export function OverviewAnalyticsTabBar({ active, onChange, variant = 'mobile' }: Props) {
+function reputationTabBadge(count: number): string | undefined {
+  if (count <= 0) return undefined;
+  return count > 9 ? '9+' : String(count);
+}
+
+export function OverviewAnalyticsTabBar({
+  active,
+  onChange,
+  variant = 'mobile',
+  reputationAlertCount = 0,
+}: Props) {
   if (variant === 'desktop') {
-    return <OverviewSectionTabs active={active} onChange={onChange} />;
+    return (
+      <OverviewSectionTabs
+        active={active}
+        onChange={onChange}
+        reputationAlertCount={reputationAlertCount}
+      />
+    );
   }
+
+  const tabs = TABS.map((tab) =>
+    tab.id === 'reputation'
+      ? { ...tab, label: reputationAlertCount > 0 ? `${tab.label} · ${reputationTabBadge(reputationAlertCount)}` : tab.label }
+      : tab,
+  );
 
   return (
     <AdminSegmentTabNav
-      tabs={TABS}
+      tabs={tabs}
       active={active}
       onChange={onChange}
       ariaLabel="Разделы аналитики"

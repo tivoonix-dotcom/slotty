@@ -1,5 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { subscribeBookingDataRefresh } from '../../../features/appointments/bookingDataSync';
+import {
+  getClientAppointmentPath,
+  getMasterAppointmentPath,
+  getMasterPath,
+  PLATFORM_ADMIN_MASTERS_PATH,
+  PLATFORM_ADMIN_USERS_PATH,
+} from '../../../app/paths';
 import { getPlatformBooking } from '../api/platformAdminApi';
 import type { PlatformBookingDetail, PlatformBookingListItem } from '../api/platformAdmin.types';
 import {
@@ -44,6 +52,7 @@ export function PlatformAdminBookingDetailSheet({
   const [detail, setDetail] = useState<PlatformBookingDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const auditSectionRef = useRef<HTMLElement | null>(null);
 
   const load = useCallback(async () => {
     if (!bookingId) return;
@@ -113,6 +122,88 @@ export function PlatformAdminBookingDetailSheet({
 
           {detail && !loading && !error ? (
             <div className="space-y-6">
+              <section className="rounded-2xl border border-[#eef0f5] bg-white px-4 py-3">
+                <p className="text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF]">Код записи</p>
+                <p className="mt-1 font-mono text-[15px] font-bold text-[#111827]">
+                  {detail.bookingCode ?? '—'}
+                </p>
+                <dl className="mt-3 grid grid-cols-1 gap-2 text-[13px] sm:grid-cols-2">
+                  <div>
+                    <dt className="text-[#9CA3AF]">Отзыв</dt>
+                    <dd className="font-semibold text-[#111827]">
+                      {detail.hasReview ? 'Оставлен' : 'Нет'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[#9CA3AF]">Уведомления</dt>
+                    <dd className="font-semibold text-[#111827]">
+                      {detail.notificationJobs.total === 0
+                        ? 'Нет jobs'
+                        : `${detail.notificationJobs.total} · pending ${detail.notificationJobs.pending} · failed ${detail.notificationJobs.failed}`}
+                    </dd>
+                  </div>
+                  {detail.pendingConfirmDeadline ? (
+                    <div className="sm:col-span-2">
+                      <dt className="text-[#9CA3AF]">Подтвердить до</dt>
+                      <dd className="font-semibold text-amber-800">
+                        {formatWhen(detail.pendingConfirmDeadline)}
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {detail.bookingCode ? (
+                    <>
+                      <Link
+                        to={getClientAppointmentPath(detail.bookingCode)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-xl border border-[#e5e7eb] px-3 py-2 text-[12px] font-semibold text-[#374151]"
+                      >
+                        Запись клиента
+                      </Link>
+                      <Link
+                        to={getMasterAppointmentPath(detail.bookingCode)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-xl border border-[#e5e7eb] px-3 py-2 text-[12px] font-semibold text-[#374151]"
+                      >
+                        Запись мастера
+                      </Link>
+                    </>
+                  ) : null}
+                  <Link
+                    to={getMasterPath(detail.masterId)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-xl border border-[#e5e7eb] px-3 py-2 text-[12px] font-semibold text-[#374151]"
+                  >
+                    Публичный профиль
+                  </Link>
+                  <Link
+                    to={PLATFORM_ADMIN_MASTERS_PATH}
+                    className="rounded-xl border border-[#e5e7eb] px-3 py-2 text-[12px] font-semibold text-[#374151]"
+                  >
+                    Мастера
+                  </Link>
+                  <Link
+                    to={PLATFORM_ADMIN_USERS_PATH}
+                    className="rounded-xl border border-[#e5e7eb] px-3 py-2 text-[12px] font-semibold text-[#374151]"
+                  >
+                    Пользователи
+                  </Link>
+                  <button
+                    type="button"
+                    className="rounded-xl bg-[#ff5f7a] px-3 py-2 text-[12px] font-semibold text-white"
+                    onClick={() =>
+                      auditSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }
+                  >
+                    Аудит записи
+                  </button>
+                </div>
+              </section>
+
               <section className="rounded-2xl bg-[#f6f7fb] px-4 py-3">
                 <p className="text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF]">Визит</p>
                 <p className="mt-1 text-[16px] font-bold text-[#111827]">{formatWhen(detail.startsAt)}</p>
@@ -245,7 +336,7 @@ export function PlatformAdminBookingDetailSheet({
                 </section>
               ) : null}
 
-              <section>
+              <section ref={auditSectionRef}>
                 <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wide text-[#9CA3AF]">
                   Аудит записи
                 </h3>

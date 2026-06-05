@@ -19,6 +19,7 @@ import type {
   PlatformPurchasesSummary,
   ProManualPaymentRequestAdmin,
   ProfileReportAdmin,
+  ClientReportAdmin,
   AccountDeletionRequestAdmin,
   SupportTicketAdmin,
   SupportTicketAdminDetail,
@@ -142,6 +143,37 @@ export async function updateProfileReportStatus(
   adminComment?: string,
 ): Promise<void> {
   const res = await apiFetch(`/api/platform-admin/profile-reports/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, adminComment: adminComment ?? null }),
+  });
+  if (!res.ok) throw new Error(await readErr(res));
+}
+
+export async function getClientReports(
+  status: 'all' | 'pending' | 'in_review' | 'closed' | 'rejected' = 'pending',
+  params?: { limit?: number; offset?: number },
+): Promise<PlatformPagedResult<ClientReportAdmin> & { reports: ClientReportAdmin[] }> {
+  const q = new URLSearchParams();
+  if (status !== 'all') q.set('status', status);
+  q.set('limit', String(params?.limit ?? PAGE_SIZE));
+  q.set('offset', String(params?.offset ?? 0));
+  const res = await apiFetch(`/api/platform-admin/client-reports?${q}`);
+  if (!res.ok) throw new Error(await readErr(res));
+  const data = (await res.json()) as {
+    reports: ClientReportAdmin[];
+    total: number;
+    limit: number;
+    offset: number;
+  };
+  return { reports: data.reports, items: data.reports, total: data.total, limit: data.limit, offset: data.offset };
+}
+
+export async function updateClientReportStatus(
+  id: string,
+  status: 'in_review' | 'closed' | 'rejected',
+  adminComment?: string,
+): Promise<void> {
+  const res = await apiFetch(`/api/platform-admin/client-reports/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status, adminComment: adminComment ?? null }),
   });

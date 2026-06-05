@@ -18,7 +18,9 @@ export const CrossBorderConsentPage: FC = () => {
       toc={TOC}
       meta={`Версия 1 · действует с ${LEGAL_EFFECTIVE_FROM}`}
     >
-      <LegalDocIntro>TODO: финальная юридическая проверка и реквизиты оператора.</LegalDocIntro>
+      <LegalDocIntro>
+        Документ относится к сервису SLOTTY. Оператор персональных данных — {SITE_OPERATOR_LEGAL}.
+      </LegalDocIntro>
 
       <LegalDocSection id="consent" title="1. Суть согласия">
         <p>

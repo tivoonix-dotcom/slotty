@@ -23,6 +23,7 @@ export function ScheduleBottomTabBar({ active, onChange, variant = 'mobile' }: P
         onChange={onChange}
         ariaLabel="Разделы расписания"
         mode="desktop"
+        accent="schedule"
       />
     );
   }
@@ -34,6 +35,7 @@ export function ScheduleBottomTabBar({ active, onChange, variant = 'mobile' }: P
       onChange={onChange}
       ariaLabel="Разделы расписания"
       mode="mobile"
+      accent="schedule"
     />
   );
 }

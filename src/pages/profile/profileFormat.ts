@@ -1,18 +1,8 @@
 import type { DemoAppointmentStatus } from '../../features/appointments/model/demoAppointments';
+import { clientFacingStatusLabelFromUi } from '../../features/appointments/clientBooking/clientAppointmentViewModel';
 
 export function statusLabelRu(status: DemoAppointmentStatus): string {
-  switch (status) {
-    case 'confirmed':
-      return 'Подтверждена';
-    case 'pending':
-      return 'Ожидает';
-    case 'completed':
-      return 'Завершена';
-    case 'cancelled':
-      return 'Отменена';
-    default:
-      return status;
-  }
+  return clientFacingStatusLabelFromUi(status);
 }
 
 export function statusClassName(status: DemoAppointmentStatus): string {
@@ -31,18 +21,7 @@ export function statusClassName(status: DemoAppointmentStatus): string {
 }
 
 export function statusDetailsRu(status: DemoAppointmentStatus): string {
-  switch (status) {
-    case 'confirmed':
-      return 'Подтверждена';
-    case 'pending':
-      return 'Ожидает подтверждения';
-    case 'completed':
-      return 'Завершена';
-    case 'cancelled':
-      return 'Отменена';
-    default:
-      return status;
-  }
+  return clientFacingStatusLabelFromUi(status);
 }
 
 export function formatPriceByn(price: number): string {

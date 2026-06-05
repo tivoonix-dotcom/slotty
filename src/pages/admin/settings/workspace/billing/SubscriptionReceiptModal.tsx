@@ -2,19 +2,13 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { HiArrowDownTray, HiXMark } from 'react-icons/hi2';
 import type { BillingSubscriptionResponse } from '../../../../../features/billing/api/masterBillingApi';
-import {
-  formatBillingMoney,
-  formatRenewalSchedule,
-} from '../../../billing/billingFormat';
 import { billingOutlineBtn, billingPinkBtn } from '../../../billing/adminBillingTheme';
+import { settingsCabinetOutlineBtn } from '../settingsCabinetUi';
+import { SubscriptionReceiptDocument } from './SubscriptionReceiptDocument';
 import {
-  SettingsCabinetStatusPill,
-  settingsCabinetOutlineBtn,
-} from '../settingsCabinetUi';
-import {
+  buildSubscriptionReceiptDocumentData,
   buildSubscriptionReceiptRows,
   downloadSubscriptionReceiptPdf,
-  SUBSCRIPTION_RECEIPT_BG_SRC,
 } from './subscriptionReceiptModel';
 
 type Props = {
@@ -62,7 +56,6 @@ export function SubscriptionReceiptModal({
   isProEntitled,
   planName,
   statusLabel,
-  statusTone,
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -99,16 +92,13 @@ export function SubscriptionReceiptModal({
   if (!open) return null;
 
   const rows = buildSubscriptionReceiptRows(uiState, billing, isProEntitled);
-  const periodUnit = billing.billingPeriod === 'year' ? 'год' : 'месяц';
-  const renewalLine = formatRenewalSchedule(billing, uiState);
-  const showPrice = isProEntitled && billing.priceAmount > 0;
-  const tableRows = rows.filter((r) => r.label !== 'Стоимость' && r.label !== 'Тариф');
-  const issuedAt = new Date().toLocaleString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  const documentData = buildSubscriptionReceiptDocumentData({
+    planName,
+    statusLabel,
+    rows,
+    billing,
+    isProEntitled,
+    uiState,
   });
 
   return createPortal(
@@ -126,94 +116,32 @@ export function SubscriptionReceiptModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="subscription-receipt-title"
-        className="relative z-10 flex max-h-[min(85vh,36rem)] w-full max-w-[30rem] flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-white/10 sm:max-w-[32rem]"
+        className="relative z-10 flex max-h-[min(90vh,40rem)] w-full max-w-[34rem] flex-col overflow-hidden border border-[#E5E5E5] bg-white sm:max-w-[36rem]"
       >
-        <header className="shrink-0 border-b border-[#F3F4F6] px-5 py-4 sm:px-6">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#9CA3AF]">
-                Подписка Master
-              </p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                <h2
-                  id="subscription-receipt-title"
-                  className="text-[20px] font-extrabold tracking-[-0.03em] text-[#111827]"
-                >
-                  Справка о подписке
-                </h2>
-                <SettingsCabinetStatusPill tone={statusTone}>{statusLabel}</SettingsCabinetStatusPill>
-              </div>
-              <p className="mt-2 text-[13px] leading-relaxed text-[#6B7280]">
-                {renewalLine ? `${renewalLine} · ` : ''}
-                {issuedAt}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F5F5F5] text-[#6B7280] transition hover:bg-[#EBEBEB] hover:text-[#111827]"
-              aria-label="Закрыть"
-            >
-              <HiXMark className="h-5 w-5" />
-            </button>
-          </div>
-        </header>
-
-        <div
-          ref={scrollRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
-        >
-          <div className="overflow-hidden rounded-[16px] border border-[#F3F4F6]">
-            <img
-              src={SUBSCRIPTION_RECEIPT_BG_SRC}
-              alt=""
-              className="block aspect-[2.4/1] w-full object-cover object-center"
-            />
-            <div className="p-4">
-              <p className="text-[18px] font-extrabold tracking-[-0.03em] text-[#111827]">
-                {planName}
-              </p>
-              {showPrice ? (
-                <p className="mt-1 text-[26px] font-black tracking-[-0.04em] text-[#111827]">
-                  {formatBillingMoney(billing.priceAmount, billing.currency)}
-                  <span className="ml-1 text-[15px] font-semibold text-[#6B7280]">/ {periodUnit}</span>
-                </p>
-              ) : null}
-              <p className="mt-2 text-[11px] text-[#9CA3AF]">
-                SLOTTY · кабинет мастера и онлайн-запись
-              </p>
-            </div>
-          </div>
-
-          {tableRows.length > 0 ? (
-            <div className="mt-4 overflow-hidden rounded-[16px] border border-[#F3F4F6]">
-              <p className="border-b border-[#F3F4F6] bg-[#FAFAFA] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[#6B7280]">
-                Детали подписки
-              </p>
-              <dl>
-                {tableRows.map(({ label, value }) => (
-                  <div
-                    key={label}
-                    className="flex items-start justify-between gap-4 border-b border-[#F3F4F6] px-4 py-3 text-[13px] last:border-b-0"
-                  >
-                    <dt className="shrink-0 text-[#6B7280]">{label}</dt>
-                    <dd className="text-right font-semibold text-[#111827]">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ) : null}
-
-          <p className="mt-5 flex items-center justify-between gap-3 text-[11px] text-[#9CA3AF]">
-            <span className="font-extrabold tracking-[0.12em] text-[#ff5f7a]">SLOTTY</span>
-            <span>slotty.by</span>
-          </p>
-        </div>
-
-        <div className="flex shrink-0 flex-col gap-2 border-t border-[#F3F4F6] bg-[#FAFAFA] px-5 py-4 sm:flex-row sm:px-6">
+        <div className="flex shrink-0 items-center justify-end border-b border-[#E5E5E5] px-4 py-3 sm:px-5">
           <button
             type="button"
-            onClick={() => downloadSubscriptionReceiptPdf(planName, statusLabel, rows)}
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[#737373] transition hover:bg-[#F5F5F5] hover:text-[#111827]"
+            aria-label="Закрыть"
+          >
+            <HiXMark className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+          <span id="subscription-receipt-title" className="sr-only">
+            Квитанция о подписке SLOTTY
+          </span>
+          <SubscriptionReceiptDocument data={documentData} />
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-2 border-t border-[#E5E5E5] bg-[#FAFAFA] px-5 py-4 sm:flex-row sm:px-6">
+          <button
+            type="button"
+            onClick={() =>
+              downloadSubscriptionReceiptPdf(planName, statusLabel, rows, billing, isProEntitled)
+            }
             className={`inline-flex flex-1 items-center justify-center gap-2 ${billingOutlineBtn}`}
           >
             <HiArrowDownTray className="h-4 w-4 shrink-0" aria-hidden />

@@ -11,14 +11,46 @@ export function formatAppointmentPrice(value: number): string {
   return formatBynRu(value);
 }
 
-export function clientInitials(name: string, phone?: string | null): string {
-  const trimmed = name.trim();
-  if (trimmed && !/^\+?\d[\d\s()-]{5,}$/.test(trimmed)) {
-    return profileDisplayInitials(trimmed);
+export function bookingSourceLabel(source?: string | null): string {
+  if (!source) return 'Сайт';
+  if (source === 'telegram') return 'Telegram';
+  if (source === 'google') return 'Google';
+  if (source === 'email') return 'Email';
+  return source;
+}
+
+export const CLIENT_NAME_PLACEHOLDERS = new Set([
+  'Клиент без имени',
+  'Клиент SLOTTY',
+  'Клиент',
+  '',
+]);
+
+function looksLikePhoneLabel(value: string): boolean {
+  return /^\+?\d[\d\s().-]{5,}$/.test(value.replace(/\s/g, ''));
+}
+
+/** Имя из API/метаданных: телефон и плейсхолдеры не считаем ФИО. */
+export function clientNameInputForResolve(name: string | null | undefined): string | null {
+  const trimmed = name?.trim() || '';
+  if (!trimmed || CLIENT_NAME_PLACEHOLDERS.has(trimmed) || looksLikePhoneLabel(trimmed)) {
+    return null;
   }
-  const digits = (phone ?? trimmed).replace(/\D/g, '');
-  if (digits.length >= 2) return digits.slice(-2);
-  return profileDisplayInitials(trimmed || 'Клиент');
+  return trimmed;
+}
+
+/** Инициалы для аватара. `null` — показать иконку человека вместо цифр телефона. */
+export function clientInitials(name: string, _phone?: string | null): string | null {
+  const trimmed = name.trim();
+  if (
+    trimmed &&
+    !CLIENT_NAME_PLACEHOLDERS.has(trimmed) &&
+    !looksLikePhoneLabel(trimmed)
+  ) {
+    const initials = profileDisplayInitials(trimmed);
+    return initials || null;
+  }
+  return null;
 }
 
 /** «На дому» / «В студии» из короткого адреса. */

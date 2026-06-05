@@ -1,4 +1,7 @@
 import { query } from '../../config/db.js';
+import {
+  BOOKING_CONFIRMATION_RULES,
+} from '../../lib/bookingConfirmationDeadlines.js';
 import { logNotification, logNotificationWarn } from './notificationLog.js';
 import type { NotificationJobChannel, NotificationJobType } from './notificationJobs.types.js';
 import { enqueueNotificationJob } from './notificationJobs.service.js';
@@ -13,6 +16,8 @@ type AppointmentParties = {
   startsAt: Date;
   voucherNumber: string | null;
   status: string;
+  pendingExpiresAt: Date | null;
+  createdAt: Date;
 };
 
 async function loadAppointmentParties(appointmentId: string): Promise<AppointmentParties | null> {
@@ -23,8 +28,11 @@ async function loadAppointmentParties(appointmentId: string): Promise<Appointmen
     starts_at: Date | string;
     status: string;
     voucher_number: string | null;
+    pending_expires_at: Date | string | null;
+    created_at: Date | string;
   }>(
     `select a.id, a.client_id, a.master_id, a.starts_at, a.status::text as status,
+            a.pending_expires_at, a.created_at,
             bv.voucher_number
        from public.appointments a
        left join public.booking_vouchers bv on bv.appointment_id = a.id
@@ -35,6 +43,13 @@ async function loadAppointmentParties(appointmentId: string): Promise<Appointmen
   if (!row) return null;
   const startsAt =
     row.starts_at instanceof Date ? row.starts_at : new Date(row.starts_at as string);
+  const createdAt =
+    row.created_at instanceof Date ? row.created_at : new Date(row.created_at as string);
+  const pendingExpiresAt = row.pending_expires_at
+    ? row.pending_expires_at instanceof Date
+      ? row.pending_expires_at
+      : new Date(row.pending_expires_at as string)
+    : null;
   return {
     appointmentId: row.id,
     clientId: row.client_id,
@@ -42,6 +57,8 @@ async function loadAppointmentParties(appointmentId: string): Promise<Appointmen
     startsAt,
     voucherNumber: row.voucher_number,
     status: row.status,
+    pendingExpiresAt,
+    createdAt,
   };
 }
 
@@ -142,21 +159,59 @@ async function scheduleReminderJobs(parties: AppointmentParties): Promise<void> 
   }
 }
 
-/** После создания записи: лог + jobs напоминаний (immediate — через notifyUser). */
+async function schedulePendingDecisionJobs(parties: AppointmentParties): Promise<void> {
+  if (parties.status !== 'pending') return;
+  const now = Date.now();
+  const channels: NotificationJobChannel[] = ['email', 'telegram', 'in_app'];
+
+  const reminderAt = new Date(
+    parties.createdAt.getTime() + BOOKING_CONFIRMATION_RULES.MASTER_PENDING_REMINDER_MS,
+  );
+  if (reminderAt.getTime() > now) {
+    await enqueueForUsers(
+      parties,
+      'booking_master_pending_reminder',
+      reminderAt,
+      [parties.masterId],
+      channels,
+    );
+  }
+
+  if (parties.pendingExpiresAt) {
+    const deadlineAt = new Date(
+      parties.pendingExpiresAt.getTime() -
+        BOOKING_CONFIRMATION_RULES.MASTER_PENDING_DEADLINE_WARNING_MS,
+    );
+    if (deadlineAt.getTime() > now) {
+      await enqueueForUsers(
+        parties,
+        'booking_master_pending_deadline',
+        deadlineAt,
+        [parties.masterId],
+        channels,
+      );
+    }
+  }
+}
+
+/** После создания записи: лог + напоминания мастеру о pending (не visit reminders). */
 export async function scheduleJobsAfterBookingCreated(appointmentId: string): Promise<void> {
   const parties = await loadAppointmentParties(appointmentId);
   if (!parties) return;
   logBookingCreated(parties);
-  await scheduleReminderJobs(parties);
+  await schedulePendingDecisionJobs(parties);
 }
 
-/** После подтверждения / отмены — отменить pending reminders. */
+/** После подтверждения / отмены — отменить pending reminders и visit reminders. */
 export async function cancelPendingReminderJobs(appointmentId: string): Promise<void> {
   await query(
     `update public.notification_jobs
         set status = 'cancelled', updated_at = now()
       where appointment_id = $1
-        and job_type in ('booking_reminder_1h', 'booking_reminder_24h', 'booking_visit_start')
+        and job_type in (
+          'booking_reminder_1h', 'booking_reminder_24h', 'booking_visit_start',
+          'booking_master_pending_reminder', 'booking_master_pending_deadline'
+        )
         and status = 'pending'`,
     [appointmentId],
   );

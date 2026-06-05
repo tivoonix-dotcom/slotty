@@ -25,14 +25,20 @@ export const settingsPrimaryBtnClass =
 export const settingsSecondaryBtnClass =
   'inline-flex min-h-10 items-center justify-center rounded-[10px] bg-[#F5F5F5] px-5 text-[14px] font-semibold text-[#111827] transition hover:bg-[#EBEBEB] active:scale-[0.98]';
 
-export const settingsSidebarClass =
-  'flex shrink-0 flex-col gap-0.5 lg:w-[220px] xl:w-[240px]';
+export const settingsWorkspaceBg = 'bg-[#f6f7fb]';
 
-export const settingsSidebarLinkClass =
-  'rounded-[8px] px-3 py-2.5 text-[14px] font-medium text-[#6B7280] transition hover:bg-white/80 hover:text-[#111827]';
+export const settingsSidebarShellClass =
+  'shrink-0 rounded-[20px] border border-[#EAECEF] bg-white p-3 shadow-[0_4px_24px_rgba(17,24,39,0.04)] lg:w-[260px] xl:w-[280px]';
 
-export const settingsSidebarLinkActiveClass =
-  'rounded-[8px] bg-white px-3 py-2.5 text-[14px] font-bold text-[#111827] shadow-sm';
+export const clientSettingsNavGroupLabel =
+  'px-2 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9CA3AF] first:pt-1';
+
+export const clientSettingsNavItemClass = (active: boolean): string =>
+  `flex min-h-[40px] w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-[14px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff5f7a]/35 ${
+    active
+      ? 'bg-[#FFF1F4] text-[#ff5f7a]'
+      : 'text-[#374151] hover:bg-[#F7F7F8] hover:text-[#111827]'
+  }`;
 
 export const settingsDocSidebarLinkClass =
   'block rounded-[8px] px-3 py-2 text-[14px] text-[#6B7280] transition hover:bg-[#FAFAFA] hover:text-[#111827]';
@@ -41,8 +47,11 @@ export const settingsDocSidebarLinkActiveClass =
   'block rounded-[8px] bg-[#FAFAFA] px-3 py-2 text-[14px] font-bold text-[#111827]';
 
 export const settingsLayoutGridClass =
-  'flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-8';
+  'flex min-h-0 flex-1 flex-col gap-5 lg:flex-row lg:items-start lg:gap-8';
 
 export const settingsDesktopShellClass = `${CLIENT_DESKTOP_SHELL_CLASS} pb-10 pt-6`;
+
+export const settingsCardSurfaceClass =
+  'rounded-[20px] border border-[#EAECEF] bg-white shadow-[0_4px_24px_rgba(17,24,39,0.05)]';
 
 export const settingsContentClass = 'min-w-0 flex-1';

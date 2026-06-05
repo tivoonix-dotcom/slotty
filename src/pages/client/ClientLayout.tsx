@@ -16,6 +16,10 @@ function isBookingPath(pathname: string): boolean {
   return pathname === BOOKING_PATH;
 }
 
+function isClientAppointmentDetailPath(pathname: string): boolean {
+  return /^\/client\/appointments\/[^/]+$/.test(pathname);
+}
+
 function isCatalogPath(pathname: string): boolean {
   if (pathname === MASTERS_PATH || pathname === SERVICES_PATH) return true;
   return pathname.startsWith(`${SERVICES_PATH}/category/`);
@@ -27,7 +31,8 @@ function isClientProfilePath(pathname: string): boolean {
 
 export function ClientLayout() {
   const { pathname } = useLocation();
-  const hideBottomNav = isMasterPublicPath(pathname) || isBookingPath(pathname);
+  const hideBottomNav =
+    isMasterPublicPath(pathname) || isBookingPath(pathname) || isClientAppointmentDetailPath(pathname);
   const { cityLabel, hasGeo, requestGeo, userLat, userLng } = useClientGeo();
 
   const outletContext: ClientOutletContext = {

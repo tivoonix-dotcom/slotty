@@ -4,7 +4,7 @@ import { env } from '../../config/env.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { recordBillingEvent } from './billingEvents.service.js';
 import { quotePromoForCheckout, recordPromoRedemption } from './promoCode.service.js';
-import { PORTFOLIO_PHOTO_LIMITS, type EffectivePlanCode } from './planLimits.config.js';
+import type { EffectivePlanCode } from './planLimits.config.js';
 
 function num(v: string): number {
   return Number(v);
@@ -19,81 +19,17 @@ export type MasterPlanAccess = {
   proExpiresAt: string | null;
 };
 
-/** Единая проверка активного Pro (plan + статус подписки + даты). */
+/** Единая проверка активного Pro (plan + статус подписки + даты + trial). */
 export async function getMasterPlanAccess(masterId: string): Promise<MasterPlanAccess> {
-  const { expireDueSubscriptions } = await import('./subscriptionBilling.service.js');
-  const { isProEntitled, deriveSubscriptionUiState } = await import('./subscriptionBilling.state.js');
-  await expireDueSubscriptions(masterId);
-  await ensureMasterSubscription(masterId);
-  const r = await query<{
-    code: string;
-    status: string;
-    current_period_end: Date;
-    cancel_at_period_end: boolean;
-    pro_expires_at: Date | string | null;
-  }>(
-    `select sp.code,
-            ms.status::text as status,
-            ms.current_period_end,
-            ms.cancel_at_period_end,
-            mp.pro_expires_at
-       from public.master_subscriptions ms
-       join public.subscription_plans sp on sp.id = ms.plan_id
-       left join public.master_profiles mp on mp.master_id = ms.master_id
-      where ms.master_id = $1`,
-    [masterId],
-  );
-  const row = r.rows[0];
-  if (!row) {
-    throw ApiError.internal('Подписка мастера недоступна');
-  }
-  const subscriptionPlanCode = row.code.toLowerCase();
-  const lite = {
-    planCode: subscriptionPlanCode,
-    status: row.status,
-    currentPeriodEnd: row.current_period_end,
-    cancelAtPeriodEnd: row.cancel_at_period_end,
-    proExpiresAt: row.pro_expires_at,
-  };
-  const uiState = deriveSubscriptionUiState(lite);
-  const entitled = isProEntitled(lite);
-  const proExpired = uiState === 'expired' || (subscriptionPlanCode === 'pro' && !entitled);
-  const isProActive = entitled;
+  const { getMasterEntitlements } = await import('./entitlements.service.js');
+  const ent = await getMasterEntitlements(masterId);
   return {
-    subscriptionPlanCode,
-    isProActive,
-    proExpired,
-    effectivePlanCode: entitled ? 'pro' : 'free',
-    currentPeriodEnd: row.current_period_end ? new Date(row.current_period_end).toISOString() : null,
-    proExpiresAt: row.pro_expires_at ? new Date(row.pro_expires_at).toISOString() : null,
-  };
-}
-
-async function getEffectivePlanLimits(masterId: string): Promise<{
-  maxServices: number | null;
-  maxMonthlyAppointments: number | null;
-  maxScheduleDaysAhead: number;
-}> {
-  const access = await getMasterPlanAccess(masterId);
-  const r = await query<{
-    max_services: number | null;
-    max_monthly_appointments: number | null;
-    max_schedule_days_ahead: number;
-  }>(
-    `select max_services, max_monthly_appointments, max_schedule_days_ahead
-       from public.subscription_plans
-      where code = $1 and is_active = true
-      limit 1`,
-    [access.effectivePlanCode],
-  );
-  const row = r.rows[0];
-  if (!row) {
-    throw ApiError.internal(`План ${access.effectivePlanCode} не найден`);
-  }
-  return {
-    maxServices: row.max_services,
-    maxMonthlyAppointments: row.max_monthly_appointments,
-    maxScheduleDaysAhead: row.max_schedule_days_ahead,
+    subscriptionPlanCode: ent.effectivePlan === 'free' ? 'free' : 'pro',
+    isProActive: ent.isProEntitled,
+    proExpired: ent.trial.consumed && !ent.trial.isActive && !ent.isProEntitled,
+    effectivePlanCode: ent.isProEntitled ? 'pro' : 'free',
+    currentPeriodEnd: ent.subscription.currentPeriodEnd,
+    proExpiresAt: ent.trial.endsAt ?? ent.subscription.currentPeriodEnd,
   };
 }
 
@@ -139,8 +75,8 @@ export async function ensureMasterSubscriptionWithClient(client: PoolClient, mas
   }
   await client.query(
     `insert into public.master_subscriptions (
-       master_id, plan_id, status, billing_period, current_period_start, current_period_end
-     ) values ($1, $2, 'active'::public.subscription_status, 'month'::public.billing_period, now(), now() + interval '400 days')
+       master_id, plan_id, status, billing_period, current_period_start, current_period_end, trial_consumed
+     ) values ($1, $2, 'active'::public.subscription_status, 'month'::public.billing_period, now(), now() + interval '400 days', false)
      on conflict (master_id) do nothing`,
     [masterId, planId],
   );
@@ -156,8 +92,8 @@ export async function ensureMasterSubscription(masterId: string): Promise<void> 
   }
   await query(
     `insert into public.master_subscriptions (
-       master_id, plan_id, status, billing_period, current_period_start, current_period_end
-     ) values ($1, $2, 'active'::public.subscription_status, 'month'::public.billing_period, now(), now() + interval '400 days')
+       master_id, plan_id, status, billing_period, current_period_start, current_period_end, trial_consumed
+     ) values ($1, $2, 'active'::public.subscription_status, 'month'::public.billing_period, now(), now() + interval '400 days', false)
      on conflict (master_id) do nothing`,
     [masterId, planId],
   );
@@ -217,36 +153,13 @@ function mapJoinedPlanRow(row: {
 }
 
 export async function assertMasterHasProPlan(masterId: string): Promise<void> {
-  const access = await getMasterPlanAccess(masterId);
-  if (access.proExpired) {
-    throw ApiError.forbidden(
-      'Срок Pro истёк. Продлите тариф в разделе «Тарифы».',
-      'SUBSCRIPTION_EXPIRED',
-    );
-  }
-  if (!access.isProActive) {
-    throw ApiError.forbidden(
-      'Функция доступна по подписке «Мастер Pro». Подключите тариф в разделе «Тарифы».',
-      'PRO_REQUIRED',
-    );
-  }
+  const { assertMasterHasProEntitlement } = await import('./entitlements.service.js');
+  await assertMasterHasProEntitlement(masterId);
 }
 
 export async function assertCanAddPortfolioItem(masterId: string): Promise<void> {
-  const access = await getMasterPlanAccess(masterId);
-  const max =
-    access.effectivePlanCode === 'pro' ? PORTFOLIO_PHOTO_LIMITS.pro : PORTFOLIO_PHOTO_LIMITS.free;
-  const cnt = await query<{ c: number }>(
-    `select count(*)::int as c from public.master_portfolio_items where master_id = $1`,
-    [masterId],
-  );
-  if ((cnt.rows[0]?.c ?? 0) >= max) {
-    const msg =
-      access.effectivePlanCode === 'pro'
-        ? `Достигнут лимит портфолио (${max} фото)`
-        : `Достигнут лимит Free (${max} фото). Подключите Pro для большего портфолио.`;
-    throw ApiError.forbidden(msg, 'PLAN_LIMIT_REACHED');
-  }
+  const { assertCanUploadPortfolioPhoto } = await import('./entitlements.service.js');
+  await assertCanUploadPortfolioPhoto(masterId);
 }
 
 export async function getMasterSubscriptionWithUsage(masterId: string): Promise<MasterSubscriptionWithUsageDto> {
@@ -453,6 +366,12 @@ export async function activateMasterProFromManualPayment(
 
   const durationDays = Math.min(Math.max(options.durationDays ?? 30, 1), 366);
 
+  const beforeStatus = await query<{ status: string }>(
+    `select status::text as status from public.master_subscriptions where master_id = $1`,
+    [masterId],
+  );
+  const wasTrialing = beforeStatus.rows[0]?.status === 'trialing';
+
   const price =
     billingPeriod === 'year' ? Number(plan.price_year) : Number(plan.price_month);
   await query(
@@ -485,6 +404,11 @@ export async function activateMasterProFromManualPayment(
     source: eventSource,
     metadata: { ...options.metadata, durationDays },
   });
+
+  if (wasTrialing) {
+    const { recordTrialConvertedToPaid } = await import('./trial.service.js');
+    await recordTrialConvertedToPaid(masterId).catch(() => {});
+  }
 
   await query(
     `update public.master_profiles
@@ -527,56 +451,16 @@ export async function recordMasterCheckoutStarted(
 }
 
 export async function assertCanCreateMasterService(masterId: string): Promise<void> {
-  const limits = await getEffectivePlanLimits(masterId);
-  const maxS = limits.maxServices;
-  if (maxS == null) return;
-  const cnt = await query<{ c: number }>(
-    `select count(*)::int as c
-       from public.master_services
-      where master_id = $1
-        and is_active = true`,
-    [masterId],
-  );
-  if ((cnt.rows[0]?.c ?? 0) >= maxS) {
-    throw ApiError.forbidden('Достигнут лимит числа услуг по тарифу', 'LIMIT_SERVICES_REACHED');
-  }
+  const { assertCanCreateService } = await import('./entitlements.service.js');
+  await assertCanCreateService(masterId);
 }
 
 export async function assertSlotWithinPlanHorizon(masterId: string, startsAt: Date): Promise<void> {
-  const limits = await getEffectivePlanLimits(masterId);
-  const days = limits.maxScheduleDaysAhead;
-  if (days == null || days <= 0) return;
-  const horizonMs = days * 24 * 60 * 60 * 1000;
-  if (startsAt.getTime() > Date.now() + horizonMs) {
-    throw ApiError.forbidden('Дата окна превышает горизонт расписания по тарифу', 'LIMIT_SCHEDULE_DAYS_REACHED');
-  }
+  const { assertSlotWithinPlanHorizon: assertHorizon } = await import('./entitlements.service.js');
+  await assertHorizon(masterId, startsAt);
 }
 
 export async function assertMasterMonthlyAppointmentsAllowNew(client: PoolClient, masterId: string): Promise<void> {
-  await ensureMasterSubscriptionWithClient(client, masterId);
-  const access = await getMasterPlanAccess(masterId);
-  const lim = await client.query<{ max: number | null }>(
-    `select max_monthly_appointments as max
-       from public.subscription_plans
-      where code = $1 and is_active = true
-      limit 1`,
-    [access.effectivePlanCode],
-  );
-  const maxM = lim.rows[0]?.max;
-  if (maxM == null) return;
-  const cnt = await client.query<{ c: number }>(
-    `select count(*)::int as c
-       from public.appointments a
-      where a.master_id = $1
-        and a.starts_at >= date_trunc('month', now())
-        and a.starts_at < date_trunc('month', now()) + interval '1 month'
-        and a.status not in (
-          'cancelled_by_client'::public.appointment_status,
-          'cancelled_by_master'::public.appointment_status
-        )`,
-    [masterId],
-  );
-  if ((cnt.rows[0]?.c ?? 0) >= maxM) {
-    throw ApiError.forbidden('У мастера достигнут лимит записей на месяц по тарифу', 'LIMIT_MONTHLY_APPOINTMENTS_REACHED');
-  }
+  const { assertMasterMonthlyAppointmentsAllowNew: assertMonthly } = await import('./entitlements.service.js');
+  await assertMonthly(client, masterId);
 }

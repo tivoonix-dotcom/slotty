@@ -3,8 +3,11 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   ADMIN_APPOINTMENTS_PATH,
   ADMIN_SCHEDULE_PATH,
+  getMasterAdminAppointmentsPath,
   getMasterLoginPath,
+  type MasterAppointmentsTabParam,
 } from '../../app/paths';
+import { normalizeBookingCode } from '../../shared/lib/buildBookingLink';
 import {
   fetchMasterAppointmentByVoucher,
   type MasterBookingByVoucher,
@@ -16,7 +19,6 @@ import {
 } from '../../features/admin/api/masterCabinetApi';
 import { hasMasterCabinetAccess } from '../../features/auth/lib/hasMasterCabinetAccess';
 import { useAuth } from '../../features/auth/AuthProvider';
-import { normalizeBookingCode } from '../../shared/lib/buildBookingLink';
 import { getApiBaseUrl } from '../../shared/api/backendClient';
 import { afterBookingMutation } from '../../features/appointments/bookingDataSync';
 import { LoadingScreen } from '../../shared/ui/LoadingVideo';
@@ -35,6 +37,14 @@ function statusLabel(status: string): string {
     default:
       return status;
   }
+}
+
+function appointmentsTabForStatus(status: string): MasterAppointmentsTabParam | undefined {
+  if (status === 'pending') return undefined;
+  if (status === 'confirmed' || status === 'client_arrived' || status === 'in_progress') {
+    return 'upcoming';
+  }
+  return 'history';
 }
 
 function MasterBookingDetailContent() {
@@ -81,6 +91,17 @@ function MasterBookingDetailContent() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!row) return;
+    navigate(
+      getMasterAdminAppointmentsPath({
+        focus: row.id,
+        tab: appointmentsTabForStatus(row.status),
+      }),
+      { replace: true },
+    );
+  }, [row, navigate]);
 
   if (!hasMasterCabinetAccess(profile)) {
     return <Navigate to={getMasterLoginPath(window.location.pathname)} replace />;

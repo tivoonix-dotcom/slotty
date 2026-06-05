@@ -11,7 +11,7 @@ export const OVERVIEW_TAB_INTRO_IMAGES = [
 ] as const;
 
 const OVERVIEW_TAB_INTRO: Record<OverviewAnalyticsTab, { title: string; imageSrc: string }> = {
-  summary: { title: 'Сводка', imageSrc: OVERVIEW_WELCOME_IMAGE_SRC },
+  summary: { title: 'Сегодня', imageSrc: OVERVIEW_WELCOME_IMAGE_SRC },
   revenue: { title: 'Доход', imageSrc: overviewSvodkaPhotoSrc('доход.webp') },
   clients: { title: 'Клиенты', imageSrc: overviewSvodkaPhotoSrc('клиенты.webp') },
   reputation: { title: 'Репутация', imageSrc: overviewSvodkaPhotoSrc('репутация.webp') },

@@ -1,13 +1,16 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ADMIN_PATH } from '../../../app/paths';
 import { NotificationsDesktopHero } from './NotificationsDesktopHero';
+import type { MasterNotificationStats } from './masterNotificationModel';
 
 type Props = {
-  unreadCount: number;
-  totalCount: number;
+  stats: MasterNotificationStats;
+  onMarkAllRead?: () => void;
+  mobileFilter?: ReactNode;
 };
 
-export function NotificationsPageHeader({ unreadCount, totalCount }: Props) {
+export function NotificationsPageHeader({ stats, onMarkAllRead, mobileFilter }: Props) {
   return (
     <div className="space-y-3">
       <Link
@@ -16,8 +19,12 @@ export function NotificationsPageHeader({ unreadCount, totalCount }: Props) {
       >
         ← Профиль мастера
       </Link>
-      <div className="pb-4 lg:pb-0">
-        <NotificationsDesktopHero unreadCount={unreadCount} totalCount={totalCount} />
+      <div className="pb-1 lg:pb-0">
+        <NotificationsDesktopHero
+          stats={stats}
+          onMarkAllRead={onMarkAllRead}
+          mobileFilter={mobileFilter}
+        />
       </div>
     </div>
   );

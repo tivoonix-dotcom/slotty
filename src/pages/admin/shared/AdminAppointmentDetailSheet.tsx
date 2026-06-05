@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiEllipsisHorizontal, HiPhone } from 'react-icons/hi2';
-import { fetchMasterAppointmentByVoucher } from '../../../features/appointments/api/bookingByVoucher';
+import { HiEllipsisHorizontal } from 'react-icons/hi2';
+import { fetchMasterAppointmentByVoucher, type MasterBookingByVoucher } from '../../../features/appointments/api/bookingByVoucher';
+import { dbStatusToUi } from '../../../features/appointments/appointmentStatus';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import {
   buildMasterAppointmentActions,
@@ -20,13 +21,24 @@ import {
 import { masterDispute } from '../../../features/appointments/api/bookingLifecycleApi';
 import { afterBookingMutation } from '../../../features/appointments/bookingDataSync';
 import { formatBynRu, formatDdMmYyyy } from '../overview/overviewFormat';
-import { AppointmentsClientAvatar } from '../appointments/AppointmentsClientAvatar';
+import { AppointmentsClientSummary } from '../appointments/AppointmentsClientSummary';
+import { SlideToConfirmButton } from '../appointments/SlideToConfirmButton';
 import {
+  buildDetailHelperText,
+  formatTimelineEventTime,
+  formatVoucherLabel,
+  normalizeMasterTimeline,
+} from '../appointments/appointmentDetailHelpers';
+import {
+  clientNameInputForResolve,
   formatDurationMinutes,
   formatVisitPlace,
 } from '../appointments/appointmentsFormat';
+import { resolveNotificationClientName } from '../../../features/notifications/resolveNotificationClientName';
 import { AdminBottomSheet } from './AdminBottomSheet';
 import { MasterAppointmentNoShowModal } from './MasterAppointmentNoShowModal';
+import { MasterClientReportSheet } from './MasterClientReportSheet';
+import { resolveClientDisplayName } from '../appointments/appointmentDetailHelpers';
 import {
   catalogSheetField,
   catalogSheetLabel,
@@ -78,14 +90,6 @@ function actionBtnClass(action: MasterAppointmentAction, disabled: boolean): str
   return catalogSheetSecondaryBtn;
 }
 
-function bookingSourceLabel(source?: string | null): string {
-  if (!source) return 'Сайт';
-  if (source === 'telegram') return 'Telegram';
-  if (source === 'google') return 'Google';
-  if (source === 'email') return 'Email';
-  return source;
-}
-
 function appointmentTiming(appointment: DemoMasterAppointment) {
   const startsAt = appointment.startsAt ?? `${appointment.date}T${appointment.time}:00`;
   const endsAt =
@@ -96,11 +100,45 @@ function appointmentTiming(appointment: DemoMasterAppointment) {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
+    <div className="flex items-start justify-between gap-4 border-b border-[#EEEEEE] py-3 last:border-b-0">
       <span className="shrink-0 text-[13px] font-medium text-[#6B7280]">{label}</span>
       <span className="min-w-0 text-right text-[14px] font-semibold leading-snug text-[#111827]">{value}</span>
     </div>
   );
+}
+
+type LiveExtra = {
+  timeline?: DemoMasterAppointment['timeline'];
+  clientSignal?: DemoMasterAppointment['clientSignal'];
+  lifecycle?: MasterAppointmentLifecycleResult;
+  clientPatch?: Partial<DemoMasterAppointment>;
+};
+
+function mapMasterLiveRow(row: MasterBookingByVoucher, tab: MasterAppointmentsTab): LiveExtra {
+  return {
+    timeline: row.timeline,
+    clientSignal: row.client_signal ?? undefined,
+    lifecycle: (tab === 'history' ? row.lifecycle_history : row.lifecycle) as
+      | MasterAppointmentLifecycleResult
+      | undefined,
+    clientPatch: {
+      clientName:
+        resolveNotificationClientName({
+          full_name: clientNameInputForResolve(row.client_name),
+          phone: row.client_phone,
+          telegram_username: row.client_telegram_username?.replace(/^@+/, '') ?? null,
+        }) ??
+        clientNameInputForResolve(row.client_name) ??
+        'Клиент',
+      contact: row.client_phone ?? undefined,
+      clientEmail: row.client_email ?? null,
+      clientTelegramUsername: row.client_telegram_username?.replace(/^@+/, '') ?? null,
+      clientAvatarUrl: row.client_avatar_url,
+      voucherNumber: row.voucher_number,
+      dbStatus: row.status,
+      status: dbStatusToUi(row.status) as DemoMasterAppointment['status'],
+    },
+  };
 }
 
 export function AdminAppointmentDetailSheet({
@@ -115,16 +153,21 @@ export function AdminAppointmentDetailSheet({
   const [error, setError] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [noShowOpen, setNoShowOpen] = useState(false);
+  const [clientReportOpen, setClientReportOpen] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
   const [confirmKind, setConfirmKind] = useState<ConfirmKind | null>(null);
   const [reason, setReason] = useState('');
   const [cancelCategory, setCancelCategory] = useState<string>(CANCEL_CATEGORIES[0].id);
   const [disputeReason, setDisputeReason] = useState('client_no_show');
 
-  const [liveExtra, setLiveExtra] = useState<{
-    timeline?: DemoMasterAppointment['timeline'];
-    clientSignal?: DemoMasterAppointment['clientSignal'];
-    lifecycle?: MasterAppointmentLifecycleResult;
-  } | null>(null);
+  const [liveExtra, setLiveExtra] = useState<LiveExtra | null>(null);
+
+  const reloadLiveExtra = useCallback(async () => {
+    if (!appointment?.voucherNumber || !useLiveApi) return;
+    const row = await fetchMasterAppointmentByVoucher(appointment.voucherNumber);
+    setLiveExtra(mapMasterLiveRow(row, tab));
+  }, [appointment?.voucherNumber, tab, useLiveApi]);
+
 
   useEffect(() => {
     if (!appointment?.voucherNumber || !useLiveApi) {
@@ -132,35 +175,31 @@ export function AdminAppointmentDetailSheet({
       return;
     }
     let cancelled = false;
-    void fetchMasterAppointmentByVoucher(appointment.voucherNumber)
-      .then((row) => {
-        if (cancelled) return;
-        setLiveExtra({
-          timeline: row.timeline,
-          clientSignal: row.client_signal ?? undefined,
-          lifecycle: (tab === 'history' ? row.lifecycle_history : row.lifecycle) as MasterAppointmentLifecycleResult | undefined,
-        });
-      })
-      .catch(() => {
-        if (!cancelled) setLiveExtra(null);
-      });
+    void reloadLiveExtra().catch(() => {
+      if (!cancelled) setLiveExtra(null);
+    });
     return () => {
       cancelled = true;
     };
-  }, [appointment?.voucherNumber, useLiveApi, tab]);
+  }, [appointment?.voucherNumber, reloadLiveExtra, useLiveApi]);
 
   const lifecycle = useMemo(() => {
     if (!appointment) return null;
     if (liveExtra?.lifecycle) return liveExtra.lifecycle;
     const { startsAt, endsAt } = appointmentTiming(appointment);
     const clientSignal = liveExtra?.clientSignal ?? appointment.clientSignal;
+    const status =
+      liveExtra?.clientPatch?.dbStatus ?? appointment.dbStatus ?? appointment.status;
+    const uiStatus = liveExtra?.clientPatch?.status ?? appointment.status;
     return buildMasterAppointmentActions(
       {
-        status: appointment.dbStatus ?? appointment.status,
+        status,
         startsAt,
         endsAt,
         hasClientOnSiteSignal:
-          clientSignal?.kind === 'reported_arrived' || appointment.status === 'client_arrived',
+          clientSignal?.kind === 'reported_arrived' ||
+          uiStatus === 'client_arrived' ||
+          status === 'client_arrived',
       },
       new Date(),
       undefined,
@@ -178,6 +217,9 @@ export function AdminAppointmentDetailSheet({
         setNoShowOpen(false);
         setReason('');
         afterBookingMutation();
+        if (useLiveApi) {
+          await reloadLiveExtra().catch(() => undefined);
+        }
         await onAfterAction?.();
         if (closeAfter) onClose();
       } catch (e) {
@@ -186,12 +228,13 @@ export function AdminAppointmentDetailSheet({
         setBusy(false);
       }
     },
-    [onAfterAction, onClose],
+    [onAfterAction, onClose, reloadLiveExtra, useLiveApi],
   );
 
   const executeAction = useCallback(
     async (actionId: MasterAppointmentActionId) => {
       if (!appointment || !lifecycle) return;
+      setError(null);
       const allowed = [
         lifecycle.primaryAction?.id,
         lifecycle.secondaryAction?.id,
@@ -199,6 +242,10 @@ export function AdminAppointmentDetailSheet({
       ].filter(Boolean);
       if (!allowed.includes(actionId)) return;
       if (!useLiveApi) {
+        if (actionId === 'report_client') {
+          setClientReportOpen(true);
+          return;
+        }
         onClose();
         return;
       }
@@ -228,6 +275,9 @@ export function AdminAppointmentDetailSheet({
           break;
         case 'report_problem':
           setConfirmKind('dispute');
+          break;
+        case 'report_client':
+          setClientReportOpen(true);
           break;
         case 'contact_client':
           setMoreOpen(false);
@@ -262,9 +312,29 @@ export function AdminAppointmentDetailSheet({
     }
   }, [appointment, cancelCategory, confirmKind, disputeReason, reason, runApi]);
 
-  const phone = appointment?.contact?.match(/^\+?\d/) ? appointment.contact.replace(/\s/g, '') : null;
-  const timeline = liveExtra?.timeline ?? appointment?.timeline;
-  const clientSignal = liveExtra?.clientSignal ?? appointment?.clientSignal;
+  const displayAppointment = useMemo(() => {
+    if (!appointment) return null;
+    if (!liveExtra?.clientPatch) return appointment;
+    return { ...appointment, ...liveExtra.clientPatch };
+  }, [appointment, liveExtra?.clientPatch]);
+
+  const phone = displayAppointment?.contact?.match(/^\+?\d/)
+    ? displayAppointment.contact.replace(/\s/g, '')
+    : null;
+  const timeline = useMemo(() => {
+    const raw = liveExtra?.timeline ?? appointment?.timeline;
+    if (!raw?.length) return [];
+    return normalizeMasterTimeline(raw).slice().reverse();
+  }, [appointment?.timeline, liveExtra?.timeline]);
+
+  useEffect(() => {
+    const reported = timeline.some((ev) => ev.eventType === 'booking.client_reported_by_master');
+    setReportSent(reported);
+  }, [appointment?.id, timeline]);
+
+  const helperText =
+    displayAppointment && lifecycle ? buildDetailHelperText(lifecycle, displayAppointment) : null;
+  const voucherLabel = formatVoucherLabel(displayAppointment?.voucherNumber);
 
   const addressLine = (() => {
     if (!appointment) return null;
@@ -276,6 +346,7 @@ export function AdminAppointmentDetailSheet({
 
   const renderActionButton = (action: MasterAppointmentAction | null) => {
     if (!action || action.id === 'contact_client' || action.id === 'view_details') return null;
+    if (action.id === 'report_client' && reportSent) return null;
     return (
       <button
         key={action.id}
@@ -352,20 +423,31 @@ export function AdminAppointmentDetailSheet({
           <button type="button" onClick={() => setConfirmKind(null)} className={catalogSheetSecondaryBtn}>
             Назад
           </button>
-          <button
-            type="button"
-            disabled={busy || ((confirmKind === 'reject' || confirmKind === 'cancel' || confirmKind === 'dispute') && !reason.trim())}
-            onClick={() => void submitConfirm()}
-            className={catalogSheetPrimaryBtn}
-          >
-            Подтвердить
-          </button>
+          {confirmKind !== 'complete' ? (
+            <button
+              type="button"
+              disabled={busy || ((confirmKind === 'reject' || confirmKind === 'cancel' || confirmKind === 'dispute') && !reason.trim())}
+              onClick={() => void submitConfirm()}
+              className={catalogSheetPrimaryBtn}
+            >
+              Подтвердить
+            </button>
+          ) : null}
         </div>
       }
     >
       <div className="space-y-3">
         {confirmKind === 'complete' ? (
-          <p className="text-[14px] text-[#6B7280]">Клиент получит уведомление и сможет оставить отзыв.</p>
+          <>
+            <p className="text-[14px] text-[#6B7280]">
+              После завершения клиент сможет оставить отзыв.
+            </p>
+            <SlideToConfirmButton
+              label="Проведите, чтобы завершить визит"
+              disabled={busy}
+              onConfirm={() => void submitConfirm()}
+            />
+          </>
         ) : null}
         {confirmKind === 'close' ? (
           <p className="text-[14px] text-[#6B7280]">Запись будет отмечена как завершённая.</p>
@@ -456,71 +538,64 @@ export function AdminAppointmentDetailSheet({
         }
         footer={footer}
       >
-        {appointment && lifecycle ? (
+        {displayAppointment && lifecycle ? (
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <AppointmentsClientAvatar
-                name={appointment.clientName}
-                phone={appointment.contact}
-                photoUrl={appointment.clientAvatarUrl}
-                size="md"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-[17px] font-bold text-[#111827]">{appointment.clientName}</p>
-                {phone ? (
-                  <a href={`tel:${phone}`} className="mt-0.5 inline-flex items-center gap-1 text-[14px] font-semibold text-[#F47C8C]">
-                    <HiPhone className="h-4 w-4" aria-hidden />
-                    {appointment.contact}
-                  </a>
-                ) : (
-                  <p className="text-[13px] text-[#6B7280]">Контакт не указан</p>
-                )}
-                <p className="mt-1 text-[13px] text-[#6B7280]">
-                  Источник: {bookingSourceLabel(appointment.bookingSource)}
-                </p>
-              </div>
-            </div>
+            {error ? (
+              <p className="rounded-[10px] bg-[#FEF2F2] px-4 py-3 text-[14px] font-semibold text-[#EF4444]">
+                {error}
+              </p>
+            ) : null}
+            <AppointmentsClientSummary appointment={displayAppointment} />
 
-            {clientSignal?.kind ? (
-              <div className="rounded-[12px] bg-[#ECFDF5] px-4 py-3 ring-1 ring-[#16A34A]/20">
-                <p className="text-[14px] font-bold text-[#166534]">
-                  {clientSignal.kind === 'on_the_way'
-                    ? 'Клиент в пути'
-                    : clientSignal.kind === 'running_late'
-                      ? clientSignal.lateMinutes
-                        ? `Клиент опаздывает на ${clientSignal.lateMinutes} мин`
-                        : 'Клиент опаздывает'
-                      : 'Клиент сообщил, что на месте'}
+            {displayAppointment.clientNote?.trim() ? (
+              <div className="rounded-[10px] bg-white px-4 py-3 ring-1 ring-[#EEEEEE]">
+                <p className="text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF]">
+                  Комментарий клиента
                 </p>
-                {clientSignal.comment ? (
-                  <p className="mt-1 text-[13px] text-[#374151]">{clientSignal.comment}</p>
-                ) : null}
+                <p className="mt-1 text-[14px] font-medium text-[#111827]">
+                  {displayAppointment.clientNote.trim()}
+                </p>
               </div>
             ) : null}
 
-            <div className="divide-y divide-[#EEEEEE] rounded-[10px] bg-white px-4 py-1 ring-1 ring-[#EEEEEE]">
-              <SummaryRow label="Услуга" value={appointment.serviceTitle} />
+            <div className="rounded-[10px] bg-white px-4 ring-1 ring-[#EEEEEE]">
+              {voucherLabel ? <SummaryRow label="Номер записи" value={voucherLabel} /> : null}
+              <SummaryRow label="Услуга" value={displayAppointment.serviceTitle} />
               <SummaryRow
                 label="Длительность"
-                value={formatDurationMinutes(appointment.durationMinutes, appointment.serviceTitle)}
+                value={formatDurationMinutes(
+                  displayAppointment.durationMinutes,
+                  displayAppointment.serviceTitle,
+                )}
               />
-              <SummaryRow label="Цена" value={formatBynRu(appointment.priceByn)} />
-              <SummaryRow label="Формат" value={formatVisitPlace(appointment.addressShort)} />
+              <SummaryRow label="Цена" value={formatBynRu(displayAppointment.priceByn)} />
+              <SummaryRow label="Формат" value={formatVisitPlace(displayAppointment.addressShort)} />
               {addressLine ? <SummaryRow label="Адрес" value={addressLine} /> : null}
             </div>
 
-            <div className="rounded-[10px] bg-[#FFF4F6] px-4 py-3">
-              <p className="text-[12px] font-bold uppercase tracking-wide text-[#F47C8C]">Что дальше</p>
-              <p className="mt-1 text-[14px] font-medium text-[#111827]">{lifecycle.helperText}</p>
-            </div>
+            {helperText ? (
+              <div className="rounded-[10px] bg-[#FFF4F6] px-4 py-3">
+                <p className="text-[12px] font-bold uppercase tracking-wide text-[#F47C8C]">Что дальше</p>
+                <p className="mt-1 text-[14px] font-medium leading-snug text-[#111827]">{helperText}</p>
+              </div>
+            ) : null}
 
-            {timeline?.length ? (
+            {timeline.length ? (
               <div className="space-y-2">
                 <p className="text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF]">История</p>
-                <ul className="space-y-1.5">
+                <ul className="overflow-hidden rounded-[10px] bg-white ring-1 ring-[#EEEEEE]">
                   {timeline.map((ev) => (
-                    <li key={`${ev.eventType}-${ev.createdAt}`} className="text-[13px] text-[#374151]">
-                      <span className="font-semibold">{ev.label}</span>
+                    <li
+                      key={`${ev.eventType}-${ev.createdAt}`}
+                      className="border-b border-[#EEEEEE] px-4 py-3 last:border-b-0"
+                    >
+                      <p className="text-[14px] font-semibold text-[#111827]">{ev.label}</p>
+                      <p className="mt-0.5 text-[12px] font-medium text-[#9CA3AF]">
+                        {formatTimelineEventTime(ev.createdAt)}
+                      </p>
+                      {ev.comment?.trim() ? (
+                        <p className="mt-1 text-[13px] text-[#6B7280]">{ev.comment.trim()}</p>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -547,6 +622,21 @@ export function AdminAppointmentDetailSheet({
           }, false)
         }
       />
+
+      {appointment && displayAppointment ? (
+        <MasterClientReportSheet
+          open={clientReportOpen}
+          appointmentId={appointment.id}
+          clientName={resolveClientDisplayName(displayAppointment)}
+          onClose={() => setClientReportOpen(false)}
+          onSuccess={() => {
+            setReportSent(true);
+            setError(null);
+            afterBookingMutation();
+            if (useLiveApi) void reloadLiveExtra().catch(() => undefined);
+          }}
+        />
+      ) : null}
     </>
   );
 }

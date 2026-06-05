@@ -1,7 +1,8 @@
-import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import {
   ADMIN_PATH,
   BECOME_MASTER_PATH,
+  buildAppPath,
   getMasterLoginPath,
   HUB_PATH,
   MASTER_START_PATH,
@@ -25,6 +26,8 @@ import { AdminSettingsLegacyRedirect } from './settings/AdminSettingsLegacyRedir
 import { LoadingScreen } from '../../shared/ui/LoadingVideo';
 
 export function AdminPage() {
+  const location = useLocation();
+  const returnPath = buildAppPath(location.pathname, location.search);
   const { profile, isLoading, isAuthenticated } = useAuth();
   const hasApi = Boolean(getApiBaseUrl());
   const cabinetAccess = hasMasterCabinetAccess(profile);
@@ -37,7 +40,7 @@ export function AdminPage() {
 
   if (!allowed) {
     if (hasApi && !isAuthenticated) {
-      return <Navigate to={getMasterLoginPath(ADMIN_PATH)} replace />;
+      return <Navigate to={getMasterLoginPath(returnPath)} replace />;
     }
 
     const isPlatformAdminWithoutCabinet =

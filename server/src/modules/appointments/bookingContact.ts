@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 import { query } from '../../config/db.js';
-import { formatClientName } from '../../lib/displayFormat.js';
+import { resolveClientDisplayIdentity } from '../../lib/clientDisplayIdentity.js';
 import { ApiError } from '../../utils/ApiError.js';
 
 export type ClientContactSnapshot = {
@@ -22,10 +22,16 @@ export async function loadClientContactSnapshot(
     phone: string | null;
     telegram_username: string | null;
     telegram_user_id: string | null;
+    avatar_url: string | null;
+    master_display_name: string | null;
+    master_photo_url: string | null;
   }>(
     `select coalesce(p.full_name, '') as full_name, p.phone, p.telegram_username,
-            p.telegram_user_id::text as telegram_user_id
-       from public.profiles p where p.id = $1`,
+            p.telegram_user_id::text as telegram_user_id, p.avatar_url,
+            mp.display_name as master_display_name, mp.photo_url as master_photo_url
+       from public.profiles p
+       left join public.master_profiles mp on mp.master_id = p.id
+      where p.id = $1`,
     [clientId],
   );
   const row = r.rows[0];
@@ -49,11 +55,14 @@ export async function loadClientContactSnapshot(
   else if (providers.includes('google')) bookingSource = 'google';
   else if (providers.includes('email')) bookingSource = 'email';
 
-  const clientName = formatClientName({
-    full_name: row?.full_name ?? '',
+  const clientName = resolveClientDisplayIdentity({
+    masterDisplayName: row?.master_display_name,
+    masterPhotoUrl: row?.master_photo_url,
+    profileFullName: row?.full_name ?? '',
+    profileAvatarUrl: row?.avatar_url,
     phone: row?.phone,
-    telegram_username: row?.telegram_username,
-  });
+    telegramUsername: row?.telegram_username,
+  }).displayName;
 
   return {
     clientName,

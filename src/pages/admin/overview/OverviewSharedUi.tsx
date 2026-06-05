@@ -207,8 +207,13 @@ export function OverviewHeroActionButton({
   );
 }
 
-export { OverviewLineChart } from './OverviewLineChart';
-export { OverviewClientsDynamicsChart } from './OverviewClientsDynamicsChart';
+export {
+  OverviewVisitsBarChart,
+  OverviewRevenueLineChart,
+  OverviewRevenueBarChart,
+  OverviewClientsDynamicsChart,
+  OverviewRatingChart,
+} from './charts';
 
 export const OVERVIEW_ANALYTICS_TAB_BAR_HEIGHT = '5.75rem';
 
@@ -532,9 +537,6 @@ export function OverviewHeroEmpty() {
     </div>
   );
 }
-
-export { OverviewInteractiveBarChart as OverviewBarChart } from './OverviewInteractiveBarChart';
-
 
 export const overviewTabIcons = {
   summary: HiChartBarSquare,

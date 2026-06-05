@@ -104,4 +104,18 @@ describe('subscriptionBilling.state', () => {
     assert.ok(!availableBillingActions('pro_active').includes('connect_pro'));
     assert.ok(availableBillingActions('past_due').includes('retry_payment'));
   });
+
+  it('trialing with future end is pro entitled', () => {
+    const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    assert.equal(
+      isProEntitled({
+        planCode: 'pro',
+        status: 'trialing',
+        currentPeriodEnd: future,
+        cancelAtPeriodEnd: false,
+        trialEndsAt: future,
+      }),
+      true,
+    );
+  });
 });

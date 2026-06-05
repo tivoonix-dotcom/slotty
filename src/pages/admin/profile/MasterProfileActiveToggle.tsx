@@ -7,6 +7,8 @@ import { useMasterPlatformAccess } from '../../../features/auth/context/MasterPl
 import { useAuth } from '../../../features/auth/AuthProvider';
 import { ADMIN_SIDEBAR_OVERLAY_INSET } from '../adminCabinetLayout';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
+import { assessMasterBookingReadiness } from '../masterReadiness';
+import { useProfileCompletionSlots } from './useProfileCompletionSlots';
 import { profileDashboardCard, profileDashboardCardPad } from './adminProfileDashboardTheme';
 import { extractMasterLastName, lastNameMatchesInput } from './masterProfileLastName';
 import { ConfirmModal } from '../../../shared/ui/ConfirmModal';
@@ -25,7 +27,11 @@ export function MasterProfileActiveToggle({
 }: Props) {
   const masterWrite = useMasterPlatformAccess();
   const { profile } = useAuth();
-  const { draft, setPublicationStatus, refreshDraft } = useAdminMasterCabinet();
+  const { draft, setPublicationStatus, refreshDraft, cabinetLoading } = useAdminMasterCabinet();
+  const { activeBookableSlots, slotsLoading, slotsLoadError, reloadSlots } = useProfileCompletionSlots(
+    useCabinetApi,
+    cabinetLoading,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmOff, setConfirmOff] = useState(false);
@@ -68,6 +74,24 @@ export function MasterProfileActiveToggle({
     if (disabled || adminPaused) return;
     if (active) {
       setConfirmOff(true);
+      return;
+    }
+    if (slotsLoadError) {
+      setError(slotsLoadError);
+      return;
+    }
+    if (slotsLoading || activeBookableSlots === null) {
+      setError('Проверяем окна для записи… Попробуйте через секунду.');
+      void reloadSlots();
+      return;
+    }
+    const readiness = assessMasterBookingReadiness({
+      draft,
+      activeSlotCount: activeBookableSlots,
+      isPublished: false,
+    });
+    if (readiness.publishBlockMessage) {
+      setError(readiness.publishBlockMessage);
       return;
     }
     void applyStatus('published');

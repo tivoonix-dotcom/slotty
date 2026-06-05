@@ -8,6 +8,13 @@ import {
   fetchMyBookingRulesStructured,
   putMyBookingRulesStructured,
 } from '../../../../features/admin/api/adminProfileApi';
+import { patchMyPaymentSettings } from '../../../../features/admin/api/masterPaymentSettingsApi';
+import { resolveBelarusBanks } from '../../../../shared/payments/belarusBanks';
+import {
+  needsPreferredBanks,
+  paymentLabelsToCodes,
+  paymentCodesToLabels,
+} from '../../../../shared/payments/paymentMethodCodes';
 import { AdminBottomSheet } from '../../shared/AdminBottomSheet';
 import { AdminToast } from '../../shared/AdminToast';
 import { useAdminToast } from '../../shared/useAdminToast';
@@ -24,7 +31,8 @@ import {
   sheetLabelClass,
   sheetSegmentClass,
 } from '../adminProfileCabinetTheme';
-import { PAYMENT_OPTIONS } from '../AdminProfileRulesUi';
+import { PaymentMethodIcon, PaymentRulesSheetFields } from './PaymentRulesSheetFields';
+import { type PaymentOption } from '../paymentMethodOptions';
 import { CabinetIcon, type CabinetIconName } from '../cabinetIcons';
 import {
   buildClientPreviewLines,
@@ -154,29 +162,10 @@ function ClientPreviewMockup({ lines, compact }: { lines: string[]; compact?: bo
 function ClientPreviewPanel({
   lines,
   compact,
-  docked,
 }: {
   lines: string[];
   compact?: boolean;
-  docked?: boolean;
 }) {
-  if (docked) {
-    return (
-      <div className="w-full min-w-0">
-        <div className="mb-2.5 flex items-center gap-2">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[#FFF1F4] text-[#F47C8C]">
-            <HiShieldCheck className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[14px] font-semibold text-[#111827]">Как это увидит клиент</p>
-            <p className="text-[11px] text-[#9CA3AF]">Перед записью и в деталях визита</p>
-          </div>
-        </div>
-        <ClientPreviewMockup lines={lines} compact />
-      </div>
-    );
-  }
-
   return (
     <div className={compact ? '' : `${cabinetCard} ${cabinetCardPad}`}>
       {!compact ? (
@@ -264,8 +253,12 @@ function RuleCard({
         return [
           { label: 'Способы', value: form.paymentMethods.join(', ') },
           {
-            label: 'Предоплата',
-            value: form.prepaymentRequired ? 'Требуется' : 'Не требуется',
+            label: 'Банки',
+            value: form.preferredBankIds.length
+              ? resolveBelarusBanks(form.preferredBankIds)
+                  .map((b) => b.name)
+                  .join(', ')
+              : '',
           },
           { label: 'Комментарий', value: form.paymentComment?.trim() ?? '' },
         ];
@@ -314,9 +307,44 @@ function RuleCard({
           </span>
           <p className="mt-3 text-[14px] font-medium text-[#374151]">Возвраты пока недоступны</p>
           <p className="mt-1 text-[13px] leading-relaxed text-[#9CA3AF]">
-            Появятся после подключения онлайн-оплаты или предоплаты.
+            Появятся после подключения онлайн-оплаты.
           </p>
         </div>
+      ) : id === 'payment' ? (
+        <>
+          <div className={`${cabinetInsetShell} mt-4 px-4 py-3`}>
+            {form.paymentMethods.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {form.paymentMethods.map((method) => (
+                  <span
+                    key={method}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF1F4] px-3 py-1.5 text-[13px] font-semibold text-[#111827]"
+                  >
+                    <span className="text-[#F47C8C]">
+                      <PaymentMethodIcon method={method} />
+                    </span>
+                    {method}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[14px] font-medium text-[#9CA3AF]">Способы не выбраны</p>
+            )}
+            <div className="mt-3 space-y-2 border-t border-[#F0F0F0] pt-3">
+              {form.preferredBankIds.length > 0 ? (
+                <FieldRow
+                  label="Банки"
+                  value={resolveBelarusBanks(form.preferredBankIds)
+                    .map((b) => b.name)
+                    .join(', ')}
+                />
+              ) : null}
+              {form.paymentComment?.trim() ? (
+                <FieldRow label="Комментарий" value={form.paymentComment} />
+              ) : null}
+            </div>
+          </div>
+        </>
       ) : (
         <>
           <div className={`${cabinetInsetShell} mt-4 px-4 py-1`}>
@@ -374,6 +402,7 @@ export function AdminProfileBookingRulesPage({ useCabinetApi = true }: Props) {
   const [editCard, setEditCard] = useState<EditCardId | null>(null);
   const [draft, setDraft] = useState<BookingRulesFormState | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [paymentWarning, setPaymentWarning] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!useCabinetApi) {
@@ -408,7 +437,7 @@ export function AdminProfileBookingRulesPage({ useCabinetApi = true }: Props) {
     setSaving(true);
     setSaveError(null);
     try {
-      const dto = await putMyBookingRulesStructured(form);
+      const dto = await putMyBookingRulesStructured({ ...form, prepaymentRequired: false });
       const next = formFromDto(dto);
       setForm(next);
       setSavedFingerprint(formFingerprint(next));
@@ -428,8 +457,42 @@ export function AdminProfileBookingRulesPage({ useCabinetApi = true }: Props) {
     setEditCard(id);
   };
 
-  const applyEdit = () => {
+  const applyEdit = async () => {
     if (!draft) return;
+    if (editCard === 'payment' && useCabinetApi) {
+      setSaving(true);
+      setSaveError(null);
+      setPaymentWarning(null);
+      try {
+        const bankIds = needsPreferredBanks(draft.paymentMethods) ? draft.preferredBankIds : [];
+        const saved = await patchMyPaymentSettings({
+          paymentMethods: paymentLabelsToCodes(draft.paymentMethods),
+          prepaymentRequired: false,
+          preferredBankIds: bankIds,
+          paymentComment: draft.paymentComment,
+        });
+        const next: BookingRulesFormState = {
+          ...draft,
+          paymentMethods: paymentCodesToLabels(saved.paymentMethods),
+          preferredBankIds: saved.preferredBankIds,
+          prepaymentRequired: false,
+          paymentComment: saved.paymentComment,
+        };
+        setForm(next);
+        setSavedFingerprint(formFingerprint(next));
+        setPaymentWarning(saved.warning ?? null);
+        showToast('Оплата сохранена');
+        setEditCard(null);
+        setDraft(null);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Не удалось сохранить оплату';
+        setSaveError(msg);
+        showErrorToast(msg);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     setForm(draft);
     setEditCard(null);
     setDraft(null);
@@ -553,57 +616,38 @@ export function AdminProfileBookingRulesPage({ useCabinetApi = true }: Props) {
         </>
       );
     } else if (editCard === 'payment') {
+      const togglePaymentMethod = (opt: PaymentOption) => {
+        const has = draft.paymentMethods.includes(opt);
+        const nextMethods = has
+          ? draft.paymentMethods.filter((x: string) => x !== opt)
+          : [...draft.paymentMethods, opt];
+        patchDraft({
+          paymentMethods: nextMethods,
+          preferredBankIds: needsPreferredBanks(nextMethods) ? draft.preferredBankIds : [],
+        });
+      };
+      const toggleBank = (bankId: string) => {
+        const has = draft.preferredBankIds.includes(bankId);
+        patchDraft({
+          preferredBankIds: has
+            ? draft.preferredBankIds.filter((id) => id !== bankId)
+            : [...draft.preferredBankIds, bankId],
+        });
+      };
       body = (
-        <>
-          <p className={sheetLabelClass}>Способы оплаты</p>
-          <div className="mt-2 rounded-[12px] bg-[#F5F5F5] p-2">
-            <div className="grid grid-cols-2 gap-2">
-              {PAYMENT_OPTIONS.map((opt) => {
-                const on = draft.paymentMethods.includes(opt);
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() =>
-                      patchDraft({
-                        paymentMethods: on
-                          ? draft.paymentMethods.filter((x: string) => x !== opt)
-                          : [...draft.paymentMethods, opt],
-                      })
-                    }
-                    className={sheetSegmentClass(on)}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <p className={`${sheetLabelClass} mt-4`}>Предоплата</p>
-          <SegmentPicker
-            value={draft.prepaymentRequired}
-            onChange={(v) => patchDraft({ prepaymentRequired: v as boolean })}
-            options={[
-              { value: false, label: 'Не требуется' },
-              { value: true, label: 'Требуется' },
-            ]}
-          />
-          <label className="mt-4 block">
-            <span className={sheetLabelClass}>Комментарий</span>
-            <textarea
-              value={draft.paymentComment ?? ''}
-              onChange={(e) => patchDraft({ paymentComment: e.target.value || null })}
-              rows={2}
-              placeholder="Например: оплата после услуги"
-              className={`${sheetFieldClass} mt-2 resize-none`}
-            />
-          </label>
-        </>
+        <PaymentRulesSheetFields
+          paymentMethods={draft.paymentMethods}
+          onTogglePaymentMethod={togglePaymentMethod}
+          preferredBankIds={draft.preferredBankIds}
+          onTogglePreferredBank={toggleBank}
+          paymentComment={draft.paymentComment}
+          onPaymentCommentChange={(v) => patchDraft({ paymentComment: v })}
+        />
       );
     } else if (editCard === 'refund') {
       body = (
         <>
-          <p className={sheetHintClass}>Доступно при онлайн-оплате или предоплате.</p>
+          <p className={sheetHintClass}>Доступно при онлайн-оплате.</p>
           <label className="mt-3 flex items-center gap-2">
             <input
               type="checkbox"
@@ -664,8 +708,8 @@ export function AdminProfileBookingRulesPage({ useCabinetApi = true }: Props) {
             <button type="button" onClick={() => setEditCard(null)} className={cabinetOutlineBtn}>
               Отмена
             </button>
-            <button type="button" onClick={applyEdit} className={`${settingsPinkBtn} w-full sm:flex-1`}>
-              Готово
+            <button type="button" onClick={() => void applyEdit()} className={`${settingsPinkBtn} w-full sm:flex-1`}>
+              {editCard === 'payment' && saving ? 'Сохранение…' : 'Готово'}
             </button>
           </div>
         }
@@ -689,8 +733,8 @@ export function AdminProfileBookingRulesPage({ useCabinetApi = true }: Props) {
 
   const refundEnabled = refundsCardEnabled(form);
   const mobileScrollPad = dirty
-    ? `max-lg:pb-[calc(${adminMobileTabBarScrollPad}+11rem)]`
-    : `max-lg:pb-[calc(${adminMobileTabBarScrollPad}+9.5rem)]`;
+    ? `max-lg:pb-[calc(${adminMobileTabBarScrollPad}+5.5rem)]`
+    : `max-lg:pb-[${adminMobileTabBarScrollPad}]`;
 
   return (
     <div className={`w-full min-w-0 space-y-4 ${mobileScrollPad} ${dirty ? 'lg:pb-20' : ''}`}>
@@ -758,9 +802,19 @@ export function AdminProfileBookingRulesPage({ useCabinetApi = true }: Props) {
         </aside>
       </div>
 
+      <div className="lg:hidden">
+        <ClientPreviewPanel lines={previewLines} />
+      </div>
+
       {saveError ? (
         <p className="text-[13px] font-medium text-[#DC2626]" role="alert">
           {saveError}
+        </p>
+      ) : null}
+
+      {paymentWarning ? (
+        <p className="text-[13px] font-medium text-[#92400E]" role="status">
+          {paymentWarning}
         </p>
       ) : null}
 
@@ -784,16 +838,6 @@ export function AdminProfileBookingRulesPage({ useCabinetApi = true }: Props) {
           </div>
         </div>
       ) : null}
-
-      <div
-        className={`fixed inset-x-0 z-30 border-t border-[#EEEEEE] bg-white/95 px-4 py-3 shadow-[0_-10px_28px_rgba(17,24,39,0.08)] backdrop-blur lg:hidden ${
-          dirty
-            ? 'bottom-[calc(5.75rem+4.25rem+env(safe-area-inset-bottom,0px))]'
-            : 'bottom-[calc(5.75rem+0.75rem+env(safe-area-inset-bottom,0px))]'
-        }`}
-      >
-        <ClientPreviewPanel lines={previewLines} docked />
-      </div>
 
       {renderEditSheet()}
 

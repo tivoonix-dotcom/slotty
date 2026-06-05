@@ -7,7 +7,7 @@ import { afterBookingMutation } from '../../../features/appointments/bookingData
 import { AdminOverviewTab } from './AdminOverviewTab';
 
 export function AdminOverviewSection() {
-  const { draft } = useAdminMasterDraft();
+  const { draft, persistDraft } = useAdminMasterDraft();
   const { useCabinetApi, reloadCabinet } = useAdminMasterCabinet();
   const { appointments } = useAdminAppointments();
   const [detailAppt, setDetailAppt] = useState<DemoMasterAppointment | null>(null);
@@ -19,6 +19,7 @@ export function AdminOverviewSection() {
         appointments={appointments}
         appointmentsPath={ADMIN_APPOINTMENTS_PATH}
         useCabinetApi={useCabinetApi}
+        onPersistDraft={persistDraft}
         onOpenAppointment={(a) => setDetailAppt(a)}
       />
 

@@ -104,9 +104,9 @@ export function useMasterAppointmentsPage({ enabled, tab }: Options) {
   useEffect(() => {
     if (!enabled) return;
     return subscribeBookingDataRefresh(() => {
-      void reload();
+      void loadStats();
     });
-  }, [enabled, reload]);
+  }, [enabled, loadStats]);
 
   const loadMore = useCallback(() => {
     if (!hasMore || loading || loadingMore) return;
@@ -131,6 +131,7 @@ export function useMasterAppointmentsPage({ enabled, tab }: Options) {
     error,
     stats,
     reload,
+    loadStats,
     loadMore,
     patchItem,
     removeFromList,

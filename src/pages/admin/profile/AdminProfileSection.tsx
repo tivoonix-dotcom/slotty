@@ -58,6 +58,7 @@ import {
   MainInfoCard,
   ScheduleWorkCard,
 } from './AdminProfileCabinetUi';
+import { ScheduleBookingWindowsHintContainer } from './ScheduleBookingWindowsHintContainer';
 import { ProfileCompletionBlock } from './ProfileCompletionBlock';
 import { useProfileTabs } from './profileTabContext';
 import { AdminProfileDesktopShell } from './AdminProfileDesktopView';
@@ -198,6 +199,7 @@ function MainSection({
       <MainInfoCard draft={draft} onEdit={onEditMain} />
       <AboutCard description={draft.description} />
       <ScheduleWorkCard draft={draft} onEditSchedule={onEditSchedule} />
+      <ScheduleBookingWindowsHintContainer />
       <MasterCategorySection
         draft={draft}
         publicationStatus={publicationStatus}

@@ -8,6 +8,7 @@ import {
   getMasterOverviewReputation,
   getMasterOverviewRevenue,
   getMasterOverviewSummary,
+  getMasterReviewNotificationDetail,
   postMasterReviewReply,
 } from './masterOverview.service.js';
 
@@ -66,6 +67,15 @@ masterOverviewRouter.get(
     const q = periodQuery.parse(req.query);
     const data = await getMasterOverviewReputation(req.user!.id, q.period);
     res.json(data);
+  }),
+);
+
+masterOverviewRouter.get(
+  '/reviews/:reviewId',
+  asyncHandler(async (req, res) => {
+    const reviewId = z.string().uuid().parse(req.params.reviewId);
+    const detail = await getMasterReviewNotificationDetail(req.user!.id, reviewId);
+    res.json({ review: detail });
   }),
 );
 

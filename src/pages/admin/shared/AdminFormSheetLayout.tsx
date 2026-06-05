@@ -14,8 +14,10 @@ import { adminSheetBodyPad } from './adminCabinetSheetTheme';
 const STEPPER_CIRCLE =
   'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold transition sm:h-10 sm:w-10';
 
-function stepperCircleClass(active: boolean, done: boolean): string {
-  if (active || done) return 'bg-[#F47C8C] text-white';
+function stepperCircleClass(active: boolean, done: boolean, accent: 'brand' | 'schedule'): string {
+  if (active || done) {
+    return accent === 'schedule' ? 'bg-[#3B4CCA] text-white' : 'bg-[#F47C8C] text-white';
+  }
   return 'bg-[#EBEBEB] text-[#6B7280]';
 }
 
@@ -28,11 +30,18 @@ function stepperLabelClass(active: boolean, done: boolean): string {
 type StepperProps = {
   step: number;
   steps: readonly string[];
-  /** `catalog` — розовый/серый степпер с пунктиром и подписями (кабинет). */
+  /** `catalog` — степпер с пунктиром и подписями (кабинет). */
   variant?: 'rail' | 'header' | 'catalog';
+  /** `schedule` — синий акцент (страница расписания). */
+  accent?: 'brand' | 'schedule';
 };
 
-export function AdminFormSheetStepper({ step, steps, variant = 'rail' }: StepperProps) {
+export function AdminFormSheetStepper({
+  step,
+  steps,
+  variant = 'rail',
+  accent = 'brand',
+}: StepperProps) {
   const isCatalog = variant === 'catalog';
   const inHeader = variant === 'header' || isCatalog;
 
@@ -54,7 +63,7 @@ export function AdminFormSheetStepper({ step, steps, variant = 'rail' }: Stepper
                 ) : null}
                 <div className="flex min-w-0 max-w-[4.75rem] shrink-0 flex-col items-center gap-1.5 sm:max-w-none sm:flex-1">
                   <div
-                    className={`${STEPPER_CIRCLE} ${stepperCircleClass(active, done)}`}
+                    className={`${STEPPER_CIRCLE} ${stepperCircleClass(active, done, accent)}`}
                     aria-current={active ? 'step' : undefined}
                   >
                     {done ? '✓' : index + 1}
@@ -80,11 +89,13 @@ export function AdminFormSheetStepper({ step, steps, variant = 'rail' }: Stepper
           const done = index < step;
           const active = index === step;
           const reached = index <= step;
+          const activeAccentClass =
+            accent === 'schedule' ? 'bg-[#3B4CCA] text-white' : 'bg-[#F47C8C] text-white';
 
           return (
             <div key={label} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
               <div
-                className={`${STEPPER_CIRCLE} lg:h-11 lg:w-11 lg:text-[14px] ${reached ? 'bg-[#F47C8C] text-white' : 'bg-[#EBEBEB] text-[#9CA3AF]'}`}
+                className={`${STEPPER_CIRCLE} lg:h-11 lg:w-11 lg:text-[14px] ${reached ? activeAccentClass : 'bg-[#EBEBEB] text-[#9CA3AF]'}`}
                 aria-current={active ? 'step' : undefined}
                 title={label}
               >
@@ -93,7 +104,15 @@ export function AdminFormSheetStepper({ step, steps, variant = 'rail' }: Stepper
               <span
                 className={`w-full truncate text-center text-[11px] font-semibold leading-tight ${
                   inHeader ? 'block' : 'hidden lg:block'
-                } ${active ? 'text-[#F47C8C]' : reached ? 'text-[#374151]' : 'text-[#9CA3AF]'}`}
+                } ${
+                  active
+                    ? accent === 'schedule'
+                      ? 'text-[#3B4CCA]'
+                      : 'text-[#F47C8C]'
+                    : reached
+                      ? 'text-[#374151]'
+                      : 'text-[#9CA3AF]'
+                }`}
               >
                 {label}
               </span>

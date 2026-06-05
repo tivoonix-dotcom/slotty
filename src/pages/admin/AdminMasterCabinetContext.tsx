@@ -815,15 +815,13 @@ export function AdminMasterCabinetProvider({ children }: { children: ReactNode }
 
       try {
         await Promise.all(calls);
-        const fresh = await fetchMasterAppointments({ tab: 'active', limit: 200, offset: 0 });
-        setAppointments(fresh.appointments.map(mapMasterAppointmentRowToDemo));
-        try {
-          setSubscription(await getMySubscription());
-        } catch {
-          /* keep previous */
-        }
         setCabinetError(null);
         afterBookingMutation();
+        void getMySubscription()
+          .then(setSubscription)
+          .catch(() => {
+            /* keep previous */
+          });
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Не удалось обновить запись';
         setCabinetError(msg);

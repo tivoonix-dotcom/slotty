@@ -10,11 +10,12 @@ import {
 import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { EMPTY_TELEGRAM } from '../../shared/lib/emptyDisplayText';
 import { HEADER_LOGO_SRC } from '../../app/headerLogo';
-import { ADMIN_PATH, BECOME_MASTER_PATH, getMasterPath, getProfilePath, PROFILE_NOTIFICATIONS_PATH, PROFILE_SETTINGS_PATH, SERVICES_PATH } from '../../app/paths';
+import { ADMIN_PATH, BECOME_MASTER_PATH, getClientAppointmentPath, getClientAppointmentReviewPath, getMasterPath, getProfilePath, PROFILE_NOTIFICATIONS_PATH, PROFILE_SETTINGS_PATH, SERVICES_PATH } from '../../app/paths';
 import { setProfileRole } from '../../features/profile/lib/setProfileRole';
 import { useIsMasterUser } from '../../features/profile/hooks/useIsMasterUser';
 import { type DemoAppointmentRecord, type DemoAppointmentTab } from '../../features/appointments/model/demoAppointments';
 import { ClientAppointmentDetailSheetContent } from '../../features/appointments/clientBooking/ClientAppointmentDetailSheetContent';
+import { ClientReviewForm } from '../../features/appointments/clientBooking/ClientReviewForm';
 import {
   emptyClientAppointments,
   fetchClientAppointmentsPage,
@@ -42,6 +43,7 @@ import { NothingFoundCard } from '../../shared/ui/NothingFoundCard';
 import type { MiniPictureKey } from '../../shared/ui/miniPictureSrc';
 import { useTelegram } from '../../shared/hooks/useTelegram';
 import { formatTelegramUserDisplayName } from '../../shared/lib/telegramWebApp';
+import { formatClientName } from '../../shared/lib/displayFormat';
 import { apiFetch, getApiBaseUrl } from '../../shared/api/backendClient';
 import { postClientReview } from '../../features/profile/api/clientReviews';
 import { useClientErrorModal } from '../client/ClientErrorModalContext';
@@ -566,9 +568,14 @@ export function ProfilePage() {
 
   const { displayName, roleSubtitle, profileInitials } = useMemo(() => {
     if (profile) {
-      const name = profile.full_name;
-      const sub =
-        profile.role === 'master' || profile.hasMasterProfile
+      const name = formatClientName({
+        full_name: profile.full_name,
+        phone: profile.phone ?? null,
+        telegram_username: profile.telegram_username,
+      });
+      const sub = clientShell
+        ? 'Клиент\u00a0SLOTTY'
+        : profile.role === 'master' || profile.hasMasterProfile
           ? 'Мастер\u00a0SLOTTY'
           : 'Клиент\u00a0SLOTTY';
       return { displayName: name, roleSubtitle: sub, profileInitials: profileDisplayInitials(name) };
@@ -582,7 +589,7 @@ export function ProfilePage() {
       };
     }
     return { displayName: 'Гость', roleSubtitle: 'Войдите через Telegram', profileInitials: '?' };
-  }, [profile, telegramUserPreview]);
+  }, [profile, telegramUserPreview, clientShell]);
 
   const profileAvatarUrl = useMemo(() => profileDisplayAvatarUrl(profile), [profile]);
 
@@ -742,9 +749,30 @@ export function ProfilePage() {
   }, [loadClientAppointments]);
 
   const focusAppointmentId = searchParams.get('focus');
+  const focusBookingCode = searchParams.get('code');
+  const legacyReviewAppointmentId = searchParams.get('review');
+  const focusHandledRef = useRef<string | null>(null);
+  const legacyReviewHandledRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!focusAppointmentId) return;
+    if (!legacyReviewAppointmentId) {
+      legacyReviewHandledRef.current = null;
+      return;
+    }
+    if (legacyReviewHandledRef.current === legacyReviewAppointmentId) return;
+    const row =
+      apptState.past.find((r) => r.id === legacyReviewAppointmentId) ??
+      apptState.upcoming.find((r) => r.id === legacyReviewAppointmentId);
+    if (!row?.voucherNumber) return;
+    legacyReviewHandledRef.current = legacyReviewAppointmentId;
+    navigate(getClientAppointmentReviewPath(row.voucherNumber), { replace: true });
+  }, [apptState.past, apptState.upcoming, legacyReviewAppointmentId, navigate]);
+
+  useEffect(() => {
+    if (!focusAppointmentId && !focusBookingCode) {
+      focusHandledRef.current = null;
+      return;
+    }
     if (mainTab !== 'appointments') {
       setSearchParams(
         (prev) => {
@@ -757,18 +785,46 @@ export function ProfilePage() {
       return;
     }
     if (apptListLoading) return;
-    const row = [...apptState.upcoming, ...apptState.past].find((r) => r.id === focusAppointmentId);
-    if (!row) return;
-    setSelectedAppointmentId(focusAppointmentId);
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete('focus');
-        return next;
-      },
-      { replace: true },
-    );
-  }, [focusAppointmentId, mainTab, apptListLoading, apptState, setSearchParams]);
+
+    const normalizedCode = focusBookingCode?.trim().toUpperCase() ?? '';
+    const focusKey = `${focusAppointmentId ?? ''}|${normalizedCode}`;
+    const row = [...apptState.upcoming, ...apptState.past].find((r) => {
+      if (focusAppointmentId && r.id === focusAppointmentId) return true;
+      if (!normalizedCode) return false;
+      return r.voucherNumber?.trim().toUpperCase() === normalizedCode;
+    });
+
+    const clearFocusParams = () => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('focus');
+          next.delete('code');
+          return next;
+        },
+        { replace: true },
+      );
+    };
+
+    if (row) {
+      focusHandledRef.current = focusKey;
+      setApptSubTab(row.type);
+      const code = row.voucherNumber?.trim();
+      if (code) {
+        navigate(getClientAppointmentPath(code));
+      } else {
+        setSelectedAppointmentId(row.id);
+      }
+      clearFocusParams();
+      return;
+    }
+
+    if (!normalizedCode || focusHandledRef.current === focusKey) return;
+
+    focusHandledRef.current = focusKey;
+    navigate(getClientAppointmentPath(normalizedCode));
+    clearFocusParams();
+  }, [focusAppointmentId, focusBookingCode, mainTab, apptListLoading, apptState, navigate, setSearchParams]);
 
   useEffect(() => {
     if (mainTab === 'favorites') {
@@ -840,9 +896,17 @@ export function ProfilePage() {
     return apptState.past.find((r) => r.id === reviewAppointmentId) ?? null;
   }, [reviewAppointmentId, apptState]);
 
-  const openDetails = useCallback((row: DemoAppointmentRecord) => {
-    setSelectedAppointmentId(row.id);
-  }, []);
+  const openDetails = useCallback(
+    (row: DemoAppointmentRecord) => {
+      const code = row.voucherNumber?.trim();
+      if (code) {
+        navigate(getClientAppointmentPath(code));
+        return;
+      }
+      setSelectedAppointmentId(row.id);
+    },
+    [navigate],
+  );
 
   const closeDetails = useCallback(() => {
     setSelectedAppointmentId(null);
@@ -1017,29 +1081,6 @@ export function ProfilePage() {
           <h1 className="text-[38px] font-semibold leading-none tracking-[-0.065em] text-neutral-950">
             Мой профиль
           </h1>
-
-          {clientShell && isMasterCabinet ? (
-            <Link
-              to={ADMIN_PATH}
-              className="mt-5 flex items-center gap-3.5 rounded-[22px] bg-[#F1EFEF] p-4 shadow-[0_2px_12px_rgba(17,24,39,0.05)] transition active:scale-[0.98]"
-            >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[16px] bg-white shadow-[0_1px_4px_rgba(17,24,39,0.06)]">
-                <img
-                  src={HEADER_LOGO_SRC}
-                  alt="SLOTTY"
-                  width={44}
-                  height={44}
-                  decoding="async"
-                  className="h-9 w-auto origin-center object-contain [transform:scale(1.65)]"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[16px] font-semibold text-[#111827]">Вы мастер</p>
-                <p className="mt-0.5 text-[13px] text-[#6B7280]">Перейти в кабинет мастера</p>
-              </div>
-              <IconChevronRight className="h-5 w-5 shrink-0 text-[#9CA3AF]" />
-            </Link>
-          ) : null}
 
           {!authLoading && !backendConfigured ? (
             <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-[14px] font-medium leading-snug text-amber-950">
@@ -1433,6 +1474,14 @@ export function ProfilePage() {
                     {isMasterCabinet ? 'Кабинет мастера' : 'Стать мастером'}
                     <IconChevronRight className="h-4 w-4" />
                   </Link>
+                ) : clientShell && isMasterCabinet ? (
+                  <Link
+                    to={ADMIN_PATH}
+                    className="mt-1 flex min-h-[3.25rem] w-full items-center justify-center gap-2 rounded-full bg-[#E29595] px-5 text-[16px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.26)] transition active:scale-[0.98]"
+                  >
+                    Кабинет мастера
+                    <IconChevronRight className="h-4 w-4" />
+                  </Link>
                 ) : null}
               </div>
           </section>
@@ -1447,12 +1496,14 @@ export function ProfilePage() {
             row={selectedAppointment}
             onClose={closeDetails}
             onRefreshList={loadClientAppointments}
-            onOpenReview={(id) => {
+            onOpenReview={() => {
+              const code = selectedAppointment?.voucherNumber?.trim();
               closeDetails();
-              const found =
-                apptState.upcoming.find((a) => a.id === id) ??
-                apptState.past.find((a) => a.id === id);
-              if (found) openReview(found);
+              if (code) {
+                navigate(getClientAppointmentReviewPath(code));
+                return;
+              }
+              if (selectedAppointment) openReview(selectedAppointment);
             }}
           />
         </AppointmentBottomSheet>
@@ -1541,57 +1592,29 @@ export function ProfilePage() {
 
       {reviewRow ? (
         <AppointmentBottomSheet onClose={closeReview} labelledBy="review-appointment-title">
-          <h2
-            id="review-appointment-title"
-            className="text-[26px] font-semibold tracking-[-0.055em] text-neutral-950"
-          >
-            Оставить отзыв
-          </h2>
-          <p className="mt-2 text-[15px] text-neutral-600">
-            {reviewRow.masterName} · {reviewRow.serviceTitle}
-          </p>
-
-          <p className="mt-5 text-[13px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Оценка</p>
-          <div className="mt-2 flex gap-2">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setReviewRating(n)}
-                className={`flex h-11 w-11 items-center justify-center rounded-2xl text-[20px] transition active:scale-[0.97] ${
-                  n <= reviewRating
-                    ? 'bg-[#FFF1F4] text-[#F47C8C] ring-2 ring-[#F47C8C]/30'
-                    : 'bg-[#F1EFEF] text-neutral-400'
-                }`}
-                aria-label={`${n} из 5`}
-              >
-                ★
-              </button>
-            ))}
-          </div>
-
-          <label className="mt-5 block">
-            <span className="text-[13px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
-              Комментарий
-            </span>
-            <textarea
-              value={reviewBody}
-              onChange={(e) => setReviewBody(e.target.value)}
-              rows={4}
-              maxLength={500}
-              placeholder="Как прошла услуга?"
-              className="mt-2 w-full resize-none rounded-[22px] bg-[#F1EFEF] px-4 py-3 text-[15px] text-neutral-900 outline-none ring-0 placeholder:text-neutral-400"
+          <div id="review-appointment-title" className="-mx-1">
+            <ClientReviewForm
+              compact
+              showTags={false}
+              masterName={reviewRow.masterName}
+              serviceTitle={reviewRow.serviceTitle}
+              rating={reviewRating}
+              onRatingChange={setReviewRating}
+              text={reviewBody}
+              onTextChange={setReviewBody}
+              tags={[]}
+              onToggleTag={() => {}}
+              submitError={null}
+              submitting={reviewSubmitting}
+              canSubmit={
+                backendConfigured &&
+                !reviewSubmitting &&
+                reviewRating >= 1 &&
+                reviewBody.trim().length >= 2
+              }
+              onSubmit={() => void submitReview()}
             />
-          </label>
-
-          <button
-            type="button"
-            disabled={reviewSubmitting || !backendConfigured}
-            onClick={() => void submitReview()}
-            className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full bg-[#E29595] px-4 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.26)] transition active:scale-[0.98] disabled:opacity-60"
-          >
-            {reviewSubmitting ? 'Отправляем…' : 'Отправить отзыв'}
-          </button>
+          </div>
         </AppointmentBottomSheet>
       ) : null}
 

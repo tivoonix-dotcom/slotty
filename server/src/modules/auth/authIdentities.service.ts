@@ -25,6 +25,7 @@ import {
   createAuthSession,
   type IssueSessionContext,
 } from './authSessions.service.js';
+import { pickProfileFullNameOnOAuthSync } from '../../lib/displayFormat.js';
 
 const EMAIL_PROVIDER_USER_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -182,8 +183,12 @@ async function syncTelegramProfileColumns(
     incomingTelegram = await fetchTelegramUserPortraitUrl(user.id);
   }
 
-  const currentR = await client.query<{ avatar_url: string | null; photo_url: string | null }>(
-    `select p.avatar_url, mp.photo_url
+  const currentR = await client.query<{
+    avatar_url: string | null;
+    full_name: string | null;
+    photo_url: string | null;
+  }>(
+    `select p.avatar_url, p.full_name, mp.photo_url
        from public.profiles p
        left join public.master_profiles mp on mp.master_id = p.id
       where p.id = $1`,
@@ -191,6 +196,7 @@ async function syncTelegramProfileColumns(
   );
   const currentAvatar = currentR.rows[0]?.avatar_url;
   const currentMasterPhoto = currentR.rows[0]?.photo_url;
+  const resolvedFullName = pickProfileFullNameOnOAuthSync(currentR.rows[0]?.full_name, fullName);
 
   const nextAvatarPick = pickPortraitUrlOnTelegramSync(currentAvatar, incomingTelegram);
   const nextMasterPhotoPick = pickPortraitUrlOnTelegramSync(currentMasterPhoto, incomingTelegram);
@@ -220,11 +226,11 @@ async function syncTelegramProfileColumns(
     `update public.profiles set
        telegram_user_id = $2,
        telegram_username = $3,
-       full_name = coalesce(nullif(trim(full_name), ''), $4),
+       full_name = $4,
        avatar_url = $5,
        updated_at = now()
      where id = $1`,
-    [profileId, user.id, tgUsername, fullName, nextAvatar],
+    [profileId, user.id, tgUsername, resolvedFullName, nextAvatar],
   );
 
   if (nextMasterPhoto) {
@@ -622,18 +628,22 @@ export async function loginOrRegisterWithGoogle(
     }
 
     if (payload.name || payload.picture) {
-      const cur = await query<{ avatar_url: string | null }>(
-        `select avatar_url from public.profiles where id = $1`,
+      const cur = await query<{ avatar_url: string | null; full_name: string | null }>(
+        `select avatar_url, full_name from public.profiles where id = $1`,
         [preferredProfileId],
       );
       const avatar = pickMergedAvatarUrl(cur.rows[0]?.avatar_url, payload.picture ?? null);
+      const resolvedFullName = pickProfileFullNameOnOAuthSync(
+        cur.rows[0]?.full_name,
+        payload.name ?? null,
+      );
       await query(
         `update public.profiles set
-           full_name = coalesce(nullif(trim($2), ''), full_name),
+           full_name = $2,
            avatar_url = $3,
            updated_at = now()
          where id = $1`,
-        [preferredProfileId, payload.name ?? null, avatar],
+        [preferredProfileId, resolvedFullName, avatar],
       );
       if (payload.picture?.trim()) {
         const { backfillMasterProfileMediaFromUserProfile } = await import(
@@ -717,18 +727,22 @@ export async function linkGoogleToProfile(profileId: string, payload: GoogleIdTo
           payload.email ?? null,
         );
         if (payload.name || payload.picture) {
-          const cur = await client.query<{ avatar_url: string | null }>(
-            `select avatar_url from public.profiles where id = $1`,
+          const cur = await client.query<{ avatar_url: string | null; full_name: string | null }>(
+            `select avatar_url, full_name from public.profiles where id = $1`,
             [profileId],
           );
           const avatar = pickMergedAvatarUrl(cur.rows[0]?.avatar_url, payload.picture ?? null);
+          const resolvedFullName = pickProfileFullNameOnOAuthSync(
+            cur.rows[0]?.full_name,
+            payload.name ?? null,
+          );
           await client.query(
             `update public.profiles set
-               full_name = coalesce(nullif(trim($2), ''), full_name),
+               full_name = $2,
                avatar_url = $3,
                updated_at = now()
              where id = $1`,
-            [profileId, payload.name ?? null, avatar],
+            [profileId, resolvedFullName, avatar],
           );
           if (avatar) {
             await client.query(
@@ -761,18 +775,22 @@ export async function linkGoogleToProfile(profileId: string, payload: GoogleIdTo
       email: payload.email ?? null,
     });
     if (payload.name || payload.picture) {
-      const cur = await client.query<{ avatar_url: string | null }>(
-        `select avatar_url from public.profiles where id = $1`,
+      const cur = await client.query<{ avatar_url: string | null; full_name: string | null }>(
+        `select avatar_url, full_name from public.profiles where id = $1`,
         [profileId],
       );
       const avatar = pickMergedAvatarUrl(cur.rows[0]?.avatar_url, payload.picture ?? null);
+      const resolvedFullName = pickProfileFullNameOnOAuthSync(
+        cur.rows[0]?.full_name,
+        payload.name ?? null,
+      );
       await client.query(
         `update public.profiles set
-           full_name = coalesce(nullif(trim($2), ''), full_name),
+           full_name = $2,
            avatar_url = $3,
            updated_at = now()
          where id = $1`,
-        [profileId, payload.name ?? null, avatar],
+        [profileId, resolvedFullName, avatar],
       );
       if (avatar) {
         await client.query(

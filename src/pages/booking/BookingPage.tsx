@@ -10,6 +10,7 @@ import {
   fetchMasterPublicDetail,
   mapMasterDetailToDemoProfile,
 } from '../../features/masters/api/masterPublicApi';
+import { mergeBookingRuleLines } from '../../shared/payments/bookingPaymentLines';
 import { formatPublicAddress } from '../../features/profile/model/masterLocation';
 import {
   getDemoMasterProfile,
@@ -94,7 +95,7 @@ export function BookingPage() {
         if (cancelled) return;
         const activeOnly = { ...detail, services: detail.services.filter((s) => s.isActive) };
         const profile = mapMasterDetailToDemoProfile(activeOnly);
-        const ruleLines = detail.bookingRules?.clientPreview?.slice(0, 4) ?? [];
+        const ruleLines = mergeBookingRuleLines(detail.bookingRules?.clientPreview, detail.payment, 6);
         setApiBundle({ status: 'ok', profile, slots, ruleLines });
       } catch {
         if (cancelled) return;

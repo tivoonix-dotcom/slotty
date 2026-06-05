@@ -71,3 +71,32 @@ export async function deleteMySlot(slotId: string): Promise<void> {
   const res = await apiFetch(`/api/masters/me/slots/${encodeURIComponent(slotId)}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(await readApiError(res));
 }
+
+export type BatchCreateSlotsResult = {
+  created: number;
+  skipped: number;
+  skippedReasons: Array<{
+    date: string;
+    time: string;
+    reason: 'overlap' | 'past' | 'plan_limit' | 'service_does_not_fit' | 'invalid';
+  }>;
+};
+
+export async function createMySlotsBatch(payload: {
+  startDate: string;
+  endDate: string;
+  weekdays: number[];
+  dayStartTime: string;
+  dayEndTime: string;
+  breakStartTime?: string | null;
+  breakEndTime?: string | null;
+  slotDurationMinutes: number;
+  serviceId?: string | null;
+}): Promise<BatchCreateSlotsResult> {
+  const res = await apiFetch('/api/masters/me/slots/batch', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await readApiError(res));
+  return (await res.json()) as BatchCreateSlotsResult;
+}

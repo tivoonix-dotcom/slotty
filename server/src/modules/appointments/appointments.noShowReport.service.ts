@@ -1,6 +1,10 @@
 import { query } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
-import { formatClientName, formatServiceName } from '../../lib/displayFormat.js';
+import {
+  formatClientName,
+  formatServiceName,
+  pickClientFullNameForDisplay,
+} from '../../lib/displayFormat.js';
 import { normalizeDbStatus } from '../../lib/appointmentStatus.js';
 import { insertBookingEvent } from './bookingEvents.service.js';
 import { createSupportTicket } from '../support/supportTicket.service.js';
@@ -66,7 +70,7 @@ export async function masterReportNoShowToSupport(
   const startsAtIso = startsAt.toISOString();
   const endsAtIso = endsAt.toISOString();
   const clientName = formatClientName({
-    full_name: row.client_name_snapshot || row.full_name,
+    full_name: pickClientFullNameForDisplay(row.client_name_snapshot, row.full_name),
     phone: row.client_phone_snapshot || row.phone,
     telegram_username: row.client_telegram_username_snapshot || row.telegram_username,
   });

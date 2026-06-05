@@ -44,4 +44,4 @@ export const ADMIN_SEGMENT_NAV_DESKTOP =
 
 /** Плавающая белая карточка на сером полотне — на всю ширину контента. */
 export const ADMIN_SEGMENT_NAV_MOBILE =
-  'pointer-events-auto flex h-[4.5rem] w-full items-stretch gap-1 rounded-[16px] bg-white p-1.5 ring-1 ring-[#EEEEEE] shadow-[0_10px_28px_rgba(17,24,39,0.08)]';
+  'pointer-events-auto flex h-[4.5rem] w-full items-stretch gap-1 rounded-[16px] bg-white p-1.5 ring-1 ring-[#EEEEEE]';

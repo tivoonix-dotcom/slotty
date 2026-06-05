@@ -29,8 +29,19 @@ export function masterBookingDeepLink(
   return buildBookingLink({ role: 'master', bookingCode, source });
 }
 
+export function masterAdminAppointmentsUrl(opts?: {
+  focusAppointmentId?: string;
+  tab?: 'requests' | 'upcoming' | 'history';
+}): string {
+  const params = new URLSearchParams();
+  if (opts?.tab && opts.tab !== 'requests') params.set('tab', opts.tab);
+  if (opts?.focusAppointmentId) params.set('focus', opts.focusAppointmentId);
+  const qs = params.toString();
+  return `${appBaseUrl()}${ADMIN_APPOINTMENTS_PATH}${qs ? `?${qs}` : ''}`;
+}
+
 export function masterPendingAppointmentsUrl(): string {
-  return `${appBaseUrl()}${ADMIN_APPOINTMENTS_PATH}?tab=pending`;
+  return masterAdminAppointmentsUrl();
 }
 
 export function masterScheduleUrl(): string {

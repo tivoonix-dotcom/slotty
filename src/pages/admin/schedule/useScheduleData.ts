@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import type { MasterOnboardingService } from '../../../features/profile/lib/demoMasterStorage';
 import { useMasterPlanEntitlements } from '../../../features/billing/useMasterPlanEntitlements';
+import { resolveScheduleHorizonDays } from '../../../features/billing/resolveScheduleHorizonDays';
+import { isDevDemoAllowed } from '../../../shared/lib/appMode';
 import {
   createMySlot,
   deleteMySlot,
@@ -10,6 +12,7 @@ import {
   type MySlotDto,
 } from '../../../features/admin/api/adminSlotsApi';
 import { isUuid } from '../../../features/admin/lib/masterCabinetMapper';
+import { notifyMasterSlotsChanged, subscribeMasterSlotsChanged } from '../shared/masterSlotsInvalidation';
 import type { ScheduleWindowStatus, ScheduleWindowView, WindowTemplate } from './scheduleTypes';
 import {
   formatHmFromDate,
@@ -94,15 +97,22 @@ export function useScheduleData(
 ) {
   const [rows, setRows] = useState<MySlotDto[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<WindowTemplate[]>(() => loadWindowTemplates(masterId));
   const { limits } = useMasterPlanEntitlements();
-  const scheduleHorizonDays = useCabinetApi ? limits.scheduleHorizonDays : 90;
+  const scheduleHorizonDays = resolveScheduleHorizonDays(useCabinetApi, limits, isDevDemoAllowed());
 
   const reloadSlots = useCallback(async (): Promise<MySlotDto[]> => {
     if (!useCabinetApi) return [];
-    const list = await getMySlots();
-    setRows(list);
-    return list;
+    setLoadError(null);
+    try {
+      const list = await getMySlots();
+      setRows(list);
+      return list;
+    } catch {
+      setLoadError('Не удалось проверить окна для записи. Обновите страницу или попробуйте позже.');
+      throw new Error('slots_load_failed');
+    }
   }, [useCabinetApi]);
 
   const appointmentsSlotSignature = useMemo(
@@ -123,9 +133,15 @@ export function useScheduleData(
     let cancelled = false;
     void (async () => {
       setLoading(true);
+      setLoadError(null);
       try {
         const list = await getMySlots();
         if (!cancelled) setRows(list);
+      } catch {
+        if (!cancelled) {
+          setRows([]);
+          setLoadError('Не удалось проверить окна для записи. Обновите страницу или попробуйте позже.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -134,6 +150,8 @@ export function useScheduleData(
       cancelled = true;
     };
   }, [useCabinetApi, appointmentsSlotSignature]);
+
+  useEffect(() => subscribeMasterSlotsChanged(() => void reloadSlots().catch(() => {})), [reloadSlots]);
 
   const persistTemplates = useCallback(
     (next: WindowTemplate[]) => {
@@ -202,6 +220,7 @@ export function useScheduleData(
         }
       }
       setRows(existing);
+      if (created > 0) notifyMasterSlotsChanged();
       return { created, skipped, horizonFailed, failed };
     },
     [rows, slotOverlaps, useCabinetApi],
@@ -251,6 +270,7 @@ export function useScheduleData(
     rows,
     windows,
     loading,
+    loadError,
     templates,
     persistTemplates,
     scheduleHorizonDays,

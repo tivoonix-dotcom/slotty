@@ -15,13 +15,18 @@ import {
 import { categorySupportsReferencePhoto } from './referencePhotoCategories.js';
 import { sanitizeMasterLocationForViewer } from '../../lib/sanitizeMasterLocation.js';
 import { normalizeBookingCode } from '../../lib/buildBookingLink.js';
-import { formatClientName, formatMasterName, formatServiceName } from '../../lib/displayFormat.js';
+import { resolveClientDisplayIdentity } from '../../lib/clientDisplayIdentity.js';
+import {
+  formatMasterName,
+  formatServiceName,
+} from '../../lib/displayFormat.js';
 import {
   enrichClientAppointmentDetail,
   loadClientBookingMasterCard,
 } from './appointments.clientDetailEnrich.js';
 import { assertClientHasContact, loadClientContactSnapshot } from './bookingContact.js';
-import { eventLabel, insertBookingEvent, listBookingEventsForAppointment } from './bookingEvents.service.js';
+import { insertBookingEvent, listBookingEventsForAppointment } from './bookingEvents.service.js';
+import { buildMasterAppointmentTimeline } from './bookingMasterTimeline.js';
 import {
   masterCancelAppointmentLifecycle,
   masterClientArrivedLifecycle,
@@ -84,7 +89,23 @@ export async function createAppointmentTx(input: {
     }
 
     const { assertBookingNoticeAllowed } = await import('../masters/masterBookingRulesStructured.service.js');
+    const { assertPlatformBookingLeadTime, computePendingExpiresAt } = await import(
+      '../../lib/bookingConfirmationDeadlines.js'
+    );
+    try {
+      assertPlatformBookingLeadTime(slotStart, now.getTime());
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      if (code === 'BOOKING_TOO_SOON') {
+        throw ApiError.conflict(
+          e instanceof Error ? e.message : 'Это время уже слишком близко. Выберите более позднее окно.',
+          'BOOKING_TOO_SOON',
+        );
+      }
+      throw e;
+    }
     await assertBookingNoticeAllowed(slot.master_id, slotStart);
+    const pendingExpiresAt = computePendingExpiresAt(now, slotStart);
 
     const svcRes = await client.query<{
       id: string;
@@ -189,9 +210,10 @@ export async function createAppointmentTx(input: {
          price_snapshot, price_type_snapshot, service_title_snapshot, service_duration_snapshot,
          client_note, client_reference_photo_url,
          client_name_snapshot, client_phone_snapshot, client_email_snapshot,
-         client_telegram_username_snapshot, client_telegram_id_snapshot, booking_source
+         client_telegram_username_snapshot, client_telegram_id_snapshot, booking_source,
+         pending_expires_at
        ) values ($1, $2, $3, $4, $5, $6, 'pending', $7, $8::public.price_type, $9, $10, $11, $12,
-         $13, $14, $15, $16, $17::bigint, $18)
+         $13, $14, $15, $16, $17::bigint, $18, $19)
        returning id`,
       [
         input.clientId,
@@ -212,6 +234,7 @@ export async function createAppointmentTx(input: {
         contactSnap.clientTelegramUsername,
         contactSnap.clientTelegramId,
         contactSnap.bookingSource,
+        pendingExpiresAt.toISOString(),
       ],
     );
     const appointmentId = insAppt.rows[0]!.id;
@@ -526,9 +549,19 @@ export type MasterAppointmentListItem = {
   status: string;
   price_snapshot: string;
   service_title_snapshot: string;
+  service_duration_snapshot: number | null;
   client_name: string;
   client_phone: string | null;
-  voucher_number?: string | null;
+  client_email: string | null;
+  client_telegram_username: string | null;
+  client_telegram_id: string | null;
+  client_avatar_url: string | null;
+  client_note: string | null;
+  client_reference_photo_url: string | null;
+  booking_source: string | null;
+  cancel_reason: string | null;
+  voucher_number: string | null;
+  pending_expires_at: string | null;
 };
 
 export async function listMasterAppointments(
@@ -557,42 +590,75 @@ export async function listMasterAppointments(
             a.client_name_snapshot, a.client_phone_snapshot, a.client_email_snapshot,
             a.client_telegram_username_snapshot, a.client_telegram_id_snapshot::text,
             a.booking_source, a.cancel_reason, a.cancel_reason_category,
-            coalesce(nullif(trim(a.client_name_snapshot), ''),
-                     nullif(trim(p.full_name), ''), '') as profile_name,
+            a.pending_expires_at,
+            nullif(trim(p.full_name), '') as profile_full_name,
             p.phone as profile_phone, p.telegram_username as profile_telegram,
             nullif(trim(p.avatar_url), '') as client_avatar_url,
+            mp.display_name as master_display_name,
+            mp.photo_url as master_photo_url,
             bv.voucher_number
        from public.appointments a
        left join public.profiles p on p.id = a.client_id
+       left join public.master_profiles mp on mp.master_id = a.client_id
        left join public.booking_vouchers bv on bv.appointment_id = a.id
       where a.master_id = $1 and (${tabFilter})
       order by ${orderBy}
       limit $2 offset $3`,
     [masterId, limit, offset],
   );
-  const items: MasterAppointmentListItem[] = r.rows.map((row: Record<string, unknown>) => ({
-    id: String(row.id),
-    client_id: String(row.client_id),
-    service_id: String(row.service_id),
-    slot_id: String(row.slot_id),
-    starts_at: row.starts_at as Date | string,
-    ends_at: row.ends_at as Date | string,
-    status: String(row.status),
-    price_snapshot: String(row.price_snapshot),
-    service_title_snapshot: formatServiceName(String(row.service_title_snapshot ?? '')),
-    client_name: formatClientName({
-      full_name: String(row.profile_name ?? row.client_name_snapshot ?? ''),
-      phone: (row.client_phone_snapshot as string | null) ?? (row.profile_phone as string | null),
-      telegram_username:
-        (row.client_telegram_username_snapshot as string | null) ??
-        (row.profile_telegram as string | null),
-    }),
-    client_phone:
+  const items: MasterAppointmentListItem[] = r.rows.map((row: Record<string, unknown>) => {
+    const phone =
       (row.client_phone_snapshot as string | null)?.trim() ||
       (row.profile_phone as string | null)?.trim() ||
-      null,
-    voucher_number: (row.voucher_number as string | null) ?? null,
-  }));
+      null;
+    const telegram =
+      (row.client_telegram_username_snapshot as string | null)?.trim()?.replace(/^@+/, '') ||
+      (row.profile_telegram as string | null)?.trim()?.replace(/^@+/, '') ||
+      null;
+    const email = (row.client_email_snapshot as string | null)?.trim() || null;
+
+    const clientIdentity = resolveClientDisplayIdentity({
+      masterDisplayName: row.master_display_name as string | null,
+      masterPhotoUrl: row.master_photo_url as string | null,
+      profileFullName: row.profile_full_name as string | null,
+      profileAvatarUrl: row.client_avatar_url as string | null,
+      nameSnapshot: row.client_name_snapshot as string | null,
+      phone: row.profile_phone as string | null,
+      phoneSnapshot: phone,
+      telegramUsername: telegram,
+    });
+
+    return {
+      id: String(row.id),
+      client_id: String(row.client_id),
+      service_id: String(row.service_id),
+      slot_id: String(row.slot_id),
+      starts_at: row.starts_at as Date | string,
+      ends_at: row.ends_at as Date | string,
+      status: String(row.status),
+      price_snapshot: String(row.price_snapshot),
+      service_title_snapshot: formatServiceName(String(row.service_title_snapshot ?? '')),
+      service_duration_snapshot:
+        row.service_duration_snapshot != null ? Number(row.service_duration_snapshot) : null,
+      client_name: clientIdentity.displayName,
+      client_phone: phone,
+      client_email: email,
+      client_telegram_username: telegram,
+      client_telegram_id: (row.client_telegram_id_snapshot as string | null)?.trim() || null,
+      client_avatar_url: clientIdentity.avatarUrl,
+      client_note: (row.client_note as string | null)?.trim() || null,
+      client_reference_photo_url: (row.client_reference_photo_url as string | null)?.trim() || null,
+      booking_source: (row.booking_source as string | null)?.trim() || null,
+      cancel_reason: (row.cancel_reason as string | null)?.trim() || null,
+      voucher_number: (row.voucher_number as string | null) ?? null,
+      pending_expires_at:
+        row.pending_expires_at instanceof Date
+          ? row.pending_expires_at.toISOString()
+          : row.pending_expires_at
+            ? String(row.pending_expires_at)
+            : null,
+    };
+  });
   const hasMore = offset + items.length < total;
   return { items, appointments: items, total, limit, offset, hasMore };
 }
@@ -920,6 +986,18 @@ async function loadClientStatsForMaster(clientId: string, masterId: string) {
   };
 }
 
+/** Запись мастера по id (проверка master_id). */
+export async function getMasterAppointmentById(masterId: string, appointmentId: string) {
+  const access = await query<{ id: string }>(
+    `select id from public.appointments where id = $1 and master_id = $2`,
+    [appointmentId, masterId],
+  );
+  if (!access.rows[0]) {
+    throw ApiError.notFound('Запись не найдена', 'BOOKING_NOT_FOUND');
+  }
+  return loadMasterAppointmentDetail(masterId, appointmentId);
+}
+
 /** Запись мастера по номеру SL-… (проверка master_id). */
 export async function getMasterAppointmentByVoucher(masterId: string, voucherRaw: string) {
   const voucherNumber = normalizeBookingCode(voucherRaw);
@@ -928,7 +1006,10 @@ export async function getMasterAppointmentByVoucher(masterId: string, voucherRaw
     throw ApiError.notFound('Запись не найдена', 'BOOKING_NOT_FOUND');
   }
   assertBookingAccess(meta, masterId, 'master');
+  return loadMasterAppointmentDetail(masterId, meta.id);
+}
 
+async function loadMasterAppointmentDetail(masterId: string, appointmentId: string) {
   const r = await query<{
     id: string;
     client_id: string;
@@ -947,6 +1028,8 @@ export async function getMasterAppointmentByVoucher(masterId: string, voucherRaw
     phone: string | null;
     telegram_username: string | null;
     client_avatar_url: string | null;
+    master_display_name: string | null;
+    master_photo_url: string | null;
     voucher_number: string | null;
     client_name_snapshot: string | null;
     client_phone_snapshot: string | null;
@@ -958,6 +1041,8 @@ export async function getMasterAppointmentByVoucher(masterId: string, voucherRaw
     cancel_reason_category: string | null;
     location_visit_type: string | null;
     location_public_address: string | null;
+    service_category_name: string | null;
+    pending_expires_at: Date | string | null;
   }>(
     `select a.id, a.client_id, a.service_id, a.slot_id, a.starts_at, a.ends_at, a.status::text,
             a.price_snapshot::text, a.service_title_snapshot, a.service_duration_snapshot,
@@ -965,17 +1050,24 @@ export async function getMasterAppointmentByVoucher(masterId: string, voucherRaw
             a.client_name_snapshot, a.client_phone_snapshot, a.client_email_snapshot,
             a.client_telegram_username_snapshot, a.client_telegram_id_snapshot::text,
             a.booking_source, a.cancel_reason, a.cancel_reason_category,
+            a.pending_expires_at,
             coalesce(p.full_name, '') as full_name, p.phone, p.telegram_username,
             nullif(trim(p.avatar_url), '') as client_avatar_url,
+            mp.display_name as master_display_name,
+            mp.photo_url as master_photo_url,
             bv.voucher_number,
             ml.visit_type::text as location_visit_type,
-            ml.public_address as location_public_address
+            ml.public_address as location_public_address,
+            sc.name as service_category_name
        from public.appointments a
        left join public.profiles p on p.id = a.client_id
+       left join public.master_profiles mp on mp.master_id = a.client_id
        left join public.booking_vouchers bv on bv.appointment_id = a.id
        left join public.master_locations ml on ml.master_id = a.master_id and ml.is_primary = true
-      where a.id = $1`,
-    [meta.id],
+       left join public.master_services ms on ms.id = a.service_id
+       left join public.service_categories sc on sc.id = ms.category_id
+      where a.id = $1 and a.master_id = $2`,
+    [appointmentId, masterId],
   );
   const row = r.rows[0];
   if (!row) {
@@ -986,13 +1078,25 @@ export async function getMasterAppointmentByVoucher(masterId: string, voucherRaw
     row.starts_at instanceof Date ? row.starts_at.toISOString() : String(row.starts_at);
   const endsAt = row.ends_at instanceof Date ? row.ends_at.toISOString() : String(row.ends_at);
 
-  const clientName = formatClientName({
-    full_name: row.client_name_snapshot || row.full_name,
-    phone: row.client_phone_snapshot || row.phone,
-    telegram_username: row.client_telegram_username_snapshot || row.telegram_username,
+  const clientPhone =
+    row.client_phone_snapshot?.trim() || row.phone?.trim() || null;
+  const clientTelegram =
+    row.client_telegram_username_snapshot?.trim()?.replace(/^@+/, '') ||
+    row.telegram_username?.trim()?.replace(/^@+/, '') ||
+    null;
+  const clientIdentity = resolveClientDisplayIdentity({
+    masterDisplayName: row.master_display_name,
+    masterPhotoUrl: row.master_photo_url,
+    profileFullName: row.full_name,
+    profileAvatarUrl: row.client_avatar_url,
+    nameSnapshot: row.client_name_snapshot,
+    phone: row.phone,
+    phoneSnapshot: clientPhone,
+    telegramUsername: clientTelegram,
   });
+  const clientName = clientIdentity.displayName;
 
-  const events = await listBookingEventsForAppointment(meta.id, 30);
+  const events = await listBookingEventsForAppointment(appointmentId, 30);
   const clientStats = await loadClientStatsForMaster(row.client_id, masterId);
   const { deriveClientSignalSummary } = await import('../../lib/bookingClientDetail.js');
   const clientSignal = deriveClientSignalSummary(events);
@@ -1033,35 +1137,31 @@ export async function getMasterAppointmentByVoucher(masterId: string, voucherRaw
     price_snapshot: row.price_snapshot,
     service_title_snapshot: formatServiceName(row.service_title_snapshot),
     service_duration_snapshot: row.service_duration_snapshot,
+    service_category_name: row.service_category_name,
     client_note: row.client_note,
     client_reference_photo_url: row.client_reference_photo_url,
     created_at: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
     client_name: clientName,
-    client_phone: row.client_phone_snapshot?.trim() || row.phone?.trim() || null,
+    client_phone: clientPhone,
     client_email: row.client_email_snapshot?.trim() || null,
-    client_telegram_username: row.client_telegram_username_snapshot?.trim() || row.telegram_username?.trim() || null,
+    client_telegram_username: clientTelegram,
     client_telegram_id: row.client_telegram_id_snapshot?.trim() || null,
     booking_source: row.booking_source,
     cancel_reason: row.cancel_reason,
     cancel_reason_category: row.cancel_reason_category,
-    client_avatar_url: row.client_avatar_url,
+    client_avatar_url: clientIdentity.avatarUrl,
     voucher_number: row.voucher_number,
     visit_type: row.location_visit_type,
     location_public_address: row.location_public_address,
     client_stats: clientStats,
     client_signal: clientSignal,
-    timeline: events.map((ev) => ({
-      eventType: ev.event_type,
-      label: eventLabel(ev.event_type, 'master'),
-      createdAt: ev.created_at instanceof Date ? ev.created_at.toISOString() : String(ev.created_at),
-      reason: ev.reason,
-      comment: ev.comment,
-      lateMinutes:
-        ev.event_type === 'booking.client_running_late' && ev.metadata && typeof ev.metadata === 'object'
-          ? (ev.metadata as { lateMinutes?: number }).lateMinutes ?? null
-          : null,
-    })),
+    timeline: buildMasterAppointmentTimeline(events),
     lifecycle: lifecycleUpcoming,
     lifecycle_history: lifecycleHistory,
+    pending_expires_at: row.pending_expires_at
+      ? row.pending_expires_at instanceof Date
+        ? row.pending_expires_at.toISOString()
+        : String(row.pending_expires_at)
+      : null,
   };
 }

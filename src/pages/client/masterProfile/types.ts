@@ -1,6 +1,7 @@
 import type { MasterDraftCareerItem } from '../../../features/profile/lib/demoMasterStorage';
 import type { MasterContact } from '../../../features/master-onboarding/model/masterContacts';
 import type { DemoMasterProfile } from '../../../features/services/model/demoMasters';
+import type { MasterPublicPaymentDto } from '../../../shared/payments/paymentMethodCodes';
 
 export type MasterCertificate = {
   id: string;
@@ -29,7 +30,9 @@ export type ExtendedMasterProfile = DemoMasterProfile & {
   bookingRules?: string;
   cancellationPolicy?: string;
   paymentMethods?: string[];
+  preferredBankIds?: string[];
   paymentNote?: string;
+  payment?: MasterPublicPaymentDto | null;
   clientPreview?: string[];
 };
 

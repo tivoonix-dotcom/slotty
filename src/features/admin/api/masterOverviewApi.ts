@@ -1,5 +1,6 @@
 import { apiFetch } from '../../../shared/api/backendClient';
 import { readSlottyApiErrorMessage } from '../../../shared/api/slottyApiErrorMessage';
+import { afterBookingMutation } from '../../appointments/bookingDataSync';
 import type { OverviewDayStat } from '../../master/model/demoMasterAppointments';
 import type { DemoMasterAppointment } from '../../master/model/demoMasterAppointments';
 import type {
@@ -80,6 +81,30 @@ export async function fetchOverviewReputation(
   return (await res.json()) as OverviewReputationApiDto;
 }
 
+export type MasterReviewNotificationDetail = {
+  reviewId: string;
+  rating: number;
+  body: string;
+  createdAt: string;
+  appointmentId: string;
+  bookingCode: string | null;
+  clientName: string;
+  clientPhone: string | null;
+  clientAvatarUrl: string | null;
+  serviceName: string;
+  visitAt: string;
+};
+
+export async function fetchMasterReviewNotificationDetail(
+  reviewId: string,
+): Promise<MasterReviewNotificationDetail> {
+  const res = await apiFetch(`/api/masters/me/overview/reviews/${encodeURIComponent(reviewId)}`);
+  if (!res.ok) throw new Error(await readApiError(res));
+  const data = (await res.json()) as { review?: MasterReviewNotificationDetail };
+  if (!data.review) throw new Error('Отзыв не найден');
+  return data.review;
+}
+
 export async function postOverviewReviewReply(reviewId: string, text: string): Promise<void> {
   const res = await apiFetch(`/api/masters/me/overview/reviews/${reviewId}/reply`, {
     method: 'POST',
@@ -89,6 +114,7 @@ export async function postOverviewReviewReply(reviewId: string, text: string): P
     throw new Error('ALREADY_REPLIED');
   }
   if (!res.ok) throw new Error(await readApiError(res));
+  afterBookingMutation();
 }
 
 export type { MasterOverviewReview };

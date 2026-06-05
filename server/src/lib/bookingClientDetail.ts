@@ -1,5 +1,6 @@
 import { normalizeDbStatus, isTerminalStatus, dbStatusToUi } from './appointmentStatus.js';
 import type { BookingEventRow } from '../modules/appointments/bookingEvents.service.js';
+import { isHiddenTimelineEvent } from './bookingTimelinePolicy.js';
 
 const CLIENT_HIDDEN_EVENTS = new Set([
   'booking.notification_sent',
@@ -111,32 +112,6 @@ export function buildClientBookingHero(params: {
   const when = formatWhenPhrase(params.startsAt);
   const ms = msUntilAppointment(params.startsAt);
   const countdown = ms > 0 ? formatRelativeAppointmentCountdown(ms) : null;
-  const { signal } = params;
-
-  if (signal.kind === 'running_late' && signal.lateMinutes) {
-    return {
-      title: 'Вы сообщили об опоздании',
-      subtitle: `Мастер видит, что вы опаздываете на ${signal.lateMinutes} минут`,
-      countdown,
-      lateBadge: `Опаздываете на ${signal.lateMinutes} мин`,
-    };
-  }
-  if (signal.kind === 'on_the_way') {
-    return {
-      title: 'Вы в пути',
-      subtitle: 'Мастер получил уведомление',
-      countdown,
-      lateBadge: null,
-    };
-  }
-  if (signal.kind === 'reported_arrived') {
-    return {
-      title: 'Вы на месте',
-      subtitle: 'Мастер получит уведомление о вашем приходе',
-      countdown,
-      lateBadge: null,
-    };
-  }
 
   switch (ui) {
     case 'pending':
@@ -260,9 +235,6 @@ export function buildClientAvailableActions(params: {
   }
 
   if (ui === 'confirmed' && ms > 0) {
-    if (ms <= 2 * 60 * 60_000) {
-      actions.push('on_the_way', 'running_late', 'reported_arrived');
-    }
     if (params.hasAddress) actions.push('open_route');
     actions.push('contact_master', 'add_comment', 'cancel');
     if (ms > 2 * 60 * 60_000) {
@@ -295,29 +267,17 @@ export function buildClientAvailableActions(params: {
 }
 
 export function formatBookingTimelineEventForClient(ev: BookingEventRow): string | null {
-  if (CLIENT_HIDDEN_EVENTS.has(ev.event_type)) return null;
+  if (CLIENT_HIDDEN_EVENTS.has(ev.event_type) || isHiddenTimelineEvent(ev.event_type)) return null;
 
-  const late = parseLateMinutes(ev.metadata);
   switch (ev.event_type) {
     case 'booking.created':
-      return 'Заявка создана';
+      return 'Заявка отправлена';
     case 'booking.confirmed':
       return 'Мастер подтвердил запись';
     case 'booking.cancelled_by_client':
       return ev.reason ? `Вы отменили запись: ${ev.reason}` : 'Вы отменили запись';
     case 'booking.cancelled_by_master':
       return 'Мастер отменил запись';
-    case 'booking.client_on_the_way':
-      return 'Вы сообщили, что в пути';
-    case 'booking.client_running_late':
-      if (late) {
-        return ev.comment
-          ? `Опаздываете на ${late} мин: ${ev.comment}`
-          : `Опаздываете на ${late} минут`;
-      }
-      return ev.comment ? `Сообщили об опоздании: ${ev.comment}` : 'Сообщили об опоздании';
-    case 'booking.client_reported_arrived':
-      return ev.comment ? `Вы на месте: ${ev.comment}` : 'Вы сообщили, что на месте';
     case 'booking.client_arrived':
       return 'Мастер отметил ваш приход';
     case 'booking.started':
@@ -332,6 +292,10 @@ export function formatBookingTimelineEventForClient(ev: BookingEventRow): string
       return 'Визит завершён';
     case 'booking.no_show':
       return 'Отмечена неявка';
+    case 'booking.expired':
+      return 'Заявка истекла';
+    case 'booking.review_left':
+      return 'Оставлен отзыв';
     case 'booking.client_comment':
       return ev.comment ? `Ваш комментарий: ${ev.comment}` : 'Комментарий к записи';
     case 'booking.disputed_by_client':

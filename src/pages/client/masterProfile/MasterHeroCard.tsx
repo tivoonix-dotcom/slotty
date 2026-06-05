@@ -106,7 +106,7 @@ export function MasterHeroCard({
 
   return (
     <section className={`overflow-hidden ${catalogDesktopPanel}`}>
-      <div className="flex gap-3.5 p-4">
+      <div className="flex gap-4 p-4 sm:gap-5">
         <MasterCardPortrait
           masterName={master.masterName}
           photoUrl={master.photoUrl}
@@ -136,7 +136,7 @@ export function MasterHeroCard({
             {formatMasterCardSpecialty(master.category)}
           </p>
 
-          <div className="mt-3 flex items-start border-t border-[#F3F4F6] pt-2.5">
+          <div className="mt-4 flex items-start border-t border-[#F3F4F6] pt-3">
             {isNewMaster ? (
               <StatCell
                 value="Новый"

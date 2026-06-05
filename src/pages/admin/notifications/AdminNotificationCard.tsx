@@ -1,36 +1,23 @@
 import { useMemo, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiBellAlert } from 'react-icons/hi2';
+import { HiChevronRight } from 'react-icons/hi2';
 import type { MeNotificationRow } from '../../../features/profile/api/clientNotifications';
-import { formatNotificationListTime } from '../../../features/notifications/formatNotificationTime';
+import { resolveMasterNotificationAction } from './notificationAction';
 import {
   notifBadgeNew,
-  notifCardBody,
-  notifCardContent,
+  notifCardActionBtn,
+  notifCardActionBtnAttention,
+  notifCardActionBtnRead,
+  notifCardMetaChip,
+  notifCardShellAction,
   notifCardShellInteractive,
+  notifCardShellRead,
+  notifCardShellUnread,
   notifIconFallback,
-  notifIconStrip,
-  notifIconStripRead,
-  notifIconStripUnread,
   notifMetaAccent,
+  notifUnreadDot,
 } from './adminNotificationsTheme';
-import { resolveMasterNotificationAction } from './notificationAction';
-
-function notificationIconClass(type: string): string {
-  switch (type) {
-    case 'appointment_cancelled':
-      return 'bg-[#FFF7ED] text-[#EA580C] ring-[#FED7AA]';
-    case 'appointment_reminder':
-      return 'bg-[#EFF6FF] text-[#2563EB] ring-[#BFDBFE]';
-    case 'billing':
-      return 'bg-[#F5F3FF] text-[#7C3AED] ring-[#DDD6FE]';
-    case 'appointment_new':
-    case 'appointment_pending':
-      return 'bg-[#FFF1F4] text-[#F47C8C] ring-[#FDE8ED]';
-    default:
-      return '';
-  }
-}
+import { buildMasterNotificationCardModel } from './masterNotificationModel';
 
 type Props = {
   item: MeNotificationRow;
@@ -39,21 +26,71 @@ type Props = {
   onMarkRead?: (id: string) => void;
 };
 
+function MetaChips({
+  card,
+  isUnread,
+}: {
+  card: ReturnType<typeof buildMasterNotificationCardModel>;
+  isUnread: boolean;
+}) {
+  const chipMuted = isUnread ? '' : 'bg-[#FAFAFA] text-[#9CA3AF]';
+
+  return (
+    <>
+      {card.clientName ? (
+        <span className={`${notifCardMetaChip} ${chipMuted}`}>{card.clientName}</span>
+      ) : null}
+      {card.serviceName ? (
+        <span className={`${notifCardMetaChip} ${chipMuted}`}>{card.serviceName}</span>
+      ) : null}
+      {card.whenLabel ? (
+        <time className={`${notifCardMetaChip} ${isUnread ? notifMetaAccent : chipMuted}`}>
+          {card.whenLabel}
+        </time>
+      ) : null}
+    </>
+  );
+}
+
 export function AdminNotificationCard({ item, index = 0, onOpen, onMarkRead }: Props) {
   const navigate = useNavigate();
   const action = useMemo(() => resolveMasterNotificationAction(item), [item]);
-  const isNew = !item.read_at;
-  const typeIconClass = notificationIconClass(item.type);
-  const iconWrap = typeIconClass
-    ? `${notifIconFallback} h-10 w-10 ${typeIconClass}`
-    : `${notifIconFallback} h-10 w-10`;
+  const card = useMemo(() => buildMasterNotificationCardModel(item), [item]);
+  const Icon = card.visual.icon;
+  const isUnread = card.isUnread;
+
+  const shellClass = [
+    notifCardShellInteractive,
+    isUnread ? notifCardShellUnread : notifCardShellRead,
+    card.requiresAction && isUnread ? notifCardShellAction : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const stickerClass = isUnread
+    ? card.visual.stickerClass
+    : 'bg-white text-[#9CA3AF] ring-1 ring-[#EEEEEE]';
+
+  const actionBtnClass = card.requiresAction
+    ? notifCardActionBtnAttention
+    : isUnread
+      ? notifCardActionBtn
+      : notifCardActionBtnRead;
 
   const openAction = (e: MouseEvent) => {
+    e.stopPropagation();
+    if (!item.read_at) onMarkRead?.(item.id);
+    onOpen(item);
+  };
+
+  const navigateAction = (e: MouseEvent) => {
     e.stopPropagation();
     if (!action) return;
     if (!item.read_at) onMarkRead?.(item.id);
     navigate(action.to);
   };
+
+  const onAction = action ? navigateAction : openAction;
 
   return (
     <article
@@ -66,42 +103,154 @@ export function AdminNotificationCard({ item, index = 0, onOpen, onMarkRead }: P
           onOpen(item);
         }
       }}
-      className={notifCardShellInteractive}
+      className={shellClass}
       style={{ animationDelay: `${index * 40}ms` }}
+      aria-label={isUnread ? `${card.title}, непрочитано` : `${card.title}, прочитано`}
     >
-      <div className={notifCardBody}>
-        <div className={`${notifIconStrip} ${isNew ? notifIconStripUnread : notifIconStripRead}`}>
-          <span className={iconWrap}>
-            <HiBellAlert className="h-5 w-5" aria-hidden />
+      {/* Mobile */}
+      <div className="p-3.5 lg:hidden">
+        <div className="flex items-start gap-3">
+          <span className={`${notifIconFallback} h-10 w-10 shrink-0 ${stickerClass}`} aria-hidden>
+            <Icon className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                {isUnread ? <span className={notifUnreadDot} aria-hidden /> : null}
+                <p
+                  className={`min-w-0 leading-snug ${
+                    isUnread
+                      ? 'text-[15px] font-bold text-[#111827]'
+                      : 'text-[15px] font-semibold text-[#6B7280]'
+                  }`}
+                >
+                  {card.title}
+                </p>
+              </div>
+              <time
+                className={`shrink-0 text-[11px] tabular-nums ${
+                  isUnread ? `font-semibold ${notifMetaAccent}` : 'font-medium text-[#C4C9D4]'
+                }`}
+              >
+                {card.createdAtLabel}
+              </time>
+            </div>
+
+            {card.statusBadge && isUnread ? (
+              <span className={`mt-1.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${card.statusBadge.className}`}>
+                {card.statusBadge.label}
+              </span>
+            ) : null}
+
+            <p
+              className={`mt-1.5 line-clamp-2 text-[13px] leading-snug ${
+                isUnread ? 'text-[#6B7280]' : 'text-[#9CA3AF]'
+              }`}
+            >
+              {card.description}
+            </p>
+
+            {(card.clientName || card.serviceName || card.whenLabel) ? (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                <MetaChips card={card} isUnread={isUnread} />
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#F3F4F6] pt-3">
+          {isUnread ? (
+            <span className={notifBadgeNew}>Новое</span>
+          ) : (
+            <span className="text-[11px] font-medium text-[#C4C9D4]">Просмотрено</span>
+          )}
+          <button
+            type="button"
+            onClick={onAction}
+            className={`inline-flex items-center gap-0.5 text-[13px] ${
+              isUnread ? 'font-bold text-[#F47C8C]' : 'font-semibold text-[#6B7280]'
+            }`}
+          >
+            {card.listActionLabel}
+            <HiChevronRight className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop */}
+      <div className="hidden min-w-0 flex-1 lg:flex">
+        <div
+          className={`flex w-[4.75rem] shrink-0 items-center justify-center self-stretch py-3 ${
+            isUnread ? 'bg-[#FFF1F4]' : 'bg-[#EBEBEB]'
+          }`}
+        >
+          <span className={`${notifIconFallback} h-11 w-11 ${stickerClass}`} aria-hidden>
+            <Icon className="h-5 w-5" />
           </span>
         </div>
 
-        <div className={notifCardContent}>
-          <div className="flex items-start justify-between gap-2">
-            <p className="min-w-0 flex-1 text-[15px] font-bold leading-snug text-[#111827] lg:text-[16px]">
-              {item.title}
-            </p>
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              {isNew ? <span className={notifBadgeNew}>Новое</span> : null}
-              <time
-                className={`text-[12px] tabular-nums ${isNew ? notifMetaAccent : 'font-medium text-[#9CA3AF]'}`}
-              >
-                {formatNotificationListTime(item.created_at)}
-              </time>
+        <div className="flex min-w-0 flex-1 gap-3 p-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-2">
+              {isUnread ? <span className={`${notifUnreadDot} mt-2`} aria-hidden /> : null}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                    <p
+                      className={`min-w-0 leading-snug ${
+                        isUnread
+                          ? 'text-[16px] font-bold text-[#111827]'
+                          : 'text-[16px] font-semibold text-[#6B7280]'
+                      }`}
+                    >
+                      {card.title}
+                    </p>
+                    {card.statusBadge ? (
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          isUnread ? card.statusBadge.className : 'bg-[#F5F5F5] text-[#9CA3AF]'
+                        }`}
+                      >
+                        {card.statusBadge.label}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    {isUnread ? (
+                      <span className={notifBadgeNew}>Новое</span>
+                    ) : (
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.04em] text-[#9CA3AF]">
+                        Прочитано
+                      </span>
+                    )}
+                    <time
+                      className={`text-[11px] tabular-nums ${
+                        isUnread ? `font-semibold ${notifMetaAccent}` : 'font-medium text-[#C4C9D4]'
+                      }`}
+                    >
+                      {card.createdAtLabel}
+                    </time>
+                  </div>
+                </div>
+                <p
+                  className={`mt-1 line-clamp-2 text-[13px] leading-snug ${
+                    isUnread ? 'text-[#6B7280]' : 'text-[#9CA3AF]'
+                  }`}
+                >
+                  {card.description}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <MetaChips card={card} isUnread={isUnread} />
+                </div>
+              </div>
             </div>
           </div>
-          <p className="mt-1.5 line-clamp-2 text-[14px] leading-snug text-[#6B7280]">{item.body}</p>
-          {action ? (
-            <button
-              type="button"
-              onClick={openAction}
-              className="mt-2.5 inline-flex text-[13px] font-bold text-[#F47C8C] transition hover:text-[#e86b7c]"
-            >
-              {action.label} →
+
+          <div className="flex shrink-0 flex-col items-end justify-end self-stretch py-0.5">
+            <button type="button" onClick={onAction} className={actionBtnClass}>
+              {card.listActionLabel}
             </button>
-          ) : (
-            <p className="mt-2 text-[12px] font-semibold text-[#9CA3AF]">Подробнее</p>
-          )}
+          </div>
         </div>
       </div>
     </article>
