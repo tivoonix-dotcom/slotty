@@ -47,7 +47,13 @@ export function formatMinutesRu(m: number): string {
   return `${h} ч ${rest} мин`;
 }
 
+export function formatBookingNoticeLabel(minutes: number): string {
+  if (minutes <= 0) return 'в любое время';
+  return `минимум за ${formatMinutesRu(minutes)}`;
+}
+
 export const MIN_NOTICE_OPTIONS = [
+  { value: 0, label: 'В любое время' },
   { value: 30, label: '30 минут' },
   { value: 60, label: '1 час' },
   { value: 120, label: '2 часа' },
@@ -121,7 +127,7 @@ export function buildSummaryItems(form: BookingRulesFormState) {
 
 export function buildClientPreviewLines(form: BookingRulesFormState): string[] {
   const lines: string[] = [];
-  lines.push(`Запись: минимум за ${formatMinutesRu(form.minBookingNoticeMinutes)}`);
+  lines.push(`Запись: ${formatBookingNoticeLabel(form.minBookingNoticeMinutes)}`);
   lines.push(`Отмена: бесплатно за ${formatMinutesRu(form.freeCancelBeforeMinutes)}`);
   lines.push(`Опоздание: до ${formatMinutesRu(form.allowedLatenessMinutes)}`);
   lines.push(`Неявка: через ${formatMinutesRu(form.noShowAfterMinutes)}`);
@@ -133,9 +139,18 @@ export function buildClientPreviewLines(form: BookingRulesFormState): string[] {
 
 export function cardClientText(form: BookingRulesFormState) {
   return {
-    booking: `Записывайтесь минимум за ${formatMinutesRu(form.minBookingNoticeMinutes)}.${
-      form.requiresMasterConfirmation ? ' Заявка требует подтверждения мастера.' : ' Запись подтверждается автоматически.'
-    }`,
+    booking:
+      form.minBookingNoticeMinutes <= 0
+        ? `Запись доступна в любое время.${
+            form.requiresMasterConfirmation
+              ? ' Заявка требует подтверждения мастера.'
+              : ' Запись подтверждается автоматически.'
+          }`
+        : `Записывайтесь ${formatBookingNoticeLabel(form.minBookingNoticeMinutes)}.${
+            form.requiresMasterConfirmation
+              ? ' Заявка требует подтверждения мастера.'
+              : ' Запись подтверждается автоматически.'
+          }`,
     cancel: `Отмена бесплатна за ${formatMinutesRu(form.freeCancelBeforeMinutes)} до визита.`,
     lateness: 'Если опаздываете, нажмите «Я опаздываю» в записи.',
     noShow: `Неявка фиксируется через ${formatMinutesRu(form.noShowAfterMinutes)} после начала.`,
@@ -161,7 +176,7 @@ export function refundsCardEnabled(form: BookingRulesFormState): boolean {
 }
 
 export const DEFAULT_FORM: BookingRulesFormState = {
-  minBookingNoticeMinutes: 1440,
+  minBookingNoticeMinutes: 0,
   requiresMasterConfirmation: true,
   freeCancelBeforeMinutes: 720,
   lateCancelPolicy: 'mark_late',

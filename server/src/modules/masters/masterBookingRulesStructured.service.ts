@@ -40,7 +40,7 @@ export type MasterBookingRulesResponse = MasterBookingRulesStructured & {
 };
 
 const DEFAULT: MasterBookingRulesStructured = {
-  minBookingNoticeMinutes: 1440,
+  minBookingNoticeMinutes: 0,
   requiresMasterConfirmation: true,
   freeCancelBeforeMinutes: 720,
   lateCancelPolicy: 'mark_late',
@@ -100,6 +100,11 @@ function formatMinutesRu(m: number): string {
   return `${h} ч ${rest} мин`;
 }
 
+function formatBookingNoticeLabel(minutes: number): string {
+  if (minutes <= 0) return 'в любое время';
+  return `минимум за ${formatMinutesRu(minutes)}`;
+}
+
 export function computeCompletionScore(rules: MasterBookingRulesStructured): number {
   let score = 0;
   if (rules.minBookingNoticeMinutes >= 0) score += 12;
@@ -116,7 +121,7 @@ export function computeCompletionScore(rules: MasterBookingRulesStructured): num
 
 export function buildClientPreviewLines(rules: MasterBookingRulesStructured): string[] {
   const lines: string[] = [];
-  lines.push(`Запись: минимум за ${formatMinutesRu(rules.minBookingNoticeMinutes)}`);
+  lines.push(`Запись: ${formatBookingNoticeLabel(rules.minBookingNoticeMinutes)}`);
   if (rules.requiresMasterConfirmation) {
     lines.push('Подтверждение: заявка мастера');
   }
@@ -142,7 +147,9 @@ function buildLegacyBookingText(rules: MasterBookingRulesStructured): string {
   const confirm = rules.requiresMasterConfirmation
     ? 'Заявка требует подтверждения мастера.'
     : 'Запись подтверждается автоматически.';
-  return `Записывайтесь минимум за ${formatMinutesRu(rules.minBookingNoticeMinutes)}. ${confirm}`;
+  return rules.minBookingNoticeMinutes <= 0
+    ? `${confirm.charAt(0).toUpperCase()}${confirm.slice(1)}`
+    : `Записывайтесь ${formatBookingNoticeLabel(rules.minBookingNoticeMinutes)}. ${confirm}`;
 }
 
 function buildLegacyCancelText(rules: MasterBookingRulesStructured): string {
