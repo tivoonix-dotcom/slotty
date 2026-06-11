@@ -4,7 +4,10 @@ import {
   clientBookingCreatedEmail,
   clientBookingReminderEmail,
   masterBookingCreatedEmail,
+  masterBookingPendingDeadlineEmail,
+  masterBookingPendingReminderEmail,
   masterBookingReminderEmail,
+  masterVisitStartedEmail,
 } from '../appointments/appointmentNotifyEmail.js';
 import {
   clientBookingRequestCreated,
@@ -19,7 +22,6 @@ import {
 } from './telegramAppointmentKeyboard.js';
 import { escapeTelegramHtml } from '../telegram/telegram.service.js';
 import { formatAppointmentDateTime } from '../telegram/formatAppointmentDateTime.js';
-import { masterBookingDeepLink } from './appointmentNotifyLinks.js';
 import { deliverEmailNotification } from './notifyUser.js';
 import { insertUserNotification } from './notificationsInsert.js';
 import { sendNotificationToProfile } from '../telegram/telegramProfileNotifications.js';
@@ -180,26 +182,15 @@ export async function processNotificationJob(job: NotificationJobRow): Promise<P
       const kind = job.job_type as 'booking_reminder_1h' | 'booking_reminder_24h';
       mail = forMaster ? masterBookingReminderEmail(ctx, kind) : clientBookingReminderEmail(ctx, kind);
     } else if (isVisitStartJob(job.job_type) && forMaster) {
-      const { date, time } = formatAppointmentDateTime(ctx.startsAt);
-      const link = ctx.voucherNumber ? masterBookingDeepLink(ctx.voucherNumber, 'email') : null;
-      mail = {
-        subject: 'Запись началась',
-        text: `Клиент должен быть у вас: ${ctx.serviceTitle}, ${date} ${time}.${link ? `\n\nОткрыть запись: ${link}` : ''}`,
-        html:
-          `<p><strong>Запись началась</strong></p>` +
-          `<p>Клиент должен быть у вас: <b>${ctx.serviceTitle}</b>, ${date} ${time}.</p>` +
-          (link ? `<p><a href="${link}">Открыть запись</a></p>` : ''),
-      };
+      mail = masterVisitStartedEmail(ctx);
     } else if (job.job_type === 'booking_client_confirmed') {
       mail = clientBookingConfirmedEmail(ctx);
     } else if (job.job_type === 'booking_master_new') {
       mail = masterBookingCreatedEmail(ctx);
     } else if (job.job_type === 'booking_master_pending_reminder') {
-      const p = masterBookingPendingReminder(ctx);
-      mail = { subject: p.title, text: p.body, html: `<p><strong>${p.title}</strong></p><p>${p.body}</p>` };
+      mail = masterBookingPendingReminderEmail(ctx);
     } else if (job.job_type === 'booking_master_pending_deadline') {
-      const p = masterBookingPendingDeadline(ctx);
-      mail = { subject: p.title, text: p.body, html: `<p><strong>${p.title}</strong></p><p>${p.body}</p>` };
+      mail = masterBookingPendingDeadlineEmail(ctx);
     } else {
       mail = clientBookingCreatedEmail(ctx);
     }

@@ -381,6 +381,104 @@ export function masterClientCancelledEmail(ctx: AppointmentNotifyContext): Notif
   });
 }
 
+/** Мастер: заявка всё ещё ждёт решения. */
+export function masterBookingPendingReminderEmail(ctx: AppointmentNotifyContext): NotifyUserEmail {
+  const { when } = whenRows(ctx);
+  const cta = masterCta(ctx);
+  const rows = [
+    { label: 'Клиент', value: ctx.clientName },
+    ...(ctx.clientPhone ? [{ label: 'Телефон', value: ctx.clientPhone }] : []),
+    { label: 'Услуга', value: ctx.serviceTitle },
+    { label: 'Когда', value: when },
+  ];
+  const text = `Заявка ждёт решения.\nКлиент: ${ctx.clientName}\n${plainDetails(ctx, when)}\n${cta.url}`;
+
+  return bookingEmail({
+    documentTitle: 'Заявка ждёт решения — SLOTTY',
+    preview: 'Подтвердите или отклоните заявку в кабинете мастера.',
+    receiptKind: 'Заявка',
+    eyebrow: 'Кабинет мастера',
+    title: 'Заявка ждёт решения',
+    statusLabel: 'Ожидает',
+    statusTone: 'warning',
+    subtitle: issuedSubtitle('Клиент записался онлайн — подтвердите или отклоните заявку'),
+    heroTitle: ctx.serviceTitle,
+    heroHighlight: when,
+    heroMeta: `${ctx.clientName} · SLOTTY`,
+    sectionTitle: 'Детали заявки',
+    rows,
+    ctaLabel: cta.label,
+    ctaUrl: cta.url,
+    voucherNumber: ctx.voucherNumber,
+    text,
+  });
+}
+
+/** Мастер: заявка скоро истечёт без подтверждения. */
+export function masterBookingPendingDeadlineEmail(ctx: AppointmentNotifyContext): NotifyUserEmail {
+  const { when } = whenRows(ctx);
+  const cta = masterCta(ctx);
+  const rows = [
+    { label: 'Клиент', value: ctx.clientName },
+    ...(ctx.clientPhone ? [{ label: 'Телефон', value: ctx.clientPhone }] : []),
+    { label: 'Услуга', value: ctx.serviceTitle },
+    { label: 'Когда', value: when },
+  ];
+  const text = `Заявка скоро истечёт.\nКлиент: ${ctx.clientName}\n${plainDetails(ctx, when)}\n${cta.url}`;
+
+  return bookingEmail({
+    documentTitle: 'Заявка скоро истечёт — SLOTTY',
+    preview: 'Подтвердите заявку, иначе она будет отменена автоматически.',
+    receiptKind: 'Срочно',
+    eyebrow: 'Кабинет мастера',
+    title: 'Заявка скоро истечёт',
+    statusLabel: 'Срочно',
+    statusTone: 'warning',
+    subtitle: issuedSubtitle('Подтвердите или отклоните заявку, иначе слот освободится автоматически'),
+    heroTitle: ctx.serviceTitle,
+    heroHighlight: when,
+    heroMeta: `${ctx.clientName} · SLOTTY`,
+    sectionTitle: 'Детали заявки',
+    rows,
+    ctaLabel: cta.label,
+    ctaUrl: cta.url,
+    voucherNumber: ctx.voucherNumber,
+    footerNote: 'Если вы не успеете подтвердить заявку, клиент получит уведомление об отмене.',
+    text,
+  });
+}
+
+/** Мастер: визит начался. */
+export function masterVisitStartedEmail(ctx: AppointmentNotifyContext): NotifyUserEmail {
+  const { when } = whenRows(ctx);
+  const cta = masterCta(ctx);
+  const text = `Запись началась.\nКлиент: ${ctx.clientName}\n${plainDetails(ctx, when)}\n${cta.url}`;
+
+  return bookingEmail({
+    documentTitle: 'Запись началась — SLOTTY',
+    preview: `Клиент должен быть у вас: ${ctx.serviceTitle}, ${when}.`,
+    receiptKind: 'Визит',
+    eyebrow: 'Кабинет мастера',
+    title: 'Запись началась',
+    statusLabel: 'Сейчас',
+    statusTone: 'pink',
+    subtitle: issuedSubtitle('Клиент должен быть у вас в назначенное время'),
+    heroTitle: ctx.serviceTitle,
+    heroHighlight: when,
+    heroMeta: `${ctx.clientName} · SLOTTY`,
+    sectionTitle: 'Детали записи',
+    rows: [
+      { label: 'Клиент', value: ctx.clientName },
+      { label: 'Услуга', value: ctx.serviceTitle },
+      { label: 'Когда', value: when },
+    ],
+    ctaLabel: cta.label,
+    ctaUrl: cta.url,
+    voucherNumber: ctx.voucherNumber,
+    text,
+  });
+}
+
 /** Мастер: заявка истекла без подтверждения. */
 export function masterBookingExpiredEmail(ctx: AppointmentNotifyContext): NotifyUserEmail {
   const { when } = whenRows(ctx);

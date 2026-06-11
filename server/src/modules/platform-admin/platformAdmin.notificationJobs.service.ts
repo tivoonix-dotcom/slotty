@@ -1,6 +1,8 @@
 import { resolveAccountEmail } from '../profiles/profiles.service.js';
 import { isResendConfigured, resolveResendFrom } from '../email/emailConfig.js';
 import { sendSlottyEmail } from '../auth/email/resendMail.js';
+import { buildSlottyEmailHtml } from '../email/transactionalEmailLayout.js';
+import { publicAppUrl } from '../../lib/publicAppUrl.js';
 import { fetchAppointmentNotifyContext } from '../appointments/appointmentNotifyContext.js';
 import { clientBookingCreatedEmail } from '../appointments/appointmentNotifyEmail.js';
 import {
@@ -35,7 +37,15 @@ export async function sendTestEmailToAdmin(adminProfileId: string): Promise<{ to
   const result = await sendSlottyEmail({
     to,
     subject: 'Тест SLOTTY — уведомления',
-    html: '<p>Тестовое письмо от SLOTTY. Resend работает.</p>',
+    html: buildSlottyEmailHtml({
+      documentTitle: 'Тест SLOTTY — уведомления',
+      preview: 'Проверка доставки писем SLOTTY.',
+      title: 'Тестовое письмо',
+      intro: 'Resend настроен корректно — так выглядят уведомления SLOTTY.',
+      ctaLabel: 'Открыть SLOTTY',
+      ctaUrl: publicAppUrl('/book'),
+      metaLabel: 'Тест',
+    }),
     text: 'Тестовое письмо от SLOTTY.',
   });
   return { to, messageId: result.messageId };
