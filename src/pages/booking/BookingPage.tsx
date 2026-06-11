@@ -1,5 +1,6 @@
 import { EMPTY_BOOKING_DATE } from '../../shared/lib/emptyDisplayText';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from '../../shared/analytics/analyticsEvents';
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { getProfilePath, getMasterPath, SERVICES_PATH } from '../../app/paths';
 import { ensureClientBookingAuth } from '../../features/auth/lib/requireClientBookingAuth';
@@ -162,6 +163,18 @@ export function BookingPage() {
   const [bookError, setBookError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const trackedServiceIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!service?.id || trackedServiceIdRef.current === service.id) return;
+    trackedServiceIdRef.current = service.id;
+    trackAnalyticsEvent(ANALYTICS_EVENTS.serviceSelect, { category_code: master?.categoryCode });
+  }, [service?.id, master?.categoryCode]);
+
+  const onPickSlot = useCallback((slotId: string | null) => {
+    setSelectedSlotId(slotId);
+    if (slotId) trackAnalyticsEvent(ANALYTICS_EVENTS.slotSelect);
+  }, []);
 
   useEffect(() => {
     if (!bookError) return;
@@ -289,6 +302,7 @@ export function BookingPage() {
             timeLabel,
             locationLine: formatPublicAddress(master.location),
           });
+          trackAnalyticsEvent(ANALYTICS_EVENTS.bookingCreate, { category_code: master.categoryCode });
         } catch (e) {
           setBookError(e instanceof Error ? e.message : 'Не удалось создать запись');
         } finally {
@@ -310,6 +324,7 @@ export function BookingPage() {
       timeLabel: selectedSlot.timeLabel,
       locationLine: formatPublicAddress(master.location),
     });
+    trackAnalyticsEvent(ANALYTICS_EVENTS.bookingCreate, { category_code: master.categoryCode });
   }, [
     accountAccess,
     clientComment,
@@ -455,7 +470,7 @@ export function BookingPage() {
         isCalendarOpen={isCalendarOpen}
         success={success}
         onPickDate={onPickDate}
-        onPickSlot={setSelectedSlotId}
+        onPickSlot={onPickSlot}
         onOpenCalendar={() => setIsCalendarOpen(true)}
         onCloseCalendar={() => setIsCalendarOpen(false)}
         onPickCalendarDate={onPickCalendarDate}

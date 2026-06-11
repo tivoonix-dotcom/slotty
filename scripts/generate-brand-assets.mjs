@@ -130,10 +130,50 @@ async function writeFaviconIco(masterBuf) {
   await writeFile(path.join(PUBLIC, 'favicon.ico'), ico);
 }
 
+const OG_WIDTH = 1200;
+const OG_HEIGHT = 630;
+
+function escapeSvgText(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * OG 1200×630: фото + градиент + заголовок (JPG для Telegram/Facebook).
+ */
+async function writeOgPhotoCard({ outFileName, photoRelPath, title, subtitle }) {
+  const photoPath = path.join(PUBLIC, photoRelPath);
+  const bg = await sharp(photoPath)
+    .resize(OG_WIDTH, OG_HEIGHT, { fit: 'cover', position: 'centre' })
+    .toBuffer();
+
+  const titleSvg = Buffer.from(
+    `<svg width="${OG_WIDTH}" height="${OG_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(17,24,39,0.15)"/>
+          <stop offset="55%" stop-color="rgba(17,24,39,0.35)"/>
+          <stop offset="100%" stop-color="rgba(17,24,39,0.72)"/>
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#g)"/>
+      <text x="64" y="${OG_HEIGHT - 96}" font-family="Inter, Arial, sans-serif" font-size="52" font-weight="700" fill="#FFFFFF">${escapeSvgText(title)}</text>
+      <text x="64" y="${OG_HEIGHT - 44}" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="500" fill="#F9FAFB">${escapeSvgText(subtitle)}</text>
+    </svg>`,
+  );
+
+  const overlay = await sharp(titleSvg).png().toBuffer();
+
+  await sharp(bg).composite([{ input: overlay, top: 0, left: 0 }]).jpeg({ quality: 88 }).toFile(path.join(PUBLIC, 'og', outFileName));
+}
+
 async function writeOgDefault() {
   const bbox = await findContentBBox(LOGO_HEADER_SRC);
-  const width = 1200;
-  const height = 630;
+  const width = OG_WIDTH;
+  const height = OG_HEIGHT;
   const logoW = 420;
   const logoH = Math.round(logoW * (bbox.height / bbox.width));
 
@@ -189,7 +229,38 @@ async function main() {
   await writeFaviconIco(iconMasterBuf);
   await writeOgDefault();
 
+  await writeOgPhotoCard({
+    outFileName: 'og-services.jpg',
+    photoRelPath: 'photos/catalog-services/manicure.webp',
+    title: 'Услуги мастеров в Минске',
+    subtitle: 'Цены, свободные окна и онлайн-запись',
+  });
+  await writeOgPhotoCard({
+    outFileName: 'og-master-landing.jpg',
+    photoRelPath: 'photos/landing/master.webp',
+    title: 'SLOTTY для мастеров',
+    subtitle: 'Кабинет, запись и тарифы в Минске',
+  });
+
+  const categoryOgCards = [
+    { file: 'og-category-manicure.jpg', photo: 'photos/catalog-services/manicure.webp', title: 'Маникюр в Минске' },
+    { file: 'og-category-barbers.jpg', photo: 'photos/catalog-services/barbers.webp', title: 'Барберы в Минске' },
+    { file: 'og-category-brows-lashes.jpg', photo: 'photos/catalog-services/brows_lashes.webp', title: 'Брови и ресницы' },
+    { file: 'og-category-massage.jpg', photo: 'photos/catalog-services/massage.webp', title: 'Массаж в Минске' },
+    { file: 'og-category-fitness.jpg', photo: 'photos/catalog-services/fitness.webp', title: 'Фитнес в Минске' },
+    { file: 'og-category-tattoo.jpg', photo: 'photos/catalog-services/tattoo.webp', title: 'Тату в Минске' },
+  ];
+  for (const card of categoryOgCards) {
+    await writeOgPhotoCard({
+      outFileName: card.file,
+      photoRelPath: card.photo,
+      title: card.title,
+      subtitle: 'Онлайн-запись через SLOTTY',
+    });
+  }
+
   console.log('Brand assets generated (square icon crop, no blurry header-scale favicon).');
+  console.log('OG JPG: og-default, og-services, og-master-landing, og-category-*.jpg');
   console.log('favicon.svg not generated — use favicon.ico + PNG only.');
 }
 

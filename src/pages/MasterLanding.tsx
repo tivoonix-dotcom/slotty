@@ -18,6 +18,7 @@ import { HomeFooter } from './HomeFooter';
 import { HomeHeader } from './HomeHeader';
 import { HomeTariffs } from './HomeTariffs';
 import { MasterLandingFaq } from './home/MasterLandingFaq';
+import { MasterLandingJsonLd } from '../shared/seo/MasterLandingJsonLd';
 
 export function MasterLanding() {
   useLandingHashScroll();
@@ -49,6 +50,7 @@ export function MasterLanding() {
 
   return (
     <div className="min-h-dvh bg-[#E29595] text-neutral-900">
+      <MasterLandingJsonLd />
       <div className="overflow-x-clip rounded-b-[2.5rem] bg-white sm:rounded-b-[3rem]">
         <HomeHeader />
 

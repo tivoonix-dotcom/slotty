@@ -95,9 +95,9 @@ export function CatalogDesktopWbToolbar({
     <section className="flex flex-col gap-3">
       {showMeta ? (
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h1 className="text-[22px] font-bold tracking-[-0.03em] text-[#111827] lg:text-[26px]">
+          <h2 className="text-[22px] font-bold tracking-[-0.03em] text-[#111827] lg:text-[26px]">
             {title}
-          </h1>
+          </h2>
           <p className="text-[14px] font-medium tabular-nums text-[#8E8E93]">
             {count.toLocaleString('ru-RU')} {servicesCountWord(count)} найдено
           </p>

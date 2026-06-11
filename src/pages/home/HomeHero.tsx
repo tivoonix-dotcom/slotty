@@ -57,7 +57,7 @@ export const HomeHero: FC<HomeHeroProps> = ({ onFindMaster, onBecomeMaster }) =>
         </LandingReveal>
 
         <LandingReveal as="p" className={homeHeroSubtitle} immediate variant="up" delay={90}>
-          Твой бьюти-график теперь под полным контролем.
+          Онлайн-запись к мастерам в Минске — без звонков и переписок.
         </LandingReveal>
 
         <LandingReveal immediate variant="scale" delay={180}>

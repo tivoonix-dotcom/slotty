@@ -1,4 +1,5 @@
 import { useMemo, useState, type FC } from 'react';
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from '../shared/analytics/analyticsEvents';
 import { Link } from 'react-router-dom';
 import { BECOME_MASTER_PATH, SERVICES_PATH } from '../app/paths';
 import type { BillingPeriod } from '../features/billing/model/masterPlans';
@@ -137,7 +138,11 @@ export const HomeTariffs: FC = () => {
                     priceUnit={unit}
                     topBadge={plan.badge}
                     footer={
-                      <Link to={plan.to} className={landingPlanCtaClass(true)}>
+                      <Link
+                        to={plan.to}
+                        className={landingPlanCtaClass(true)}
+                        onClick={() => trackAnalyticsEvent(ANALYTICS_EVENTS.masterProUpgradeClick, { plan: 'pro' })}
+                      >
                         {plan.cta}
                       </Link>
                     }

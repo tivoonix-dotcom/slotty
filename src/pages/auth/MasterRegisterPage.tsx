@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from '../../shared/analytics/analyticsEvents';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { BECOME_MASTER_PATH, getMasterLoginPath, MASTER_START_PATH } from '../../app/paths';
 import { useAuth } from '../../features/auth/AuthProvider';
@@ -32,6 +33,7 @@ export function MasterRegisterPage() {
 
   const onLinked = useCallback(
     (loggedInProfile?: BackendProfile) => {
+      trackAnalyticsEvent(ANALYTICS_EVENTS.masterRegisterStart);
       navigate(getPostLoginPath(loggedInProfile, location.search), { replace: true });
     },
     [location.search, navigate],

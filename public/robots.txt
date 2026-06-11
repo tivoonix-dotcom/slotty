@@ -2,20 +2,26 @@ User-agent: *
 Allow: /
 Allow: /book
 Allow: /services
-Allow: /masters
 Allow: /services/category/
+Allow: /master/start
+Allow: /master/
 Allow: /legal/
 
 Disallow: /login
 Disallow: /master/login
 Disallow: /master/register
-Disallow: /master/start
+Disallow: /master/settings
+Disallow: /master/appointments/
 Disallow: /auth/
 Disallow: /profile
+Disallow: /client/
 Disallow: /admin
 Disallow: /platform-admin
 Disallow: /become-master
 Disallow: /zapis
 Disallow: /settings
+Disallow: /payment/
+Disallow: /unsubscribe/
+Disallow: /status
 
 Sitemap: https://slotty.of.by/sitemap.xml

@@ -48,8 +48,78 @@ function cacheControlFor(ext) {
     return 'public, max-age=31536000, immutable';
   }
   if (ext === '.html') return 'no-store, no-cache, must-revalidate, max-age=0';
+  if (ext === '.xml') return 'public, max-age=3600';
   if (['.js', '.css', '.mjs'].includes(ext)) return 'public, max-age=31536000, immutable';
   return 'public, max-age=3600';
+}
+
+const SITEMAP_API_BASE = (process.env.SITEMAP_API_BASE || process.env.VITE_API_URL || '')
+  .trim()
+  .replace(/\/$/, '');
+
+/** Публичные страницы с post-build prerender (dist/prerender/*.html). */
+const PRERENDER_ROUTES = {
+  '/book': 'prerender/book.html',
+  '/services': 'prerender/services.html',
+  '/master/start': 'prerender/master-start.html',
+  '/services/category/manicure': 'prerender/services-category-manicure.html',
+  '/services/category/barbers': 'prerender/services-category-barbers.html',
+  '/services/category/brows-lashes': 'prerender/services-category-brows-lashes.html',
+  '/services/category/massage': 'prerender/services-category-massage.html',
+  '/services/category/fitness': 'prerender/services-category-fitness.html',
+  '/services/category/tattoo': 'prerender/services-category-tattoo.html',
+};
+
+function sitemapUnavailableXml(message) {
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<!-- ${message} -->\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n`;
+}
+
+async function proxySitemapMasters(res) {
+  if (!SITEMAP_API_BASE) {
+    res.writeHead(503, {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
+    res.end(
+      sitemapUnavailableXml(
+        'SITEMAP_API_BASE is not configured on slotty-web. Set it to the public API origin.',
+      ),
+    );
+    return;
+  }
+  try {
+    const upstream = await fetch(`${SITEMAP_API_BASE}/api/public/sitemap-masters.xml`, {
+      signal: AbortSignal.timeout(15_000),
+    });
+    const body = await upstream.text();
+    if (!upstream.ok) {
+      res.writeHead(502, {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(sitemapUnavailableXml('Upstream sitemap-masters request failed.'));
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600',
+    });
+    res.end(body);
+  } catch (err) {
+    console.error('[static-serve] sitemap-masters proxy failed:', err instanceof Error ? err.message : err);
+    res.writeHead(502, {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
+    res.end(sitemapUnavailableXml('sitemap-masters proxy error'));
+  }
+}
+
+function tryPrerenderFile(pathname) {
+  const rel = PRERENDER_ROUTES[pathname];
+  if (!rel) return null;
+  const full = path.join(root, rel);
+  return fs.existsSync(full) ? full : null;
 }
 
 function sendFile(res, filePath) {
@@ -89,6 +159,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/sitemap-masters.xml') {
+    void proxySitemapMasters(res);
+    return;
+  }
+
   if (pathname.startsWith('/api')) {
     res.writeHead(404);
     res.end();
@@ -99,6 +174,12 @@ const server = http.createServer((req, res) => {
   if (!resolved) {
     res.writeHead(403);
     res.end();
+    return;
+  }
+
+  const prerenderPath = tryPrerenderFile(pathname);
+  if (prerenderPath) {
+    sendFile(res, prerenderPath);
     return;
   }
 
@@ -122,4 +203,9 @@ const server = http.createServer((req, res) => {
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`[static-serve] dist=${root} listen=0.0.0.0:${port} cwd=${process.cwd()}`);
+  if (!SITEMAP_API_BASE) {
+    console.warn(
+      '[static-serve] SITEMAP_API_BASE is not set — /sitemap-masters.xml will return 503 until configured',
+    );
+  }
 });

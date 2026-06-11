@@ -9,7 +9,9 @@
     "dev:web": "vite",
     "dev:server": "npm run dev --prefix server",
     "dev:browser": "concurrently -k -n api,web -c blue,magenta \"npm run dev:server\" \"vite --open\"",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/prerender-public-pages.mjs",
+    "build:no-prerender": "tsc && vite build",
+    "prerender": "node scripts/prerender-public-pages.mjs",
     "preview": "vite preview",
     "start:static": "node ./scripts/static-serve.mjs",
     "start": "node ./scripts/static-serve.mjs",
@@ -27,6 +29,7 @@
     "staging:booking-verify": "node scripts/staging-booking-verify.mjs",
     "load:catalog": "node scripts/load/catalog-hammer.mjs",
     "e2e:smoke": "playwright test",
+    "e2e:seo": "playwright test e2e/seo-smoke.spec.ts --project=chromium",
     "e2e:master-day1": "playwright test e2e/master-day1-flow.spec.ts --project=chromium",
     "e2e:master-mobile360": "playwright test e2e/master-mobile-360.spec.ts --project=mobile360",
     "e2e:booking-lifecycle": "playwright test e2e/booking-lifecycle.spec.ts",
@@ -34,7 +37,8 @@
     "e2e:hardening": "npm run e2e:hardening-verify --prefix server",
     "e2e:booking": "npm run e2e:booking-concurrency --prefix server",
     "e2e:google-dedup": "npm run e2e:google-dedup --prefix server",
-    "e2e:slot-rebook": "npm run e2e:slot-rebook --prefix server"
+    "e2e:slot-rebook": "npm run e2e:slot-rebook --prefix server",
+    "test:seo": "npm run test:seo-config --prefix server"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",

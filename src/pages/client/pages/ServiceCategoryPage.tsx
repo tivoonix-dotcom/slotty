@@ -34,6 +34,10 @@ import {
 } from '../servicesCatalog/servicesCatalogTheme';
 import { formatDurationMinutes, formatMastersCountLabel, formatPriceFrom } from '../lib/catalogFormat';
 import { CLIENT_CONTENT_PAD_BOTTOM } from '../clientNavConstants';
+import { CatalogSeoIntro } from '../../../shared/seo/catalogSeoIntroUi';
+import { getCategorySeoIntro } from '../../../shared/seo/catalogSeoIntro';
+import { JsonLd } from '../../../shared/seo/JsonLd';
+import { buildCategoryStructuredData } from '../../../shared/seo/categoryStructuredData';
 
 export function ServiceCategoryPage() {
   const { categoryCode } = useParams<{ categoryCode: string }>();
@@ -167,8 +171,14 @@ export function ServiceCategoryPage() {
     </>
   );
 
+  const categoryIntro = getCategorySeoIntro(normalizedCategoryCode);
+  const categoryStructuredData = normalizedCategoryCode
+    ? buildCategoryStructuredData(normalizedCategoryCode)
+    : null;
+
   return (
     <>
+      {categoryStructuredData ? <JsonLd data={categoryStructuredData} /> : null}
       <ServiceCategoryDesktop
         categoryCode={categoryCode ?? ''}
         categoryName={categoryName}
@@ -211,6 +221,8 @@ export function ServiceCategoryPage() {
         <div
           className={`mx-auto w-full pt-2 ${catalogMobileContentBelowHeaderClass} ${catalogMobilePadX} ${CLIENT_CONTENT_PAD_BOTTOM}`}
         >
+          <CatalogSeoIntro text={categoryIntro} className="mb-3 px-0.5" />
+
           {geoPromptMobile}
 
           {!loading && !error && categories.length > 0 ? (

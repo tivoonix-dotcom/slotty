@@ -60,9 +60,9 @@ export function ServiceCategoryDesktopHero({
         </Link>
 
         <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-          <h1 className="text-[18px] font-bold leading-tight tracking-[-0.03em] text-[#111827]">
+          <h2 className="text-[18px] font-bold leading-tight tracking-[-0.03em] text-[#111827]">
             {categoryName}
-          </h1>
+          </h2>
           <div className="flex flex-wrap gap-1.5">
             {stats.minPrice != null ? (
               <span className={`${catalogMetaChipClass} !py-1 !text-[12px]`}>

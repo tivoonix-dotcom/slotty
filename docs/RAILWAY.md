@@ -56,8 +56,11 @@
    | `VITE_API_URL` | URL бэкенда **без** `/api` в конце, например `https://slotty-api-production-xxxx.up.railway.app` |
    | `VITE_PUBLIC_APP_URL` | Канонический URL для ссылок клиентам, например `https://slotty.of.by` (без слэша в конце). Если не задан — в production подставляется `https://slotty.of.by` даже при открытии кабинета с Railway-домена. |
    | `VITE_TELEGRAM_BOT_USERNAME` | Опционально. Если не задан — кнопка «Telegram» на `/login` подтянет имя бота с API (`GET /api/public/config`), если на **slotty-api** задан `TELEGRAM_BOT_TOKEN`. |
+   | `SITEMAP_API_BASE` | **Рекомендуется для SEO.** URL **slotty-api** без `/api` — тот же origin, что `VITE_API_URL`. Нужен runtime-прокси `https://ваш-фронт/sitemap-masters.xml` → API. Без переменной краулеры получат пустой sitemap-masters (503 XML). |
+   | `SKIP_PRERENDER` | Опционально `1` — пропустить post-build prerender публичных страниц (если Playwright недоступен в CI). |
+   | `VITE_YANDEX_METRIKA_ID` / `VITE_GA_MEASUREMENT_ID` / `VITE_GTM_CONTAINER_ID` | Опционально. Маркетинговая аналитика; без ID скрипты не подключаются. |
 
-4. **Build Command**: `npm run build`  
+4. **Build Command**: `npx playwright install chromium && npm run build` (prerender публичных страниц; без браузера: `SKIP_PRERENDER=1 npm run build:no-prerender`)  
 5. **Start Command**: `npm start` (в корневом `package.json` это `node ./scripts/static-serve.mjs`, слушает `PORT` и отдаёт `dist/` с SPA fallback).
 
 6. **Generate Domain** для фронта → этот URL вставьте в **`CLIENT_URL`** и **`WEB_APP_URL`** бэкенда (и при необходимости перезапустите деплой бэка).

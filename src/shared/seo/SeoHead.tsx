@@ -27,6 +27,7 @@ export function SeoHead({ meta }: Props) {
       <title>{meta.title}</title>
       <meta name="description" content={meta.description} />
       <meta name="robots" content={meta.robots} />
+      <meta property="og:locale" content="ru_BY" />
       {canonical ? <link rel="canonical" href={canonical} /> : null}
 
       <meta property="og:title" content={meta.title} />

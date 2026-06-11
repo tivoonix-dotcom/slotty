@@ -163,9 +163,12 @@ export const MasterLandingDesktopCabinetShell: FC<MasterLandingDesktopCabinetShe
       <MasterLandingDemoCabinetLogo />
     </div>
 
-    <h1 className="col-start-2 row-start-1 flex min-w-0 items-center truncate border-b border-[#EAECEF] bg-white px-3 text-[11px] font-bold tracking-[-0.03em] text-[#111827] sm:text-[13px] lg:text-[15px]">
+    <p
+      aria-hidden
+      className="col-start-2 row-start-1 flex min-w-0 items-center truncate border-b border-[#EAECEF] bg-white px-3 text-[11px] font-bold tracking-[-0.03em] text-[#111827] sm:text-[13px] lg:text-[15px]"
+    >
       {pageTitle}
-    </h1>
+    </p>
 
     <aside className="col-start-1 row-start-2 flex min-h-0 flex-col overflow-hidden border-r border-[#eef0f5] bg-white">
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden px-2 py-2 sm:px-2.5 lg:gap-1 lg:py-3" aria-hidden>

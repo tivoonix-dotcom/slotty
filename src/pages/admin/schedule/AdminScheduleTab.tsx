@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from '../../../shared/analytics/analyticsEvents';
 import { useSearchParams } from 'react-router-dom';
 import { preloadTabIntroImages } from '../useTabIntroImage';
 import { useAdminSectionTab } from '../useAdminSectionTab';
@@ -407,6 +408,9 @@ export function AdminScheduleTab({ draft }: Props) {
             : 'Не удалось создать окно',
         );
         return;
+      }
+      if (created > 0) {
+        trackAnalyticsEvent(ANALYTICS_EVENTS.masterSlotCreate, { count: created });
       }
       if (skipped > 0 || failed > 0) {
         const parts: string[] = [];

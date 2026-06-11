@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from '../../../shared/analytics/analyticsEvents';
 import { HiCheck } from 'react-icons/hi2';
 import { SlottyImg } from '../../../shared/ui/SlottyImg';
 import { ADMIN_ATTENTION_EXCLAMATION_ICON_SRC } from '../shared/AdminSectionAttentionBadge';
@@ -63,6 +64,9 @@ export function MasterProfileActiveToggle({
         publicationStatus: next,
       });
       setPublicationStatus(next);
+      if (next === 'published') {
+        trackAnalyticsEvent(ANALYTICS_EVENTS.masterProfilePublish);
+      }
       await refreshDraft();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось сохранить');

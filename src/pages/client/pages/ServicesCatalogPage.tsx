@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from '../../../shared/analytics/analyticsEvents';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import type { ClientOutletContext } from '../clientOutletContext';
 import { getMasterPath } from '../../../app/paths';
@@ -25,6 +26,10 @@ import { catalogMobileContentBelowHeaderClass } from '../servicesCatalog/catalog
 import { catalogCanvasClass, catalogMobilePadX } from '../servicesCatalog/servicesCatalogTheme';
 import type { CatalogSearchSuggestSelection } from '../servicesCatalog/catalogSearchSuggestTypes';
 import { CLIENT_CONTENT_PAD_BOTTOM } from '../clientNavConstants';
+import { CatalogSeoIntro } from '../../../shared/seo/catalogSeoIntroUi';
+import { SERVICES_CATALOG_INTRO } from '../../../shared/seo/catalogSeoIntro';
+import { JsonLd } from '../../../shared/seo/JsonLd';
+import { buildServicesCatalogStructuredData } from '../../../shared/seo/categoryStructuredData';
 
 export function ServicesCatalogPage() {
   const navigate = useNavigate();
@@ -49,6 +54,10 @@ export function ServicesCatalogPage() {
 
   const { listings, categories, total, loading, error, reload } = useCatalogData(apiParams);
   useCatalogErrorModal(error, reload, 'Услуги');
+
+  useEffect(() => {
+    trackAnalyticsEvent(ANALYTICS_EVENTS.catalogOpen);
+  }, []);
 
   const services = useMemo(() => {
     const cards = mapListingsToServiceCards(listings, categories, { userLat, userLng });
@@ -126,6 +135,7 @@ export function ServicesCatalogPage() {
 
   return (
     <>
+      <JsonLd data={buildServicesCatalogStructuredData()} />
       <h1 className="sr-only">Услуги мастеров</h1>
       <ServicesCatalogDesktop
         search={search}
@@ -155,6 +165,8 @@ export function ServicesCatalogPage() {
         <div
           className={`mx-auto w-full pt-2 ${catalogMobileContentBelowHeaderClass} ${catalogMobilePadX} ${CLIENT_CONTENT_PAD_BOTTOM}`}
         >
+          <CatalogSeoIntro text={SERVICES_CATALOG_INTRO} className="mb-3 px-0.5" />
+
           {!loading && !error && showCategoryRail ? (
             <div className="scrollbar-hidden -mx-0.5 mb-3 flex gap-2 overflow-x-auto px-0.5">
               <ServiceCategoryRail

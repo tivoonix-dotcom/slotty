@@ -27,10 +27,13 @@ import {
   VERIFY_EMAIL_PATH,
 } from '../../app/paths';
 import { normalizeCategoryCode } from '../../features/catalog/serviceCategoryLabels';
+import { getCategoryOgImage } from './seoCategoryImages';
 import {
   SEO_DEFAULT_OG_IMAGE,
   SEO_DEFAULT_ROBOTS,
+  SEO_MASTER_LANDING_OG_IMAGE,
   SEO_NOINDEX_ROBOTS,
+  SEO_SERVICES_OG_IMAGE,
   SEO_SITE_NAME,
 } from './seoSite';
 
@@ -61,58 +64,59 @@ const SERVICES_META: SeoMeta = {
     'Выбирайте услуги мастеров в Минске, смотрите цены, свободное время и записывайтесь онлайн через SLOTTY.',
   robots: SEO_DEFAULT_ROBOTS,
   canonicalPath: SERVICES_PATH,
-  ogImage: SEO_DEFAULT_OG_IMAGE,
+  ogImage: SEO_SERVICES_OG_IMAGE,
 };
 
+function categoryMeta(code: string, title: string, description: string): SeoMeta {
+  return {
+    title,
+    description,
+    robots: SEO_DEFAULT_ROBOTS,
+    canonicalPath: `${SERVICES_PATH}/category/${code}`,
+    ogImage: getCategoryOgImage(code),
+  };
+}
+
 const CATEGORY_META: Record<string, SeoMeta> = {
-  manicure: {
-    title: 'Маникюр в Минске — запись онлайн | SLOTTY',
-    description:
-      'Маникюр в Минске: мастера, цены, свободные окна и онлайн-запись через SLOTTY.',
-    robots: SEO_DEFAULT_ROBOTS,
-    canonicalPath: `${SERVICES_PATH}/category/manicure`,
-    ogImage: SEO_DEFAULT_OG_IMAGE,
-  },
-  barbers: {
-    title: 'Барберы в Минске — запись онлайн | SLOTTY',
-    description:
-      'Барберы в Минске: стрижки, борода, свободное время и онлайн-запись через SLOTTY.',
-    robots: SEO_DEFAULT_ROBOTS,
-    canonicalPath: `${SERVICES_PATH}/category/barbers`,
-    ogImage: SEO_DEFAULT_OG_IMAGE,
-  },
-  'brows-lashes': {
-    title: 'Брови и ресницы в Минске — запись онлайн | SLOTTY',
-    description:
-      'Брови и ресницы в Минске: мастера, цены, свободные окна и онлайн-запись через SLOTTY.',
-    robots: SEO_DEFAULT_ROBOTS,
-    canonicalPath: `${SERVICES_PATH}/category/brows-lashes`,
-    ogImage: SEO_DEFAULT_OG_IMAGE,
-  },
-  massage: {
-    title: 'Массаж в Минске — запись онлайн | SLOTTY',
-    description:
-      'Массаж в Минске: мастера, цены, свободные окна и онлайн-запись через SLOTTY.',
-    robots: SEO_DEFAULT_ROBOTS,
-    canonicalPath: `${SERVICES_PATH}/category/massage`,
-    ogImage: SEO_DEFAULT_OG_IMAGE,
-  },
-  fitness: {
-    title: 'Фитнес в Минске — запись онлайн | SLOTTY',
-    description:
-      'Фитнес-тренеры в Минске: услуги, расписание, свободные окна и онлайн-запись через SLOTTY.',
-    robots: SEO_DEFAULT_ROBOTS,
-    canonicalPath: `${SERVICES_PATH}/category/fitness`,
-    ogImage: SEO_DEFAULT_OG_IMAGE,
-  },
-  tattoo: {
-    title: 'Тату в Минске — запись онлайн | SLOTTY',
-    description:
-      'Тату-мастера в Минске: услуги, цены, свободные окна и онлайн-запись через SLOTTY.',
-    robots: SEO_DEFAULT_ROBOTS,
-    canonicalPath: `${SERVICES_PATH}/category/tattoo`,
-    ogImage: SEO_DEFAULT_OG_IMAGE,
-  },
+  manicure: categoryMeta(
+    'manicure',
+    'Маникюр в Минске — запись онлайн | SLOTTY',
+    'Маникюр в Минске: мастера, цены, свободные окна и онлайн-запись через SLOTTY.',
+  ),
+  barbers: categoryMeta(
+    'barbers',
+    'Барберы в Минске — запись онлайн | SLOTTY',
+    'Барберы в Минске: стрижки, борода, свободное время и онлайн-запись через SLOTTY.',
+  ),
+  'brows-lashes': categoryMeta(
+    'brows-lashes',
+    'Брови и ресницы в Минске — запись онлайн | SLOTTY',
+    'Брови и ресницы в Минске: мастера, цены, свободные окна и онлайн-запись через SLOTTY.',
+  ),
+  massage: categoryMeta(
+    'massage',
+    'Массаж в Минске — запись онлайн | SLOTTY',
+    'Массаж в Минске: мастера, цены, свободные окна и онлайн-запись через SLOTTY.',
+  ),
+  fitness: categoryMeta(
+    'fitness',
+    'Фитнес в Минске — запись онлайн | SLOTTY',
+    'Фитнес-тренеры в Минске: услуги, расписание, свободные окна и онлайн-запись через SLOTTY.',
+  ),
+  tattoo: categoryMeta(
+    'tattoo',
+    'Тату в Минске — запись онлайн | SLOTTY',
+    'Тату-мастера в Минске: услуги, цены, свободные окна и онлайн-запись через SLOTTY.',
+  ),
+};
+
+const MASTER_LANDING_META: SeoMeta = {
+  title: 'SLOTTY для мастеров — кабинет, запись и тарифы',
+  description:
+    'Онлайн-запись для ваших клиентов в Минске: профиль в каталоге, услуги, расписание и заявки. Бесплатный старт и тариф Pro для активного потока.',
+  robots: SEO_DEFAULT_ROBOTS,
+  canonicalPath: MASTER_START_PATH,
+  ogImage: SEO_MASTER_LANDING_OG_IMAGE,
 };
 
 const LEGAL_META: Record<string, SeoMeta> = {
@@ -213,13 +217,17 @@ const NOINDEX_PATH_PREFIXES = [
   `${PROFILE_PATH}/`,
   `${ADMIN_PATH}/`,
   '/platform-admin/',
+  '/master/settings',
+  '/client/appointments/',
+  '/master/appointments/',
+  '/payment/',
+  '/unsubscribe/',
 ] as const;
 
 const NOINDEX_EXACT_PATHS = new Set([
   LOGIN_PATH,
   MASTER_LOGIN_PATH,
   MASTER_REGISTER_PATH,
-  MASTER_START_PATH,
   VERIFY_EMAIL_PATH,
   FORGOT_PASSWORD_PATH,
   RESET_PASSWORD_PATH,
@@ -231,6 +239,7 @@ const NOINDEX_EXACT_PATHS = new Set([
   BECOME_MASTER_PATH,
   BOOKING_PATH,
   '/settings',
+  '/status',
 ]);
 
 function pathnameOnly(path: string): string {
@@ -270,6 +279,7 @@ function matchMasterProfile(pathname: string): SeoMeta | null {
 function isKnownAppRoute(path: string): boolean {
   if (path === '/' || path === HUB_PATH) return true;
   if (path === SERVICES_PATH) return true;
+  if (path === MASTER_START_PATH) return true;
   if (path === '/catalog') return true;
   if (path.startsWith(`${SERVICES_PATH}/category/`)) return true;
   if (path.startsWith('/master/')) return true;
@@ -290,6 +300,7 @@ export function resolveSeoMeta(pathname: string): SeoMeta {
   }
 
   if (path === '/' || path === HUB_PATH) return HUB_META;
+  if (path === MASTER_START_PATH) return MASTER_LANDING_META;
   if (path === SERVICES_PATH) return SERVICES_META;
 
   const category = matchServiceCategory(path);

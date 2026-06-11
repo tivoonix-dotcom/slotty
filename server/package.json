@@ -49,6 +49,8 @@
     "test:system-status": "tsx --test src/lib/systemStatus.overall.unit.test.ts",
     "test:data-export": "tsx --test src/modules/data-export/dataExport.unit.test.ts src/lib/dataExportUi.unit.test.ts",
     "test:billing-jobs": "tsx --test src/lib/billingJobs.unit.test.ts",
+    "test:sitemap": "tsx --test src/modules/public/sitemap.service.unit.test.ts",
+    "test:seo-config": "tsx --test ../src/shared/seo/seoConfig.unit.test.ts",
     "staging:billing-saas": "tsx src/scripts/stagingBillingSaasVerify.ts",
     "staging:settings-verify": "tsx src/scripts/stagingSettingsVerify.ts",
     "staging:verify": "tsx src/scripts/stagingBookingVerify.ts"

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { ANALYTICS_EVENTS, trackAnalyticsEvent } from '../../../shared/analytics/analyticsEvents';
 import type { MasterDraft, MasterOnboardingService } from '../../../features/profile/lib/demoMasterStorage';
 import { postMasterService } from '../../../features/admin/api/masterCabinetApi';
 import { useAdminMasterCabinet } from '../AdminMasterCabinetContext';
@@ -151,6 +152,7 @@ export function MasterCreateServiceSheet({
       if (!useCabinetApi) {
         onPersist(draftWithServices(draft, nextServices));
         handleClose();
+        trackAnalyticsEvent(ANALYTICS_EVENTS.masterServiceCreate);
         onCreated?.(nextService.id);
         return;
       }
@@ -178,6 +180,7 @@ export function MasterCreateServiceSheet({
         const synced = [...services, cabinetServiceDtoToManaged(row, services.length)];
         commitDraftBaseline(draftWithServices(draft, synced));
         handleClose();
+        trackAnalyticsEvent(ANALYTICS_EVENTS.masterServiceCreate);
         onCreated?.(row.id);
       } catch (e) {
         setFormError(e instanceof Error ? e.message : 'Не удалось сохранить');
