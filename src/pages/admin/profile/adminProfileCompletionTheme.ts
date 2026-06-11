@@ -1,9 +1,7 @@
 import { profileCabinetPanel } from './adminProfileDashboardTheme';
 
-const landingPhotosDir = `/photos/${encodeURIComponent('лендинг')}/`;
-
-/** Фон hero-блока заполненности (`public/photos/лендинг/заднийфон.png`). */
-export const PROFILE_COMPLETION_HERO_BG = `${landingPhotosDir}${encodeURIComponent('заднийфон.png')}`;
+/** Фон hero-блока заполненности (`public/photos/landing/background.webp`). */
+export const PROFILE_COMPLETION_HERO_BG = '/photos/landing/background.webp';
 
 export const profileCompletionHeroPanel = 'relative overflow-hidden rounded-[16px]';
 

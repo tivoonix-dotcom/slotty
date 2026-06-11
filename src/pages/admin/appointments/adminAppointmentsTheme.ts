@@ -32,42 +32,41 @@ export const APPOINTMENTS_HERO_BG = '/photos/fon.webp';
 
 export { NOTHING_FOUND_ILLUSTRATION_SRC as APPOINTMENTS_EMPTY_ILLUSTRATION_SRC } from '../../../shared/ui/nothingFoundIllustrationSrc';
 
-/** Empty state вкладки «Заявки» (`public/photos/не найдены заявки/1-Photoroom.webp`). */
-export const APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC =
-  `/photos/${encodeURIComponent('не найдены заявки')}/1-Photoroom.webp`;
+/** Empty state вкладки «Заявки» (`public/photos/no-requests-found/empty.webp`). */
+export const APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC = '/photos/no-requests-found/empty.webp';
 
-const appointmentsHistoryPhotosDir = `/photos/${encodeURIComponent('история')}/`;
+const appointmentsHistoryPhotosDir = '/photos/history/';
 
-/** Фоны KPI вкладки «История» (`public/photos/история`). */
+/** Фоны KPI вкладки «История» (`public/photos/history`). */
 export const APPOINTMENTS_HISTORY_KPI_BG = {
-  completed: `${appointmentsHistoryPhotosDir}1.png`,
-  earned: `${appointmentsHistoryPhotosDir}2.png`,
-  cancelled: `${appointmentsHistoryPhotosDir}3.png`,
+  completed: `${appointmentsHistoryPhotosDir}1.webp`,
+  earned: `${appointmentsHistoryPhotosDir}2.webp`,
+  cancelled: `${appointmentsHistoryPhotosDir}3.webp`,
 } as const;
 
-/** Фоны KPI вкладки «Предстоящие» (`public/photos/история`). */
+/** Фоны KPI вкладки «Предстоящие» (`public/photos/history`). */
 export const APPOINTMENTS_UPCOMING_KPI_BG = {
-  total: `${appointmentsHistoryPhotosDir}1.png`,
-  today: `${appointmentsHistoryPhotosDir}2.png`,
-  attention: `${appointmentsHistoryPhotosDir}3.png`,
+  total: `${appointmentsHistoryPhotosDir}1.webp`,
+  today: `${appointmentsHistoryPhotosDir}2.webp`,
+  attention: `${appointmentsHistoryPhotosDir}3.webp`,
 } as const;
 
-/** Фоны KPI вкладки «Заявки» (`public/photos/история`). */
+/** Фоны KPI вкладки «Заявки» (`public/photos/history`). */
 export const APPOINTMENTS_REQUESTS_KPI_BG = {
-  total: `${appointmentsHistoryPhotosDir}1.png`,
-  today: `${appointmentsHistoryPhotosDir}2.png`,
-  expiring: `${appointmentsHistoryPhotosDir}3.png`,
+  total: `${appointmentsHistoryPhotosDir}1.webp`,
+  today: `${appointmentsHistoryPhotosDir}2.webp`,
+  expiring: `${appointmentsHistoryPhotosDir}3.webp`,
 } as const;
 
-/** Фоны hero-блока модалки записи (`public/photos/история`). */
+/** Фоны hero-блока модалки записи (`public/photos/history`). */
 export const APPOINTMENTS_DETAIL_HERO_BG = {
-  pending: `${appointmentsHistoryPhotosDir}1.png`,
-  upcoming: `${appointmentsHistoryPhotosDir}2.png`,
-  active: `${appointmentsHistoryPhotosDir}2.png`,
-  attention: `${appointmentsHistoryPhotosDir}3.png`,
-  completed: `${appointmentsHistoryPhotosDir}${encodeURIComponent('зеленый.png')}`,
-  cancelled: `${appointmentsHistoryPhotosDir}${encodeURIComponent('красный.png')}`,
-  neutral: `${appointmentsHistoryPhotosDir}1.png`,
+  pending: `${appointmentsHistoryPhotosDir}1.webp`,
+  upcoming: `${appointmentsHistoryPhotosDir}2.webp`,
+  active: `${appointmentsHistoryPhotosDir}2.webp`,
+  attention: `${appointmentsHistoryPhotosDir}3.webp`,
+  completed: `${appointmentsHistoryPhotosDir}green.webp`,
+  cancelled: `${appointmentsHistoryPhotosDir}red.webp`,
+  neutral: `${appointmentsHistoryPhotosDir}1.webp`,
 } as const;
 
 export const APPOINTMENTS_TAB_BAR_HEIGHT = ADMIN_MOBILE_TAB_BAR_HEIGHT;

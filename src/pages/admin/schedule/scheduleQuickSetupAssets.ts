@@ -1,5 +1,4 @@
 const BASE = '/photos/quick-setup';
-const QUICK_SETUP_ORIGINAL_DIR = `/photos/${encodeURIComponent('Быстрая настройка')}`;
 
 export const SCHEDULE_QUICK_SETUP_IMAGES = {
   today: `${BASE}/1.webp`,
@@ -7,8 +6,8 @@ export const SCHEDULE_QUICK_SETUP_IMAGES = {
   month: `${BASE}/3.webp`,
   fromSchedule: `${BASE}/4.webp`,
   templatesBg: `${BASE}/templates-bg.webp`,
-  /** Фон hero вкладки «Список» (`public/photos/Быстрая настройка/задний фон.webp`). */
-  listHeroBg: `${QUICK_SETUP_ORIGINAL_DIR}/${encodeURIComponent('задний фон.webp')}`,
+  /** Фон hero вкладки «Список» (`public/photos/quick-setup/hero-bg.webp`). */
+  listHeroBg: `${BASE}/hero-bg.webp`,
   /** Фон кнопки «+» и активного таба «Создать» на мобилке. */
-  tabCreateActiveBg: `${QUICK_SETUP_ORIGINAL_DIR}/${encodeURIComponent('задний фон.webp')}`,
+  tabCreateActiveBg: `${BASE}/hero-bg.webp`,
 } as const;

@@ -2,10 +2,7 @@ import type { FC } from 'react';
 import { ImageReveal } from '../../shared/ui/ImageReveal';
 import { homeSection } from './homeTheme';
 
-const WHY_SLOTTY_DIR = 'Почему удобнее через Slotty';
-
-const whySlottyPhoto = (file: string) =>
-  `/photos/${encodeURIComponent(WHY_SLOTTY_DIR)}/${encodeURIComponent(file)}`;
+const whySlottyPhoto = (file: string) => `/photos/why-slotty/${file}`;
 
 type WhyCard = {
   id: string;
@@ -20,35 +17,35 @@ const WHY_CARDS: WhyCard[] = [
     id: 'free-slots',
     title: 'Свободные окна',
     description: 'Клиент сразу видит доступное время и выбирает удобный слот без переписки в личке.',
-    imageFile: 'свободыне окнаэ.png',
+    imageFile: 'free-slots.webp',
     imageAlt: 'Свободные окна мастера в Slotty',
   },
   {
     id: 'booking',
     title: 'Запись без хаоса',
     description: 'Услуга, мастер, время и правила записи собраны в одном месте.',
-    imageFile: 'запись без хаоса.png',
+    imageFile: 'booking-flow.webp',
     imageAlt: 'Запись на услугу без хаоса в переписках',
   },
   {
     id: 'reminders',
     title: 'Напоминания',
     description: 'Slotty помогает не забыть о визите через Telegram и email.',
-    imageFile: 'напоминания.png',
+    imageFile: 'reminders.webp',
     imageAlt: 'Напоминания о визите в Telegram и email',
   },
   {
     id: 'reviews',
     title: 'Отзывы и рейтинг',
     description: 'Клиенты выбирают мастера по реальному опыту других людей.',
-    imageFile: 'отзывы.png',
+    imageFile: 'reviews.webp',
     imageAlt: 'Отзывы и рейтинг мастера в Slotty',
   },
   {
     id: 'history',
     title: 'История записей',
     description: 'Все визиты сохраняются в профиле, чтобы ничего не потерялось.',
-    imageFile: 'История записей.png',
+    imageFile: 'booking-history.webp',
     imageAlt: 'История записей в профиле клиента',
   },
 ];

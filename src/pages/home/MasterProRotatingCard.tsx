@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 export const MASTER_PRO_ROTATE_MS = 2000;
-const PLAN = '/photos/план';
 
 type ThemeVariant = 'dark' | 'light';
 
@@ -19,7 +18,7 @@ export const MASTER_PRO_CATEGORY_THEMES: CategoryTheme[] = [
   {
     key: 'barbers',
     label: 'Барбершоп',
-    image: `${PLAN}/барбер.webp`,
+    image: '/photos/plan/barber.webp',
     variant: 'dark',
     accent: '#FFE566',
     scrim: 'bg-black/25',
@@ -27,7 +26,7 @@ export const MASTER_PRO_CATEGORY_THEMES: CategoryTheme[] = [
   {
     key: 'tattoo',
     label: 'Тату',
-    image: `${PLAN}/тату.webp`,
+    image: '/photos/plan/tattoo.webp',
     variant: 'dark',
     accent: '#F0C8A8',
     scrim: 'bg-black/30',
@@ -35,7 +34,7 @@ export const MASTER_PRO_CATEGORY_THEMES: CategoryTheme[] = [
   {
     key: 'massage',
     label: 'Массаж',
-    image: `${PLAN}/массаж.webp`,
+    image: '/photos/plan/massage.webp',
     variant: 'light',
     accent: '#3D6B52',
     scrim: 'bg-white/15',
@@ -43,7 +42,7 @@ export const MASTER_PRO_CATEGORY_THEMES: CategoryTheme[] = [
   {
     key: 'manicure',
     label: 'Маникюр',
-    image: `${PLAN}/маниюко.webp`,
+    image: '/photos/plan/manicure.webp',
     variant: 'light',
     accent: '#C45C7A',
     scrim: 'bg-white/20',
@@ -51,7 +50,7 @@ export const MASTER_PRO_CATEGORY_THEMES: CategoryTheme[] = [
   {
     key: 'brows',
     label: 'Брови и ресницы',
-    image: `${PLAN}/брови.webp`,
+    image: '/photos/plan/brows.webp',
     variant: 'light',
     accent: '#8B4A5C',
     scrim: 'bg-white/18',
@@ -59,7 +58,7 @@ export const MASTER_PRO_CATEGORY_THEMES: CategoryTheme[] = [
   {
     key: 'fitness',
     label: 'Фитнес',
-    image: `${PLAN}/фитнес.webp`,
+    image: '/photos/plan/fitness.webp',
     variant: 'dark',
     accent: '#7EC8FF',
     scrim: 'bg-black/35',

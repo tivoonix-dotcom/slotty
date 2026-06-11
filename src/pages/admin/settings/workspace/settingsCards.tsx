@@ -297,7 +297,7 @@ export function SettingsCabinetToggleRow({
   );
 }
 
-export const SETTINGS_DANGER_ZONE_BG_SRC = '/photos/УДАЛИТЬ/1.webp';
+export const SETTINGS_DANGER_ZONE_BG_SRC = '/photos/delete-account/1.webp';
 
 export function SettingsDangerZone({
   onDelete,

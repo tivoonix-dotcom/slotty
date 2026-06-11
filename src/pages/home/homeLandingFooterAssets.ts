@@ -1,5 +1,2 @@
-const landingPhoto = (file: string) =>
-  `/photos/${encodeURIComponent('лендинг')}/${encodeURIComponent(file)}`;
-
-/** Декоративный логотип в подвале лендинга (`public/photos/лендинг/slotty.png`). */
-export const HOME_LANDING_FOOTER_LOGO_SRC = landingPhoto('slotty.png');
+/** Декоративный логотип в подвале лендинга (`public/photos/landing/slotty.webp`). */
+export const HOME_LANDING_FOOTER_LOGO_SRC = '/photos/landing/slotty.webp';

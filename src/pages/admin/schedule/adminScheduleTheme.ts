@@ -71,12 +71,11 @@ export const scheduleKpiIconCircle =
 /** Точки карусели KPI на странице расписания. */
 export const scheduleKpiCarouselDot = 'bg-[#3B4CCA]';
 
-/** Фон KPI-плиток на вкладке «Создать» (`public/photos/Быстрая настройка/задний фон.webp`). */
+/** Фон KPI-плиток на вкладке «Создать» (`public/photos/quick-setup/задний фон.webp`). */
 export const SCHEDULE_KPI_TILE_BG = SCHEDULE_QUICK_SETUP_IMAGES.tabCreateActiveBg;
 
-/** Пустой день в календаре (`public/photos/история/окон нет.png`). */
-export const SCHEDULE_NO_WINDOWS_DAY_ILLUSTRATION_SRC =
-  `/photos/${encodeURIComponent('история')}/${encodeURIComponent('окон нет.png')}`;
+/** Пустой день в календаре (`public/photos/history/окон нет.png`). */
+export const SCHEDULE_NO_WINDOWS_DAY_ILLUSTRATION_SRC = '/photos/history/no-slots.webp';
 
 export const scheduleKpiTileOverlay = apptHistoryKpiTileOverlay;
 
@@ -229,14 +228,14 @@ export function scheduleBusyDayChipClass(selected: boolean): string {
 /** @deprecated Используйте scheduleMobileTray */
 export const scheduleCalendarTray = scheduleMobileTray;
 
-const scheduleTabPhotosDir = '/photos/' + encodeURIComponent('Расписание') + '/';
+const scheduleTabPhotosDir = '/photos/schedule-tabs/';
 
-/** Фото для шапок табов (`public/photos/Расписание`). */
+/** Фото для шапок табов (`public/photos/schedule-tabs`). */
 export function scheduleTabPhotoSrc(fileName: string): string {
-  return scheduleTabPhotosDir + encodeURIComponent(fileName);
+  return `${scheduleTabPhotosDir}${fileName}`;
 }
 
-/** Фон hero по вкладке (`public/photos/Расписание`). */
+/** Фон hero по вкладке (`public/photos/schedule-tabs`). */
 export function scheduleTabHeroBg(fileName: '111.webp' | '222.webp' | '333.webp'): string {
   return scheduleTabPhotoSrc(fileName);
 }

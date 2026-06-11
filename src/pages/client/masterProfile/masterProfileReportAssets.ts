@@ -1,1 +1,1 @@
-export const MASTER_PROFILE_REPORT_ART = `/photos/${encodeURIComponent('УДАЛИТЬ')}/1.webp`;
+export const MASTER_PROFILE_REPORT_ART = '/photos/delete-account/1.webp';

@@ -1,10 +1,8 @@
-const landingDir = `/photos/${encodeURIComponent('лендинг')}/`;
+/** Фон активной вкладки «Мастер» (`public/photos/landing/master.webp`). */
+export const CABINET_ROLE_MASTER_TAB_BG = '/photos/landing/master.webp';
 
-/** Фон активной вкладки «Мастер» (`public/photos/лендинг/мастер.png`). */
-export const CABINET_ROLE_MASTER_TAB_BG = `${landingDir}${encodeURIComponent('мастер.png')}`;
-
-/** Фон активной вкладки «Клиент» (`public/photos/лендинг/заднийфон.png`). */
-export const CABINET_ROLE_CLIENT_TAB_BG = `${landingDir}${encodeURIComponent('заднийфон.png')}`;
+/** Фон активной вкладки «Клиент» (`public/photos/landing/background.webp`). */
+export const CABINET_ROLE_CLIENT_TAB_BG = '/photos/landing/background.webp';
 
 /** Фон розовых акцент-кнопок: колокол, активный таб нижней панели. */
 export const CABINET_ACCENT_BTN_BG = CABINET_ROLE_CLIENT_TAB_BG;

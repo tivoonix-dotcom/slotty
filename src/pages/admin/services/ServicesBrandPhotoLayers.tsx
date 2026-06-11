@@ -5,7 +5,7 @@ type Props = {
   roundedClassName?: string;
 };
 
-/** Фото-фон кнопки «Добавить услугу» (`public/photos/история/красный.png`). */
+/** Фото-фон кнопки «Добавить услугу» (`public/photos/history/красный.png`). */
 export function ServicesBrandPhotoLayers({
   className = '',
   roundedClassName = 'rounded-[12px]',

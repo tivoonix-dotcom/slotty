@@ -88,10 +88,10 @@ export const overviewFilterChipIdle =
 
 export const overviewEmptyIllustrationSrc = MINI_PICTURE.searchEmpty;
 
-const overviewSvodkaDir = '/photos/' + encodeURIComponent('сводка') + '/';
+const overviewSvodkaDir = '/photos/summary/';
 
 export function overviewSvodkaPhotoSrc(fileName: string): string {
-  return overviewSvodkaDir + encodeURIComponent(fileName);
+  return `${overviewSvodkaDir}${fileName}`;
 }
 
 /** Тот же фон, что у hero «Расписание → Окна» (`public/photos/fon.webp`). */
@@ -100,10 +100,10 @@ export const OVERVIEW_WELCOME_IMAGE_SRC = '/photos/fon.webp';
 /** @deprecated use MINI_PICTURE.clientsEmpty */
 export const OVERVIEW_CLIENTS_FOOTER_SRC = MINI_PICTURE.clientsEmpty;
 
-const overviewHistoryPhotosDir = `/photos/${encodeURIComponent('история')}/`;
+const overviewHistoryPhotosDir = `/photos/history/`;
 
-/** Фон KPI-блоков «Сегодня» (`public/photos/история/красно-синий.png`). */
-export const OVERVIEW_OPS_KPI_BG = `${overviewHistoryPhotosDir}${encodeURIComponent('красно-синий.png')}`;
+/** Фон KPI-блоков «Сегодня» (`public/photos/history/красно-синий.png`). */
+export const OVERVIEW_OPS_KPI_BG = `${overviewHistoryPhotosDir}red-blue.webp`;
 
 export const overviewOpsKpiTileOverlay =
   'pointer-events-none absolute inset-0 bg-gradient-to-br from-white/25 via-white/15 to-white/45';

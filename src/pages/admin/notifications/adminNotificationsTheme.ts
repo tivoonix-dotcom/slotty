@@ -21,14 +21,14 @@ export const NOTIFICATIONS_DESKTOP_CANVAS = PROFILE_DESKTOP_PAGE_BG;
 
 export const notificationsShellCard = 'hidden w-full min-w-0 lg:block';
 
-const notificationsHistoryPhotosDir = `/photos/${encodeURIComponent('история')}/`;
+const notificationsHistoryPhotosDir = `/photos/history/`;
 
-/** Фоны KPI уведомлений (`public/photos/история`). */
+/** Фоны KPI уведомлений (`public/photos/history`). */
 export const NOTIFICATIONS_KPI_BG = {
-  actionRequired: `${notificationsHistoryPhotosDir}3.png`,
-  unread: `${notificationsHistoryPhotosDir}1.png`,
-  today: `${notificationsHistoryPhotosDir}2.png`,
-  read: `${notificationsHistoryPhotosDir}${encodeURIComponent('зеленый.png')}`,
+  actionRequired: `${notificationsHistoryPhotosDir}3.webp`,
+  unread: `${notificationsHistoryPhotosDir}1.webp`,
+  today: `${notificationsHistoryPhotosDir}2.webp`,
+  read: `${notificationsHistoryPhotosDir}green.webp`,
 } as const;
 
 /** Панель фильтров — без карточки и бордеров. */

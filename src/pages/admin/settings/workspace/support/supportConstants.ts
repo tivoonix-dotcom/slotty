@@ -94,8 +94,8 @@ export const SUPPORT_CONTACT_CHANNEL_OPTIONS = [
   { value: 'in_app', label: 'В приложении' },
 ] as const;
 
-/** Фон блока «Нужна срочная помощь?» (`public/photos/срочнопомощь/1.webp`). */
-export const SUPPORT_URGENT_HELP_BG = '/photos/срочнопомощь/1.webp';
+/** Фон блока «Нужна срочная помощь?» (`public/photos/urgent-help/1.webp`). */
+export const SUPPORT_URGENT_HELP_BG = '/photos/urgent-help/1.webp';
 
 export const SUPPORT_DRAFT_STORAGE_KEY = 'slotty:support-contact-draft';
 export const SUPPORT_MESSAGE_MAX = 5000;

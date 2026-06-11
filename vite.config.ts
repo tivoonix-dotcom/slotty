@@ -27,4 +27,23 @@ function ensureJitiTempDir(): Plugin {
 
 export default defineConfig({
   plugins: [ensureJitiTempDir(), react()],
+  build: {
+    target: 'es2020',
+    cssMinify: true,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('react-router')) return 'router';
+          if (id.includes('@tanstack/react-query')) return 'query';
+          if (id.includes('@sentry')) return 'sentry';
+          if (id.includes('leaflet')) return 'leaflet';
+          if (id.includes('react-dom') || id.includes('/react/')) return 'react';
+          if (id.includes('docx')) return 'docx';
+          return 'vendor';
+        },
+      },
+    },
+  },
 });

@@ -30,7 +30,7 @@ export type ServiceListingRecord = {
   priceFrom: number;
   /** Аватар мастера (колонка «Мастера»). */
   photoUrl: string;
-  /** Обложка услуги по категории (`public/photos/каталог_услуги/`). */
+  /** Обложка услуги по категории (`public/photos/catalog-services/`). */
   serviceCoverUrl?: string;
   serviceCoverFocalX?: number;
   serviceCoverFocalY?: number;

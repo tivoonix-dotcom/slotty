@@ -2,8 +2,8 @@ import type { PublicStatusPage, SystemComponentStatus } from './systemStatusApi'
 
 export type StatusCenterVariant = 'public' | 'cabinet';
 
-/** Фон hero публичной страницы `/status` (`public/photos/статус/1.webp`). */
-export const PUBLIC_STATUS_HERO_BG = '/photos/статус/1.webp';
+/** Фон hero публичной страницы `/status` (`public/photos/status/1.webp`). */
+export const PUBLIC_STATUS_HERO_BG = '/photos/status/1.webp';
 
 export function statusAccentBar(
   status: SystemComponentStatus | PublicStatusPage['overall']['status'],

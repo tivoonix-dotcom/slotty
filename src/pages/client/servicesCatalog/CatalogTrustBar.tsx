@@ -1,29 +1,29 @@
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import { catalogDesktopPanel } from './servicesCatalogTheme';
 
-const catalogTrustIconsDir = `/photos/${encodeURIComponent('категории')}/`;
+const catalogTrustIconsDir = `/photos/categories/`;
 
 const ITEMS = [
   {
-    image: `${catalogTrustIconsDir}1.png`,
+    image: `${catalogTrustIconsDir}1.webp`,
     label: 'Проверенные мастера',
     subtitle: 'Профили, отзывы и рейтинг',
     tone: 'bg-[#FFF1F4]',
   },
   {
-    image: `${catalogTrustIconsDir}2.png`,
+    image: `${catalogTrustIconsDir}2.webp`,
     label: 'Быстрая запись',
     subtitle: 'Без долгих переписок',
     tone: 'bg-[#FFF7ED]',
   },
   {
-    image: `${catalogTrustIconsDir}3.png`,
+    image: `${catalogTrustIconsDir}3.webp`,
     label: 'Бесплатная отмена',
     subtitle: 'Если планы изменились',
     tone: 'bg-[#ECFDF5]',
   },
   {
-    image: `${catalogTrustIconsDir}4.png`,
+    image: `${catalogTrustIconsDir}4.webp`,
     label: 'Оплата у мастера',
     subtitle: 'Онлайн — позже',
     tone: 'bg-[#EFF6FF]',

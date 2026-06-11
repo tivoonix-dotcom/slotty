@@ -39,14 +39,11 @@ export const catalogFilterSheetSectionLabel =
 export const catalogFilterSheetPriceInputClass =
   'h-11 w-full rounded-[12px] bg-[#F0F0F2] px-3 text-[15px] font-medium text-[#111827] outline-none placeholder:text-[#9CA3AF] focus:bg-[#E8E8EA]';
 
-const catalogHistoryPhotosDir = `/photos/${encodeURIComponent('история')}/`;
-const catalogLandingPhotosDir = `/photos/${encodeURIComponent('лендинг')}/`;
+/** Фон hero каталога — `public/photos/landing/background.webp` */
+export const catalogHeroPhotoBg = '/photos/landing/background.webp';
 
-/** Фон hero каталога — `public/photos/лендинг/заднийфон.png` */
-export const catalogHeroPhotoBg = `${catalogLandingPhotosDir}${encodeURIComponent('заднийфон.png')}`;
-
-/** Красный фон акций — `public/photos/история/красный.png` */
-export const catalogFilterPromoBg = `${catalogHistoryPhotosDir}${encodeURIComponent('красный.png')}`;
+/** Красный фон акций — `public/photos/history/red.webp` */
+export const catalogFilterPromoBg = '/photos/history/red.webp';
 
 export const catalogFilterSheetPromoBarClass =
   'relative flex cursor-pointer items-center justify-between overflow-hidden rounded-[14px] px-4 py-3.5';

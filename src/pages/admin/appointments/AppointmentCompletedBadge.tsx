@@ -1,9 +1,8 @@
 import { SlottyImg } from '../../../shared/ui/SlottyImg';
 import { apptBadgeCompleted } from './adminAppointmentsTheme';
 
-/** `public/photos/значки/галочка.png` */
-export const APPOINTMENT_COMPLETED_CHECK_ICON_SRC =
-  `/photos/${encodeURIComponent('значки')}/${encodeURIComponent('галочка.png')}`;
+/** `public/photos/badges/check.webp` */
+export const APPOINTMENT_COMPLETED_CHECK_ICON_SRC = '/photos/badges/check.webp';
 
 type Props = {
   label?: string;

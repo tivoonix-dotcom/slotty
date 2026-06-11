@@ -40,8 +40,8 @@ export function repFilterChipClass(
 
 export const repEmptyList = 'rounded-[16px] bg-[#F5F5F5] px-4 py-10 text-center text-[14px] font-medium text-[#6B7280]';
 
-/** Фон подсказки «Вежливый ответ…» (`public/photos/визит азверешне/1.webp`). */
-export const repReplyHintBg = '/photos/' + encodeURIComponent('визит азверешне') + '/1.webp';
+/** Фон подсказки «Вежливый ответ…» (`public/photos/visit-complete/1.webp`). */
+export const repReplyHintBg = '/photos/visit-complete/1.webp';
 
 export const repAlertBanner =
   'rounded-[16px] bg-[#FFF7ED] px-4 py-3.5';

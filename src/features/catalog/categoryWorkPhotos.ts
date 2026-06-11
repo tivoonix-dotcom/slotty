@@ -1,5 +1,5 @@
-/** `public/photos/каталог_услуги/` — фото услуг по категории для каталога и лендинга. */
-const CATALOG_SERVICES_PHOTOS_BASE = `/photos/${encodeURIComponent('каталог_услуги')}`;
+/** `public/photos/catalog-services/` — фото услуг по категории для каталога и лендинга. */
+const CATALOG_SERVICES_PHOTOS_BASE = `/photos/catalog-services`;
 
 export const CATEGORY_WORK_PHOTOS: Record<string, string> = {
   manicure: `${CATALOG_SERVICES_PHOTOS_BASE}/manicure.webp`,

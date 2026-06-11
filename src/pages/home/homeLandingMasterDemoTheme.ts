@@ -1,10 +1,7 @@
 /** Обёртки и рамки для интерактивных демо кабинета на лендинге мастера. */
 
-const landingPhoto = (file: string) =>
-  `/photos/${encodeURIComponent('лендинг')}/${encodeURIComponent(file)}`;
-
-/** Фон за демо-модалками (`public/photos/лендинг/заднийфон.png`). */
-export const MASTER_DEMO_FRAME_BG_SRC = landingPhoto('заднийфон.png');
+/** Фон за демо-модалками (`public/photos/landing/background.webp`). */
+export const MASTER_DEMO_FRAME_BG_SRC = '/photos/landing/background.webp';
 
 export const masterDemoFrameBgClass = 'bg-cover bg-center bg-no-repeat';
 

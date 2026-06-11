@@ -4,7 +4,7 @@ import {
   resolveCategoryWorkCode,
 } from './categoryWorkPhotos';
 
-/** Готовое фото из `public/photos/каталог_услуги/` для категории мастера. */
+/** Готовое фото из `public/photos/catalog-services/` для категории мастера. */
 export function getServiceCoverStockPhotoUrl(
   categoryCode?: string | null,
   categoryLabel?: string | null,

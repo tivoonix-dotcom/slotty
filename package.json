@@ -21,6 +21,7 @@
     "db:v2:build-all": "node scripts/build-apply-all-v2.mjs",
     "make:admin": "npm run make:admin --prefix server",
     "photos:webp": "node scripts/convert-photos-to-webp.mjs",
+    "photos:migrate": "node scripts/migrate-photos-english-webp.mjs",
     "brand:assets": "node scripts/generate-brand-assets.mjs",
     "validate:staging-env": "node scripts/validate-staging-env.mjs",
     "staging:booking-verify": "node scripts/staging-booking-verify.mjs",

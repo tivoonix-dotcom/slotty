@@ -1,2 +1,2 @@
-/** Фон блока жалобы на клиента (`public/photos/УДАЛИТЬ`). */
-export const MASTER_CLIENT_REPORT_ART = `/photos/${encodeURIComponent('УДАЛИТЬ')}/1.webp`;
+/** Фон блока жалобы на клиента (`public/photos/delete-account`). */
+export const MASTER_CLIENT_REPORT_ART = '/photos/delete-account/1.webp';

@@ -13,10 +13,7 @@ import {
 import { ImageReveal } from '../../shared/ui/ImageReveal';
 import { homeOutlineBtn, homePinkBtn, homeSection } from './homeTheme';
 
-const HOW_IT_WORKS_DIR = 'КАК РАБОАТЕТ';
-
-const howItWorksPhoto = (file: string) =>
-  `/photos/${encodeURIComponent(HOW_IT_WORKS_DIR)}/${encodeURIComponent(file)}`;
+const howItWorksPhoto = (file: string) => `/photos/how-it-works/${file}`;
 
 const BENTO_ROUND = 'overflow-hidden rounded-[20px] sm:rounded-[28px]';
 const BENTO_SURFACE = 'bg-[#FAF7F4]';

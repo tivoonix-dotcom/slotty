@@ -1,7 +1,7 @@
 import type { FC, ReactNode, SVGProps } from 'react';
 import { homeSection } from './home/homeTheme';
 
-const BARBER_BG = '/photos/барбершоп/fon.webp';
+const BARBER_BG = '/photos/barbershop/fon.webp';
 
 const CREAM = '#FAFAF8';
 const BARBER_SERIF = "Georgia, 'Times New Roman', Times, serif";

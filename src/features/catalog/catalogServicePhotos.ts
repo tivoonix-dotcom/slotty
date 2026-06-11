@@ -1,6 +1,6 @@
 import { CATEGORY_WORK_PHOTOS, resolveCategoryWorkCode } from './categoryWorkPhotos';
 
-/** Фото карточек услуг (`public/photos/каталог_услуги/`). */
+/** Фото карточек услуг (`public/photos/catalog-services/`). */
 export const CATALOG_SERVICE_IMAGES = {
   manicure: CATEGORY_WORK_PHOTOS.manicure,
   barbers: CATEGORY_WORK_PHOTOS.barbers,
@@ -12,47 +12,47 @@ export const CATALOG_SERVICE_IMAGES = {
 
 export type CatalogServiceImageKey = keyof typeof CATALOG_SERVICE_IMAGES;
 
-const WORK_BASE = `/photos/${encodeURIComponent('work')}`;
-const LANDING_BASE = `/photos/${encodeURIComponent('лендинг')}/${encodeURIComponent('каталог')}`;
-const PLAN_BASE = `/photos/${encodeURIComponent('план')}`;
+const WORK_BASE = '/photos/work';
+const LANDING_BASE = '/photos/landing/catalog';
+const PLAN_BASE = '/photos/plan';
 
 /** Несколько пулов на категорию — детерминированный выбор по id услуги/мастера. */
 const CATEGORY_PHOTO_POOLS: Record<CatalogServiceImageKey, readonly string[]> = {
   manicure: [
     CATALOG_SERVICE_IMAGES.manicure,
     `${WORK_BASE}/manicure.webp`,
-    `${LANDING_BASE}/${encodeURIComponent('маникюр')}.webp`,
-    `${PLAN_BASE}/${encodeURIComponent('маниюко')}.webp`,
+    `${LANDING_BASE}/manicure.webp`,
+    `${PLAN_BASE}/manicure.webp`,
   ],
   barbers: [
     CATALOG_SERVICE_IMAGES.barbers,
     `${WORK_BASE}/barbers.webp`,
-    `${LANDING_BASE}/${encodeURIComponent('барберы')}.webp`,
-    `${PLAN_BASE}/${encodeURIComponent('барбер')}.webp`,
+    `${LANDING_BASE}/barbers.webp`,
+    `${PLAN_BASE}/barber.webp`,
   ],
   brows_lashes: [
     CATALOG_SERVICE_IMAGES.brows_lashes,
     `${WORK_BASE}/brows_lashes.webp`,
-    `${LANDING_BASE}/${encodeURIComponent('брови')}.webp`,
-    `${PLAN_BASE}/${encodeURIComponent('брови')}.webp`,
+    `${LANDING_BASE}/brows.webp`,
+    `${PLAN_BASE}/brows.webp`,
   ],
   massage: [
     CATALOG_SERVICE_IMAGES.massage,
     `${WORK_BASE}/massage.webp`,
-    `${LANDING_BASE}/${encodeURIComponent('массаж')}.webp`,
-    `${PLAN_BASE}/${encodeURIComponent('массаж')}.webp`,
+    `${LANDING_BASE}/massage.webp`,
+    `${PLAN_BASE}/massage.webp`,
   ],
   fitness: [
     CATALOG_SERVICE_IMAGES.fitness,
     `${WORK_BASE}/fitness.webp`,
-    `${LANDING_BASE}/${encodeURIComponent('фитнес')}.webp`,
-    `${PLAN_BASE}/${encodeURIComponent('фитнес')}.webp`,
+    `${LANDING_BASE}/fitness.webp`,
+    `${PLAN_BASE}/fitness.webp`,
   ],
   tattoo: [
     CATALOG_SERVICE_IMAGES.tattoo,
     `${WORK_BASE}/tattoo.webp`,
-    `${LANDING_BASE}/${encodeURIComponent('тату')}.webp`,
-    `${PLAN_BASE}/${encodeURIComponent('тату')}.webp`,
+    `${LANDING_BASE}/tattoo.webp`,
+    `${PLAN_BASE}/tattoo.webp`,
   ],
 };
 

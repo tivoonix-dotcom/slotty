@@ -42,19 +42,17 @@ export const SLOTTY_GRADIENT =
 /** Фон hero сводки услуг (`public/photos/fon.webp`). */
 export const SERVICES_HERO_BG = '/photos/fon.webp';
 
-const servicesTabPhotosDir = '/photos/' + encodeURIComponent('услуги') + '/';
+const servicesTabPhotosDir = '/photos/services-tabs/';
 
-const servicesHistoryPhotosDir = `/photos/${encodeURIComponent('история')}/`;
+/** Фон кнопки «Добавить услугу» (`public/photos/history/red.webp`). */
+export const SERVICES_CATALOG_ADD_BTN_BG = '/photos/history/red.webp';
 
-/** Фон кнопки «Добавить услугу» (`public/photos/история/красный.png`). */
-export const SERVICES_CATALOG_ADD_BTN_BG = `${servicesHistoryPhotosDir}${encodeURIComponent('красный.png')}`;
-
-/** Фото для шапок табов «Услуги» (`public/photos/услуги`). */
+/** Фото для шапок табов «Услуги» (`public/photos/services-tabs`). */
 export function servicesTabPhotoSrc(fileName: string): string {
-  return servicesTabPhotosDir + encodeURIComponent(fileName);
+  return `${servicesTabPhotosDir}${fileName}`;
 }
 
-/** Фон hero по вкладке (`public/photos/услуги`). */
+/** Фон hero по вкладке (`public/photos/services-tabs`). */
 export function servicesTabHeroBg(fileName: '11.webp' | '22.webp' | '33.webp' | '44.webp'): string {
   return servicesTabPhotoSrc(fileName);
 }

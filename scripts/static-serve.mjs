@@ -43,9 +43,19 @@ function safeJoin(base, requestPath) {
   return full;
 }
 
+function cacheControlFor(ext) {
+  if (['.webp', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff', '.woff2'].includes(ext)) {
+    return 'public, max-age=31536000, immutable';
+  }
+  if (ext === '.html') return 'no-cache';
+  if (['.js', '.css', '.mjs'].includes(ext)) return 'public, max-age=31536000, immutable';
+  return 'public, max-age=3600';
+}
+
 function sendFile(res, filePath) {
   const ext = path.extname(filePath).toLowerCase();
   res.setHeader('Content-Type', MIME[ext] ?? 'application/octet-stream');
+  res.setHeader('Cache-Control', cacheControlFor(ext));
   const stream = fs.createReadStream(filePath);
   stream.on('error', (err) => {
     console.error('[static-serve] read error', filePath, err.message);

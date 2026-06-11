@@ -52,7 +52,7 @@ function portfolioImageUrls(draft: MasterDraft): string[] {
     .filter((url): url is string => Boolean(url));
 }
 
-/** Фото категории мастера (`public/photos/каталог_услуги/`). */
+/** Фото категории мастера (`public/photos/catalog-services/`). */
 export function draftCategoryWorkImageUrl(draft: MasterDraft): string {
   const code = resolveCategoryWorkCode(draft.primaryCategoryCode ?? draft.category);
   return getCategoryWorkPhotoUrl(code);

@@ -1,8 +1,5 @@
 import { resolveServiceCategorySlug } from '../../constants/serviceTemplates';
 
-/** Фоны и акценты для шага 2 — файлы в public/photos/план */
-const PLAN = '/photos/план';
-
 export type CategoryPlanTheme = {
   code: string;
   planPhoto: string;
@@ -19,7 +16,7 @@ export type CategoryPlanTheme = {
 const THEMES: Record<string, CategoryPlanTheme> = {
   manicure: {
     code: 'manicure',
-    planPhoto: `${PLAN}/маниюко.webp`,
+    planPhoto: '/photos/plan/manicure.webp',
     accent: '#E29595',
     accentSoft: '#FFF1F4',
     accentRing: '#F9D0D6',
@@ -32,7 +29,7 @@ const THEMES: Record<string, CategoryPlanTheme> = {
   },
   barbers: {
     code: 'barbers',
-    planPhoto: `${PLAN}/барбер.webp`,
+    planPhoto: '/photos/plan/barber.webp',
     accent: '#8B5E3C',
     accentSoft: '#F6F0EB',
     accentRing: '#D4B896',
@@ -45,7 +42,7 @@ const THEMES: Record<string, CategoryPlanTheme> = {
   },
   'brows-lashes': {
     code: 'brows-lashes',
-    planPhoto: `${PLAN}/брови.webp`,
+    planPhoto: '/photos/plan/brows.webp',
     accent: '#B07A9A',
     accentSoft: '#FAF2F6',
     accentRing: '#E8C4D6',
@@ -58,7 +55,7 @@ const THEMES: Record<string, CategoryPlanTheme> = {
   },
   massage: {
     code: 'massage',
-    planPhoto: `${PLAN}/массаж.webp`,
+    planPhoto: '/photos/plan/massage.webp',
     accent: '#5F8F7B',
     accentSoft: '#EFF6F2',
     accentRing: '#B8D4C8',
@@ -71,7 +68,7 @@ const THEMES: Record<string, CategoryPlanTheme> = {
   },
   fitness: {
     code: 'fitness',
-    planPhoto: `${PLAN}/фитнес.webp`,
+    planPhoto: '/photos/plan/fitness.webp',
     accent: '#D97745',
     accentSoft: '#FFF4ED',
     accentRing: '#F5C9A8',
@@ -84,7 +81,7 @@ const THEMES: Record<string, CategoryPlanTheme> = {
   },
   tattoo: {
     code: 'tattoo',
-    planPhoto: `${PLAN}/тату.webp`,
+    planPhoto: '/photos/plan/tattoo.webp',
     accent: '#5C4D6E',
     accentSoft: '#F3F0F6',
     accentRing: '#C4B8D4',

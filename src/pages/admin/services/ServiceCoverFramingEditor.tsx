@@ -106,7 +106,7 @@ export function ServiceCoverFramingEditor({
   const busy = disabled || uploading;
   const stockActive =
     Boolean(previewUrl) &&
-    (previewUrl === stockPhotoUrl || previewUrl.includes(encodeURIComponent('каталог_услуги')));
+    (previewUrl === stockPhotoUrl || previewUrl.includes('catalog-services'));
 
   const selectStockPhoto = useCallback(() => {
     if (busy) return;

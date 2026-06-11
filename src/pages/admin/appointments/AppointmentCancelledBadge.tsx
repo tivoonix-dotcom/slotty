@@ -1,9 +1,8 @@
 import { SlottyImg } from '../../../shared/ui/SlottyImg';
 import { apptBadgeCancelled } from './adminAppointmentsTheme';
 
-/** `public/photos/значки/отмена.png` */
-export const APPOINTMENT_CANCELLED_ICON_SRC =
-  `/photos/${encodeURIComponent('значки')}/${encodeURIComponent('отмена.png')}`;
+/** `public/photos/badges/cancel.webp` */
+export const APPOINTMENT_CANCELLED_ICON_SRC = '/photos/badges/cancel.webp';
 
 type Props = {
   label?: string;

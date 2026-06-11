@@ -1,8 +1,7 @@
 import { SlottyImg } from '../../../shared/ui/SlottyImg';
 
-/** `public/photos/значки/восклицательный.png` */
-export const ADMIN_ATTENTION_EXCLAMATION_ICON_SRC =
-  `/photos/${encodeURIComponent('значки')}/${encodeURIComponent('восклицательный.png')}`;
+/** `public/photos/badges/warning.webp` */
+export const ADMIN_ATTENTION_EXCLAMATION_ICON_SRC = '/photos/badges/warning.webp';
 
 type Props = {
   className?: string;
