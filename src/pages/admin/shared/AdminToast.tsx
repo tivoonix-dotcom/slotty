@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HiCheckCircle, HiInformationCircle, HiXCircle } from 'react-icons/hi2';
+import { adminMobileTabBarFabBottom } from './adminMobileTabBarTheme';
 import type { AdminToastState, AdminToastVariant } from './useAdminToast';
 
 const VARIANT_STYLES: Record<
@@ -63,7 +64,7 @@ export function AdminToast({ toast, onDismiss }: Props) {
 
   return createPortal(
     <div
-      className={`pointer-events-none fixed z-[350] flex justify-center px-4 transition-all duration-300 ease-out max-lg:inset-x-0 max-lg:bottom-[calc(5.75rem+1rem+env(safe-area-inset-bottom,0px))] lg:inset-x-auto lg:bottom-24 lg:right-8 lg:justify-end ${
+      className={`pointer-events-none fixed z-[350] flex justify-center px-4 transition-all duration-300 ease-out max-lg:inset-x-0 max-lg:bottom-[${adminMobileTabBarFabBottom}] lg:inset-x-auto lg:bottom-24 lg:right-8 lg:justify-end ${
         visible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
       }`}
       role="status"

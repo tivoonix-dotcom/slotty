@@ -42,13 +42,20 @@ export function MasterCardPortrait({
       ? 'rounded-full'
       : imageClassName.match(/rounded-\[[^\]]+\]|rounded-\w+/)?.[0] ?? 'rounded-[14px]';
 
+  const initials = masterCardInitials(masterName);
+  const initialsSizeClass =
+    initials.length > 1 ? 'text-[length:38cqmin]' : 'text-[length:46cqmin]';
+
   return (
-    <div className={className}>
+    <div className={`${className} [container-type:size]`}>
       <span
-        className={`flex h-full w-full items-center justify-center text-[22px] font-bold text-white ${rounded}`}
+        className={`grid h-full w-full place-items-center font-bold leading-none tracking-tight text-white ${rounded}`}
         style={{ backgroundColor: masterCardAvatarColor(masterName) }}
+        aria-hidden
       >
-        {masterCardInitials(masterName)}
+        <span className={`${initialsSizeClass} inline-flex items-center justify-center leading-none`}>
+          {initials}
+        </span>
       </span>
       {badge}
     </div>

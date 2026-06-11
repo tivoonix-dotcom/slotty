@@ -1,7 +1,7 @@
 import { useEffect, useMemo, type FC, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { HiCalendarDays, HiClock } from 'react-icons/hi2';
-import { getBookingPath, MASTERS_PATH, SERVICES_PATH } from '../app/paths';
+import { getBookingPath, SERVICES_PATH } from '../app/paths';
 import {
   getServiceCategoryLabel,
   normalizeCategoryCode,
@@ -201,7 +201,7 @@ export const HomeTopMasters: FC<HomeTopMastersProps> = ({ masters, isLoading }) 
               emptyTitle="Мастера скоро появятся"
               emptyText="Откройте каталог и выберите услугу."
               emptyAction={
-                <Link to={MASTERS_PATH} className={`${homePinkBtn} w-full max-w-xs`}>
+                <Link to={SERVICES_PATH} className={`${homePinkBtn} w-full max-w-xs`}>
                   Все мастера
                 </Link>
               }

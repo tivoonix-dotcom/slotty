@@ -6,10 +6,11 @@ import {
   masterBookingClientSignal,
   masterBookingCompleted,
   masterBookingDisputedByClient,
+  masterBookingExpired,
   masterBookingRequestCreated,
 } from '../notifications/templates/appointmentNotificationTemplates.js';
 import { masterBookingTelegramKeyboard } from '../notifications/telegramAppointmentKeyboard.js';
-import { masterBookingCreatedEmail } from './appointmentNotifyEmail.js';
+import { masterBookingCreatedEmail, masterBookingExpiredEmail } from './appointmentNotifyEmail.js';
 import type { AppointmentNotifyContext } from './appointmentNotifyContext.js';
 import { fetchAppointmentNotifyContext } from './appointmentNotifyContext.js';
 import type { MasterNotificationEventKey } from '../notifications/masterNotificationPreferences.state.js';
@@ -20,6 +21,25 @@ const related = (ctx: AppointmentNotifyContext) => ({
   relatedEntityType: 'appointment' as const,
   relatedEntityId: ctx.appointmentId,
 });
+
+/** Мастеру: заявка истекла без подтверждения. */
+export async function notifyMasterBookingExpired(appointmentId: string): Promise<void> {
+  const ctx = await fetchAppointmentNotifyContext(appointmentId);
+  if (!ctx) return;
+
+  const payload = masterBookingExpired(ctx);
+  const metadata = await buildBookingNotificationMetadataForAppointment(ctx.appointmentId);
+  await notifyUser({
+    userId: ctx.masterId,
+    ...payload,
+    relatedEntityType: 'appointment',
+    relatedEntityId: ctx.appointmentId,
+    metadata,
+    bookingCode: ctx.voucherNumber,
+    masterPreferenceEvent: 'cancel',
+    email: masterBookingExpiredEmail(ctx),
+  });
+}
 
 /** Мастеру: новая заявка от клиента. */
 export async function notifyMasterBookingCreated(ctx: AppointmentNotifyContext): Promise<void> {

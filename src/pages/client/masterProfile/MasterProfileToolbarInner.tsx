@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { HiArrowLeft, HiFlag, HiHeart, HiShare } from 'react-icons/hi2';
-import { MASTERS_PATH } from '../../../app/paths';
+import { SERVICES_PATH } from '../../../app/paths';
 
 type Props = {
   masterName?: string;
@@ -39,7 +39,7 @@ export function MasterProfileToolbarInner({
   return (
     <div className="relative flex w-full min-h-[52px] items-center justify-between gap-3">
       <Link
-        to={MASTERS_PATH}
+        to={SERVICES_PATH}
         className={`relative z-10 inline-flex min-h-9 min-w-0 max-w-[42%] shrink items-center gap-1.5 text-[14px] font-semibold transition sm:max-w-none ${
           overlay
             ? 'text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] hover:text-white'

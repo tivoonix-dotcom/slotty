@@ -59,7 +59,7 @@ export function ClientCabinetMobileShell({
 
   return (
     <div
-      className={`lg:hidden flex h-dvh min-h-0 min-w-0 flex-col text-[#111827] ${
+      className={`lg:hidden flex h-dvh min-h-0 min-w-0 flex-col overflow-x-clip text-[#111827] ${
         grayCanvas ? clientCabinetMobileCanvasClass : 'bg-white'
       }`}
     >
@@ -73,7 +73,7 @@ export function ClientCabinetMobileShell({
         />
 
         <div
-          className={`mx-auto w-full min-w-0 ${ADMIN_CABINET_SHELL_MAX} ${shellPadBottom} px-4 pt-4 ${
+          className={`mx-auto w-full min-w-0 ${ADMIN_CABINET_SHELL_MAX} ${shellPadBottom} px-3 pt-3 sm:px-4 sm:pt-4 ${
             grayCanvas ? 'max-lg:bg-transparent' : ''
           }`}
         >

@@ -3,7 +3,7 @@ import { resolveClientIp } from '../../lib/clientIp.js';
 import { query } from '../../config/db.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { isMissingAuthSessionsTable, timestampToIso } from './authSessions.db.js';
-import { maskClientIp, parseClientDevice } from './authSessions.userAgent.js';
+import { maskClientIp, normalizeStoredClientIp, parseClientDevice } from './authSessions.userAgent.js';
 
 let sessionsTableMissingLogged = false;
 
@@ -49,6 +49,107 @@ export function issueSessionContextFromRequest(req: Request): IssueSessionContex
   };
 }
 
+function sessionFingerprint(
+  deviceLabel: string,
+  userAgent: string | null | undefined,
+  clientIp: string | null | undefined,
+): string {
+  return [
+    deviceLabel.trim(),
+    (userAgent ?? '').trim(),
+    normalizeStoredClientIp(clientIp) ?? '',
+  ].join('\0');
+}
+
+function dedupeSessionRows(rows: SessionRow[]): SessionRow[] {
+  const byFingerprint = new Map<string, SessionRow>();
+  for (const row of rows) {
+    const fp = sessionFingerprint(row.device_label, row.user_agent, row.client_ip);
+    const prev = byFingerprint.get(fp);
+    if (!prev) {
+      byFingerprint.set(fp, row);
+      continue;
+    }
+    const prevTs = new Date(prev.last_active_at).getTime();
+    const rowTs = new Date(row.last_active_at).getTime();
+    if (rowTs >= prevTs) byFingerprint.set(fp, row);
+  }
+  return [...byFingerprint.values()].sort(
+    (a, b) => new Date(b.last_active_at).getTime() - new Date(a.last_active_at).getTime(),
+  );
+}
+
+async function reuseOrCreateAuthSession(
+  profileId: string,
+  ctx: IssueSessionContext | undefined,
+  parsed: ReturnType<typeof parseClientDevice>,
+): Promise<string> {
+  const userAgent = ctx?.userAgent ?? null;
+  const clientIp = normalizeStoredClientIp(ctx?.clientIp);
+
+  const existing = await query<{ id: string }>(
+    `select id
+       from public.profile_auth_sessions
+      where profile_id = $1
+        and revoked_at is null
+        and device_label = $2
+        and coalesce(user_agent, '') = coalesce($3, '')
+        and coalesce(
+              case
+                when client_ip like '::ffff:%' then substring(client_ip from 8)
+                when client_ip = '::1' then '127.0.0.1'
+                else client_ip
+              end,
+              ''
+            ) = coalesce($4, '')
+      order by last_active_at desc
+      limit 1`,
+    [profileId, parsed.deviceLabel, userAgent, clientIp],
+  );
+
+  const keepId = existing.rows[0]?.id;
+  if (keepId) {
+    await query(
+      `update public.profile_auth_sessions
+          set last_active_at = now(),
+              client_ip = coalesce($2, client_ip),
+              user_agent = coalesce($3, user_agent)
+        where id = $1 and revoked_at is null`,
+      [keepId, clientIp, userAgent],
+    );
+    await query(
+      `update public.profile_auth_sessions
+          set revoked_at = now()
+        where profile_id = $1
+          and revoked_at is null
+          and device_label = $2
+          and coalesce(user_agent, '') = coalesce($3, '')
+          and coalesce(
+                case
+                  when client_ip like '::ffff:%' then substring(client_ip from 8)
+                  when client_ip = '::1' then '127.0.0.1'
+                  else client_ip
+                end,
+                ''
+              ) = coalesce($4, '')
+          and id <> $5`,
+      [profileId, parsed.deviceLabel, userAgent, clientIp, keepId],
+    );
+    return keepId;
+  }
+
+  const inserted = await query<{ id: string }>(
+    `insert into public.profile_auth_sessions (
+       profile_id, user_agent, client_ip, device_label
+     ) values ($1, $2, $3, $4)
+     returning id`,
+    [profileId, userAgent, clientIp, parsed.deviceLabel],
+  );
+  const id = inserted.rows[0]?.id;
+  if (!id) throw ApiError.internal('Failed to create auth session', 'SESSION_CREATE_FAILED');
+  return id;
+}
+
 /** null — таблица сеансов ещё не создана (миграция 056); JWT выдаётся без sid. */
 export async function createAuthSession(
   profileId: string,
@@ -56,16 +157,7 @@ export async function createAuthSession(
 ): Promise<string | null> {
   const parsed = parseClientDevice(ctx?.userAgent);
   try {
-    const inserted = await query<{ id: string }>(
-      `insert into public.profile_auth_sessions (
-         profile_id, user_agent, client_ip, device_label
-       ) values ($1, $2, $3, $4)
-       returning id`,
-      [profileId, ctx?.userAgent ?? null, ctx?.clientIp ?? null, parsed.deviceLabel],
-    );
-    const id = inserted.rows[0]?.id;
-    if (!id) throw ApiError.internal('Failed to create auth session', 'SESSION_CREATE_FAILED');
-    return id;
+    return await reuseOrCreateAuthSession(profileId, ctx, parsed);
   } catch (e) {
     if (isMissingAuthSessionsTable(e)) {
       warnSessionsTableMissing('create');
@@ -115,10 +207,10 @@ export async function touchAuthSession(sessionId: string): Promise<void> {
 
 function buildSessionSubtitle(row: SessionRow, isCurrent: boolean): string {
   const parts: string[] = [];
+  const parsed = parseClientDevice(row.user_agent);
+  if (parsed.subtitle) parts.push(parsed.subtitle);
   const ip = maskClientIp(row.client_ip);
   if (ip) parts.push(ip);
-  const parsed = parseClientDevice(row.user_agent);
-  if (parsed.subtitle && !parts.includes(parsed.subtitle)) parts.push(parsed.subtitle);
   if (isCurrent) parts.push('Это устройство');
   return parts.length ? parts.join(' · ') : 'Подключение';
 }
@@ -149,7 +241,7 @@ export async function listAuthSessionsForProfile(
        limit 30`,
       [profileId],
     );
-    return result.rows.map((r) => rowToListItem(r, currentSessionId));
+    return dedupeSessionRows(result.rows).map((r) => rowToListItem(r, currentSessionId));
   } catch (e) {
     if (isMissingAuthSessionsTable(e)) {
       warnSessionsTableMissing('list');

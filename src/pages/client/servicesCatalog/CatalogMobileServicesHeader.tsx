@@ -95,7 +95,6 @@ export function CatalogMobileServicesHeader({
             placeholder={searchPlaceholder}
             inputClassName="h-10 w-full rounded-[12px] border-0 bg-white pl-9 pr-9 text-[14px] font-medium text-[#111827] outline-none placeholder:text-[#8E8E93]"
             iconClassName="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]"
-            dropdownClassName="absolute left-0 right-0 top-[calc(100%+6px)] z-[60]"
             trailing={
               search.trim() ? (
                 <button

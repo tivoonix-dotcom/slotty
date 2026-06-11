@@ -1,5 +1,11 @@
 import type { CatalogFiltersState } from './catalogFiltersState';
 import {
+  formatDateOffsetLabel,
+  formatSlotDateLabel,
+  formatTimeRangeLabel,
+  isFullTimeRange,
+} from './catalogFilterDateTime';
+import {
   DATE_FILTER_OPTIONS,
   DURATION_FILTER_OPTIONS,
   PRICE_FILTER_OPTIONS,
@@ -36,8 +42,17 @@ export function catalogServicesFilterHints(filters: CatalogFiltersState) {
   ].filter(Boolean);
 
   return {
-    when: optionLabel(DATE_FILTER_OPTIONS, filters.dateRange),
-    time: optionLabel(TIME_FILTER_OPTIONS, filters.timeOfDay),
+    when:
+      filters.slotDate != null
+        ? formatSlotDateLabel(filters.slotDate)
+        : filters.dateDayOffset != null
+          ? formatDateOffsetLabel(filters.dateDayOffset)
+          : filters.dateRange !== 'any'
+            ? optionLabel(DATE_FILTER_OPTIONS, filters.dateRange)
+            : null,
+    time: !isFullTimeRange(filters.timeStartHour, filters.timeEndHour)
+      ? formatTimeRangeLabel(filters.timeStartHour, filters.timeEndHour)
+      : optionLabel(TIME_FILTER_OPTIONS, filters.timeOfDay),
     price: priceHint,
     rating:
       filters.minRating != null

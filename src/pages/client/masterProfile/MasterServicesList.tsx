@@ -3,6 +3,7 @@ import {
   getCategoryWorkPhotoUrl,
   resolveCategoryWorkCode,
 } from '../../../features/catalog/categoryWorkPhotos';
+import { serviceCoverImageStyle } from '../../../features/catalog/serviceCoverPresentation';
 import type { DemoMasterService } from '../../../features/services/model/demoMasters';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import { SectionHeading } from '../components/SectionHeading';
@@ -46,6 +47,15 @@ export function MasterServicesList({
 }: Props) {
   const workPhotoCode = resolveCategoryWorkCode(categoryCode ?? categoryLabel);
   const workPhotoUrl = getCategoryWorkPhotoUrl(workPhotoCode);
+
+  const servicePhoto = (service: DemoMasterService) =>
+    service.coverImageUrl?.trim() || workPhotoUrl;
+
+  const servicePhotoStyle = (service: DemoMasterService) =>
+    serviceCoverImageStyle({
+      focalX: service.coverFocalX,
+      focalY: service.coverFocalY,
+    });
 
   const sorted = [...services].sort((a, b) => {
     if (highlightServiceId) {
@@ -98,9 +108,10 @@ export function MasterServicesList({
                 <article className={`${cardClass} w-full`}>
                   <button type="button" onClick={() => onSelect(service)} className="block w-full text-left">
                     <ImageReveal
-                      src={workPhotoUrl}
+                      src={servicePhoto(service)}
                       alt=""
                       className="aspect-[4/3] w-full object-cover"
+                      style={service.coverImageUrl ? servicePhotoStyle(service) : undefined}
                       loading="lazy"
                     />
                     <div className="flex flex-1 flex-col p-4">

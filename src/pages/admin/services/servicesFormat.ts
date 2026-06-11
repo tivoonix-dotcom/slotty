@@ -28,6 +28,8 @@ export type ManagedService = MasterOnboardingService & {
   isActive?: boolean;
   sortOrder?: number;
   imageUrl?: string;
+  coverFocalX?: number;
+  coverFocalY?: number;
 };
 
 export function formatServicePrice(service: ManagedService): string {

@@ -1,15 +1,18 @@
 import type { CatalogListingsParams } from '../../../features/services/api/catalogListingsApi';
 import type { ServiceCatalogChip } from '../lib/filterServices';
+import { formatIsoDateLocal, isFullTimeRange, offsetFromIso } from './catalogFilterDateTime';
 
 export type CatalogSortBy = NonNullable<CatalogListingsParams['sortBy']>;
 
 const CATALOG_SORT_VALUES = new Set<CatalogSortBy>([
   'recommended',
+  'popular',
   'soonest',
   'rating',
   'price_asc',
   'price_desc',
   'reviews',
+  'distance_asc',
 ]);
 export type CatalogDateRange = NonNullable<CatalogListingsParams['dateRange']>;
 export type CatalogTimeOfDay = NonNullable<CatalogListingsParams['timeOfDay']>;
@@ -21,7 +24,14 @@ export type CatalogFiltersState = {
   categoryCode: string | null;
   sortBy: CatalogSortBy;
   dateRange: CatalogDateRange | 'any';
+  /** ISO YYYY-MM-DD — точный день для API (приоритет над dateRange). */
+  slotDate: string | null;
+  /** Смещение от сегодня (0 = сегодня) для UI-карусели дат. */
+  dateDayOffset: number | null;
   timeOfDay: CatalogTimeOfDay | 'any';
+  /** Диапазон часов для UI-слайдера (0–24). */
+  timeStartHour: number;
+  timeEndHour: number;
   visitType: CatalogVisitType | 'any';
   duration: CatalogDuration | 'any';
   priceTier: PriceTier;
@@ -39,7 +49,11 @@ export const DEFAULT_CATALOG_FILTERS: CatalogFiltersState = {
   categoryCode: null,
   sortBy: 'recommended',
   dateRange: 'any',
+  slotDate: null,
+  dateDayOffset: null,
   timeOfDay: 'any',
+  timeStartHour: 0,
+  timeEndHour: 24,
   visitType: 'any',
   duration: 'any',
   priceTier: 'any',
@@ -68,26 +82,44 @@ function priceTierToRange(tier: PriceTier): { min: number | null; max: number | 
   }
 }
 
+export type CatalogFiltersGeo = {
+  userLat?: number | null;
+  userLng?: number | null;
+};
+
 export function catalogFiltersToApiParams(
   filters: CatalogFiltersState,
   search: string,
+  geo?: CatalogFiltersGeo,
 ): CatalogListingsParams {
   const tier = filters.priceTier !== 'any' ? priceTierToRange(filters.priceTier) : null;
   const minPrice = tier?.min ?? filters.minPrice ?? undefined;
   const maxPrice = tier?.max ?? filters.maxPrice ?? undefined;
 
   let dateRange = filters.dateRange;
-  if (filters.chips.has('today') && dateRange === 'any') dateRange = 'today';
+  if (filters.chips.has('today') && dateRange === 'any' && !filters.slotDate) dateRange = 'today';
 
   const promotionOnly = filters.promotionOnly || filters.chips.has('promo');
+  const popularOnly = filters.chips.has('popular');
+  const newOnly = filters.chips.has('new');
+  const hasExactTime = !isFullTimeRange(filters.timeStartHour, filters.timeEndHour);
+  const lat =
+    geo?.userLat != null && Number.isFinite(geo.userLat) ? geo.userLat : undefined;
+  const lng =
+    geo?.userLng != null && Number.isFinite(geo.userLng) ? geo.userLng : undefined;
 
   return {
     limit: 80,
     sortBy: filters.sortBy,
     search: search.trim() || undefined,
     category: filters.categoryCode ?? undefined,
-    dateRange: dateRange === 'any' ? undefined : dateRange,
-    timeOfDay: filters.timeOfDay === 'any' ? undefined : filters.timeOfDay,
+    slotDate: filters.slotDate ?? undefined,
+    dateRange:
+      filters.slotDate || dateRange === 'any' ? undefined : dateRange,
+    timeFrom: hasExactTime ? filters.timeStartHour : undefined,
+    timeTo: hasExactTime ? filters.timeEndHour : undefined,
+    timeOfDay:
+      hasExactTime || filters.timeOfDay === 'any' ? undefined : filters.timeOfDay,
     visitType: filters.visitType === 'any' ? undefined : filters.visitType,
     duration: filters.duration === 'any' ? undefined : filters.duration,
     minPrice: minPrice ?? undefined,
@@ -96,6 +128,11 @@ export function catalogFiltersToApiParams(
     minReviews: filters.minReviews > 0 ? filters.minReviews : undefined,
     verifiedOnly: filters.verifiedOnly || undefined,
     promotionOnly: promotionOnly || undefined,
+    onlyWithSlots: filters.onlineBookingOnly || undefined,
+    popularOnly: popularOnly || undefined,
+    newOnly: newOnly || undefined,
+    lat,
+    lng,
   };
 }
 
@@ -103,8 +140,10 @@ export function countActiveCatalogFilters(filters: CatalogFiltersState): number 
   let n = 0;
   if (filters.categoryCode) n += 1;
   if (filters.sortBy !== 'recommended') n += 1;
-  if (filters.dateRange !== 'any') n += 1;
-  if (filters.timeOfDay !== 'any') n += 1;
+  if (filters.slotDate || filters.dateRange !== 'any') n += 1;
+  if (!isFullTimeRange(filters.timeStartHour, filters.timeEndHour) || filters.timeOfDay !== 'any') {
+    n += 1;
+  }
   if (filters.visitType !== 'any') n += 1;
   if (filters.duration !== 'any') n += 1;
   if (filters.priceTier !== 'any' || filters.minPrice != null || filters.maxPrice != null) n += 1;
@@ -126,8 +165,16 @@ export function toggleCatalogChip(
   else chips.add(chip);
   const next = { ...filters, chips };
   if (chip === 'promo') next.promotionOnly = chips.has('promo');
-  if (chip === 'today' && chips.has('today')) next.dateRange = 'today';
-  if (chip === 'today' && !chips.has('today') && next.dateRange === 'today') next.dateRange = 'any';
+  if (chip === 'today' && chips.has('today')) {
+    next.dateRange = 'today';
+    next.dateDayOffset = 0;
+    next.slotDate = formatIsoDateLocal(new Date());
+  }
+  if (chip === 'today' && !chips.has('today') && next.dateRange === 'today') {
+    next.dateRange = 'any';
+    next.dateDayOffset = null;
+    next.slotDate = null;
+  }
   return next;
 }
 
@@ -168,6 +215,7 @@ export function setCatalogViewTab(
       ...filters,
       chips,
       promotionOnly: false,
+      sortBy: filters.sortBy === 'popular' ? 'recommended' : filters.sortBy,
     };
   }
 
@@ -176,12 +224,14 @@ export function setCatalogViewTab(
     ...filters,
     chips: new Set([chip]),
     promotionOnly: chip === 'promo',
+    sortBy: tab === 'popular' ? 'popular' : filters.sortBy,
   };
 }
 
 export const CATALOG_SORT_OPTIONS: Array<{ value: CatalogSortBy; label: string }> = [
   { value: 'recommended', label: 'Сначала популярные' },
   { value: 'soonest', label: 'Ближайшее время' },
+  { value: 'distance_asc', label: 'Ближе ко мне' },
   { value: 'rating', label: 'По рейтингу' },
   { value: 'price_asc', label: 'Сначала дешевле' },
   { value: 'price_desc', label: 'Сначала дороже' },
@@ -191,6 +241,7 @@ export const CATALOG_SORT_OPTIONS: Array<{ value: CatalogSortBy; label: string }
 export const SORT_OPTIONS: Array<{ value: CatalogSortBy; label: string }> = [
   { value: 'recommended', label: 'Популярные' },
   { value: 'soonest', label: 'Ближайшее время' },
+  { value: 'distance_asc', label: 'Ближе ко мне' },
   { value: 'rating', label: 'По рейтингу' },
   { value: 'price_asc', label: 'Сначала дешевле' },
   { value: 'price_desc', label: 'Сначала дороже' },
@@ -210,12 +261,32 @@ export function parseCatalogFiltersFromSearch(
   const sortBy =
     sortRaw && CATALOG_SORT_VALUES.has(sortRaw as CatalogSortBy)
       ? (sortRaw as CatalogSortBy)
-      : 'recommended';
+      : chips.has('popular')
+        ? 'popular'
+        : 'recommended';
+
+  const slotDateRaw = searchParams.get('slotDate')?.trim();
+  let slotDate: string | null = null;
+  let dateDayOffset: number | null = null;
+  let dateRange: CatalogDateRange | 'any' = 'any';
+  if (slotDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(slotDateRaw)) {
+    slotDate = slotDateRaw;
+    dateDayOffset = offsetFromIso(slotDateRaw);
+    if (dateDayOffset === 0) {
+      dateRange = 'today';
+      chips.add('today');
+    } else if (dateDayOffset === 1) {
+      dateRange = 'tomorrow';
+    }
+  }
 
   return {
     ...DEFAULT_CATALOG_FILTERS,
     chips,
     sortBy,
     promotionOnly: chips.has('promo'),
+    slotDate,
+    dateDayOffset,
+    dateRange,
   };
 }

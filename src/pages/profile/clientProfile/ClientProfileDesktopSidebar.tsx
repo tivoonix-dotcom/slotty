@@ -9,24 +9,18 @@ import {
   HiUser,
 } from 'react-icons/hi2';
 import {
-  ADMIN_BILLING_PATH,
   BECOME_MASTER_PATH,
   getProfilePath,
   PROFILE_NOTIFICATIONS_PATH,
   PROFILE_PATH,
   PROFILE_SETTINGS_PATH,
 } from '../../../app/paths';
-import { planBadgeLabel } from '../../../features/billing/model/masterPlans';
-import { MasterProBadge } from '../../../shared/ui/MasterProBadge';
 import { ClientProfileAvatar } from './ClientProfileAvatar';
 import {
-  ADMIN_SIDEBAR_TARIFF_BG,
   adminDesktopNavItemClass,
   adminDesktopSidebarShell,
   adminSidebarFooterCard,
-  adminSidebarFooterCardAccent,
 } from '../../admin/adminCabinetLayout';
-import { useClientMasterProStatus } from './useClientMasterProStatus';
 import type { ClientProfileMainTab } from './clientCabinetMobileTabs';
 
 export type { ClientProfileMainTab } from './clientCabinetMobileTabs';
@@ -103,7 +97,6 @@ export function ClientProfileDesktopSidebar({
   favoritesCount,
 }: Props) {
   const { pathname, search } = useLocation();
-  const { planId, showProBadge } = useClientMasterProStatus(isMasterCabinet);
   const isNotifications = pathname === PROFILE_NOTIFICATIONS_PATH;
   const isSettings = pathname.startsWith(PROFILE_SETTINGS_PATH);
   const activeTab = resolveClientProfileTabFromLocation(pathname, search) ?? mainTab;
@@ -153,28 +146,7 @@ export function ClientProfileDesktopSidebar({
       </nav>
 
       <div className="shrink-0 space-y-2 border-t border-[#EEEEEE] p-3">
-        {isMasterCabinet ? (
-          <Link to={ADMIN_BILLING_PATH} className={`${adminSidebarFooterCardAccent} mb-0`}>
-            <div
-              className="pointer-events-none absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${ADMIN_SIDEBAR_TARIFF_BG})` }}
-              aria-hidden
-            />
-            <div className="pointer-events-none absolute inset-0 bg-black/45" aria-hidden />
-            <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white/95 text-[#ff5f7a] shadow-sm">
-              <HiSparkles className="h-5 w-5" aria-hidden />
-            </span>
-            <div className="relative z-10 min-w-0 flex-1 text-left">
-              <p className="flex items-center gap-1.5 text-[14px] font-semibold tracking-[-0.02em] text-white">
-                <span>Тариф {planBadgeLabel(planId)}</span>
-                {showProBadge ? <MasterProBadge className="h-4 w-4" /> : null}
-              </p>
-              <p className="mt-0.5 text-[12px] leading-snug text-white/80">
-                Управление подпиской и лимитами
-              </p>
-            </div>
-          </Link>
-        ) : (
+        {!isMasterCabinet ? (
           <Link to={BECOME_MASTER_PATH} className={adminSidebarFooterCard}>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#FFF1F4] text-[#ff5f7a]">
               <HiSparkles className="h-5 w-5" aria-hidden />
@@ -184,7 +156,7 @@ export function ClientProfileDesktopSidebar({
               <p className="mt-0.5 text-[12px] leading-snug text-[#6B7280]">Принимайте клиентов в SLOTTY</p>
             </div>
           </Link>
-        )}
+        ) : null}
 
         <Link to={getProfilePath('profile')} className={adminSidebarFooterCard}>
           <ClientProfileAvatar

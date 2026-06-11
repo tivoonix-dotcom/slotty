@@ -7,25 +7,29 @@ function num(v: string): number {
   return Number(v);
 }
 
+function clampFocal(v: number | undefined, fallback = 50): number {
+  if (v == null || !Number.isFinite(v)) return fallback;
+  return Math.min(100, Math.max(0, Math.trunc(v)));
+}
+
+function assertServiceCoverUrl(url: string | null | undefined): string {
+  const trimmed = url?.trim();
+  if (!trimmed) {
+    throw ApiError.badRequest('Загрузите фото услуги — оно обязательно для каталога', 'SERVICE_COVER_REQUIRED');
+  }
+  return trimmed;
+}
+
 export async function listMyServices(masterId: string) {
   const r = await query(
-    `select id, title, description, duration_minutes, price_amount::text, price_type::text, is_active, sort_order, category_id
+    `select id, title, description, duration_minutes, price_amount::text, price_type::text, is_active, sort_order, category_id,
+            cover_image_url, cover_image_focal_x, cover_image_focal_y
        from public.master_services
       where master_id = $1
       order by sort_order asc, title asc`,
     [masterId],
   );
-  return (r.rows as ServiceRow[]).map((row) => ({
-    id: row.id,
-    title: row.title,
-    description: row.description,
-    durationMinutes: row.duration_minutes,
-    price: num(row.price_amount),
-    priceType: row.price_type,
-    isActive: row.is_active,
-    sortOrder: row.sort_order,
-    categoryId: row.category_id,
-  }));
+  return (r.rows as ServiceRow[]).map(mapServiceRow);
 }
 
 type ServiceRow = {
@@ -38,7 +42,27 @@ type ServiceRow = {
   is_active: boolean;
   sort_order: number;
   category_id: string;
+  cover_image_url: string | null;
+  cover_image_focal_x: number;
+  cover_image_focal_y: number;
 };
+
+function mapServiceRow(row: ServiceRow) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    durationMinutes: row.duration_minutes,
+    price: num(row.price_amount),
+    priceType: row.price_type,
+    isActive: row.is_active,
+    sortOrder: row.sort_order,
+    categoryId: row.category_id,
+    coverImageUrl: row.cover_image_url,
+    coverFocalX: row.cover_image_focal_x,
+    coverFocalY: row.cover_image_focal_y,
+  };
+}
 
 export async function createMyService(
   masterId: string,
@@ -50,6 +74,9 @@ export async function createMyService(
     priceAmount: number;
     priceType?: 'fixed' | 'from';
     sortOrder?: number;
+    coverImageUrl: string;
+    coverFocalX?: number;
+    coverFocalY?: number;
   },
 ) {
   await assertProfileCanManageMasterContent(masterId);
@@ -63,10 +90,15 @@ export async function createMyService(
 
   await assertCanCreateMasterService(masterId);
 
+  const coverUrl = assertServiceCoverUrl(body.coverImageUrl);
+  const focalX = clampFocal(body.coverFocalX);
+  const focalY = clampFocal(body.coverFocalY);
+
   const ins = await query<{ id: string }>(
     `insert into public.master_services (
-       master_id, category_id, title, description, duration_minutes, price_amount, price_type, is_active, sort_order
-     ) values ($1, $2, $3, $4, $5, $6, $7, true, $8)
+       master_id, category_id, title, description, duration_minutes, price_amount, price_type, is_active, sort_order,
+       cover_image_url, cover_image_focal_x, cover_image_focal_y
+     ) values ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, $10, $11)
      returning id`,
     [
       masterId,
@@ -77,6 +109,9 @@ export async function createMyService(
       body.priceAmount,
       body.priceType ?? 'fixed',
       body.sortOrder ?? 0,
+      coverUrl,
+      focalX,
+      focalY,
     ],
   );
   return getMyService(masterId, ins.rows[0]!.id);
@@ -84,7 +119,8 @@ export async function createMyService(
 
 export async function getMyService(masterId: string, serviceId: string) {
   const r = await query(
-    `select id, title, description, duration_minutes, price_amount::text, price_type::text, is_active, sort_order, category_id
+    `select id, title, description, duration_minutes, price_amount::text, price_type::text, is_active, sort_order, category_id,
+            cover_image_url, cover_image_focal_x, cover_image_focal_y
        from public.master_services
       where id = $1 and master_id = $2`,
     [serviceId, masterId],
@@ -93,17 +129,7 @@ export async function getMyService(masterId: string, serviceId: string) {
   if (!row) {
     throw ApiError.notFound('Service not found');
   }
-  return {
-    id: row.id,
-    title: row.title,
-    description: row.description,
-    durationMinutes: row.duration_minutes,
-    price: num(row.price_amount),
-    priceType: row.price_type,
-    isActive: row.is_active,
-    sortOrder: row.sort_order,
-    categoryId: row.category_id,
-  };
+  return mapServiceRow(row);
 }
 
 export async function patchMyService(
@@ -118,6 +144,9 @@ export async function patchMyService(
     priceType?: 'fixed' | 'from';
     sortOrder?: number;
     isActive?: boolean;
+    coverImageUrl?: string | null;
+    coverFocalX?: number;
+    coverFocalY?: number;
   },
 ) {
   const current = await getMyService(masterId, serviceId);
@@ -145,6 +174,19 @@ export async function patchMyService(
   if (patch.priceType !== undefined) push('price_type', patch.priceType);
   if (patch.sortOrder !== undefined) push('sort_order', patch.sortOrder);
   if (patch.isActive !== undefined) push('is_active', patch.isActive);
+  if (patch.coverImageUrl !== undefined) push('cover_image_url', patch.coverImageUrl?.trim() || null);
+  if (patch.coverFocalX !== undefined) push('cover_image_focal_x', clampFocal(patch.coverFocalX));
+  if (patch.coverFocalY !== undefined) push('cover_image_focal_y', clampFocal(patch.coverFocalY));
+
+  const nextActive = patch.isActive ?? current.isActive;
+  const nextCover =
+    patch.coverImageUrl !== undefined ? patch.coverImageUrl?.trim() || null : current.coverImageUrl;
+  if (nextActive && !nextCover) {
+    throw ApiError.badRequest(
+      'Загрузите фото услуги — без него услугу нельзя показывать в каталоге',
+      'SERVICE_COVER_REQUIRED',
+    );
+  }
 
   if (patch.isActive === true && !current.isActive) {
     await assertCanCreateMasterService(masterId);

@@ -380,3 +380,34 @@ export function masterClientCancelledEmail(ctx: AppointmentNotifyContext): Notif
     text,
   });
 }
+
+/** Мастер: заявка истекла без подтверждения. */
+export function masterBookingExpiredEmail(ctx: AppointmentNotifyContext): NotifyUserEmail {
+  const { when } = whenRows(ctx);
+  const cta = masterCta(ctx);
+  const text = `Заявка истекла.\nКлиент: ${ctx.clientName}\nУслуга: ${ctx.serviceTitle}\nКогда: ${when}\n${cta.url}`;
+
+  return bookingEmail({
+    documentTitle: 'Заявка истекла — SLOTTY',
+    preview: `Заявка от ${ctx.clientName} истекла без подтверждения.`,
+    receiptKind: 'Истекла',
+    eyebrow: 'Кабинет мастера',
+    title: 'Заявка истекла',
+    statusLabel: 'Истекла',
+    statusTone: 'neutral',
+    subtitle: issuedSubtitle('Вы не успели подтвердить заявку — слот снова свободен'),
+    heroTitle: ctx.serviceTitle,
+    heroHighlight: when,
+    heroMeta: `${ctx.clientName} · SLOTTY`,
+    sectionTitle: 'Детали заявки',
+    rows: [
+      { label: 'Клиент', value: ctx.clientName },
+      { label: 'Услуга', value: ctx.serviceTitle },
+      { label: 'Когда', value: when },
+    ],
+    ctaLabel: cta.label,
+    ctaUrl: cta.url,
+    voucherNumber: ctx.voucherNumber,
+    text,
+  });
+}

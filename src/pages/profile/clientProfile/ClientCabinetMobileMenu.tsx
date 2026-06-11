@@ -8,17 +8,13 @@ import {
   HiUser,
 } from 'react-icons/hi2';
 import {
-  ADMIN_BILLING_PATH,
   BECOME_MASTER_PATH,
   getProfilePath,
   PROFILE_NOTIFICATIONS_PATH,
   PROFILE_PATH,
   PROFILE_SETTINGS_PATH,
 } from '../../../app/paths';
-import { planBadgeLabel } from '../../../features/billing/model/masterPlans';
-import { MasterProBadge } from '../../../shared/ui/MasterProBadge';
 import { AdminBottomSheet } from '../../admin/shared/AdminBottomSheet';
-import { useClientMasterProStatus } from './useClientMasterProStatus';
 import {
   resolveClientCabinetMobileTab,
   type ClientProfileMainTab,
@@ -64,7 +60,6 @@ export function ClientCabinetMobileMenu({
 }: Props) {
   const { pathname, search } = useLocation();
   const activeMainTab = resolveActiveMainTab(pathname, search);
-  const { planId, showProBadge } = useClientMasterProStatus(isMasterCabinet);
 
   return (
     <AdminBottomSheet open={open} onClose={onClose} title="Разделы">
@@ -128,26 +123,16 @@ export function ClientCabinetMobileMenu({
           <span className="w-3 shrink-0" aria-hidden />
         </NavLink>
 
-        <div className="mt-2 flex flex-col gap-2 border-t border-neutral-200/80 pt-3">
-          {isMasterCabinet ? (
-            <Link to={ADMIN_BILLING_PATH} onClick={onClose} className={navClass(false)}>
-              <span className="flex min-w-0 flex-1 items-center gap-3">
-                <HiSparkles className="shrink-0 opacity-95" aria-hidden />
-                <span className="flex min-w-0 items-center gap-1.5 truncate text-[15px] font-semibold">
-                  Тариф {planBadgeLabel(planId)}
-                  {showProBadge ? <MasterProBadge className="h-4 w-4" /> : null}
-                </span>
-              </span>
-            </Link>
-          ) : (
+        {!isMasterCabinet ? (
+          <div className="mt-2 flex flex-col gap-2 border-t border-neutral-200/80 pt-3">
             <Link to={BECOME_MASTER_PATH} onClick={onClose} className={navClass(false)}>
               <span className="flex min-w-0 flex-1 items-center gap-3">
                 <HiSparkles className="shrink-0 opacity-95" aria-hidden />
                 <span className="truncate text-[15px] font-semibold">Стать мастером</span>
               </span>
             </Link>
-          )}
-        </div>
+          </div>
+        ) : null}
       </nav>
     </AdminBottomSheet>
   );

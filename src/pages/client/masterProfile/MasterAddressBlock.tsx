@@ -8,7 +8,7 @@ import {
   masterVisitTypeLabel,
   type MasterLocation,
 } from '../../../features/profile/model/masterLocation';
-import { LOCATION_EMPTY_SENTINEL } from '../../../shared/lib/emptyDisplayText';
+import { EMPTY_ADDRESS, isEmptyDisplayValue, LOCATION_EMPTY_SENTINEL } from '../../../shared/lib/emptyDisplayText';
 import { makeYandexMapsRouteUrl } from '../../../shared/lib/yandexMapsExternal';
 import { YandexMapsRouteIcon } from '../../../shared/ui/YandexMapsRouteIcon';
 
@@ -66,7 +66,15 @@ export function MasterAddressBlock({ location, revealed = false, showRoute = tru
   );
 
   const VisitIcon = location.visitType === 'at_home' ? HiHomeModern : HiMapPin;
-  const canBuildRoute = showRoute && !hideDetails && Boolean(mainLine);
+  const hasRealAddress =
+    Boolean(mainLine) &&
+    mainLine !== EMPTY_ADDRESS &&
+    !isEmptyDisplayValue(mainLine);
+  const hasRouteCoords = Boolean(
+    (location.lat != null && location.lng != null) ||
+      (location.distanceLat != null && location.distanceLng != null),
+  );
+  const canBuildRoute = showRoute && !hideDetails && hasRealAddress && hasRouteCoords;
 
   return (
     <div className="space-y-3">
@@ -75,7 +83,7 @@ export function MasterAddressBlock({ location, revealed = false, showRoute = tru
         {visitLabel}
       </span>
 
-      {mainLine ? (
+      {hasRealAddress ? (
         <p className="text-[15px] font-semibold leading-snug text-[#111827]">{mainLine}</p>
       ) : (
         <p className="text-[14px] text-[#6B7280]">Адрес уточняется у мастера</p>

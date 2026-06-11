@@ -34,7 +34,7 @@ export function ClientSettingsSidebar({ search, onSearchChange, onNavigate, clas
 
   return (
     <aside
-      className={`${SETTINGS_SIDEBAR_WIDTH} flex h-dvh max-h-dvh shrink-0 flex-col overflow-hidden border-r border-[#eef0f5] bg-white ${className}`}
+      className={`${SETTINGS_SIDEBAR_WIDTH} flex h-full max-h-full shrink-0 flex-col overflow-hidden border-r border-[#eef0f5] bg-white ${className}`}
       aria-label="Настройки клиента"
     >
       <div className="shrink-0 border-b border-[#eef0f5] pt-4">

@@ -3,24 +3,23 @@ import type { ServiceCategoryDto } from '../../../features/master-onboarding/api
 import { categoryCodesMatch } from '../../../features/catalog/serviceCategoryLabels';
 import type { CatalogFiltersState, PriceTier } from './catalogFiltersState';
 import { CatalogFilterSubSheet } from './CatalogFilterSubSheet';
+import { CatalogFilterWhenTimeSection } from './CatalogFilterWhenTimeSection';
 import {
   FilterMenuCard,
   FilterMenuRow,
   FilterMenuSection,
 } from './catalogFilterMenuUi';
 import {
-  DATE_FILTER_OPTIONS,
   DURATION_FILTER_OPTIONS,
   FilterChip,
   FilterSwitch,
   PRICE_FILTER_OPTIONS,
   RATING_FILTER_OPTIONS,
-  TIME_FILTER_OPTIONS,
   VISIT_FILTER_OPTIONS,
 } from './catalogFilterUi';
 import { catalogServicesFilterHints } from './catalogFilterHints';
 
-type SubSheetId = 'category' | 'when' | 'time' | 'rating' | 'visit' | 'duration';
+type SubSheetId = 'category' | 'when' | 'rating' | 'visit' | 'duration';
 
 type Props = {
   filters: CatalogFiltersState;
@@ -31,6 +30,7 @@ type Props = {
 export function ServicesCatalogFiltersSheetMenu({ filters, onChange, categories }: Props) {
   const [subSheet, setSubSheet] = useState<SubSheetId | null>(null);
   const hints = catalogServicesFilterHints(filters);
+  const whenTimeHint = [hints.when, hints.time].filter(Boolean).join(' · ') || null;
 
   const set = (patch: Partial<CatalogFiltersState>) => onChange({ ...filters, ...patch });
 
@@ -58,7 +58,7 @@ export function ServicesCatalogFiltersSheetMenu({ filters, onChange, categories 
     });
   };
 
-  const pickAndClose = <T,>(patch: Partial<CatalogFiltersState>) => {
+  const pickAndClose = (patch: Partial<CatalogFiltersState>) => {
     set(patch);
     setSubSheet(null);
   };
@@ -76,8 +76,7 @@ export function ServicesCatalogFiltersSheetMenu({ filters, onChange, categories 
               onClick={() => setSubSheet('category')}
             />
           ) : null}
-          <FilterMenuRow label="Когда" value={hints.when} onClick={() => setSubSheet('when')} />
-          <FilterMenuRow label="Время дня" value={hints.time} onClick={() => setSubSheet('time')} />
+          <FilterMenuRow label="Когда и время" value={whenTimeHint} onClick={() => setSubSheet('when')} />
           <FilterMenuRow label="Рейтинг" value={hints.rating} onClick={() => setSubSheet('rating')} />
           <FilterMenuRow label="Где" value={hints.visit} onClick={() => setSubSheet('visit')} />
           <FilterMenuRow
@@ -178,34 +177,8 @@ export function ServicesCatalogFiltersSheetMenu({ filters, onChange, categories 
         </div>
       </CatalogFilterSubSheet>
 
-      <CatalogFilterSubSheet open={subSheet === 'when'} title="Когда" onBack={() => setSubSheet(null)}>
-        <div className={`${chipGrid} rounded-[16px] bg-white p-4`}>
-          {DATE_FILTER_OPTIONS.map(({ value, label, icon }) => (
-            <FilterChip
-              key={value}
-              active={filters.dateRange === value}
-              icon={icon}
-              label={label}
-              variant="sheet"
-              onClick={() => pickAndClose({ dateRange: value })}
-            />
-          ))}
-        </div>
-      </CatalogFilterSubSheet>
-
-      <CatalogFilterSubSheet open={subSheet === 'time'} title="Время дня" onBack={() => setSubSheet(null)}>
-        <div className={`${chipGrid} rounded-[16px] bg-white p-4`}>
-          {TIME_FILTER_OPTIONS.map(({ value, label, icon }) => (
-            <FilterChip
-              key={value}
-              active={filters.timeOfDay === value}
-              icon={icon}
-              label={label}
-              variant="sheet"
-              onClick={() => pickAndClose({ timeOfDay: value })}
-            />
-          ))}
-        </div>
+      <CatalogFilterSubSheet open={subSheet === 'when'} title="Когда и время" onBack={() => setSubSheet(null)}>
+        <CatalogFilterWhenTimeSection filters={filters} onChange={onChange} />
       </CatalogFilterSubSheet>
 
       <CatalogFilterSubSheet

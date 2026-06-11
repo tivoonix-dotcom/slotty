@@ -1,8 +1,7 @@
-import { useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { HiXMark } from 'react-icons/hi2';
+import { useEffect, useMemo, useState } from 'react';
 import type { DemoBookingGridDay } from '../../features/booking/model/demoBookingSlotGrid';
-import { BookingInlineCalendar } from './BookingInlineCalendar';
+import { PickerSheet } from '../../shared/ui/PickerSheet';
+import { SlottyDatePickerCalendar } from '../../shared/ui/SlottyDatePickerCalendar';
 
 type Props = {
   open: boolean;
@@ -12,8 +11,14 @@ type Props = {
   onPickDate: (dateIso: string) => void;
 };
 
-/** Поверх ClientSheetShell (z-[200]) и других client-модалок. */
-const BOOKING_CALENDAR_LAYER_Z = 'z-[210]';
+function parseViewFromIso(iso: string): { year: number; month: number } {
+  const [y, mo] = iso.split('-').map(Number);
+  const now = new Date();
+  return {
+    year: y || now.getFullYear(),
+    month: (mo || now.getMonth() + 1) - 1,
+  };
+}
 
 export function BookingCalendarOverlay({
   open,
@@ -22,55 +27,49 @@ export function BookingCalendarOverlay({
   onClose,
   onPickDate,
 }: Props) {
+  const minIso = slotDays[0]?.date ?? '';
+  const maxIso = slotDays[slotDays.length - 1]?.date ?? '';
+  const dayByDate = useMemo(() => new Map(slotDays.map((day) => [day.date, day])), [slotDays]);
+
+  const isDateDisabled = useMemo(
+    () => (iso: string) => {
+      const day = dayByDate.get(iso);
+      return !day || day.times.length === 0;
+    },
+    [dayByDate],
+  );
+
+  const initialView = parseViewFromIso(selectedDate ?? minIso);
+  const [viewYear, setViewYear] = useState(initialView.year);
+  const [viewMonth, setViewMonth] = useState(initialView.month);
+
   useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      onClose();
-    };
-    document.addEventListener('keydown', onKey, true);
-    return () => document.removeEventListener('keydown', onKey, true);
-  }, [open, onClose]);
+    if (!open) return;
+    const iso = selectedDate ?? minIso;
+    const next = parseViewFromIso(iso);
+    setViewYear(next.year);
+    setViewMonth(next.month);
+  }, [open, selectedDate, minIso]);
 
-  if (!open || typeof document === 'undefined') return null;
-
-  const handlePickDate = (dateIso: string) => {
-    onPickDate(dateIso);
-    onClose();
-  };
-
-  return createPortal(
-    <div className={`fixed inset-0 ${BOOKING_CALENDAR_LAYER_Z} flex flex-col justify-end bg-black/35 backdrop-blur-[2px] lg:items-center lg:justify-center lg:p-8`}>
-      <button type="button" className="absolute inset-0" aria-label="Закрыть" onClick={onClose} />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="booking-calendar-title"
-        className="relative max-h-[88dvh] w-full overflow-hidden rounded-t-[20px] bg-white lg:max-h-[min(85vh,720px)] lg:max-w-xl lg:rounded-[16px]"
-      >
-        <div className="flex items-center justify-between px-5 pb-2 pt-3 lg:px-6 lg:pt-5">
-          <h2 id="booking-calendar-title" className="text-[18px] font-semibold text-[#111827] lg:text-[20px]">
-            Выберите дату
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F1EFEF] text-[#6B7280] transition hover:bg-[#FFF1F4] hover:text-[#F47C8C]"
-            aria-label="Закрыть"
-          >
-            <HiXMark className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="max-h-[70dvh] overflow-y-auto px-5 pb-6 lg:max-h-[calc(min(85vh,720px)-4rem)] lg:px-6 lg:pb-8">
-          <BookingInlineCalendar
-            slotDays={slotDays}
-            selectedDate={selectedDate}
-            onPickDate={handlePickDate}
-          />
-        </div>
-      </div>
-    </div>,
-    document.body,
+  return (
+    <PickerSheet open={open} onClose={onClose} title="Дата записи" subtitle="Выберите удобный день">
+      <SlottyDatePickerCalendar
+        value={selectedDate ?? ''}
+        viewYear={viewYear}
+        viewMonth={viewMonth}
+        onViewYearChange={setViewYear}
+        onViewMonthChange={setViewMonth}
+        min={minIso}
+        max={maxIso}
+        tone="catalog"
+        allowClear={false}
+        isDateDisabled={isDateDisabled}
+        onPick={(iso) => {
+          if (!iso.trim() || isDateDisabled(iso)) return;
+          onPickDate(iso);
+          onClose();
+        }}
+      />
+    </PickerSheet>
   );
 }

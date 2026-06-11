@@ -15,6 +15,7 @@ import {
   overviewEmptyIllustrationSrc,
   overviewIconCircle,
 } from './adminOverviewTheme';
+import { adminMobileTabBarScrollPadClass } from '../shared/adminMobileTabBarTheme';
 
 /** Заголовок вкладки сводки без градиента + бейдж периода. */
 export function OverviewPanelHeader({
@@ -215,7 +216,7 @@ export {
   OverviewRatingChart,
 } from './charts';
 
-export const OVERVIEW_ANALYTICS_TAB_BAR_HEIGHT = '5.75rem';
+export const OVERVIEW_ANALYTICS_TAB_BAR_SCROLL_PAD = adminMobileTabBarScrollPadClass;
 
 /** Компактная KPI-карточка для узкой сетки 3×1 (экран «Обзор»). */
 export function OverviewWelcomeBanner({ displayName }: { displayName: string }) {

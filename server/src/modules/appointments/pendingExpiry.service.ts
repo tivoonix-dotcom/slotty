@@ -1,6 +1,7 @@
 import { query } from '../../config/db.js';
 import { insertBookingEvent } from './bookingEvents.service.js';
 import { notifyClientByAppointmentId } from './appointments.clientNotifications.js';
+import { notifyMasterBookingExpired } from './appointments.masterNotifications.js';
 import { scheduleJobsAfterBookingCancelled } from '../notifications/notificationJobs.schedule.js';
 import { logNotification } from '../notifications/notificationLog.js';
 
@@ -62,6 +63,9 @@ async function expirePendingAppointment(appointmentId: string, masterId: string)
 
   void scheduleJobsAfterBookingCancelled(appointmentId);
   void notifyClientByAppointmentId(appointmentId, 'expired');
+  void notifyMasterBookingExpired(appointmentId).catch((err) => {
+    console.warn('[notify] notifyMasterBookingExpired:', err instanceof Error ? err.message : err);
+  });
 
   logNotification('booking.pending.expired', { bookingId: appointmentId });
 }

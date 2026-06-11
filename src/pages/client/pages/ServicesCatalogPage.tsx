@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
+import type { ClientOutletContext } from '../clientOutletContext';
 import { getMasterPath } from '../../../app/paths';
 import { useCatalogErrorModal } from '../hooks/useCatalogErrorModal';
 import { ServiceCategoryRail } from '../components/ServiceCategoryRail';
 import { useCatalogData } from '../hooks/useCatalogData';
 import { mapListingsToServiceCards } from '../lib/aggregateServices';
-import { filterServicesForCatalog } from '../lib/filterServices';
 import {
   catalogFiltersToApiParams,
   countActiveCatalogFilters,
@@ -17,6 +17,10 @@ import { ServicesCatalogDesktop } from '../servicesCatalog/ServicesCatalogDeskto
 import { ServicesCatalogFiltersSheet } from '../servicesCatalog/ServicesCatalogFiltersSheet';
 import { ServicesCatalogResults } from '../servicesCatalog/ServicesCatalogResults';
 import { CatalogMobileServicesHeader } from '../servicesCatalog/CatalogMobileServicesHeader';
+import {
+  CatalogScrollFilterButton,
+  CatalogScrollToTopButton,
+} from '../servicesCatalog/CatalogScrollToTopButton';
 import { catalogMobileContentBelowHeaderClass } from '../servicesCatalog/catalogMobileFixedLayout';
 import { catalogCanvasClass, catalogMobilePadX } from '../servicesCatalog/servicesCatalogTheme';
 import type { CatalogSearchSuggestSelection } from '../servicesCatalog/catalogSearchSuggestTypes';
@@ -24,6 +28,7 @@ import { CLIENT_CONTENT_PAD_BOTTOM } from '../clientNavConstants';
 
 export function ServicesCatalogPage() {
   const navigate = useNavigate();
+  const { userLat, userLng } = useOutletContext<ClientOutletContext>();
   const [searchParams] = useSearchParams();
   const initialQ = searchParams.get('q')?.trim() ?? '';
   const [search, setSearch] = useState(initialQ);
@@ -38,28 +43,19 @@ export function ServicesCatalogPage() {
   const activeFilterCount = countActiveCatalogFilters(filters);
 
   const apiParams = useMemo(
-    () => catalogFiltersToApiParams(filters, search),
-    [filters, search],
+    () => catalogFiltersToApiParams(filters, search, { userLat, userLng }),
+    [filters, search, userLat, userLng],
   );
 
-  const { listings, categories, loading, error, reload } = useCatalogData(apiParams);
+  const { listings, categories, total, loading, error, reload } = useCatalogData(apiParams);
   useCatalogErrorModal(error, reload, 'Услуги');
 
   const services = useMemo(
-    () => mapListingsToServiceCards(listings, categories),
-    [listings, categories],
+    () => mapListingsToServiceCards(listings, categories, { userLat, userLng }),
+    [listings, categories, userLat, userLng],
   );
 
-  const filtered = useMemo(
-    () =>
-      filterServicesForCatalog(services, {
-        search,
-        chips: filters.chips,
-        onlineBookingOnly: filters.onlineBookingOnly,
-        categoryCode: filters.categoryCode,
-      }),
-    [services, search, filters.chips, filters.onlineBookingOnly, filters.categoryCode],
-  );
+  const filtered = services;
 
   const popular = useMemo(
     () =>
@@ -99,22 +95,32 @@ export function ServicesCatalogPage() {
     [navigate],
   );
 
+  const resultCount = total > 0 ? total : filtered.length;
+
   const resultsProps = {
     loading,
     error,
     onRetry: () => void reload(),
-    servicesEmpty: services.length === 0,
-    filteredEmpty: filtered.length === 0,
+    servicesEmpty: services.length === 0 && !loading,
+    filteredEmpty: filtered.length === 0 && !loading,
     showSections,
     filtered,
+    catalogServices: services,
     popular,
     promoServices,
+    resultCount,
   };
+
+  const handleResetFilters = useCallback(() => {
+    setSearch('');
+    setFilters(resetCatalogFilters());
+  }, []);
 
   const resultsSearchProps = {
     ...resultsProps,
     search,
     onClearSearch: () => setSearch(''),
+    onResetFilters: handleResetFilters,
   };
 
   return (
@@ -125,9 +131,10 @@ export function ServicesCatalogPage() {
         onSearchChange={setSearch}
         filters={filters}
         onFiltersChange={setFilters}
-        categories={categories}
         onOpenFilters={openFilters}
         onSearchSelect={handleSearchSelect}
+        onResetFilters={handleResetFilters}
+        categories={categories}
         {...resultsProps}
       />
 
@@ -179,6 +186,12 @@ export function ServicesCatalogPage() {
           setFilterOpen(false);
         }}
       />
+
+      <CatalogScrollFilterButton
+        onOpenFilters={openFilters}
+        activeFilterCount={activeFilterCount}
+      />
+      <CatalogScrollToTopButton />
     </>
   );
 }

@@ -67,6 +67,9 @@ export type MasterCabinetServiceDto = {
   isActive: boolean;
   sortOrder: number;
   categoryId: string;
+  coverImageUrl: string | null;
+  coverFocalX: number;
+  coverFocalY: number;
 };
 
 export type MasterCabinetDto = {
@@ -380,6 +383,9 @@ export type MasterServiceCreatedDto = {
   isActive: boolean;
   sortOrder: number;
   categoryId: string;
+  coverImageUrl: string | null;
+  coverFocalX: number;
+  coverFocalY: number;
 };
 
 export async function postMasterService(body: {
@@ -390,6 +396,9 @@ export async function postMasterService(body: {
   priceAmount: number;
   priceType?: 'fixed' | 'from';
   sortOrder?: number;
+  coverImageUrl: string;
+  coverFocalX?: number;
+  coverFocalY?: number;
 }): Promise<MasterServiceCreatedDto> {
   const res = await apiFetch('/api/masters/me/services', { method: 'POST', body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readApiError(res));
@@ -407,6 +416,9 @@ export async function patchMasterService(
     sortOrder?: number;
     isActive?: boolean;
     categoryId?: string;
+    coverImageUrl?: string | null;
+    coverFocalX?: number;
+    coverFocalY?: number;
   },
 ): Promise<MasterServiceCreatedDto> {
   const res = await apiFetch(`/api/masters/me/services/${serviceId}`, {

@@ -15,6 +15,9 @@ export function cabinetServiceDtoToManaged(
     priceType: row.priceType === 'from' ? 'from' : 'fixed',
     isActive: row.isActive,
     sortOrder: row.sortOrder ?? fallbackSort,
+    imageUrl: row.coverImageUrl ?? undefined,
+    coverFocalX: row.coverFocalX,
+    coverFocalY: row.coverFocalY,
   };
 }
 

@@ -163,8 +163,12 @@ export function SlottySelect({
 
   const close = useCallback(() => setOpen(false), []);
 
-  const openPicker = () => {
+  const togglePicker = () => {
     if (disabled) return;
+    if (open) {
+      setOpen(false);
+      return;
+    }
     const layer = resolvePickerLayer(btnRef.current, pickerLayer);
     setUseSheet(layer === 'sheet');
     setOpen(true);
@@ -261,7 +265,7 @@ export function SlottySelect({
         aria-controls={open && !useSheet ? listId : undefined}
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledBy}
-        onClick={openPicker}
+        onClick={togglePicker}
         className={TONE_TRIGGER[tone]}
       >
         <span className={`min-w-0 flex-1 truncate ${isPlaceholder ? 'text-[#9CA3AF] font-normal' : ''}`}>

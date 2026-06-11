@@ -52,7 +52,7 @@ export function ClientSettingsIconRail() {
 
   return (
     <aside
-      className={`${SETTINGS_RAIL_WIDTH} flex h-dvh max-w-[72px] shrink-0 flex-col overflow-x-hidden overflow-y-hidden border-r border-[#eef0f5] bg-white`}
+      className={`${SETTINGS_RAIL_WIDTH} flex h-full max-h-full max-w-[72px] shrink-0 flex-col overflow-x-hidden overflow-y-hidden border-r border-[#eef0f5] bg-white`}
       aria-label="Разделы кабинета клиента"
     >
       <div className="flex h-[4.5rem] shrink-0 items-center justify-center overflow-hidden border-b border-[#eef0f5]">

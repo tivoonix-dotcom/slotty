@@ -1,17 +1,35 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
+import { useAuth } from '../../../../features/auth/AuthProvider';
+import { isPlatformAdmin } from '../../../../features/auth/lib/isPlatformAdmin';
+import { useMasterPlanEntitlements } from '../../../../features/billing/useMasterPlanEntitlements';
+import { AdminCabinetBurgerMenu } from '../../shared/AdminCabinetBurgerMenu';
 import { AdminMobileCabinetHeader } from '../../shared/AdminMobileCabinetHeader';
-import { ADMIN_MOBILE_TAB_BAR_HEIGHT } from '../../shared/adminMobileTabBarTheme';
+import { adminMobileTabBarScrollPadClass } from '../../shared/adminMobileTabBarTheme';
+import { useAdminNotifications } from '../../notifications/AdminNotificationsContext';
+import { useServicesCatalogAttention } from '../../services/useServicesCatalogAttention';
 import { SettingsIconRail } from './SettingsIconRail';
 import { SettingsMobileDrawer } from './SettingsMobileDrawer';
 import { SettingsSidebar } from './SettingsSidebar';
+import { SettingsShellProvider } from './settingsShellContext';
 import { SETTINGS_WORKSPACE_BG } from './settingsWorkspaceTheme';
 
 export function SettingsLayout() {
   const [search, setSearch] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [cabinetMenuOpen, setCabinetMenuOpen] = useState(false);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const stickyShellRef = useRef<HTMLDivElement>(null);
-  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  const mainRef = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+  const { planId } = useMasterPlanEntitlements();
+  const { hasUnread, unreadCount } = useAdminNotifications();
+  const { profile } = useAuth();
+  const servicesNeedAttention = useServicesCatalogAttention();
+  const showPlatformAdmin = isPlatformAdmin(profile);
+
+  const closeCabinetMenu = useCallback(() => setCabinetMenuOpen(false), []);
+  const closeSettingsMenu = useCallback(() => setSettingsMenuOpen(false), []);
+  const openSettingsMenu = useCallback(() => setSettingsMenuOpen(true), []);
 
   useLayoutEffect(() => {
     const el = stickyShellRef.current;
@@ -27,45 +45,67 @@ export function SettingsLayout() {
     return () => ro.disconnect();
   }, []);
 
+  useLayoutEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    main.scrollTop = 0;
+    main.scrollLeft = 0;
+  }, [pathname]);
+
   useEffect(() => {
-    if (!sidebarOpen) return;
+    if (!settingsMenuOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSidebarOpen(false);
+      if (e.key === 'Escape') setSettingsMenuOpen(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [sidebarOpen]);
+  }, [settingsMenuOpen]);
 
-  const mobileTabBarPad = `pb-[calc(${ADMIN_MOBILE_TAB_BAR_HEIGHT}+1.25rem+env(safe-area-inset-bottom,0px))] lg:pb-0`;
+  const mobileTabBarPad = `${adminMobileTabBarScrollPadClass} lg:pb-0`;
 
   return (
-    <div className={`flex min-h-dvh ${SETTINGS_WORKSPACE_BG} text-[#111827]`}>
-      <div className="sticky top-0 hidden h-dvh max-w-full shrink-0 overflow-x-hidden lg:flex">
-        <SettingsIconRail />
-        <SettingsSidebar search={search} onSearchChange={setSearch} />
-      </div>
+    <SettingsShellProvider openSettingsMenu={openSettingsMenu}>
+      <div className={`flex min-h-dvh ${SETTINGS_WORKSPACE_BG} text-[#111827]`}>
+        <div className="sticky top-0 hidden h-dvh max-w-full shrink-0 overflow-x-hidden lg:flex">
+          <SettingsIconRail />
+          <SettingsSidebar search={search} onSearchChange={setSearch} />
+        </div>
 
-      <div className={`flex min-h-dvh min-w-0 flex-1 flex-col ${mobileTabBarPad}`}>
-        <AdminMobileCabinetHeader
-          shellRef={stickyShellRef}
-          menuOpen={sidebarOpen}
-          onMenuOpen={() => setSidebarOpen(true)}
-          menuLabel="Меню настроек"
+        <div className={`flex min-h-dvh min-w-0 flex-1 flex-col ${mobileTabBarPad}`}>
+          <AdminMobileCabinetHeader
+            shellRef={stickyShellRef}
+            menuOpen={cabinetMenuOpen}
+            onMenuOpen={() => setCabinetMenuOpen(true)}
+            menuLabel="Меню разделов"
+          />
+
+          <main
+            ref={mainRef}
+            className="min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-10 lg:py-8"
+          >
+            <div className="mx-auto w-full max-w-5xl min-w-0 pb-8">
+              <Outlet />
+            </div>
+          </main>
+        </div>
+
+        <SettingsMobileDrawer
+          open={settingsMenuOpen}
+          onClose={closeSettingsMenu}
+          search={search}
+          onSearchChange={setSearch}
         />
 
-        <main className="min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-10 lg:py-8">
-          <div className="mx-auto w-full max-w-5xl min-w-0 pb-8">
-            <Outlet />
-          </div>
-        </main>
+        <AdminCabinetBurgerMenu
+          open={cabinetMenuOpen}
+          onClose={closeCabinetMenu}
+          servicesNeedAttention={servicesNeedAttention}
+          hasUnread={hasUnread}
+          unreadCount={unreadCount}
+          planId={planId}
+          showPlatformAdmin={showPlatformAdmin}
+        />
       </div>
-
-      <SettingsMobileDrawer
-        open={sidebarOpen}
-        onClose={closeSidebar}
-        search={search}
-        onSearchChange={setSearch}
-      />
-    </div>
+    </SettingsShellProvider>
   );
 }

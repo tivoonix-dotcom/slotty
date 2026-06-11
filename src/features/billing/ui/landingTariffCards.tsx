@@ -1,5 +1,16 @@
 import type { ReactNode } from 'react';
 import { MasterProRotatingCard } from '../../../pages/home/MasterProRotatingCard';
+import {
+  homeTariffsBadge,
+  homeTariffsCardDescription,
+  homeTariffsCardName,
+  homeTariffsCta,
+  homeTariffsFeature,
+  homeTariffsIncludes,
+  homeTariffsPrice,
+  homeTariffsPriceUnit,
+  homeTariffsProCta,
+} from '../../../pages/home/homeTheme';
 
 /** Как на главной в секции «Тарифы». */
 export const LANDING_MASTER_PRO_FEATURES = [
@@ -76,31 +87,27 @@ export function LandingPricingCard({
       } ${className}`}
     >
       {badge ? (
-        <span className="absolute right-5 top-5 rounded-full bg-[#111827] px-3 py-1 text-[11px] font-semibold text-white">
+        <span className={`absolute right-5 top-5 rounded-full bg-[#111827] px-3 py-1 text-white ${homeTariffsBadge}`}>
           {badge}
         </span>
       ) : null}
 
-      <p className="text-[17px] font-semibold tracking-tight text-[#111827]">{name}</p>
+      <p className={homeTariffsCardName}>{name}</p>
 
-      {description ? (
-        <p className="mt-2 text-[14px] leading-relaxed text-[#6B7280]">{description}</p>
-      ) : null}
+      {description ? <p className={`mt-2 ${homeTariffsCardDescription}`}>{description}</p> : null}
 
       <div className="mt-4 flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
-        <span className="text-[40px] font-bold leading-none tracking-[-0.04em] text-[#111827] sm:text-[44px]">
-          {priceValue}
-        </span>
-        {priceUnit ? <span className="text-[15px] font-medium text-[#6B7280]">{priceUnit}</span> : null}
+        <span className={homeTariffsPrice}>{priceValue}</span>
+        {priceUnit ? <span className={homeTariffsPriceUnit}>{priceUnit}</span> : null}
       </div>
 
-      <p className="mt-6 text-[13px] font-medium text-[#9CA3AF]">{includesLabel}</p>
+      <p className={`mt-6 ${homeTariffsIncludes}`}>{includesLabel}</p>
 
       <ul className="mt-3 flex flex-1 flex-col gap-2.5">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2.5">
             <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#111827]" />
-            <span className="text-[14px] leading-snug text-[#374151]">{feature}</span>
+            <span className={homeTariffsFeature}>{feature}</span>
           </li>
         ))}
       </ul>
@@ -151,20 +158,18 @@ export function LandingProTariffCard({
 
 /** Кнопки в стиле лендинга (серая / тёмная). */
 export function landingPlanCtaClass(highlighted: boolean, disabled = false): string {
-  const base =
-    'flex min-h-12 w-full items-center justify-center rounded-xl text-[15px] font-semibold transition active:scale-[0.98]';
   if (disabled) {
-    return `${base} cursor-default bg-[#F3F4F6] text-[#6B7280] opacity-80`;
+    return `${homeTariffsCta} cursor-default bg-[#F3F4F6] text-[#6B7280] opacity-80`;
   }
   if (highlighted) {
-    return `${base} bg-[#111827] text-white hover:bg-[#2d2d2d]`;
+    return `${homeTariffsCta} bg-[#111827] text-white hover:bg-[#2d2d2d]`;
   }
-  return `${base} bg-[#F3F4F6] text-[#111827] hover:bg-[#ECEEF1]`;
+  return `${homeTariffsCta} bg-[#F3F4F6] text-[#111827] hover:bg-[#ECEEF1]`;
 }
 
 /** CTA на карточке Pro (белая pill). */
 export function landingProCtaClass(disabled = false): string {
-  return `flex min-h-12 w-full items-center justify-center rounded-full text-[15px] font-semibold transition active:scale-[0.98] ${
+  return `${homeTariffsProCta} ${
     disabled
       ? 'cursor-default bg-white/90 text-[#6B7280] shadow-none'
       : 'bg-white text-[#111827] shadow-[0_10px_28px_rgba(0,0,0,0.12)] hover:bg-white/95'

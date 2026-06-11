@@ -32,6 +32,8 @@ export type ServiceListingRecord = {
   photoUrl: string;
   /** Обложка услуги по категории (`public/photos/каталог_услуги/`). */
   serviceCoverUrl?: string;
+  serviceCoverFocalX?: number;
+  serviceCoverFocalY?: number;
   /** С бэка: id основной услуги для ссылки на запись. */
   primaryServiceId?: string;
   /** С бэка: id ближайшего свободного слота (для `slot` в ссылке на /zapis). */
@@ -44,6 +46,12 @@ export type ServiceListingRecord = {
   portfolioTotal?: number;
   /** Pro / trial — бейдж в каталоге. */
   isProEntitled?: boolean;
+  /** Активная акция мастера (с бэка). */
+  hasPromotion?: boolean;
+  /** Расстояние до пользователя, км (если переданы координаты). */
+  distanceKm?: number;
+  /** Просмотры карточки за текущую неделю (с бэка). */
+  weeklyViews?: number;
 };
 
 /** Услуга мастера (каталог). TODO: маппинг с таблицы services. */
@@ -54,6 +62,9 @@ export type DemoMasterService = {
   price: number;
   description: string;
   priceType?: 'fixed' | 'from';
+  coverImageUrl?: string;
+  coverFocalX?: number;
+  coverFocalY?: number;
 };
 
 /** Один временной слот. TODO: маппинг с availability / bookings. */

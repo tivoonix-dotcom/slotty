@@ -24,6 +24,8 @@ type Props = {
   titleValue: string;
   price: string;
   durationMin: string;
+  coverImageUrl: string;
+  coverUploading: boolean;
   children: (args: { step: ServiceFormStep; stepError: string | null }) => ReactNode;
 };
 
@@ -39,6 +41,8 @@ export function ServicesServiceSheet({
   titleValue,
   price,
   durationMin,
+  coverImageUrl,
+  coverUploading,
   children,
 }: Props) {
   const stepped = mode === 'create' || mode === 'full';
@@ -46,8 +50,8 @@ export function ServicesServiceSheet({
   const [stepError, setStepError] = useState<string | null>(null);
 
   const stepCtx = useMemo(
-    () => ({ title: titleValue, price, durationMin }),
-    [durationMin, price, titleValue],
+    () => ({ title: titleValue, price, durationMin, coverImageUrl, coverUploading }),
+    [coverImageUrl, coverUploading, durationMin, price, titleValue],
   );
 
   useEffect(() => {
@@ -59,7 +63,7 @@ export function ServicesServiceSheet({
 
   useEffect(() => {
     setStepError(null);
-  }, [step, titleValue, price, durationMin]);
+  }, [step, titleValue, price, durationMin, coverImageUrl, coverUploading]);
 
   const handleNext = () => {
     const err = validateServiceFormStep(step, stepCtx);

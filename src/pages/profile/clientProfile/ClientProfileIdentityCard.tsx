@@ -1,6 +1,6 @@
 import type { ChangeEvent, RefObject } from 'react';
 import { ClientProfileAvatar } from './ClientProfileAvatar';
-import { catalogPrimaryBtn, clientCabinetMobilePanel } from './clientProfileTheme';
+import { clientCabinetMobilePanel, clientProfileEditBtn } from './clientProfileTheme';
 
 type Props = {
   displayName: string;
@@ -38,8 +38,18 @@ export function ClientProfileIdentityCard({
   onEditProfile,
 }: Props) {
   return (
-    <div className={`${clientCabinetMobilePanel} mb-3 overflow-hidden`}>
-      <div className="flex flex-col items-center gap-4 px-5 py-6 text-center sm:flex-row sm:items-center sm:text-left lg:px-6 lg:py-7">
+    <div className={`${clientCabinetMobilePanel} relative mb-3 overflow-hidden`}>
+      {isAuthenticated ? (
+        <button
+          type="button"
+          onClick={onEditProfile}
+          className={`${clientProfileEditBtn} absolute right-3 top-3 z-10 sm:right-4 sm:top-4 lg:right-6 lg:top-6`}
+        >
+          Редактировать
+        </button>
+      ) : null}
+
+      <div className="flex items-start gap-3.5 px-4 pb-5 pt-4 sm:gap-4 sm:px-5 sm:pb-6 sm:pt-5 lg:items-center lg:px-6 lg:py-7">
         <ClientProfileAvatar
           authLoading={authLoading}
           isAuthenticated={isAuthenticated}
@@ -53,19 +63,14 @@ export function ClientProfileIdentityCard({
           size="lg"
           showCameraHint
         />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pr-24 pt-0.5 sm:pr-28">
           <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF] lg:hidden">
             Профиль
           </p>
-          <h2 className="mt-1 text-[22px] font-bold tracking-[-0.03em] text-[#111827] sm:mt-0 sm:text-[24px]">
+          <h2 className="mt-1 text-left text-[20px] font-bold leading-tight tracking-[-0.03em] text-[#111827] sm:text-[22px] lg:mt-0 lg:text-[24px]">
             {authLoading ? 'Загрузка…' : displayName}
           </h2>
-          <p className="mt-1 text-[14px] font-medium text-[#6B7280]">{roleSubtitle}</p>
-          {isAuthenticated ? (
-            <button type="button" onClick={onEditProfile} className={`${catalogPrimaryBtn} mt-4`}>
-              Редактировать
-            </button>
-          ) : null}
+          <p className="mt-1 text-left text-[14px] font-medium text-[#6B7280]">{roleSubtitle}</p>
         </div>
       </div>
 

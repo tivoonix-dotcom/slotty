@@ -1,28 +1,60 @@
-import {
-  HiBolt,
-  HiCreditCard,
-  HiShieldCheck,
-  HiXCircle,
-} from 'react-icons/hi2';
+import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import { catalogDesktopPanel } from './servicesCatalogTheme';
 
+const catalogTrustIconsDir = `/photos/${encodeURIComponent('категории')}/`;
+
 const ITEMS = [
-  { icon: HiShieldCheck, label: 'Проверенные мастера' },
-  { icon: HiBolt, label: 'Быстрая запись' },
-  { icon: HiXCircle, label: 'Бесплатная отмена' },
-  { icon: HiCreditCard, label: 'Оплата у мастера · онлайн позже' },
+  {
+    image: `${catalogTrustIconsDir}1.png`,
+    label: 'Проверенные мастера',
+    subtitle: 'Профили, отзывы и рейтинг',
+    tone: 'bg-[#FFF1F4]',
+  },
+  {
+    image: `${catalogTrustIconsDir}2.png`,
+    label: 'Быстрая запись',
+    subtitle: 'Без долгих переписок',
+    tone: 'bg-[#FFF7ED]',
+  },
+  {
+    image: `${catalogTrustIconsDir}3.png`,
+    label: 'Бесплатная отмена',
+    subtitle: 'Если планы изменились',
+    tone: 'bg-[#ECFDF5]',
+  },
+  {
+    image: `${catalogTrustIconsDir}4.png`,
+    label: 'Оплата у мастера',
+    subtitle: 'Онлайн — позже',
+    tone: 'bg-[#EFF6FF]',
+  },
 ] as const;
 
 export function CatalogTrustBar() {
   return (
-    <div className={`${catalogDesktopPanel} mt-4 px-5 py-4`}>
-      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {ITEMS.map(({ icon: Icon, label }) => (
-          <li key={label} className="flex items-center gap-2.5 text-[13px] font-medium text-[#374151]">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#F5F5F5] text-[#6B7280]">
-              <Icon className="h-4 w-4" aria-hidden />
+    <div className={`${catalogDesktopPanel} mt-4 overflow-hidden shadow-[0_2px_14px_rgba(17,24,39,0.04)]`}>
+      <ul className="flex snap-x snap-mandatory gap-3 overflow-x-auto p-3 [scrollbar-width:none] xl:grid xl:grid-cols-4 xl:gap-0 xl:overflow-visible xl:p-0 [&::-webkit-scrollbar]:hidden">
+        {ITEMS.map(({ image, label, subtitle, tone }, index) => (
+          <li
+            key={label}
+            className={`flex min-w-[11.5rem] shrink-0 snap-start flex-col items-center gap-2 rounded-[14px] px-3 py-4 text-center sm:min-w-[12.5rem] xl:min-w-0 xl:rounded-none xl:px-5 xl:py-5 ${
+              index < ITEMS.length - 1 ? 'xl:border-r xl:border-[#EEEEEE]' : ''
+            }`}
+          >
+            <span
+              className={`flex h-[5.75rem] w-[5.75rem] items-center justify-center rounded-[18px] sm:h-24 sm:w-24 xl:h-[6.75rem] xl:w-[6.75rem] ${tone}`}
+            >
+              <ImageReveal
+                src={image}
+                alt=""
+                className="h-[4.25rem] w-[4.25rem] object-contain sm:h-[4.75rem] sm:w-[4.75rem] xl:h-[5.5rem] xl:w-[5.5rem]"
+                loading="lazy"
+              />
             </span>
-            {label}
+            <div className="space-y-0.5">
+              <p className="text-[13px] font-bold leading-snug text-[#111827] sm:text-[14px]">{label}</p>
+              <p className="text-[11px] font-medium leading-snug text-[#8E8E93] sm:text-[12px]">{subtitle}</p>
+            </div>
           </li>
         ))}
       </ul>

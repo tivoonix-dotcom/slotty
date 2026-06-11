@@ -1,4 +1,4 @@
-import { useEffect, type FC } from 'react';
+import { useEffect, type FC, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MASTER_START_PATH } from '../../app/paths';
 import {
@@ -7,68 +7,72 @@ import {
   LANDING_MASTERS_TAB_SERVICES,
   type LandingMastersTabId,
 } from '../../shared/layout/SlottyHeader/headerNav';
+import { MasterLandingBookingNotifyDemo } from './MasterLandingBookingNotifyDemo';
+import { MasterLandingCabinetDemoFrame } from './MasterLandingCabinetDemoFrame';
+import type { MasterLandingDesktopCabinetSection } from './MasterLandingDesktopCabinetShell';
+import { MasterLandingProfileDemo } from './MasterLandingProfileDemo';
+import { MasterLandingWindowDemo } from './MasterLandingWindowDemo';
+import { LandingReveal } from './LandingReveal';
 import {
-  CLIENT_DESKTOP_SHELL_BLEED_CLASS,
-  CLIENT_DESKTOP_SHELL_BLEED_PAD_CLASS,
-} from '../../shared/layout/clientShellLayout';
-import { homeLandingHeading, homePinkBtn, homeSection } from './homeTheme';
-
-const MEDIA_SHELL =
-  'flex w-full items-center justify-center overflow-hidden rounded-[24px] bg-[#F0F1F3] p-3 sm:rounded-[28px] sm:p-4';
-
-const MEDIA_FRAME =
-  'relative aspect-[9/16] w-full overflow-hidden rounded-[18px] bg-[#F0F1F3] sm:rounded-[20px]';
+  homeLandingHeading,
+  homeLandingMastersDemoBleed,
+  homeLandingMastersLead,
+  homeLandingMastersRow,
+  homeLandingMastersRowDemoCol,
+  homeLandingMastersRowStep,
+  homeLandingMastersRowText,
+  homeLandingMastersRowTextCol,
+  homeLandingMastersRowTitle,
+  homeLandingMastersRows,
+  homeLandingMastersShell,
+  homeOutlineBtn,
+  homePinkBtn,
+  homeSection,
+} from './homeTheme';
 
 type MastersBlock = {
   id: LandingMastersTabId;
   title: string;
   text: string;
-  videoSrc: string;
-  videoLabel: string;
+  demo: ReactNode;
+  demoLabel: string;
+  pageTitle: string;
+  activeSection: MasterLandingDesktopCabinetSection;
+  demoLayout?: 'drawer' | 'main';
 };
 
 const MASTERS_BLOCKS: MastersBlock[] = [
   {
     id: LANDING_MASTERS_TAB_APPOINTMENTS,
-    title: 'Создание услуги',
-    text: 'Добавляйте услугу в пару шагов: название, цена, длительность и описание.',
-    videoSrc: `/video/${encodeURIComponent('Для мастеров')}/${encodeURIComponent('УСЛУГА.MOV')}`,
-    videoLabel: 'Видео: создание услуги',
+    title: 'Редактирование профиля',
+    text: 'Заполните имя, контакты и описание — клиенты увидят актуальную карточку.',
+    demo: <MasterLandingProfileDemo />,
+    demoLabel: 'Демо: редактирование профиля',
+    pageTitle: 'Профиль',
+    activeSection: 'profile',
+    demoLayout: 'main',
   },
   {
     id: LANDING_MASTERS_TAB_SERVICES,
-    title: 'Создание окна',
-    text: 'Открывайте свободные окна в расписании на нужные дату и время.',
-    videoSrc: `/video/${encodeURIComponent('Для мастеров')}/${encodeURIComponent('ОКНО.MP4')}`,
-    videoLabel: 'Видео: создание окна',
+    title: 'Создание расписания',
+    text: 'Нажмите на блок «На сегодня» — и настройте окно за пару шагов.',
+    demo: <MasterLandingWindowDemo />,
+    demoLabel: 'Демо: создание расписания',
+    pageTitle: 'Расписание',
+    activeSection: 'schedule',
+    demoLayout: 'main',
   },
   {
     id: LANDING_MASTERS_TAB_PROFILE,
     title: 'Уведомления',
-    text: 'Мгновенно получайте уведомления о новых записях и изменениях.',
-    videoSrc: `/video/${encodeURIComponent('Для мастеров')}/${encodeURIComponent('УВЕДОМЛЕНИЕ.MOV')}`,
-    videoLabel: 'Видео: уведомления мастера',
+    text: 'Заявки приходят в кабинет, Telegram и на почту — смотрите детали и подтверждайте в один клик.',
+    demo: <MasterLandingBookingNotifyDemo />,
+    demoLabel: 'Демо: уведомления мастера',
+    pageTitle: 'Уведомления',
+    activeSection: 'notifications',
+    demoLayout: 'main',
   },
 ];
-
-function MastersMediaSlot({ videoSrc, videoLabel }: { videoSrc: string; videoLabel: string }) {
-  return (
-    <div className={MEDIA_SHELL}>
-      <div className={MEDIA_FRAME}>
-        <video
-          src={videoSrc}
-          className="absolute inset-0 h-full w-full scale-[1.02] bg-[#F0F1F3] object-cover object-center"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          aria-label={videoLabel}
-        />
-      </div>
-    </div>
-  );
-}
 
 export type HomeForMastersProps = {
   masterCtaPath: string;
@@ -103,51 +107,64 @@ export const HomeForMasters: FC<HomeForMastersProps> = ({
   return (
     <section
       id="for-masters"
-      className={`${homeSection} scroll-mt-28`}
+      className={`${homeSection} scroll-mt-28 overflow-x-hidden`}
       aria-labelledby="home-masters-heading"
     >
-      <div className="text-center">
+      <div className={`${homeLandingMastersShell} text-center`}>
         <h2 id="home-masters-heading" className={homeLandingHeading}>
           Для мастеров
         </h2>
-        <p className="mx-auto mt-4 max-w-[36rem] text-[15px] leading-7 text-[#6B7280] sm:text-[17px]">
+        <p className={homeLandingMastersLead}>
           Кабинет, где мастер управляет записями, услугами, графиком и заявками в одном месте.
         </p>
       </div>
 
-      <div
-        className={`${CLIENT_DESKTOP_SHELL_BLEED_CLASS} mt-10 mr-[calc(50%-50vw)] overflow-x-auto [scrollbar-width:none] sm:mt-14 md:mr-0 md:overflow-visible [&::-webkit-scrollbar]:hidden`}
-      >
-        <div
-          className={`flex snap-x snap-mandatory gap-4 pb-1 md:grid md:snap-none md:grid-cols-3 md:gap-6 lg:gap-8 ${CLIENT_DESKTOP_SHELL_BLEED_PAD_CLASS}`}
-        >
-          {MASTERS_BLOCKS.map((block) => (
-            <article
-              key={block.id}
-              id={block.id}
-              className="w-[min(17.5rem,78vw)] shrink-0 snap-start scroll-mt-28 md:w-auto"
-            >
-              <MastersMediaSlot videoSrc={block.videoSrc} videoLabel={block.videoLabel} />
-              <h3 className="mt-4 text-center text-[1.05rem] font-bold tracking-[-0.02em] text-[#111827] sm:text-[1.2rem]">
-                {block.title}
-              </h3>
-              <p className="mx-auto mt-2 text-center text-[13px] leading-relaxed text-[#6B7280] sm:text-[15px]">
-                {block.text}
-              </p>
+      <div className={homeLandingMastersShell}>
+        <div className={homeLandingMastersRows}>
+          {MASTERS_BLOCKS.map((block, index) => (
+            <article key={block.id} id={block.id} className={homeLandingMastersRow}>
+              <LandingReveal
+                className={homeLandingMastersRowTextCol}
+                variant="left"
+                delay={60 + index * 80}
+                duration={950}
+              >
+                <p className={homeLandingMastersRowStep} aria-hidden>
+                  {index + 1}.
+                </p>
+                <h3 className={homeLandingMastersRowTitle}>{block.title}</h3>
+                <p className={homeLandingMastersRowText}>{block.text}</p>
+              </LandingReveal>
+
+              <LandingReveal
+                className={`${homeLandingMastersRowDemoCol} ${homeLandingMastersDemoBleed}`}
+                variant="right"
+                delay={120 + index * 80}
+                duration={1050}
+              >
+                <MasterLandingCabinetDemoFrame
+                  ariaLabel={block.demoLabel}
+                  pageTitle={block.pageTitle}
+                  activeSection={block.activeSection}
+                  demoLayout={block.demoLayout}
+                >
+                  {block.demo}
+                </MasterLandingCabinetDemoFrame>
+              </LandingReveal>
             </article>
           ))}
         </div>
       </div>
 
       <div
-        className={`mx-auto mt-10 flex max-w-lg gap-2 sm:mt-12 sm:gap-3 ${
+        className={`${homeLandingMastersShell} mx-auto mt-10 flex max-w-lg gap-2 sm:mt-14 sm:gap-3 ${
           isMasterUser ? 'max-w-md' : ''
         }`}
       >
         {!isMasterUser && (
           <Link
             to={masterCtaPath}
-            className={`${homePinkBtn} min-h-12 flex-1 text-center text-[13px] shadow-none sm:text-[14px]`}
+            className={`${homePinkBtn} font-landing min-h-12 flex-1 text-center text-[13px] shadow-none sm:text-[14px]`}
           >
             {masterCtaLabel}
           </Link>
@@ -155,7 +172,7 @@ export const HomeForMasters: FC<HomeForMastersProps> = ({
         {!isMasterUser && (
           <Link
             to={MASTER_START_PATH}
-            className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-[#E5E7EB] bg-white px-5 text-center text-[13px] font-semibold text-[#374151] transition active:scale-[0.98] sm:text-[14px]"
+            className={`${homeOutlineBtn} font-landing min-h-12 flex-1 text-center text-[13px] sm:text-[14px]`}
           >
             Регистрация мастера
           </Link>

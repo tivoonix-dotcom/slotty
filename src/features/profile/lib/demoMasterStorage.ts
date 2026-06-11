@@ -21,6 +21,9 @@ export type MasterOnboardingService = {
   priceType?: 'fixed' | 'from';
   isActive?: boolean;
   sortOrder?: number;
+  imageUrl?: string;
+  coverFocalX?: number;
+  coverFocalY?: number;
 };
 
 export type MasterCertificate = {

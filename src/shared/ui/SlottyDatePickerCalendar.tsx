@@ -47,6 +47,7 @@ function buildMonthCells(
   viewMonth: number,
   minIso: string | undefined,
   maxIso: string | undefined,
+  isDateDisabled?: (iso: string) => boolean,
 ) {
   const minDay = minIso ? startOfLocalDay(parseIsoDate(minIso)).getTime() : null;
   const maxDay = maxIso ? startOfLocalDay(parseIsoDate(maxIso)).getTime() : null;
@@ -58,6 +59,7 @@ function buildMonthCells(
     const t = startOfLocalDay(parseIsoDate(iso)).getTime();
     if (minDay != null && t < minDay) return true;
     if (maxDay != null && t > maxDay) return true;
+    if (isDateDisabled?.(iso)) return true;
     return false;
   };
 
@@ -87,10 +89,16 @@ function buildMonthCells(
   return cells;
 }
 
-function isIsoDisabled(iso: string, minIso?: string, maxIso?: string): boolean {
+function isIsoDisabled(
+  iso: string,
+  minIso?: string,
+  maxIso?: string,
+  isDateDisabled?: (iso: string) => boolean,
+): boolean {
   const t = startOfLocalDay(parseIsoDate(iso)).getTime();
   if (minIso && t < startOfLocalDay(parseIsoDate(minIso)).getTime()) return true;
   if (maxIso && t > startOfLocalDay(parseIsoDate(maxIso)).getTime()) return true;
+  if (isDateDisabled?.(iso)) return true;
   return false;
 }
 
@@ -104,6 +112,7 @@ type Props = {
   max?: string;
   allowClear?: boolean;
   tone?: SlottySelectTone;
+  isDateDisabled?: (iso: string) => boolean;
   onPick: (iso: string) => void;
   className?: string;
 };
@@ -118,15 +127,16 @@ export function SlottyDatePickerCalendar({
   max,
   allowClear = true,
   tone = 'neutral',
+  isDateDisabled,
   onPick,
   className = '',
 }: Props) {
   const accent = TONE_ACCENT[tone];
   const minIso = min?.trim() || undefined;
   const maxIso = max?.trim() || undefined;
-  const cells = buildMonthCells(viewYear, viewMonth, minIso, maxIso);
+  const cells = buildMonthCells(viewYear, viewMonth, minIso, maxIso, isDateDisabled);
   const todayIso = toIsoDate(new Date());
-  const todayDisabled = isIsoDisabled(todayIso, minIso, maxIso);
+  const todayDisabled = isIsoDisabled(todayIso, minIso, maxIso, isDateDisabled);
 
   const minMonthKey = minIso ? parseIsoDate(minIso).getFullYear() * 12 + parseIsoDate(minIso).getMonth() : null;
   const viewMonthKey = viewYear * 12 + viewMonth;

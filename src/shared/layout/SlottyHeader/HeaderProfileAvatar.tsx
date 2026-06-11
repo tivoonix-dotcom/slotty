@@ -29,12 +29,12 @@ export function HeaderProfileAvatar({ profile, fill = false }: Props) {
     <span
       className={
         fill
-          ? 'flex h-full w-full items-center justify-center rounded-full bg-[#F47C8C] text-[12px] font-semibold tracking-tight text-white'
-          : 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F47C8C] text-[10px] font-semibold tracking-tight text-white'
+          ? 'grid h-full w-full place-items-center rounded-full bg-[#F47C8C] text-[12px] font-semibold leading-none tracking-tight text-white'
+          : 'grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#F47C8C] text-[10px] font-semibold leading-none tracking-tight text-white'
       }
       aria-hidden
     >
-      {initials}
+      <span className="leading-none">{initials}</span>
     </span>
   );
 }

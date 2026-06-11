@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { HiSparkles } from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
 import { MASTER_SETTINGS_BILLING_PATH } from '../../../../app/paths';
 import { planBadgeLabel, type PlanId } from '../../../../features/billing/model/masterPlans';
@@ -12,10 +11,8 @@ import { getApiBaseUrl } from '../../../../shared/api/backendClient';
 import { useMasterPlanEntitlements } from '../../../../features/billing/useMasterPlanEntitlements';
 import { useAdminMasterCabinet } from '../../AdminMasterCabinetContext';
 import { formatBillingDate } from '../../billing/billingFormat';
-import {
-  adminSidebarFooterCardAccent,
-  ADMIN_SIDEBAR_TARIFF_BG,
-} from '../../adminCabinetLayout';
+import { adminSidebarTariffCard } from '../../adminCabinetLayout';
+import { AdminTariffSidebarCardContent } from '../../shared/AdminTariffSidebarCardContent';
 
 type Props = {
   onNavigate?: () => void;
@@ -102,37 +99,15 @@ export function SettingsSidebarTariffCard({ onNavigate }: Props) {
     <Link
       to={MASTER_SETTINGS_BILLING_PATH}
       onClick={onNavigate}
-      className={`${adminSidebarFooterCardAccent} hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff5f7a]/40`}
+      className={`${adminSidebarTariffCard} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff5f7a]/40`}
       aria-label="Управление тарифом"
     >
-      <div
-        className="pointer-events-none absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${ADMIN_SIDEBAR_TARIFF_BG})` }}
-        aria-hidden
+      <AdminTariffSidebarCardContent
+        loading={loading}
+        planLabel={planBadgeLabel(effectivePlan)}
+        subtitle={subtitle}
+        planId={effectivePlan}
       />
-      <div className="pointer-events-none absolute inset-0 bg-black/45" aria-hidden />
-
-      {loading ? (
-        <div className="relative z-10 flex w-full animate-pulse items-center gap-3">
-          <div className="h-10 w-10 shrink-0 rounded-[12px] bg-white/20" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-4 w-24 rounded bg-white/25" />
-            <div className="h-3 w-full rounded bg-white/20" />
-          </div>
-        </div>
-      ) : (
-        <>
-          <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white/95 text-[#ff5f7a] shadow-sm">
-            <HiSparkles className="h-5 w-5" aria-hidden />
-          </span>
-          <div className="relative z-10 min-w-0 flex-1 text-left">
-            <p className="text-[14px] font-semibold tracking-[-0.02em] text-white">
-              Тариф {planBadgeLabel(effectivePlan)}
-            </p>
-            <p className="mt-0.5 text-[12px] leading-snug text-white/80">{subtitle}</p>
-          </div>
-        </>
-      )}
     </Link>
   );
 }

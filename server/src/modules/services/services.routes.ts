@@ -40,6 +40,8 @@ masterServicesRouter.get(
   }),
 );
 
+const focalCoord = z.coerce.number().int().min(0).max(100).optional();
+
 const createBody = z.object({
   categoryId: z.string().uuid(),
   title: trimmedNonEmpty(300, 'Название не может быть пустым'),
@@ -48,6 +50,9 @@ const createBody = z.object({
   priceAmount,
   priceType: z.enum(['fixed', 'from']).optional(),
   sortOrder: z.coerce.number().int().finite().optional(),
+  coverImageUrl: z.string().url().max(2048),
+  coverFocalX: focalCoord,
+  coverFocalY: focalCoord,
 });
 
 masterServicesRouter.post(
@@ -62,6 +67,9 @@ masterServicesRouter.post(
       priceAmount: body.priceAmount,
       priceType: body.priceType,
       sortOrder: body.sortOrder,
+      coverImageUrl: body.coverImageUrl,
+      coverFocalX: body.coverFocalX,
+      coverFocalY: body.coverFocalY,
     });
     res.status(201).json(created);
   }),
@@ -76,6 +84,9 @@ const patchBody = z.object({
   priceType: z.enum(['fixed', 'from']).optional(),
   sortOrder: z.coerce.number().int().finite().optional(),
   isActive: z.boolean().optional(),
+  coverImageUrl: z.string().url().max(2048).nullable().optional(),
+  coverFocalX: focalCoord,
+  coverFocalY: focalCoord,
 });
 
 masterServicesRouter.patch(
@@ -92,6 +103,9 @@ masterServicesRouter.patch(
       priceType: body.priceType,
       sortOrder: body.sortOrder,
       isActive: body.isActive,
+      coverImageUrl: body.coverImageUrl,
+      coverFocalX: body.coverFocalX,
+      coverFocalY: body.coverFocalY,
     });
     res.json(out);
   }),

@@ -21,7 +21,6 @@ import {
   MASTER_LOGIN_PATH,
   MASTER_REGISTER_PATH,
   MASTER_START_PATH,
-  MASTERS_PATH,
   PROFILE_PATH,
   RESET_PASSWORD_PATH,
   SERVICES_PATH,
@@ -62,15 +61,6 @@ const SERVICES_META: SeoMeta = {
     'Выбирайте услуги мастеров в Минске, смотрите цены, свободное время и записывайтесь онлайн через SLOTTY.',
   robots: SEO_DEFAULT_ROBOTS,
   canonicalPath: SERVICES_PATH,
-  ogImage: SEO_DEFAULT_OG_IMAGE,
-};
-
-const MASTERS_META: SeoMeta = {
-  title: 'Мастера в Минске — онлайн-запись | SLOTTY',
-  description:
-    'Каталог мастеров в Минске: услуги, цены, рейтинг, свободные окна и онлайн-запись.',
-  robots: SEO_DEFAULT_ROBOTS,
-  canonicalPath: MASTERS_PATH,
   ogImage: SEO_DEFAULT_OG_IMAGE,
 };
 
@@ -279,7 +269,7 @@ function matchMasterProfile(pathname: string): SeoMeta | null {
 
 function isKnownAppRoute(path: string): boolean {
   if (path === '/' || path === HUB_PATH) return true;
-  if (path === SERVICES_PATH || path === MASTERS_PATH) return true;
+  if (path === SERVICES_PATH) return true;
   if (path === '/catalog') return true;
   if (path.startsWith(`${SERVICES_PATH}/category/`)) return true;
   if (path.startsWith('/master/')) return true;
@@ -301,7 +291,6 @@ export function resolveSeoMeta(pathname: string): SeoMeta {
 
   if (path === '/' || path === HUB_PATH) return HUB_META;
   if (path === SERVICES_PATH) return SERVICES_META;
-  if (path === MASTERS_PATH) return MASTERS_META;
 
   const category = matchServiceCategory(path);
   if (category) return category;

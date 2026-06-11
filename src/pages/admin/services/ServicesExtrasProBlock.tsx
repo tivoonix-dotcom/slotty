@@ -68,7 +68,7 @@ export function ServicesExtrasProBlock({ variant }: Props) {
 
       <Link
         to={ADMIN_BILLING_PATH}
-        className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#F47C8C] to-[#F26D83] text-[15px] font-semibold text-white shadow-[0_10px_28px_rgba(244,124,140,0.32)] transition active:scale-[0.98]"
+        className="mt-5 flex min-h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#F47C8C] to-[#F26D83] text-[15px] font-semibold text-white transition active:scale-[0.98]"
       >
         Подключить Pro
       </Link>

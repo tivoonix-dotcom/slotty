@@ -48,7 +48,7 @@ export function referencePhotoHint(code: string | null | undefined): string {
 }
 
 /** Поиск идей на Pinterest для категории с референс-фото. */
-export function referencePhotoPinterestUrl(code: string | null | undefined): string | null {
+export function referencePhotoPinterestUrl(code: string | null | undefined): string {
   const n = code ? normalizeCategoryCode(code) : '';
   switch (n) {
     case 'manicure':
@@ -59,7 +59,11 @@ export function referencePhotoPinterestUrl(code: string | null | undefined): str
       return 'https://www.pinterest.com/search/pins/?q=%D0%B1%D1%80%D0%BE%D0%B2%D0%B8%20%D1%80%D0%B5%D1%81%D0%BD%D0%B8%D1%86%D1%8B';
     case 'tattoo':
       return 'https://www.pinterest.com/search/pins/?q=tattoo%20design%20sketch';
+    case 'massage':
+      return 'https://www.pinterest.com/search/pins/?q=%D0%BC%D0%B0%D1%81%D1%81%D0%B0%D0%B6%20spa%20%D1%84%D0%BE%D1%82%D0%BE';
+    case 'fitness':
+      return 'https://www.pinterest.com/search/pins/?q=fitness%20workout%20photo';
     default:
-      return null;
+      return 'https://www.pinterest.com/search/pins/?q=beauty%20service%20photo';
   }
 }

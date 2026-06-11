@@ -11,6 +11,7 @@ import { getApiBaseUrl } from '../../../shared/api/backendClient';
 export type CatalogLoadState = {
   listings: ServiceListingRecord[];
   categories: ServiceCategoryDto[];
+  total: number;
   loading: boolean;
   error: string | null;
 };
@@ -27,6 +28,7 @@ export function useCatalogData(params: CatalogListingsParams = {}) {
   const [state, setState] = useState<CatalogLoadState>({
     listings: [],
     categories: [],
+    total: 0,
     loading: true,
     error: null,
   });
@@ -37,6 +39,7 @@ export function useCatalogData(params: CatalogListingsParams = {}) {
       setState({
         listings: [],
         categories: [],
+        total: 0,
         loading: false,
         error: 'Сервер не настроен. Укажите VITE_API_URL в окружении.',
       });
@@ -52,6 +55,7 @@ export function useCatalogData(params: CatalogListingsParams = {}) {
       setState({
         listings,
         categories: catRes.sort((a, b) => a.sortOrder - b.sortOrder),
+        total: listRes.total,
         loading: false,
         error: null,
       });

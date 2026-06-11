@@ -2,14 +2,33 @@ import type { FC, ReactNode } from 'react';
 import { HiArrowLeft } from 'react-icons/hi2';
 import { SlottyHeader } from '../../shared/layout/SlottyHeader/SlottyHeader';
 import { CLIENT_DESKTOP_SHELL_CLASS } from '../../shared/layout/clientShellLayout';
-import { ClientHeader } from '../client/components/ClientHeader';
-import { CLIENT_HEADER_OFFSET } from '../client/clientNavConstants';
-import { useClientGeo } from '../client/hooks/useClientGeo';
 import { HomeFooter } from '../HomeFooter';
-import { LegalDocTocNav, shouldShowLegalDocToc, type LegalTocItem } from './legalDocumentUi';
+import {
+  LegalDocTocNav,
+  legalDocFontBody,
+  legalDocFontDisplay,
+  legalDocLandingArticleClass,
+  shouldShowLegalDocToc,
+  type LegalTocItem,
+} from './legalDocumentUi';
 import { useLegalPageBack } from './useLegalPageBack';
 import { useLegalPageScroll } from './useLegalPageScroll';
 import { useLegalTocActiveId } from './useLegalTocActiveId';
+
+/** Отступ контента под fixed pill-хедером лендинга (74px + safe-area + зазор). */
+export const LEGAL_LANDING_HEADER_OFFSET =
+  'pt-[calc(5.5rem+env(safe-area-inset-top,0px)+1.25rem)] sm:pt-[calc(5.5rem+env(safe-area-inset-top,0px)+1.5rem)]';
+
+const legalPageBackBtnClass = `inline-flex min-h-10 items-center gap-1.5 ${legalDocFontBody} text-[14px] font-semibold text-[#6B7280] transition hover:text-[#111827]`;
+
+function LegalPageBackButton({ label, onBack }: { label: string; onBack: () => void }) {
+  return (
+    <button type="button" onClick={onBack} className={legalPageBackBtnClass}>
+      <HiArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+      {label}
+    </button>
+  );
+}
 
 type Props = {
   title: string;
@@ -73,25 +92,22 @@ function LegalPageHero({
         aria-hidden
       />
       <div
-        className={`relative z-[2] ${CLIENT_DESKTOP_SHELL_CLASS} max-lg:px-4 ${CLIENT_HEADER_OFFSET} pb-10 pt-2 sm:pb-12 lg:pb-14 lg:pt-6`}
+        className={`relative z-[2] ${CLIENT_DESKTOP_SHELL_CLASS} max-lg:px-4 ${LEGAL_LANDING_HEADER_OFFSET} pb-10 sm:pb-12 lg:pb-14`}
       >
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-semibold text-[#6B7280] transition hover:text-[#111827]"
-        >
-          <HiArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
-          {backLabel}
-        </button>
-        <div className="relative mt-8 min-w-0 w-full sm:mt-10 lg:mt-12">
+        <LegalPageBackButton label={backLabel} onBack={onBack} />
+        <div className="relative mt-6 min-w-0 w-full sm:mt-8 lg:mt-10">
           <LegalPageTitle title={title} titleHighlight={titleHighlight} />
           {heroLead ? (
-            <div className="mt-4 text-[17px] font-normal leading-[1.65] text-[#6B7280] sm:text-[18px]">
+            <div
+              className={`mt-4 ${legalDocFontBody} text-[17px] font-normal leading-[1.65] text-[#6B7280] sm:text-[18px]`}
+            >
               {heroLead}
             </div>
           ) : null}
           {meta ? (
-            <div className="mt-3 text-[16px] font-normal leading-relaxed text-[#9CA3AF]">{meta}</div>
+            <div className={`mt-3 ${legalDocFontBody} text-[16px] font-normal leading-relaxed text-[#9CA3AF]`}>
+              {meta}
+            </div>
           ) : null}
         </div>
       </div>
@@ -128,8 +144,7 @@ function LegalPageTitle({
   className?: string;
 }) {
   const highlight = titleHighlight?.trim();
-  const baseClass =
-    'text-[32px] font-semibold leading-[1.2] tracking-[-0.02em] text-[#111827] sm:text-[36px]';
+  const baseClass = `${legalDocFontDisplay} text-[32px] font-medium leading-[1.2] tracking-[-0.02em] text-[#111827] sm:text-[36px]`;
 
   if (highlight && title.includes(highlight)) {
     const idx = title.indexOf(highlight);
@@ -166,22 +181,14 @@ export const LegalPageShell: FC<Props> = ({
   meta,
 }) => {
   const { goBack, backLabel } = useLegalPageBack();
-  const { cityLabel, hasGeo, requestGeo } = useClientGeo();
   useLegalPageScroll();
   const showToc = shouldShowLegalDocToc(toc.length);
   const activeSectionId = useLegalTocActiveId(showToc ? toc.map((t) => t.id) : []);
   const hasHero = Boolean(heroBg?.trim());
 
   return (
-    <div className="min-h-dvh bg-white text-[#111827]">
-      <div className="lg:hidden">
-        <ClientHeader
-          cityLabel={cityLabel}
-          onCityClick={hasGeo ? undefined : requestGeo}
-          logoLeading
-        />
-      </div>
-      <SlottyHeader variant="bar" />
+    <div className={`min-h-dvh bg-white text-[#111827] ${legalDocFontBody}`}>
+      <SlottyHeader variant="landing" />
 
       {hasHero ? (
         <LegalPageHero
@@ -197,35 +204,31 @@ export const LegalPageShell: FC<Props> = ({
       ) : null}
 
       <div
-        className={`${CLIENT_DESKTOP_SHELL_CLASS} max-lg:px-4 ${hasHero ? 'pb-12 lg:pt-6' : `${CLIENT_HEADER_OFFSET} pb-12 lg:pt-8`}`}
+        className={`${CLIENT_DESKTOP_SHELL_CLASS} max-lg:px-4 ${hasHero ? 'pb-12 lg:pt-6' : `${LEGAL_LANDING_HEADER_OFFSET} pb-12`}`}
       >
-        {!hasHero ? (
-          <button
-            type="button"
-            onClick={goBack}
-            className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-semibold text-[#6B7280] transition hover:text-[#111827]"
-          >
-            <HiArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
-            {backLabel}
-          </button>
-        ) : null}
-
         <div
           className={
-            showToc ? 'mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-16 xl:gap-20' : 'mt-6'
+            showToc
+              ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-16 xl:gap-20'
+              : ''
           }
         >
-          <article className="min-w-0 w-full">
+          <article className={legalDocLandingArticleClass}>
             {!hasHero ? (
               <>
-                {headerCenter ? <div className="flex justify-center">{headerCenter}</div> : null}
+                <LegalPageBackButton label={backLabel} onBack={goBack} />
+                {headerCenter ? <div className="mt-5 flex justify-center sm:mt-6">{headerCenter}</div> : null}
                 <LegalPageTitle
                   title={title}
                   titleHighlight={titleHighlight}
-                  className={headerCenter ? 'mt-4 sm:mt-5' : undefined}
+                  className={headerCenter ? 'mt-4 sm:mt-5' : 'mt-5 sm:mt-6'}
                 />
                 {meta ? (
-                  <div className="mt-2 text-[16px] font-normal leading-relaxed text-[#9CA3AF]">{meta}</div>
+                  <div
+                    className={`mt-2 ${legalDocFontBody} text-[16px] font-normal leading-relaxed text-[#9CA3AF]`}
+                  >
+                    {meta}
+                  </div>
                 ) : null}
               </>
             ) : null}

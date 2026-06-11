@@ -3,6 +3,8 @@ import {
   type CatalogViewTab,
 } from './catalogFiltersState';
 import {
+  catalogPhotoViewTabActive,
+  catalogPhotoViewTabIdle,
   catalogViewTabActive,
   catalogViewTabIdle,
 } from './servicesCatalogTheme';
@@ -13,6 +15,7 @@ type Props = {
   className?: string;
   compact?: boolean;
   dense?: boolean;
+  onPhotoBg?: boolean;
 };
 
 export function ServicesCatalogViewTabs({
@@ -21,16 +24,17 @@ export function ServicesCatalogViewTabs({
   className = '',
   compact = false,
   dense = false,
+  onPhotoBg = false,
 }: Props) {
   const tabClass = dense
-    ? 'rounded-[8px] px-2.5 py-1 text-[12px] font-semibold transition'
+    ? 'shrink-0 snap-start rounded-[8px] px-3 py-1 text-[12px] font-semibold transition duration-200'
     : compact
-      ? 'rounded-[8px] px-3 py-1.5 text-[13px] font-semibold transition'
-      : 'rounded-[10px] px-4 py-2 text-[14px] font-semibold transition';
+      ? 'shrink-0 snap-start rounded-[8px] px-3 py-1.5 text-[13px] font-semibold transition duration-200'
+      : 'shrink-0 snap-start rounded-[10px] px-4 py-2 text-[14px] font-semibold transition duration-200';
 
   return (
     <nav
-      className={`flex flex-wrap items-center gap-1 ${className}`}
+      className={`-mx-0.5 flex items-center gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
       aria-label="Разделы каталога"
     >
       {CATALOG_VIEW_TABS.map((tab) => {
@@ -41,7 +45,15 @@ export function ServicesCatalogViewTabs({
             type="button"
             aria-current={on ? 'page' : undefined}
             onClick={() => onTabChange(tab.id)}
-            className={`${tabClass} ${on ? catalogViewTabActive : catalogViewTabIdle}`}
+            className={`${tabClass} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white/70 ${
+              on
+                ? onPhotoBg
+                  ? catalogPhotoViewTabActive
+                  : catalogViewTabActive
+                : onPhotoBg
+                  ? catalogPhotoViewTabIdle
+                  : catalogViewTabIdle
+            }`}
           >
             {tab.label}
           </button>

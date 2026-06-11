@@ -10,6 +10,8 @@ import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import {
   catalogDesktopChipActive,
   catalogFieldClass,
+  catalogWbFilterPillActive,
+  catalogWbFilterPillIdle,
 } from './servicesCatalogTheme';
 
 type Props = {
@@ -18,6 +20,8 @@ type Props = {
   onSelect: (code: string | null) => void;
   fullWidth?: boolean;
   compact?: boolean;
+  /** Pill в строке фильтров WB (десктоп-каталог). */
+  variant?: 'default' | 'pill';
 };
 
 export function ServicesCatalogCategoryMenu({
@@ -26,6 +30,7 @@ export function ServicesCatalogCategoryMenu({
   onSelect,
   fullWidth = false,
   compact = false,
+  variant = 'default',
 }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -54,29 +59,38 @@ export function ServicesCatalogCategoryMenu({
     setOpen(false);
   };
 
+  const pillActive = categoryCode != null;
+  const pillLabel = categoryCode == null ? 'Категория' : label;
+
+  const triggerClass =
+    variant === 'pill'
+      ? `${pillActive ? catalogWbFilterPillActive : catalogWbFilterPillIdle} max-w-[11rem]`
+      : `inline-flex w-full items-center justify-between gap-2 font-semibold text-[#111827] transition ${catalogFieldClass} ${
+          compact ? 'min-h-8 px-2.5 text-[13px]' : 'min-h-11 px-3.5 text-[14px]'
+        } ${categoryCode ? 'ring-1 ring-[#111827]/10' : ''}`;
+
   return (
-    <div ref={rootRef} className={`relative ${fullWidth ? 'w-full' : ''}`}>
+    <div ref={rootRef} className={`relative shrink-0 snap-start ${fullWidth ? 'w-full' : ''}`}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className={`inline-flex w-full items-center justify-between gap-2 font-semibold text-[#111827] transition ${catalogFieldClass} ${
-          compact ? 'min-h-8 px-2.5 text-[13px]' : 'min-h-11 px-3.5 text-[14px]'
-        } ${
-          categoryCode ? 'ring-1 ring-[#111827]/10' : ''
-        }`}
+        aria-label={variant === 'pill' ? 'Категория услуг' : undefined}
+        className={triggerClass}
       >
         <span className="flex min-w-0 items-center gap-2.5">
-          {!fullWidth ? (
+          {variant === 'default' && !fullWidth ? (
             <span className="truncate font-medium text-[#6B7280]">Категория</span>
           ) : null}
-          <span className="truncate">{label}</span>
+          <span className="truncate">{variant === 'pill' ? pillLabel : label}</span>
         </span>
-        <HiChevronDown
-          className={`h-4 w-4 shrink-0 text-[#6B7280] transition ${open ? 'rotate-180' : ''}`}
-          aria-hidden
-        />
+        {variant === 'default' ? (
+          <HiChevronDown
+            className={`h-4 w-4 shrink-0 text-[#6B7280] transition ${open ? 'rotate-180' : ''}`}
+            aria-hidden
+          />
+        ) : null}
       </button>
 
       {open ? (

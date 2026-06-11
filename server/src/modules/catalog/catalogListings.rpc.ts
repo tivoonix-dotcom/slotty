@@ -19,7 +19,9 @@ type RpcListingsPayload = {
 function isMissingRpcError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const code = (err as { code?: string }).code;
-  return code === '42883' || code === '42P01';
+  if (code === '42883' || code === '42P01' || code === '42725') return true;
+  const message = String((err as { message?: string }).message ?? '');
+  return /catalog_search_listings/i.test(message) && /does not exist|could not choose/i.test(message);
 }
 
 function normalizeListingItem(raw: CatalogListingItem): CatalogListingItem {
@@ -51,7 +53,15 @@ export async function searchCatalogListingsRpc(q: CatalogListingsQuery): Promise
       $14::text,
       $15::text,
       $16::int,
-      $17::int
+      $17::int,
+      $18::text,
+      $19::int,
+      $20::int,
+      $21::boolean,
+      $22::boolean,
+      $23::boolean,
+      $24::double precision,
+      $25::double precision
     ) as payload`,
     [
       q.search?.trim() || null,
@@ -71,6 +81,14 @@ export async function searchCatalogListingsRpc(q: CatalogListingsQuery): Promise
       q.sortBy,
       q.page,
       q.limit,
+      q.slotDate?.trim() || null,
+      q.timeFromHour ?? null,
+      q.timeToHour ?? null,
+      q.onlyWithSlots ?? false,
+      q.popularOnly ?? false,
+      q.newOnly ?? false,
+      q.userLat ?? null,
+      q.userLng ?? null,
     ],
   );
 

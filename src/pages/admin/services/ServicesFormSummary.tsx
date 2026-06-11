@@ -9,7 +9,7 @@ import { ServicesKpiPhotoBackdrop } from './ServicesKpiPhotoBackdrop';
 type Props = {
   title: string;
   priceLabel: string;
-  durationLabel: string;
+  durationLabel?: string | null;
   priceTypeLabel: string;
   visibilityLabel: string;
   description?: string | null;
@@ -58,7 +58,7 @@ export function ServicesFormSummary({
       <div className={servicesSheetSummaryBody}>
         <div className={`divide-y divide-[#D8D8D8] px-4 py-1 ${adminFormSheetMetricCatalog}`}>
           <SummaryRow label="Цена" value={priceLabel} />
-          <SummaryRow label="Длительность" value={durationLabel} />
+          {durationLabel?.trim() ? <SummaryRow label="Длительность" value={durationLabel} /> : null}
           <SummaryRow label="Тип цены" value={priceTypeLabel} />
           <SummaryRow label="Видимость" value={visibilityLabel} />
           {description?.trim() ? <SummaryRow label="Описание" value={description.trim()} /> : null}

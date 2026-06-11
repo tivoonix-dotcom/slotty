@@ -7,6 +7,10 @@ import {
 } from '../appointments/appointmentsFormat';
 import { PendingDeadlineHint } from '../appointments/PendingDeadlineHint';
 import {
+  apptCardMetricDuration,
+  apptCardMetricPrice,
+} from '../appointments/adminAppointmentsTheme';
+import {
   bookingNotificationHint,
   formatBookingSource,
   formatServicePrice,
@@ -20,6 +24,41 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <span className="min-w-0 text-right text-[14px] font-semibold leading-snug text-[#111827]">
         {value}
       </span>
+    </div>
+  );
+}
+
+function BookingVisitMetrics({
+  whenRange,
+  durationLabel,
+  priceLabel,
+}: {
+  whenRange: string;
+  durationLabel: string;
+  priceLabel: string;
+}) {
+  return (
+    <div className="rounded-[12px] bg-[#F5F5F5] px-4 py-3.5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">
+        Дата и время
+      </p>
+      <p className="mt-1 text-[16px] font-black leading-snug tracking-[-0.03em] text-[#111827] sm:text-[18px]">
+        {whenRange}
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-3 border-t border-[#E5E7EB] pt-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">
+            Длительность
+          </p>
+          <p className={`mt-1 ${apptCardMetricDuration} text-[16px] sm:text-[18px]`}>{durationLabel}</p>
+        </div>
+        <div className="min-w-0 text-right sm:text-left">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">
+            Цена
+          </p>
+          <p className={`mt-1 ${apptCardMetricPrice} text-[18px] sm:text-[20px]`}>{priceLabel}</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -108,24 +147,18 @@ export function BookingNotificationDetailView({
         ) : null}
       </div>
 
+      <BookingVisitMetrics
+        whenRange={whenRange}
+        durationLabel={formatDurationMinutes(appointment.durationMinutes, appointment.serviceTitle)}
+        priceLabel={formatServicePrice(appointment.priceByn)}
+      />
+
       <div className="rounded-[10px] bg-white px-4 ring-1 ring-[#EEEEEE]">
         <p className="border-b border-[#EEEEEE] py-3 text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF]">
           Услуга
         </p>
         <DetailRow label="Название" value={appointment.serviceTitle} />
         {serviceCategory ? <DetailRow label="Категория" value={serviceCategory} /> : null}
-        <DetailRow
-          label="Длительность"
-          value={formatDurationMinutes(appointment.durationMinutes, appointment.serviceTitle)}
-        />
-        <DetailRow label="Цена" value={formatServicePrice(appointment.priceByn)} />
-      </div>
-
-      <div className="rounded-[10px] bg-white px-4 ring-1 ring-[#EEEEEE]">
-        <p className="border-b border-[#EEEEEE] py-3 text-[12px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-          Дата и время
-        </p>
-        <DetailRow label="Когда" value={whenRange} />
       </div>
 
       <div className="rounded-[10px] bg-white px-4 ring-1 ring-[#EEEEEE]">

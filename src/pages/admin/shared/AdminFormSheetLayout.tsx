@@ -88,7 +88,7 @@ export function AdminFormSheetStepper({
                     aria-hidden
                   />
                 ) : null}
-                <div className="flex min-w-0 max-w-[4.75rem] shrink-0 flex-col items-center gap-1.5 sm:max-w-none sm:flex-1">
+                <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
                   <div
                     className={
                       done

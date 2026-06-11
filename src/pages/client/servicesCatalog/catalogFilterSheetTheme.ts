@@ -2,21 +2,21 @@
 
 export const catalogFilterSheetCanvas = 'bg-[#F5F5F5]';
 
-/** Розовая шапка Slotty */
+/** Шапка sheet фильтров — сплошной розовый `#F47C8C` */
 export const catalogFilterSheetHeaderBarClass =
-  'box-border w-full min-w-full shrink-0 overflow-hidden bg-[#F47C8C] pt-[env(safe-area-inset-top,0px)]';
+  'relative box-border w-full min-w-full shrink-0 overflow-hidden pt-[env(safe-area-inset-top,0px)]';
 
 export const catalogFilterSheetHeaderRowClass =
-  'relative flex min-h-12 items-center justify-between py-2';
+  'relative z-10 grid min-h-12 grid-cols-[1fr_auto] items-center gap-3 lg:min-h-[3.25rem] lg:px-5';
 
 export const catalogFilterSheetHeaderRowGridClass =
-  'grid min-h-12 grid-cols-[2.25rem_1fr_2.25rem] items-center py-2';
+  'relative z-10 grid min-h-12 grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2 lg:px-5';
 
 export const catalogFilterSheetTitleClass =
-  'text-[17px] font-bold text-white';
+  'm-0 min-w-0 truncate text-[17px] font-bold leading-none tracking-[-0.01em] text-white lg:text-[18px]';
 
 export const catalogFilterSheetTitleCenterClass =
-  'min-w-0 truncate text-center text-[17px] font-bold text-white';
+  'm-0 min-w-0 truncate text-center text-[17px] font-bold leading-none tracking-[-0.01em] text-white';
 
 export const catalogFilterSheetCloseBtnClass =
   'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/15 text-white transition active:scale-95 active:bg-black/25';
@@ -25,6 +25,10 @@ export const catalogFilterSheetBackBtnClass =
   'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/15 text-white transition active:scale-95 active:bg-black/25';
 
 export const catalogFilterSheetCardClass = 'rounded-[20px] bg-white px-4 py-4';
+
+/** Ширина desktop-drawer фильтров каталога. */
+export const catalogFilterSheetDesktopAsideClass =
+  'fixed inset-y-0 right-0 z-10 hidden w-full max-w-[min(100vw-1.5rem,560px)] flex-col overflow-hidden shadow-[-16px_0_48px_rgba(17,24,39,0.14)] xl:max-w-[600px] lg:flex';
 
 export const catalogFilterSheetSectionTitleClass =
   'mb-3 text-[15px] font-bold text-[#111827]';
@@ -36,6 +40,10 @@ export const catalogFilterSheetPriceInputClass =
   'h-11 w-full rounded-[12px] bg-[#F0F0F2] px-3 text-[15px] font-medium text-[#111827] outline-none placeholder:text-[#9CA3AF] focus:bg-[#E8E8EA]';
 
 const catalogHistoryPhotosDir = `/photos/${encodeURIComponent('история')}/`;
+const catalogLandingPhotosDir = `/photos/${encodeURIComponent('лендинг')}/`;
+
+/** Фон hero каталога — `public/photos/лендинг/заднийфон.png` */
+export const catalogHeroPhotoBg = `${catalogLandingPhotosDir}${encodeURIComponent('заднийфон.png')}`;
 
 /** Красный фон акций — `public/photos/история/красный.png` */
 export const catalogFilterPromoBg = `${catalogHistoryPhotosDir}${encodeURIComponent('красный.png')}`;

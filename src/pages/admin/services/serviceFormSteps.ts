@@ -6,6 +6,8 @@ export type ServiceFormStepContext = {
   title: string;
   price: string;
   durationMin: string;
+  coverImageUrl: string;
+  coverUploading: boolean;
 };
 
 function parsePrice(value: string): number {
@@ -19,6 +21,12 @@ export function validateServiceFormStep(step: ServiceFormStep, ctx: ServiceFormS
     if (!Number.isFinite(priceNumber) || priceNumber < 0) return 'Укажите цену. Можно 0.';
     const durationNumber = Number.parseInt(ctx.durationMin, 10);
     if (!Number.isFinite(durationNumber) || durationNumber <= 0) return 'Укажите длительность в минутах.';
+  }
+  if (step === 1) {
+    if (ctx.coverUploading) return 'Дождитесь окончания загрузки фото.';
+    const cover = ctx.coverImageUrl.trim();
+    if (!cover) return 'Загрузите фото услуги — оно обязательно для каталога.';
+    if (cover.startsWith('blob:')) return 'Дождитесь окончания загрузки фото.';
   }
   return null;
 }

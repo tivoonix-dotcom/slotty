@@ -100,7 +100,7 @@ function buildProfileFallbackAchievements(master: ServiceListingRecord): MasterT
     });
   }
 
-  if (isLikelyNewMaster(master)) {
+  if (isLikelyNewMaster(master) && master.reviewsCount < 5) {
     items.push({
       id: 'new',
       title: 'Новая звезда',
@@ -241,6 +241,7 @@ export function resolveMasterTopRankStatus(
 
     if (section.id === 'rating' && master.rating <= 0) continue;
     if (section.id === 'reviews' && master.reviewsCount <= 0) continue;
+    if (section.id === 'new' && master.reviewsCount >= 5) continue;
 
     achievements.push(buildAchievement(section, index, master, catalogSize));
   }

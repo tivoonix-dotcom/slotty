@@ -20,11 +20,26 @@ export const catalogSectionTabActive = 'text-white font-semibold';
 export const catalogSectionTabIdle =
   'bg-white text-[#374151] font-semibold transition hover:bg-[#FAFAFA] hover:text-[#111827]';
 
-/** Подтабы каталога — мягкий розовый */
-export const catalogViewTabActive =
-  'bg-[#FFF1F4] text-[#F47C8C] font-semibold ring-1 ring-[#F47C8C]/15';
+/** Подтабы каталога — мягкий розовый, без бордеров */
+export const catalogViewTabActive = 'bg-[#FFF1F4] text-[#F47C8C] font-semibold';
 
 export const catalogViewTabIdle = catalogDesktopChipIdle;
+
+/** Шапка каталога поверх фото-фона */
+export const catalogPhotoHeaderSearchClass =
+  'rounded-full border-0 bg-white text-[#111827] outline-none transition placeholder:font-medium placeholder:text-[#9CA3AF] focus:bg-[#FFF1F4] [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-ms-clear]:hidden';
+
+export const catalogPhotoHeaderSearchIconClass =
+  'pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#F47C8C]';
+
+export const catalogPhotoHeaderFilterBtnClass =
+  'rounded-[10px] border-0 bg-white text-[#F47C8C] outline-none transition hover:bg-[#FFF1F4] active:scale-[0.98]';
+
+export const catalogPhotoViewTabActive =
+  'bg-white font-bold text-[#F47C8C] shadow-[0_2px_8px_rgba(17,24,39,0.08)]';
+
+export const catalogPhotoViewTabIdle =
+  'bg-white/25 font-semibold text-white transition hover:bg-white/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white/60';
 
 /** Активные фильтры в сайдбаре */
 export const catalogFilterChipActive =
@@ -46,11 +61,14 @@ export const catalogFieldClass =
 
 /** Поле поиска в шапке каталога — шире, скругление «капсула» */
 export const catalogSearchFieldClass =
-  'rounded-full border-0 bg-[#EBEBEB] text-[#111827] outline-none transition placeholder:text-[#8E8E93] focus:bg-[#E4E4E4]';
+  'rounded-full border-0 bg-[#EBEBEB] text-[#111827] outline-none transition placeholder:text-[#8E8E93] focus:bg-[#E4E4E4] [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-ms-clear]:hidden';
 
 /** Десктоп-каталог: фиксированная область под bar-хедером, скролл только в колонках */
 export const catalogDesktopShellClass =
   'fixed inset-x-0 bottom-0 z-30 flex flex-col top-[var(--slotty-header-height)]';
+
+/** Десктоп-каталог услуг — обычный скролл; bar-хедер sticky в потоке, без дублирующего pt. */
+export const catalogDesktopPageClass = 'hidden w-full min-w-0 lg:block';
 
 /** Обёртка toolbar на десктопе (внутри fixed-shell, sticky не нужен) */
 export const catalogDesktopToolbarStickyClass = 'shrink-0 bg-[#F5F5F5]';
@@ -89,7 +107,38 @@ export const catalogDesktopStickyGapRem = '1rem';
 
 /** Отдельная карточка (mobile / isolated) */
 export const catalogListCardClass =
-  'overflow-hidden rounded-[16px] bg-white transition hover:bg-[#FAFAFA]';
+  'overflow-hidden rounded-[16px] bg-white';
+
+/** Карточка услуги — без hover-анимации */
+export const catalogServiceCardClass =
+  'overflow-hidden rounded-[16px] bg-white shadow-[0_1px_8px_rgba(17,24,39,0.05)] ring-1 ring-[#EEEEEE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F47C8C]/40';
+
+/** Плитка каталога — Kwork-style: тонкая обводка, без тени */
+export const catalogGridCardClass =
+  'overflow-hidden rounded-[12px] bg-white ring-1 ring-[#E8E8E8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F47C8C]/40';
+
+/** Hero каталога — edge-to-edge на viewport */
+export const catalogHeroShellClass =
+  'relative overflow-hidden bg-[#F8F4F2] shadow-[0_4px_24px_rgba(17,24,39,0.06)]';
+
+/** Блок записи в карточке услуги — без бордеров, только мягкий фон */
+export const catalogBookingAsideClass =
+  'flex shrink-0 flex-col justify-center bg-[#FFFBFC] p-4 lg:min-w-[200px] lg:px-5 lg:py-4';
+
+export const catalogBookingAsideLabelClass =
+  'text-[12px] font-medium leading-none text-[#8E8E93]';
+
+export const catalogBookingAsideSlotClass =
+  'rounded-[12px] bg-white/70 px-3.5 py-2.5';
+
+export const catalogBookingAsideSlotActiveClass =
+  'rounded-[12px] bg-white px-3.5 py-2.5 shadow-[0_2px_12px_rgba(244,124,140,0.1)]';
+
+export const catalogWbFilterPillIdle =
+  'inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full bg-[#F0F0F0] px-3.5 py-2 text-[14px] font-medium text-[#111827] hover:bg-[#E8E8E8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#F47C8C]/30';
+
+export const catalogWbFilterPillActive =
+  'inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full bg-[#FFF1F4] px-3.5 py-2 text-[14px] font-semibold text-[#F47C8C] hover:bg-[#FFE8EE]';
 
 export const catalogMetaChipClass =
   'rounded-[8px] bg-[#F0F0F0] px-2.5 py-1 text-[13px] font-medium text-[#374151]';
@@ -112,9 +161,9 @@ export const catalogPanelRowClass =
 
 export const catalogPanelRowPad = 'px-6 py-5';
 
-/** CTA каталога — плоские, без теней */
+/** CTA каталога */
 export const catalogPrimaryBtn =
-  'inline-flex min-h-10 shrink-0 items-center justify-center rounded-[10px] bg-[#F47C8C] px-5 text-[14px] font-semibold text-white transition hover:opacity-95 active:scale-[0.98]';
+  'inline-flex min-h-10 shrink-0 items-center justify-center rounded-[12px] bg-[#F47C8C] px-5 text-[14px] font-semibold text-white shadow-[0_4px_14px_rgba(244,124,140,0.28)] hover:bg-[#F36B85] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F47C8C]/50';
 
 export const catalogSecondaryBtn =
-  'inline-flex min-h-10 shrink-0 items-center justify-center rounded-[10px] bg-[#EBEBEB] px-5 text-[14px] font-semibold text-[#111827] transition hover:bg-[#E4E4E4] active:scale-[0.98]';
+  'inline-flex min-h-10 shrink-0 items-center justify-center rounded-[10px] bg-[#EBEBEB] px-5 text-[14px] font-semibold text-[#111827] hover:bg-[#E4E4E4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111827]/20';

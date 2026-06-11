@@ -67,7 +67,7 @@ function MonthGrid({
               onClick={() => onPick(c.iso)}
               className={`
                   flex aspect-square max-h-11 min-h-9 w-full items-center justify-center rounded-[14px] text-[14px] font-semibold tabular-nums transition active:scale-[0.95]
-                  ${selected ? 'bg-[#E29595] text-white shadow-[0_6px_18px_rgba(226,149,149,0.35)]' : ''}
+                  ${selected ? 'bg-[#E29595] text-white' : ''}
                   ${!selected && c.inMonth ? 'bg-[#F1EFEF] text-neutral-900 hover:bg-neutral-200/80' : ''}
                   ${!selected && !c.inMonth ? 'bg-transparent text-neutral-300' : ''}
                 `}

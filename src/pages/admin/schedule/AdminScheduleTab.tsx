@@ -25,6 +25,7 @@ import { ServicesTabFab } from '../services/ServicesTabFab';
 import { ScheduleSlotsListTab } from './ScheduleSlotsListTab';
 import {
   SCHEDULE_MOBILE_CANVAS,
+  SCHEDULE_TAB_BAR_SCROLL_PAD,
   scheduleShellCard,
   scheduleTabContentPad,
   scheduleTabPanelShellCalendar,
@@ -601,7 +602,7 @@ export function AdminScheduleTab({ draft }: Props) {
       <ScheduleBottomTabBar active={pageTab} onChange={setPageTab} variant="mobile" />
 
       <section
-        className={`-mx-4 min-w-0 space-y-4 px-4 pb-[calc(5.75rem+1.25rem+env(safe-area-inset-bottom,0px))] lg:hidden ${SCHEDULE_MOBILE_CANVAS}`}
+        className={`-mx-4 min-w-0 space-y-4 px-4 ${SCHEDULE_TAB_BAR_SCROLL_PAD} lg:hidden ${SCHEDULE_MOBILE_CANVAS}`}
       >
         {tabPanels}
       </section>

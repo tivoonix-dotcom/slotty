@@ -1,5 +1,5 @@
 import type { MeNotificationRow } from '../../../features/profile/api/clientNotifications';
-import { notifTimeGroupLabel } from './adminNotificationsTheme';
+import { notifListGap, notifTimeGroupLabel } from './adminNotificationsTheme';
 import { AdminNotificationCard } from './AdminNotificationCard';
 import type { MasterNotificationTimeGroup } from './masterNotificationModel';
 
@@ -12,9 +12,9 @@ type Props = {
 
 export function NotificationsTimeGroup({ group, onOpen, onMarkRead, startIndex = 0 }: Props) {
   return (
-    <section className="space-y-2.5 lg:space-y-3">
+    <section>
       <h2 className={notifTimeGroupLabel}>{group.label}</h2>
-      <ul className="flex flex-col gap-2.5 lg:gap-3">
+      <ul className={`mt-2 ${notifListGap}`}>
         {group.items.map((item, index) => (
           <li key={item.id}>
             <AdminNotificationCard

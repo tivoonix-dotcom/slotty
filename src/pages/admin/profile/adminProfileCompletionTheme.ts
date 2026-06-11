@@ -1,5 +1,15 @@
 import { profileCabinetPanel } from './adminProfileDashboardTheme';
 
+const landingPhotosDir = `/photos/${encodeURIComponent('лендинг')}/`;
+
+/** Фон hero-блока заполненности (`public/photos/лендинг/заднийфон.png`). */
+export const PROFILE_COMPLETION_HERO_BG = `${landingPhotosDir}${encodeURIComponent('заднийфон.png')}`;
+
+export const profileCompletionHeroPanel = 'relative overflow-hidden rounded-[16px]';
+
+export const profileCompletionHeroOverlay =
+  'pointer-events-none absolute inset-0 bg-gradient-to-br from-white/78 via-white/52 to-white/72';
+
 /** Заполненность профиля — плоский стиль как OKX-каталог: без теней и бордеров. */
 
 export const profileCompletionPanel = profileCabinetPanel;

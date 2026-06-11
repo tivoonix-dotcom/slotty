@@ -39,7 +39,7 @@ export function getLoginPath(fromPath?: string): string {
 /** Поиск услуг для клиента. */
 export const SERVICES_PATH = '/services';
 
-/** Каталог мастеров для клиента. */
+/** @deprecated Старый URL — редирект на {@link SERVICES_PATH}. */
 export const MASTERS_PATH = '/masters';
 
 export type MastersCatalogUrlParams = {
@@ -57,29 +57,18 @@ export type MastersCatalogUrlParams = {
   rating?: boolean;
 };
 
+/** @deprecated Каталог мастеров объединён с `/services`. */
 export function getMastersCatalogPath(opts?: MastersCatalogUrlParams): string {
-  if (!opts) return MASTERS_PATH;
-  const q = new URLSearchParams();
-  if (opts.tab === 'near') {
-    q.set('tab', 'near');
-    q.set('sort', 'soonest');
-    q.set('slots', '1');
-  } else if (opts.tab === 'today') {
-    q.set('tab', 'today');
-  } else if (opts.tab === 'top') {
-    q.set('tab', 'top');
-    q.set('sort', 'rating');
-    q.set('rating', '1');
+  if (!opts) return SERVICES_PATH;
+  const servicesOpts: ServicesCatalogUrlParams = {};
+  if (opts.tab === 'top') {
+    servicesOpts.tab = 'popular';
+    servicesOpts.sort = 'rating';
+  } else if (opts.tab === 'today' || opts.tab === 'near') {
+    servicesOpts.sort = 'soonest';
   }
-  if (opts.slots) q.set('slots', '1');
-  if (opts.sort && opts.sort !== 'recommended') q.set('sort', opts.sort);
-  if (opts.verified) q.set('verified', '1');
-  if (opts.promo) q.set('promo', '1');
-  if (opts.reviews) q.set('reviews', opts.reviews);
-  if (opts.category) q.set('category', opts.category);
-  if (opts.rating) q.set('rating', '1');
-  const s = q.toString();
-  return s ? `${MASTERS_PATH}?${s}` : MASTERS_PATH;
+  if (opts.sort && opts.sort !== 'recommended') servicesOpts.sort = opts.sort;
+  return getServicesCatalogPath(servicesOpts);
 }
 
 export type ServicesCatalogUrlParams = {
@@ -281,8 +270,14 @@ export const LEGAL_PUBLIC_OFFER_PATH = '/legal/public-offer';
 /** Шаблон маршрута профиля мастера (для документации / Route). */
 export const MASTER_PATH = '/master/:id';
 
-export function getMasterPath(masterId: string): string {
-  return `/master/${encodeURIComponent(masterId)}`;
+export function getMasterPath(
+  masterId: string,
+  opts?: { serviceId?: string | null },
+): string {
+  const base = `/master/${encodeURIComponent(masterId)}`;
+  const serviceId = opts?.serviceId?.trim();
+  if (!serviceId) return base;
+  return `${base}?${new URLSearchParams({ service_id: serviceId }).toString()}`;
 }
 
 /** Ссылка на профиль; `tab`: appointments | favorites | notifications | profile | settings. */

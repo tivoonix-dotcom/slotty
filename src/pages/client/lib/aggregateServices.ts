@@ -1,6 +1,19 @@
 import type { ServiceCategoryDto } from '../../../features/master-onboarding/api/becomeMasterApi';
 import type { ServiceListingRecord } from '../../../features/services/model/demoMasters';
-import { isSlotToday } from './catalogFormat';
+import {
+  isSlotToday,
+  listingDistanceKm,
+  masterLocationChipLine,
+  visitFormatChipLabel,
+} from './catalogFormat';
+import {
+  sanitizeDisplayName,
+  sanitizeLocationLabel,
+  sanitizeServiceTitle,
+} from './catalogDisplaySanitize';
+import { pickServiceCardAchievements } from './serviceCardPresentation';
+import { isLikelyNewMaster } from './mastersTopRankSections';
+import { resolveMasterTopRankStatus, type MasterTopAchievementKind } from './resolveMasterTopRankStatus';
 
 export type AggregatedServiceCard = {
   id: string;
@@ -16,6 +29,8 @@ export type AggregatedServiceCard = {
   nextSlotId?: string | null;
   photoUrl?: string;
   serviceCoverUrl?: string;
+  serviceCoverFocalX?: number;
+  serviceCoverFocalY?: number;
   minPrice: number;
   durationMinutes: number;
   /** Всегда 1 для карточки конкретной услуги */
@@ -31,6 +46,22 @@ export type AggregatedServiceCard = {
   isNew: boolean;
   /** Оценка просмотров за 7 дней (клиентский скоринг до API). */
   weeklyViews: number;
+  /** Достижения мастера (топ, рейтинг, отзывы…). */
+  achievementLabels: string[];
+  achievementIds: MasterTopAchievementKind[];
+  portfolioTotal: number;
+  /** Короткая локация мастера (live с listing.location). */
+  locationLabel?: string;
+  /** «В студии» / «На дому». */
+  visitLabel?: string;
+  /** Расстояние до пользователя, км (API или клиентский расчёт). */
+  distanceKm?: number | null;
+  isVerified?: boolean;
+};
+
+export type MapListingsGeo = {
+  userLat?: number | null;
+  userLng?: number | null;
 };
 
 function resolveCategoryCode(
@@ -70,52 +101,69 @@ function estimateWeeklyViews(input: {
 
 function listingBadge(row: ServiceListingRecord, hasToday: boolean): {
   badge: AggregatedServiceCard['badge'];
-  promoText: string | null;
   promotionOnly: boolean;
 } {
-  let badge: AggregatedServiceCard['badge'] = null;
-  let promoText: string | null = null;
+  if (row.hasPromotion) {
+    return { badge: 'sale', promotionOnly: true };
+  }
 
+  let badge: AggregatedServiceCard['badge'] = null;
   if (row.reviewsCount > 50 && row.rating >= 4.8) {
     badge = 'popular';
   } else if (hasToday && row.rating >= 4.5) {
     badge = 'hit';
   }
 
-  if (!badge && hasToday && row.priceFrom > 0 && row.priceFrom <= 55) {
-    badge = 'sale';
-    promoText = '-10% на первое посещение';
-  }
-
-  return { badge, promoText, promotionOnly: badge === 'sale' };
+  return { badge, promotionOnly: false };
 }
 
 /** Одна карточка каталога = одна услуга конкретного мастера. */
 export function mapListingsToServiceCards(
   listings: ServiceListingRecord[],
   categories: ServiceCategoryDto[],
+  geo?: MapListingsGeo,
 ): AggregatedServiceCard[] {
+  const userLat = geo?.userLat ?? null;
+  const userLng = geo?.userLng ?? null;
+
   return listings
     .map((row) => {
       const categoryCode = resolveCategoryCode(row, categories);
       const categoryName =
         categories.find((c) => c.code === categoryCode)?.name ?? row.category;
       const hasToday = row.nextSlotStartsAt ? isSlotToday(row.nextSlotStartsAt) : false;
-      const { badge, promoText, promotionOnly } = listingBadge(row, hasToday);
+      const { badge, promotionOnly } = listingBadge(row, hasToday);
       const avgRating = Math.round(row.rating * 10) / 10;
+      const topRank = resolveMasterTopRankStatus(row.masterId, listings);
+      const cardAchievements = pickServiceCardAchievements(topRank.achievements, 2, {
+        reviewsCount: row.reviewsCount,
+        avgRating: row.rating,
+        badge,
+      });
+      const portfolioTotal =
+        row.portfolioTotal ??
+        (row.portfolioPreview?.length ? row.portfolioPreview.length : 0);
+
+      const sanitizeCtx = { categoryCode, masterId: row.masterId };
+      const distanceKm =
+        row.distanceKm != null && Number.isFinite(row.distanceKm)
+          ? row.distanceKm
+          : listingDistanceKm(row, userLat, userLng);
 
       return {
         id: row.id,
         categoryCode,
         categoryName,
-        title: row.serviceName,
-        subtitle: row.masterName,
+        title: sanitizeServiceTitle(row.serviceName, sanitizeCtx),
+        subtitle: sanitizeDisplayName(row.masterName, sanitizeCtx),
         masterId: row.masterId,
-        masterName: row.masterName,
+        masterName: sanitizeDisplayName(row.masterName, sanitizeCtx),
         primaryServiceId: row.primaryServiceId,
         nextSlotId: row.nextSlotId,
         photoUrl: row.photoUrl,
         serviceCoverUrl: row.serviceCoverUrl,
+        serviceCoverFocalX: row.serviceCoverFocalX,
+        serviceCoverFocalY: row.serviceCoverFocalY,
         minPrice: row.priceFrom,
         durationMinutes: parseDurationMinutes(row.serviceName),
         masterCount: 1,
@@ -123,25 +171,28 @@ export function mapListingsToServiceCards(
         hasToday,
         promotionOnly,
         badge,
-        promoText,
+        promoText: null,
         avgRating,
         totalReviews: row.reviewsCount,
         tags: categoryName ? [categoryName] : [],
-        isNew: row.reviewsCount < 10,
-        weeklyViews: estimateWeeklyViews({
-          totalReviews: row.reviewsCount,
-          hasToday,
-          badge,
-          avgRating: row.rating,
-        }),
+        isNew: row.reviewsCount <= 0 || isLikelyNewMaster(row),
+        weeklyViews:
+          row.weeklyViews != null && Number.isFinite(row.weeklyViews)
+            ? row.weeklyViews
+            : estimateWeeklyViews({
+                totalReviews: row.reviewsCount,
+                hasToday,
+                badge,
+                avgRating: row.rating,
+              }),
+        achievementLabels: cardAchievements.map((item) => item.title),
+        achievementIds: cardAchievements.map((item) => item.id),
+        portfolioTotal,
+        locationLabel: sanitizeLocationLabel(masterLocationChipLine(row)),
+        visitLabel: visitFormatChipLabel(row),
+        distanceKm,
+        isVerified: row.isVerified ?? false,
       };
-    })
-    .sort((a, b) => {
-      const slotA = a.nearestSlotIso ? new Date(a.nearestSlotIso).getTime() : Number.POSITIVE_INFINITY;
-      const slotB = b.nearestSlotIso ? new Date(b.nearestSlotIso).getTime() : Number.POSITIVE_INFINITY;
-      if (slotA !== slotB) return slotA - slotB;
-      if (b.avgRating !== a.avgRating) return b.avgRating - a.avgRating;
-      return b.totalReviews - a.totalReviews;
     });
 }
 

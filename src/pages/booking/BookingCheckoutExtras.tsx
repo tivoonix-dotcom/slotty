@@ -2,7 +2,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { HiCheck } from 'react-icons/hi2';
 import { LEGAL_PD_CONSENT_PATH, LEGAL_TERMS_PATH } from '../../app/paths';
 import { legalReturnState } from '../legal/useLegalPageBack';
-import { categorySupportsReferencePhoto } from '../../features/booking/lib/referencePhotoCategories';
 import {
   catalogFieldClass,
   catalogPrimaryBtn,
@@ -47,7 +46,6 @@ export function BookingCheckoutExtras({
   const { pathname, search } = useLocation();
   const legalReturn = legalReturnState(`${pathname}${search}`);
   const canSubmit = canConfirm && acceptedTerms && !submitting;
-  const showReferencePhoto = categorySupportsReferencePhoto(categoryCode);
   const trustItems = ruleLines?.length
     ? ruleLines
     : ['Бесплатная отмена за 24 часа', ...DEFAULT_TRUST_ITEMS, 'Оплата на месте у мастера'];
@@ -68,14 +66,12 @@ export function BookingCheckoutExtras({
         </ul>
       </div>
 
-      {showReferencePhoto ? (
-        <BookingReferencePhotoField
-          categoryCode={categoryCode}
-          photoUrl={referencePhotoUrl}
-          onPhotoUrlChange={onReferencePhotoUrlChange}
-          disabled={submitting}
-        />
-      ) : null}
+      <BookingReferencePhotoField
+        categoryCode={categoryCode}
+        photoUrl={referencePhotoUrl}
+        onPhotoUrlChange={onReferencePhotoUrlChange}
+        disabled={submitting}
+      />
 
       <label className="block">
         <span className={bookingDesktopSectionTitle}>Комментарий мастеру</span>

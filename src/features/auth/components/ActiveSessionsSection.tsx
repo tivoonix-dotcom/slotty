@@ -1,4 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { ADMIN_PATH } from '../../../app/paths';
+import {
+  SettingsCabinetList,
+  SettingsCabinetSectionTitle,
+  SettingsCabinetStatusPill,
+  settingsCabinetActionBtn,
+} from '../../../pages/admin/settings/workspace/settingsCabinetUi';
+import { ADMIN_SIDEBAR_OVERLAY_INSET } from '../../../pages/admin/adminCabinetLayout';
+import { ConfirmModal } from '../../../shared/ui/ConfirmModal';
 import { useAuth } from '../AuthProvider';
 import {
   fetchAuthSessions,
@@ -6,12 +16,6 @@ import {
   revokeOtherAuthSessions,
 } from '../api/authApi';
 import type { AuthSessionRowDto } from '../types';
-import {
-  SettingsCabinetList,
-  SettingsCabinetSectionTitle,
-  SettingsCabinetStatusPill,
-  settingsCabinetActionBtn,
-} from '../../../pages/admin/settings/workspace/settingsCabinetUi';
 
 function formatSessionWhen(iso: string): string {
   return new Date(iso).toLocaleString('ru-RU', {
@@ -53,13 +57,22 @@ function SessionDeviceIcon({ title }: { title: string }) {
   );
 }
 
+type PendingConfirm =
+  | { kind: 'revoke'; row: AuthSessionRowDto }
+  | { kind: 'revokeOthers'; count: number };
+
 export function ActiveSessionsSection() {
+  const location = useLocation();
+  const overlayInsetClassName = location.pathname.startsWith(ADMIN_PATH)
+    ? ADMIN_SIDEBAR_OVERLAY_INSET
+    : '';
   const { logout } = useAuth();
   const [sessions, setSessions] = useState<AuthSessionRowDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [revokingOthers, setRevokingOthers] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -78,12 +91,7 @@ export function ActiveSessionsSection() {
     void reload();
   }, [reload]);
 
-  const handleRevoke = async (row: AuthSessionRowDto) => {
-    if (busyId) return;
-    const ok = row.isCurrent
-      ? window.confirm('Завершить сеанс на этом устройстве? Потребуется войти снова.')
-      : window.confirm(`Завершить сеанс «${row.title}»?`);
-    if (!ok) return;
+  const performRevoke = async (row: AuthSessionRowDto) => {
     setBusyId(row.id);
     setError(null);
     try {
@@ -100,10 +108,7 @@ export function ActiveSessionsSection() {
     }
   };
 
-  const handleRevokeOthers = async () => {
-    const others = sessions.filter((s) => !s.isCurrent);
-    if (!others.length || revokingOthers) return;
-    if (!window.confirm(`Завершить ${others.length} других сеансов?`)) return;
+  const performRevokeOthers = async () => {
     setRevokingOthers(true);
     setError(null);
     try {
@@ -115,6 +120,57 @@ export function ActiveSessionsSection() {
       setRevokingOthers(false);
     }
   };
+
+  const handleConfirm = async () => {
+    if (!pendingConfirm || busyId || revokingOthers) return;
+    const action = pendingConfirm;
+    setPendingConfirm(null);
+    if (action.kind === 'revoke') {
+      await performRevoke(action.row);
+      return;
+    }
+    await performRevokeOthers();
+  };
+
+  const openRevokeConfirm = (row: AuthSessionRowDto) => {
+    if (busyId || revokingOthers) return;
+    setPendingConfirm({ kind: 'revoke', row });
+  };
+
+  const openRevokeOthersConfirm = () => {
+    const others = sessions.filter((s) => !s.isCurrent);
+    if (!others.length || revokingOthers || busyId) return;
+    setPendingConfirm({ kind: 'revokeOthers', count: others.length });
+  };
+
+  const confirmBusy = Boolean(busyId) || revokingOthers;
+
+  const confirmCopy =
+    pendingConfirm?.kind === 'revokeOthers'
+      ? {
+          title: 'Завершить другие сеансы?',
+          description: `Будут завершены ${pendingConfirm.count} ${
+            pendingConfirm.count === 1
+              ? 'другой сеанс'
+              : pendingConfirm.count < 5
+                ? 'других сеанса'
+                : 'других сеансов'
+          }. На этих устройствах потребуется войти снова.`,
+          confirmLabel: 'Завершить остальные',
+        }
+      : pendingConfirm?.kind === 'revoke'
+        ? pendingConfirm.row.isCurrent
+          ? {
+              title: 'Выйти на этом устройстве?',
+              description: 'Текущий сеанс будет завершён. Чтобы продолжить работу, войдите снова.',
+              confirmLabel: 'Выйти',
+            }
+          : {
+              title: 'Завершить сеанс?',
+              description: `Сеанс «${pendingConfirm.row.title}» будет завершён. На этом устройстве потребуется войти снова.`,
+              confirmLabel: 'Завершить',
+            }
+        : null;
 
   const okxBtn = settingsCabinetActionBtn;
   const logoutBtn = `${settingsCabinetActionBtn} text-[#B91C1C] hover:bg-[#FEE2E2]`;
@@ -131,8 +187,8 @@ export function ActiveSessionsSection() {
         {hasOthers && hasCurrent ? (
           <button
             type="button"
-            disabled={loading || revokingOthers || Boolean(busyId)}
-            onClick={() => void handleRevokeOthers()}
+            disabled={loading || confirmBusy}
+            onClick={openRevokeOthersConfirm}
             className={okxBtn}
           >
             {revokingOthers ? '…' : 'Завершить остальные'}
@@ -170,8 +226,8 @@ export function ActiveSessionsSection() {
               {!row.isCurrent ? (
                 <button
                   type="button"
-                  disabled={Boolean(busyId) || revokingOthers}
-                  onClick={() => void handleRevoke(row)}
+                  disabled={confirmBusy}
+                  onClick={() => openRevokeConfirm(row)}
                   className={okxBtn}
                 >
                   {busyId === row.id ? '…' : 'Завершить'}
@@ -179,8 +235,8 @@ export function ActiveSessionsSection() {
               ) : (
                 <button
                   type="button"
-                  disabled={Boolean(busyId) || revokingOthers}
-                  onClick={() => void handleRevoke(row)}
+                  disabled={confirmBusy}
+                  onClick={() => openRevokeConfirm(row)}
                   className={logoutBtn}
                 >
                   {busyId === row.id ? '…' : 'Выйти'}
@@ -190,6 +246,21 @@ export function ActiveSessionsSection() {
           ))
         )}
       </SettingsCabinetList>
+
+      <ConfirmModal
+        open={pendingConfirm !== null}
+        danger
+        busy={confirmBusy}
+        title={confirmCopy?.title ?? ''}
+        description={confirmCopy?.description}
+        confirmLabel={confirmCopy?.confirmLabel ?? 'Подтвердить'}
+        overlayInsetClassName={overlayInsetClassName}
+        onClose={() => {
+          if (confirmBusy) return;
+          setPendingConfirm(null);
+        }}
+        onConfirm={() => void handleConfirm()}
+      />
     </section>
   );
-}
+};

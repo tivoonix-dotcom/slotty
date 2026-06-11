@@ -111,8 +111,5 @@ export function resolveMasterBookingLink(
   const origin = pageOrigin?.trim() || readPublicAppOrigin();
   const web = buildWebMasterProfileAbsoluteUrl(origin, masterId);
   if (!web) return null;
-  console.warn(
-    '[SLOTTY] VITE_TELEGRAM_BOT_USERNAME не задан — для «Ссылка для записи» используется веб-URL профиля мастера',
-  );
   return { href: web, isTelegramDeepLink: false };
 }

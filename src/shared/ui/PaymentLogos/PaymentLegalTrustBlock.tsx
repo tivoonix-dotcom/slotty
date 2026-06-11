@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
 import { LEGAL_PAYMENT_PATH, LEGAL_REFUND_PATH } from '../../../app/paths';
+import { legalDocFontBody, legalDocFontDisplay } from '../../../pages/legal/legalDocumentUi';
 import { PAYMENT_LEGAL_TRUST_BLOCK_BG } from '../../../pages/legal/legalSiteInfo';
 import { PaymentLogos } from './PaymentLogos';
 
@@ -9,13 +10,12 @@ type Props = {
   showLogos?: boolean;
 };
 
-const trustLinkClass =
-  'inline-flex min-h-10 items-center rounded-full bg-white px-4 text-[14px] font-semibold text-[#111827] shadow-[0_2px_14px_rgba(17,24,39,0.1)] ring-1 ring-black/[0.08] transition hover:bg-white/95 active:opacity-90';
+const trustLinkClass = `${legalDocFontBody} inline-flex min-h-10 items-center rounded-full bg-white px-4 text-[14px] font-semibold text-[#111827] ring-1 ring-[#EEEEEE] transition hover:bg-[#FAFAFA] active:scale-[0.98]`;
 
 export const PaymentLegalTrustBlock: FC<Props> = ({ className = '', showLogos = false }) => {
   return (
     <aside
-      className={`relative w-full overflow-hidden rounded-[20px] border border-black/[0.06] ${className}`}
+      className={`relative w-full overflow-hidden rounded-[24px] bg-[#FAFAF8] sm:rounded-[28px] ${className}`}
     >
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-right bg-no-repeat"
@@ -28,10 +28,12 @@ export const PaymentLegalTrustBlock: FC<Props> = ({ className = '', showLogos = 
       />
       <div className="relative z-10 px-5 py-6 sm:px-7 sm:py-7">
         <div className="max-w-[34rem]">
-          <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[#111827] sm:text-[20px]">
+          <h2
+            className={`${legalDocFontDisplay} text-[18px] font-medium tracking-[-0.02em] text-[#111827] sm:text-[20px]`}
+          >
             Оплата и возвраты
           </h2>
-          <p className="mt-3 text-[15px] font-medium leading-relaxed text-[#374151] sm:text-[16px]">
+          <p className={`${legalDocFontBody} mt-3 text-[15px] font-normal leading-relaxed text-[#374151] sm:text-[16px]`}>
             Правила оплаты и возврата описаны на отдельных страницах. После подключения онлайн-оплаты
             доступные способы будут отображаться при оформлении.
           </p>

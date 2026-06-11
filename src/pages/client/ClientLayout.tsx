@@ -7,7 +7,7 @@ import { ClientErrorModalProvider } from './ClientErrorModalContext';
 import type { ClientOutletContext } from './clientOutletContext';
 import { useClientGeo } from './hooks/useClientGeo';
 
-import { BOOKING_PATH, MASTERS_PATH, PROFILE_PATH, SERVICES_PATH } from '../../app/paths';
+import { BOOKING_PATH, PROFILE_PATH, SERVICES_PATH } from '../../app/paths';
 
 function isMasterPublicPath(pathname: string): boolean {
   return /^\/master\/[^/]+/.test(pathname);
@@ -22,7 +22,7 @@ function isClientAppointmentDetailPath(pathname: string): boolean {
 }
 
 function isCatalogPath(pathname: string): boolean {
-  if (pathname === MASTERS_PATH || pathname === SERVICES_PATH) return true;
+  if (pathname === SERVICES_PATH) return true;
   return pathname.startsWith(`${SERVICES_PATH}/category/`);
 }
 
@@ -56,15 +56,17 @@ export function ClientLayout() {
     profileDesktopCabinet;
   const masterPublicDesktop = isMasterPublicPath(pathname);
   const hideSlottyHeader = profileDesktopCabinet || masterPublicDesktop;
-  const catalogMobileCanvas = isCatalogPath(pathname);
+  const catalogCanvas = isCatalogPath(pathname) || isBookingPath(pathname);
 
   return (
     <ClientErrorModalProvider>
       <div
         className={`min-h-dvh w-full min-w-0 text-neutral-900 ${
-          profileDesktopCabinet || catalogMobileCanvas
-            ? 'max-lg:bg-[#F5F5F5] lg:bg-white'
-            : 'bg-white'
+          catalogCanvas
+            ? 'bg-[#F5F5F5]'
+            : profileDesktopCabinet
+              ? 'max-lg:bg-[#F5F5F5] lg:bg-[#f6f7fb]'
+              : 'bg-white'
         }`}
       >
         {hideMobileClientHeader ? null : (

@@ -14,9 +14,12 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   HiBell,
   HiBolt,
+  HiCalendarDays,
   HiChevronDown,
   HiChevronRight,
   HiClock,
+  HiCog6Tooth,
+  HiHeart,
   HiMapPin,
   HiSparkles,
   HiSquares2X2,
@@ -25,18 +28,20 @@ import {
 } from 'react-icons/hi2';
 import type { IconType } from 'react-icons';
 
-import { HEADER_LOGO_SRC } from '../../../app/headerLogo';
+import { HEADER_LOGO_SRC, LANDING_HEADER_LOGO_SRC } from '../../../app/headerLogo';
 import {
-  MASTER_SETTINGS_PATH,
   ADMIN_NOTIFICATIONS_PATH,
   ADMIN_PATH,
+  BOOKING_PATH,
   PLATFORM_ADMIN_PATH,
   BECOME_MASTER_PATH,
   getLoginPath,
   getProfilePath,
   HUB_PATH,
-  MASTERS_PATH,
   PROFILE_PATH,
+  PROFILE_NOTIFICATIONS_PATH,
+  PROFILE_SETTINGS_PATH,
+  MASTER_START_PATH,
   SERVICES_PATH,
 } from '../../../app/paths';
 import { useAuth } from '../../../features/auth/AuthProvider';
@@ -44,18 +49,25 @@ import { isPlatformAdmin } from '../../../features/auth/lib/isPlatformAdmin';
 import { resolveMasterEntryPath } from '../../../features/auth/lib/resolveMasterEntryPath';
 import { useIsMasterUser } from '../../../features/profile/hooks/useIsMasterUser';
 import { setProfileRole } from '../../../features/profile/lib/setProfileRole';
-import { CLIENT_DESKTOP_SHELL_CLASS } from '../clientShellLayout';
+import {
+  CLIENT_CATALOG_DESKTOP_SHELL_CLASS,
+  CLIENT_DESKTOP_SHELL_CLASS,
+} from '../clientShellLayout';
 import { catalogPrimaryBtn } from '../../../pages/client/servicesCatalog/servicesCatalogTheme';
 import { useTelegram } from '../../hooks/useTelegram';
 import { HeaderProfileAvatar } from './HeaderProfileAvatar';
 import {
   landingAnchorHref,
+  masterLandingAnchorHref,
   LANDING_ANCHOR_FAQ,
   LANDING_ANCHOR_FOR_MASTERS,
   LANDING_ANCHOR_HOW,
+  LANDING_ANCHOR_MASTER_HOME,
   LANDING_ANCHOR_TARIFFS,
+  isClientLandingAnchor,
   isLandingHowTab,
   isLandingMastersTab,
+  isMasterLandingAnchor,
   parseLandingHowTab,
   parseLandingMastersTab,
   SLOTTY_NAV_CATALOG,
@@ -63,6 +75,24 @@ import {
 } from './headerNav';
 import { SlottyImg } from '../../ui/SlottyImg';
 import { resolveMegaMenuGroup, type MegaMenuKey, type MegaMenuGroup, type MegaMenuItem } from './megaMenuConfig';
+import {
+  LANDING_HEADER_LOGO_CELL_CLASS,
+  LANDING_HEADER_LOGO_IMG_CLASS,
+  LANDING_HEADER_LOGO_LINK_CLASS,
+  CATALOG_LANDING_HEADER_WIDTH_CLASS,
+  LANDING_HEADER_MAX_WIDTH_CLASS,
+  LANDING_HEADER_NAV_CELL_CLASS,
+  LANDING_HEADER_PILL_CLASS,
+  LANDING_HEADER_ROW_CLASS,
+  LANDING_HEADER_SLOT_H,
+  LANDING_ACCOUNT_PANEL_CLASS,
+  LANDING_ACCOUNT_PANEL_TITLE_CLASS,
+  LANDING_ACCOUNT_ROW_CLASS,
+  LANDING_ACCOUNT_ROW_ICON_CLASS,
+  LANDING_HEADER_ACTIONS_CELL_CLASS,
+  LANDING_ICON_BTN_CLASS,
+  LANDING_NAV_LINK_CLASS,
+} from './landingHeaderTheme';
 
 const iconBtn =
   'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F1EFEF] text-[#374151] transition hover:bg-[#E9E6E6] hover:text-[#F47C8C] active:scale-[0.97]';
@@ -73,20 +103,7 @@ const HEADER_LOGO_IMG_CLASS = 'block h-[72px] w-auto object-contain object-cente
 
 const HEADER_LOGO_COMPACT_CLASS = 'block h-10 w-auto object-contain object-center lg:h-11';
 
-/** Высота строки = кнопка бургера (h-9) + вертикальные отступы, без лишнего зазора снизу. */
-const HEADER_LANDING_ROW_CLASS =
-  'relative flex h-14 items-center justify-between gap-2 px-3 sm:h-16 sm:px-4 lg:h-[5.5rem] lg:gap-4 lg:px-5 xl:px-6';
-
-/**
- * Лендинг mobile: базовый слот h-9, визуальный размер — через scale (не трогает padding строки).
- * lg+ — обычный крупный логотип без scale.
- */
-const HEADER_LANDING_LOGO_CLASS =
-  'relative z-[1] h-9 w-9 shrink-0 origin-left scale-[1.72] translate-x-[1px] sm:scale-[1.78] lg:h-auto lg:w-auto lg:origin-center lg:scale-100 lg:translate-x-[-22px] xl:translate-x-[-18px]';
-
-const HEADER_LANDING_LOGO_IMG_CLASS =
-  'block h-9 w-auto max-w-none object-contain object-left object-center lg:h-20 lg:object-center';
-
+/** Высота строки bar-хедера. */
 const HEADER_BAR_ROW_CLASS =
   'relative flex h-14 items-center justify-between gap-4 px-4 sm:px-5 lg:h-[4.25rem] lg:px-0';
 
@@ -95,25 +112,39 @@ function HeaderLogoLink({
   imgClassName,
   onClick,
   size = 'large',
+  src,
+  fadeOnHover = true,
+  bareLink = false,
+  to = HUB_PATH,
 }: {
   className?: string;
   imgClassName?: string;
   onClick?: () => void;
   size?: 'large' | 'compact';
+  src?: string;
+  fadeOnHover?: boolean;
+  /** Без дефолтных h-9/h-10 — только переданные классы (лендинг). */
+  bareLink?: boolean;
+  to?: string;
 }) {
   const imgClass =
     imgClassName ??
     (size === 'compact' ? HEADER_LOGO_COMPACT_CLASS : HEADER_LOGO_IMG_CLASS);
 
+  const hoverClass = fadeOnHover ? 'transition hover:opacity-60' : 'opacity-100 hover:opacity-100';
+  const linkClass = bareLink
+    ? `inline-flex shrink-0 outline-none ${hoverClass} ${className}`
+    : `inline-flex h-9 shrink-0 items-center justify-center outline-none sm:h-10 lg:h-auto ${hoverClass} ${className}`;
+
   return (
     <Link
-      to={HUB_PATH}
+      to={to}
       aria-label="SLOTTY — на главную"
-      className={`inline-flex h-9 shrink-0 items-center justify-center outline-none transition hover:opacity-60 sm:h-10 lg:h-auto ${className}`}
+      className={linkClass}
       onClick={onClick}
     >
       <SlottyImg
-        src={HEADER_LOGO_SRC}
+        src={src ?? HEADER_LOGO_SRC}
         alt=""
         decoding="async"
         loading="eager"
@@ -132,11 +163,9 @@ const activeNavTriggerClass = 'text-[#F47C8C]';
 const HEADER_PILL_BASE_CLASS =
   'overflow-visible rounded-[30px] border border-[#D5D3D3]/80 bg-[#E4E2E2]/96 shadow-[0_1px_3px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-300';
 
-const HEADER_CATALOG_BAR_BORDER = 'border-[#F47C8C]';
-
-/** Каталог услуг/мастеров — bar на всю ширину, без pill-капсулы. */
-function isCatalogFullWidthBarPath(pathname: string): boolean {
-  if (pathname === MASTERS_PATH || pathname === SERVICES_PATH) return true;
+/** Клиентский pill-хедер (#FBEDEC): каталог, категории, запись. */
+function isCatalogLandingHeaderPath(pathname: string): boolean {
+  if (pathname === BOOKING_PATH || pathname === SERVICES_PATH) return true;
   return pathname.startsWith(`${SERVICES_PATH}/category/`);
 }
 
@@ -162,8 +191,10 @@ type Variant = 'landing' | 'bar';
 
 export type SlottyHeaderProps = {
   variant?: Variant;
-  /** Тёмный bar-хедер (страница политики конфиденциальности). */
+  /** Тёмный bar-хедер (legacy). Для legal-страниц предпочтительнее `landingTone="dark"`. */
   barTone?: 'light' | 'dark';
+  /** Тёмная pill-шапка лендинга (legal / privacy). */
+  landingTone?: 'light' | 'dark';
   /** На mobile при `variant="bar"` — pill-хедер с бургер-меню как на главной. */
   barMobileMenu?: boolean;
 };
@@ -217,16 +248,21 @@ function BurgerIcon({ open, tone = 'light' }: { open: boolean; tone?: 'light' | 
 function HeaderShell({
   variant,
   barTone = 'light',
-  barFullBleed = false,
   landingTone = 'light',
+  landingSticky = false,
+  landingDesktopOnly = false,
+  landingCatalogWidth = false,
   children,
   innerClassName = '',
   shellRef,
 }: {
   variant: Variant;
   barTone?: 'light' | 'dark';
-  barFullBleed?: boolean;
   landingTone?: 'light' | 'dark';
+  landingSticky?: boolean;
+  landingDesktopOnly?: boolean;
+  /** Pill на всю ширину shell каталога (1320px), не узкая капсула лендинга. */
+  landingCatalogWidth?: boolean;
   children: ReactNode;
   innerClassName?: string;
   shellRef?: RefObject<HTMLElement | null>;
@@ -236,21 +272,6 @@ function HeaderShell({
   if (variant === 'bar') {
     const isDark = barTone === 'dark';
     const megaOpen = innerClassName.includes('mega-open');
-
-    if (!isDark && barFullBleed) {
-      return (
-        <header
-          ref={headerElementRef}
-          className={`sticky top-0 z-50 hidden w-full overflow-visible bg-white lg:block border-b transition-colors duration-300 ${
-            megaOpen ? 'border-transparent' : HEADER_CATALOG_BAR_BORDER
-          }`}
-        >
-          <div className="w-full px-6 xl:px-10">
-            <div className={innerClassName}>{children}</div>
-          </div>
-        </header>
-      );
-    }
 
     if (isDark) {
       return (
@@ -287,15 +308,28 @@ function HeaderShell({
           ? 'rounded-b-none !border-white/10 !bg-[#141414] shadow-[0_20px_56px_rgba(0,0,0,0.65)]'
           : ''
       }`
-    : HEADER_PILL_BASE_CLASS;
+    : LANDING_HEADER_PILL_CLASS;
+
+  const landingPositionClass = landingSticky
+    ? 'sticky'
+    : 'fixed inset-x-0';
+
+  const landingShellClass = landingCatalogWidth
+    ? CLIENT_CATALOG_DESKTOP_SHELL_CLASS
+    : CLIENT_DESKTOP_SHELL_CLASS;
+  const landingWidthClass = landingCatalogWidth
+    ? CATALOG_LANDING_HEADER_WIDTH_CLASS
+    : LANDING_HEADER_MAX_WIDTH_CLASS;
 
   return (
     <header
       ref={headerElementRef}
-      className="fixed inset-x-0 top-0 z-50 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]"
+      className={`${landingDesktopOnly ? 'hidden lg:block' : ''} ${landingPositionClass} top-0 z-50 overflow-visible pt-[calc(0.5rem+env(safe-area-inset-top,0px))]`}
     >
-      <div className={`${CLIENT_DESKTOP_SHELL_CLASS} max-lg:px-4`}>
-        <div className={`${landingPanelClass} ${innerClassName}`}>{children}</div>
+      <div className={`${landingShellClass} ${landingDesktopOnly ? '' : 'max-lg:px-4'}`}>
+        <div className={`${landingWidthClass} ${landingPanelClass} ${innerClassName}`}>
+          {children}
+        </div>
       </div>
     </header>
   );
@@ -304,23 +338,30 @@ function HeaderShell({
 export function SlottyHeader({
   variant = 'landing',
   barTone = 'light',
+  landingTone = 'light',
   barMobileMenu = false,
 }: SlottyHeaderProps) {
   const isDarkBar = variant === 'bar' && barTone === 'dark';
+  const isDarkLanding = variant === 'landing' && landingTone === 'dark';
+  const isDarkHeaderTheme = isDarkBar || isDarkLanding;
   const barMobileLandingMenu = variant === 'bar' && barMobileMenu;
   const barMobileMenuDark = barMobileLandingMenu && isDarkBar;
-  const mobileNavLinkClass = barMobileMenuDark
+  const mobileMenuDark = barMobileMenuDark || isDarkLanding;
+  const mobileNavLinkClass = mobileMenuDark
     ? 'block py-3.5 text-[18px] font-medium text-white/90 transition hover:text-white'
-    : 'block py-3.5 text-[18px] font-medium text-neutral-900';
-  const mobileNavBtnClass = barMobileMenuDark
+    : 'block py-3.5 text-[18px] font-medium lowercase text-[#1A1A1A]';
+  const mobileNavBtnClass = mobileMenuDark
     ? 'block w-full py-3.5 text-left text-[18px] font-medium text-white/90 transition hover:text-white'
-    : 'block w-full py-3.5 text-left text-[18px] font-medium text-neutral-900';
-  const mobileBurgerBtnClass = barMobileMenuDark
+    : 'block w-full py-3.5 text-left text-[18px] font-medium lowercase text-[#1A1A1A]';
+  const mobileBurgerBtnClass = mobileMenuDark
     ? 'relative z-50 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-white/10 active:scale-95'
     : 'relative z-50 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5 active:scale-95';
-  const headerIconBtn = isDarkBar
+  const headerIconBtn = isDarkHeaderTheme
     ? 'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/15 hover:text-[#ff8fa3] active:scale-[0.97]'
     : iconBtn;
+  const landingIconBtnClass = isDarkLanding
+    ? headerIconBtn
+    : LANDING_ICON_BTN_CLASS;
   const navigate = useNavigate();
   const location = useLocation();
   const { isTelegramWebApp } = useTelegram();
@@ -342,11 +383,11 @@ export function SlottyHeader({
   const loginReturnPath = `${location.pathname}${location.search}`;
   const loginHref = getLoginPath(loginReturnPath);
   const appointmentsHref = isAuthenticated ? getProfilePath('appointments') : loginHref;
-  const loginMethodsHref = isMasterUser ? MASTER_SETTINGS_PATH : getProfilePath('settings');
+  const notificationsHref = isMasterUser ? ADMIN_NOTIFICATIONS_PATH : PROFILE_NOTIFICATIONS_PATH;
 
-  const showDesktopChrome = !isTelegramWebApp && variant === 'bar';
-  const barFullBleed = variant === 'bar' && isCatalogFullWidthBarPath(location.pathname);
-  const showLandingDesktop = !isTelegramWebApp && variant === 'landing';
+  const catalogLandingHeader =
+    variant === 'bar' && isCatalogLandingHeaderPath(location.pathname);
+  const onMasterLanding = location.pathname === MASTER_START_PATH;
   const compactMobile = isTelegramWebApp || (variant === 'bar' && !barMobileMenu);
 
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
@@ -382,7 +423,8 @@ export function SlottyHeader({
   }, []);
 
   const isPointerInsideMegaZone = useCallback((clientX: number, clientY: number) => {
-    const nodes = [megaHostRef.current];
+    const accountPanel = document.getElementById('slotty-account-panel');
+    const nodes = [megaHostRef.current, accountPanel];
     return nodes.some((el) => {
       if (!el) return false;
       const rect = el.getBoundingClientRect();
@@ -401,6 +443,49 @@ export function SlottyHeader({
       closeHeaderPanels();
 
       const onHub = location.pathname === HUB_PATH || location.pathname === '/';
+      const onMasterLandingPage = location.pathname === MASTER_START_PATH;
+
+      if (onMasterLandingPage && isClientLandingAnchor(anchor)) {
+        navigate(landingAnchorHref(anchor));
+        return;
+      }
+
+      if (!onMasterLandingPage && isMasterLandingAnchor(anchor)) {
+        navigate(
+          anchor === LANDING_ANCHOR_TARIFFS
+            ? masterLandingAnchorHref(LANDING_ANCHOR_TARIFFS)
+            : anchor === LANDING_ANCHOR_MASTER_HOME
+              ? MASTER_START_PATH
+              : masterLandingAnchorHref(
+                  isLandingMastersTab(anchor) ? anchor : LANDING_ANCHOR_FOR_MASTERS,
+                ),
+        );
+        return;
+      }
+
+      if (onMasterLandingPage) {
+        if (anchor === LANDING_ANCHOR_MASTER_HOME) {
+          document.getElementById(LANDING_ANCHOR_MASTER_HOME)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          });
+          window.history.replaceState(null, '', MASTER_START_PATH);
+          return;
+        }
+
+        const scrollTarget =
+          isLandingMastersTab(anchor) || anchor === LANDING_ANCHOR_FOR_MASTERS
+            ? 'for-masters'
+            : anchor;
+        document.getElementById(scrollTarget)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const hash = isLandingMastersTab(anchor)
+          ? anchor
+          : anchor === LANDING_ANCHOR_FOR_MASTERS
+            ? parseLandingMastersTab('')
+            : anchor;
+        window.history.replaceState(null, '', masterLandingAnchorHref(hash));
+        return;
+      }
 
       if (onHub) {
         const isHowTab = isLandingHowTab(anchor);
@@ -500,37 +585,55 @@ export function SlottyHeader({
     const items: MegaMenuItem[] = [
       {
         title: 'Мои записи',
-        description: 'Будущие и прошлые визиты к мастерам — статусы и детали в одном месте.',
+        description: 'Будущие и прошлые визиты — статусы и детали в одном месте.',
         to: appointmentsHref,
-        accent: 'pink',
+        icon: HiCalendarDays,
+      },
+      {
+        title: 'Избранное',
+        description: 'Сохранённые мастера и услуги, к которым хотите вернуться.',
+        to: getProfilePath('favorites'),
+        icon: HiHeart,
       },
       {
         title: 'Профиль',
-        description: 'Личные данные, избранное и настройки клиентского аккаунта.',
-        to: PROFILE_PATH,
-        accent: 'blue',
+        description: 'Имя, фото и контактные данные вашего аккаунта.',
+        to: getProfilePath('profile'),
+        icon: HiUser,
       },
       {
-        title: 'Способы входа',
-        description: 'Telegram, email и привязанные способы авторизации.',
-        to: loginMethodsHref,
-        accent: 'violet',
+        title: 'Уведомления',
+        description: 'Напоминания о записях и важные сообщения для клиента.',
+        to: PROFILE_NOTIFICATIONS_PATH,
+        icon: HiBell,
+      },
+      {
+        title: 'Настройки',
+        description: 'Способы входа, безопасность и параметры аккаунта.',
+        to: PROFILE_SETTINGS_PATH,
+        icon: HiCog6Tooth,
       },
     ];
 
     if (isMasterUser) {
       items.push({
         title: 'Кабинет мастера',
-        description: 'Заявки, услуги, расписание и аналитика вашего профиля.',
+        description: 'Заявки, услуги, расписание и аналитика мастера.',
         to: ADMIN_PATH,
-        accent: 'green',
+        icon: HiSparkles,
+      });
+      items.push({
+        title: 'Уведомления мастера',
+        description: 'Новые заявки, изменения расписания и события кабинета.',
+        to: ADMIN_NOTIFICATIONS_PATH,
+        icon: HiBolt,
       });
     } else {
       items.push({
-        title: 'Стать мастером',
-        description: 'Создайте профиль мастера и начните принимать записи онлайн.',
+        title: 'Создать кабинет мастера',
+        description: 'Оформите профиль мастера и начните принимать записи онлайн.',
         to: BECOME_MASTER_PATH,
-        accent: 'green',
+        icon: HiSparkles,
       });
     }
 
@@ -541,11 +644,12 @@ export function SlottyHeader({
         description: 'Платформенная панель управления и модерация.',
         to: PLATFORM_ADMIN_PATH,
         accent: 'orange',
+        icon: HiBolt,
       });
     }
 
     return items;
-  }, [appointmentsHref, isMasterUser, loginMethodsHref, showPlatformAdmin]);
+  }, [appointmentsHref, isMasterUser, showPlatformAdmin]);
 
   const megaHostProps = {
     onMouseEnter: cancelMegaClose,
@@ -559,7 +663,7 @@ export function SlottyHeader({
   const desktopCenterNav = (
     <div
       className={
-        isDarkBar
+        isDarkHeaderTheme
           ? '[&_a]:text-white/70 [&_a:hover]:text-[#ff8fa3] [&_button]:text-white/70 [&_button:hover]:text-[#ff8fa3]'
           : undefined
       }
@@ -604,6 +708,64 @@ export function SlottyHeader({
     });
   }, [cancelMegaClose]);
 
+  const landingDesktopActions = (
+    <>
+      {isAuthenticated ? (
+        <Link
+          to={notificationsHref}
+          className={landingIconBtnClass}
+          aria-label="Уведомления"
+          title="Уведомления"
+          onClick={closeHeaderPanels}
+        >
+          <HiBell className="h-5 w-5 shrink-0" aria-hidden />
+        </Link>
+      ) : null}
+
+      {isAuthenticated ? (
+        <div
+          className="relative"
+          onMouseEnter={openProfilePanel}
+          onMouseLeave={scheduleHeaderPanelClose}
+        >
+          <button
+            type="button"
+            onClick={toggleProfilePanel}
+            className={`${landingIconBtnClass} overflow-hidden p-0 ${profilePanelOpen ? 'ring-2 ring-[#E29595]/35' : ''}`}
+            aria-expanded={profilePanelOpen}
+            aria-controls="slotty-account-panel"
+            aria-label="Аккаунт"
+          >
+            <HeaderProfileAvatar profile={profile} fill />
+          </button>
+
+          <MegaDropdownPanel
+            id="slotty-account-panel"
+            sectionTitle="аккаунт"
+            items={accountMegaItems}
+            isOpen={profilePanelOpen}
+            align="right"
+            panelTone="account"
+            onAnchorClick={scrollToLandingAnchor}
+            onForceClose={closeHeaderPanels}
+            onMouseEnter={cancelMegaClose}
+            onMouseLeave={scheduleHeaderPanelClose}
+          />
+        </div>
+      ) : (
+        <Link
+          to={loginHref}
+          className={landingIconBtnClass}
+          aria-label="Войти"
+          title="Войти"
+          onClick={closeHeaderPanels}
+        >
+          <HiUser className="h-5 w-5" aria-hidden />
+        </Link>
+      )}
+    </>
+  );
+
   const desktopActions = (
     <div className="hidden shrink-0 items-center gap-3 self-center lg:flex">
       <button
@@ -646,24 +808,27 @@ export function SlottyHeader({
 
           <MegaDropdownPanel
             id="slotty-account-panel"
-            sectionTitle="Аккаунт"
+            sectionTitle="аккаунт"
             items={accountMegaItems}
             isOpen={profilePanelOpen}
             align="right"
+            panelTone="account"
             onAnchorClick={scrollToLandingAnchor}
             onForceClose={closeHeaderPanels}
+            onMouseEnter={cancelMegaClose}
+            onMouseLeave={scheduleHeaderPanelClose}
           />
         </div>
       ) : (
         <Link
           to={loginHref}
           className={
-            isDarkBar
+            isDarkHeaderTheme
               ? 'inline-flex h-10 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3.5 text-[14px] font-semibold text-white/85 transition hover:bg-white/15'
               : 'inline-flex h-10 items-center gap-1.5 rounded-full bg-[#F1EFEF] px-3.5 text-[14px] font-semibold text-[#111827] transition hover:bg-[#E9E6E6]'
           }
         >
-          <HiUser className={`h-5 w-5 ${isDarkBar ? 'text-white/55' : 'text-[#6B7280]'}`} aria-hidden />
+          <HiUser className={`h-5 w-5 ${isDarkHeaderTheme ? 'text-white/55' : 'text-[#6B7280]'}`} aria-hidden />
           Войти
         </Link>
       )}
@@ -672,7 +837,7 @@ export function SlottyHeader({
         <Link
           to={PLATFORM_ADMIN_PATH}
           className={
-            isDarkBar
+            isDarkHeaderTheme
               ? 'inline-flex h-10 shrink-0 items-center rounded-full border border-white/15 bg-transparent px-4 text-[14px] font-semibold text-white/75 transition hover:border-[#ff5f7a]/40 hover:text-[#ff8fa3]'
               : 'inline-flex h-10 shrink-0 items-center rounded-full border border-[#e5e7eb] bg-white px-4 text-[14px] font-semibold text-[#374151] transition hover:border-[#ff5f7a]/40 hover:text-[#ff5f7a]'
           }
@@ -688,47 +853,75 @@ export function SlottyHeader({
   );
 
   const topBar = (
-    <div className={HEADER_LANDING_ROW_CLASS}>
-      <HeaderLogoLink
-        onClick={closeHeaderPanels}
-        className={HEADER_LANDING_LOGO_CLASS}
-        imgClassName={HEADER_LANDING_LOGO_IMG_CLASS}
-      />
-
-      <div className="hidden flex-1 items-center justify-center lg:flex">
-        {showLandingDesktop || showDesktopChrome ? desktopCenterNav : null}
+    <div className={LANDING_HEADER_ROW_CLASS}>
+      <div className={LANDING_HEADER_LOGO_CELL_CLASS}>
+        <HeaderLogoLink
+          to={onMasterLanding ? MASTER_START_PATH : HUB_PATH}
+          src={LANDING_HEADER_LOGO_SRC}
+          fadeOnHover={false}
+          bareLink
+          onClick={closeHeaderPanels}
+          className={LANDING_HEADER_LOGO_LINK_CLASS}
+          imgClassName={LANDING_HEADER_LOGO_IMG_CLASS}
+        />
       </div>
 
-      <div className="min-w-0 flex-1 lg:hidden" aria-hidden />
+      <LandingDesktopNav
+        className={`${LANDING_HEADER_NAV_CELL_CLASS} ${
+          isDarkLanding
+            ? '[&_a]:!text-white/75 [&_a:hover]:!text-[#ff8fa3] [&_button]:!text-white/75 [&_button:hover]:!text-[#ff8fa3]'
+            : ''
+        }`.trim()}
+        onAnchorClick={scrollToLandingAnchor}
+        onCatalogClick={() => void goCatalog()}
+        onMasterLanding={onMasterLanding}
+      />
 
-      {showLandingDesktop || showDesktopChrome ? desktopActions : null}
+      <div className={LANDING_HEADER_ACTIONS_CELL_CLASS}>
+        <div className={`hidden flex-nowrap items-center gap-3 ${LANDING_HEADER_SLOT_H} lg:flex`}>
+          {landingDesktopActions}
+        </div>
 
-      {compactMobile ? (
-        <div className="flex shrink-0 items-center gap-2 lg:hidden">
-          <button
-            type="button"
-            onClick={() => void goCatalog()}
-            className={iconBtn}
-            aria-label="Каталог"
-            title="Каталог"
-          >
-            <HiSquares2X2 className="h-5 w-5" aria-hidden />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => void goClientProfile()}
-            className={iconBtn}
-            aria-label={isAuthenticated ? 'Профиль' : 'Войти'}
-            title={isAuthenticated ? 'Профиль' : 'Войти'}
-          >
+        {compactMobile ? (
+          <div className="flex shrink-0 flex-nowrap items-center gap-2 lg:hidden">
             {isAuthenticated ? (
-              <HeaderProfileAvatar profile={profile} />
-            ) : (
-              <HiUser className="h-5 w-5" aria-hidden />
-            )}
-          </button>
+              <Link
+                to={notificationsHref}
+                className={landingIconBtnClass}
+                aria-label="Уведомления"
+                title="Уведомления"
+                onClick={closeHeaderPanels}
+              >
+                <HiBell className="h-5 w-5" aria-hidden />
+              </Link>
+            ) : null}
 
+            <button
+              type="button"
+              onClick={() => void goClientProfile()}
+              className={`${landingIconBtnClass} overflow-hidden p-0`}
+              aria-label={isAuthenticated ? 'Профиль' : 'Войти'}
+              title={isAuthenticated ? 'Профиль' : 'Войти'}
+            >
+              {isAuthenticated ? (
+                <HeaderProfileAvatar profile={profile} fill />
+              ) : (
+                <HiUser className="h-5 w-5" aria-hidden />
+              )}
+            </button>
+
+            <button
+              type="button"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="slotty-mobile-menu"
+              aria-label={mobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              className={`${mobileBurgerBtnClass} lg:hidden`}
+            >
+              <BurgerIcon open={mobileMenuOpen} tone={mobileMenuDark ? 'dark' : 'light'} />
+            </button>
+          </div>
+        ) : (
           <button
             type="button"
             aria-expanded={mobileMenuOpen}
@@ -739,19 +932,8 @@ export function SlottyHeader({
           >
             <BurgerIcon open={mobileMenuOpen} tone={barMobileMenuDark ? 'dark' : 'light'} />
           </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          aria-expanded={mobileMenuOpen}
-          aria-controls="slotty-mobile-menu"
-          aria-label={mobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
-          onClick={() => setMobileMenuOpen((o) => !o)}
-          className={`${mobileBurgerBtnClass} lg:hidden`}
-        >
-          <BurgerIcon open={mobileMenuOpen} tone={barMobileMenuDark ? 'dark' : 'light'} />
-        </button>
-      )}
+        )}
+      </div>
     </div>
   );
 
@@ -764,7 +946,7 @@ export function SlottyHeader({
     >
       <div
         className={`pb-5 pl-7 pr-4 pt-1 sm:pl-9 sm:pr-5 ${
-          barMobileMenuDark ? 'border-t border-white/10' : ''
+          mobileMenuDark ? 'border-t border-white/10' : ''
         }`}
       >
         <nav aria-label="Меню">
@@ -782,71 +964,102 @@ export function SlottyHeader({
               </Link>
             </li>
 
-            <li>
-              <Link
-                to={MASTERS_PATH}
-                className={mobileNavLinkClass}
-                onClick={() => {
-                  closeMobileMenu();
-                  void setProfileRole('client');
-                }}
-              >
-                Мастера
-              </Link>
-            </li>
+            {onMasterLanding ? (
+              <>
+                <li>
+                  <button
+                    type="button"
+                    className={mobileNavBtnClass}
+                    onClick={() => scrollToLandingAnchor(LANDING_ANCHOR_MASTER_HOME)}
+                  >
+                    Главная
+                  </button>
+                </li>
 
-            <li>
-              <button
-                type="button"
-                className={mobileNavBtnClass}
-                onClick={() => {
-                  closeMobileMenu();
-                  void goAppointments();
-                }}
-              >
-                Мои записи
-              </button>
-            </li>
+                <li>
+                  <button
+                    type="button"
+                    className={mobileNavBtnClass}
+                    onClick={() => scrollToLandingAnchor(LANDING_ANCHOR_FOR_MASTERS)}
+                  >
+                    Возможности
+                  </button>
+                </li>
 
-            <li>
-              <button
-                type="button"
-                className={mobileNavBtnClass}
-                onClick={() => scrollToLandingAnchor(LANDING_ANCHOR_HOW)}
-              >
-                Как это работает
-              </button>
-            </li>
+                <li>
+                  <button
+                    type="button"
+                    className={mobileNavBtnClass}
+                    onClick={() => scrollToLandingAnchor(LANDING_ANCHOR_TARIFFS)}
+                  >
+                    Тарифы
+                  </button>
+                </li>
 
-            <li>
-              <button
-                type="button"
-                className={mobileNavBtnClass}
-                onClick={() => scrollToLandingAnchor(LANDING_ANCHOR_FOR_MASTERS)}
-              >
-                Для мастеров
-              </button>
-            </li>
+                <li>
+                  <Link to={HUB_PATH} className={mobileNavLinkClass} onClick={closeMobileMenu}>
+                    Клиентам
+                  </Link>
+                </li>
 
-            <li>
-              <button
-                type="button"
-                className={mobileNavBtnClass}
-                onClick={() => scrollToLandingAnchor(LANDING_ANCHOR_TARIFFS)}
-              >
-                Тарифы
-              </button>
-            </li>
+                <li>
+                  <button
+                    type="button"
+                    className={mobileNavBtnClass}
+                    onClick={() => scrollToLandingAnchor(LANDING_ANCHOR_FAQ)}
+                  >
+                    Вопросы мастеров
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <Link to={HUB_PATH} className={mobileNavLinkClass} onClick={closeMobileMenu}>
+                    Клиентам
+                  </Link>
+                </li>
 
-            <li>
-              <button
-                type="button"
-                className={mobileNavBtnClass}
-                onClick={() => scrollToLandingAnchor(LANDING_ANCHOR_FAQ)}
-              >
-                FAQ
-              </button>
-            </li>
+                <li>
+                  <Link to={MASTER_START_PATH} className={mobileNavLinkClass} onClick={closeMobileMenu}>
+                    Стать мастером
+                  </Link>
+                </li>
+
+                <li>
+                  <button
+                    type="button"
+                    className={mobileNavBtnClass}
+                    onClick={() => {
+                      closeMobileMenu();
+                      void goAppointments();
+                    }}
+                  >
+                    Мои записи
+                  </button>
+                </li>
+
+                <li>
+                  <button
+                    type="button"
+                    className={mobileNavBtnClass}
+                    onClick={() => scrollToLandingAnchor(LANDING_ANCHOR_HOW)}
+                  >
+                    Как это работает
+                  </button>
+                </li>
+
+                <li>
+                  <button
+                    type="button"
+                    className={mobileNavBtnClass}
+                    onClick={() => scrollToLandingAnchor(LANDING_ANCHOR_FAQ)}
+                  >
+                    FAQ
+                  </button>
+                </li>
+              </>
+            )}
 
             <li>
               {isAuthenticated ? (
@@ -918,27 +1131,38 @@ export function SlottyHeader({
           </>
         ) : null}
 
-        <HeaderShell
-          variant="bar"
-          barTone={barTone}
-          barFullBleed={barFullBleed}
-          shellRef={headerRef}
-          innerClassName={megaOpenKey ? 'mega-open' : ''}
-        >
-          <div ref={megaHostRef} className="relative" {...megaHostProps}>
-            <div
-              className={`${HEADER_BAR_ROW_CLASS} ${barFullBleed ? 'lg:px-0' : 'lg:px-5 xl:px-6'}`}
-            >
-              <div className="flex min-w-0 items-center gap-5 xl:gap-8">
-                <HeaderLogoLink onClick={closeHeaderPanels} size="compact" />
-
-                {desktopCenterNav}
-              </div>
-
-              {desktopActions}
+        {catalogLandingHeader ? (
+          <HeaderShell
+            variant="landing"
+            landingSticky
+            landingDesktopOnly
+            landingCatalogWidth
+            shellRef={headerRef}
+          >
+            <div ref={megaHostRef} className="relative" {...megaHostProps}>
+              {topBar}
             </div>
-          </div>
-        </HeaderShell>
+          </HeaderShell>
+        ) : (
+          <HeaderShell
+            variant="bar"
+            barTone={barTone}
+            shellRef={headerRef}
+            innerClassName={megaOpenKey ? 'mega-open' : ''}
+          >
+            <div ref={megaHostRef} className="relative" {...megaHostProps}>
+              <div className={`${HEADER_BAR_ROW_CLASS} lg:px-5 xl:px-6`}>
+                <div className="flex min-w-0 items-center gap-5 xl:gap-8">
+                  <HeaderLogoLink onClick={closeHeaderPanels} size="compact" />
+
+                  {desktopCenterNav}
+                </div>
+
+                {desktopActions}
+              </div>
+            </div>
+          </HeaderShell>
+        )}
       </>
     );
   }
@@ -947,7 +1171,9 @@ export function SlottyHeader({
     <>
       <button
         type="button"
-        className={`fixed inset-0 z-40 cursor-default bg-transparent transition-opacity duration-300 lg:hidden ${
+        className={`fixed inset-0 z-40 cursor-default transition-opacity duration-300 lg:hidden ${
+          isDarkLanding ? 'bg-black/55' : 'bg-transparent'
+        } ${
           mobileMenuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         }`}
         aria-label="Закрыть меню"
@@ -955,13 +1181,132 @@ export function SlottyHeader({
         onClick={closeMobileMenu}
       />
 
-      <HeaderShell variant="landing" shellRef={headerRef}>
+      <HeaderShell variant="landing" landingTone={landingTone} shellRef={headerRef}>
         <div ref={megaHostRef} className="relative" {...megaHostProps}>
           {topBar}
           {mobileMenu}
         </div>
       </HeaderShell>
     </>
+  );
+}
+
+const LANDING_NAV_LINK_ACTIVE_CLASS = 'text-[#C97B7B]';
+
+function LandingDesktopNav({
+  className = '',
+  onAnchorClick,
+  onCatalogClick,
+  onMasterLanding = false,
+}: {
+  className?: string;
+  onAnchorClick: (anchor: string) => void;
+  onCatalogClick: () => void;
+  onMasterLanding?: boolean;
+}) {
+  const location = useLocation();
+  const catalogActive =
+    location.pathname === SERVICES_PATH ||
+    location.pathname.startsWith(`${SERVICES_PATH}/category/`);
+  const clientHomeActive =
+    !onMasterLanding && (location.pathname === HUB_PATH || location.pathname === '/');
+  const masterHomeActive =
+    onMasterLanding &&
+    (location.hash === '' ||
+      location.hash === `#${LANDING_ANCHOR_MASTER_HOME}` ||
+      location.hash === '#');
+  const masterLandingActive = location.pathname === MASTER_START_PATH;
+
+  const navLink = (active: boolean) =>
+    `${LANDING_HEADER_SLOT_H} ${LANDING_NAV_LINK_CLASS} ${
+      active ? LANDING_NAV_LINK_ACTIVE_CLASS : ''
+    }`;
+
+  return (
+    <nav
+      className={`flex shrink-0 flex-nowrap items-center gap-6 ${LANDING_HEADER_SLOT_H} xl:gap-8 ${className}`}
+      aria-label="Основное меню"
+    >
+      <Link
+        to={SERVICES_PATH}
+        className={navLink(catalogActive)}
+        onClick={onCatalogClick}
+        aria-current={catalogActive ? 'page' : undefined}
+      >
+        каталог
+      </Link>
+
+      {onMasterLanding ? (
+        <>
+          <button
+            type="button"
+            className={navLink(masterHomeActive)}
+            onClick={() => onAnchorClick(LANDING_ANCHOR_MASTER_HOME)}
+            aria-current={masterHomeActive ? 'page' : undefined}
+          >
+            главная
+          </button>
+
+          <button
+            type="button"
+            className={navLink(false)}
+            onClick={() => onAnchorClick(LANDING_ANCHOR_FOR_MASTERS)}
+          >
+            возможности
+          </button>
+
+          <button
+            type="button"
+            className={navLink(false)}
+            onClick={() => onAnchorClick(LANDING_ANCHOR_TARIFFS)}
+          >
+            тарифы
+          </button>
+
+          <Link
+            to={HUB_PATH}
+            className={navLink(false)}
+            aria-label="Лендинг для клиентов"
+          >
+            клиентам
+          </Link>
+
+          <button
+            type="button"
+            className={navLink(false)}
+            onClick={() => onAnchorClick(LANDING_ANCHOR_FAQ)}
+          >
+            вопросы
+          </button>
+        </>
+      ) : (
+        <>
+          <Link
+            to={HUB_PATH}
+            className={navLink(clientHomeActive)}
+            aria-current={clientHomeActive ? 'page' : undefined}
+          >
+            клиентам
+          </Link>
+
+          <Link
+            to={MASTER_START_PATH}
+            className={navLink(masterLandingActive)}
+            aria-current={masterLandingActive ? 'page' : undefined}
+          >
+            стать мастером
+          </Link>
+
+          <button
+            type="button"
+            className={navLink(false)}
+            onClick={() => onAnchorClick(LANDING_ANCHOR_FAQ)}
+          >
+            вопросы
+          </button>
+        </>
+      )}
+    </nav>
   );
 }
 
@@ -1160,8 +1505,11 @@ function MegaDropdownPanel({
   group,
   isOpen,
   align = 'left',
+  panelTone = 'mega',
   onAnchorClick,
   onForceClose,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   id?: string;
   sectionTitle?: string;
@@ -1169,8 +1517,11 @@ function MegaDropdownPanel({
   group?: MegaMenuGroup;
   isOpen: boolean;
   align?: 'left' | 'right';
+  panelTone?: 'mega' | 'account';
   onAnchorClick: (anchor: string) => void;
   onForceClose: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }) {
   const resolvedItems = items ?? group?.items ?? [];
   const title = sectionTitle ?? group?.label ?? '';
@@ -1178,6 +1529,12 @@ function MegaDropdownPanel({
   const fallbackAnchor = group?.anchor;
 
   if (resolvedItems.length === 0) return null;
+
+  const isAccountPanel = panelTone === 'account';
+  const panelClass = isAccountPanel ? LANDING_ACCOUNT_PANEL_CLASS : MEGA_DROPDOWN_PANEL_CLASS;
+  const titleClass = isAccountPanel
+    ? LANDING_ACCOUNT_PANEL_TITLE_CLASS
+    : 'px-4 pb-1 pt-2 text-[12px] font-medium text-[#9CA3AF]';
 
   return (
     <div
@@ -1188,18 +1545,19 @@ function MegaDropdownPanel({
           : 'pointer-events-none opacity-0 -translate-y-1'
       } transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none`}
       aria-hidden={!isOpen}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
-      <div className={`w-[min(22rem,calc(100vw-2rem))] ${MEGA_DROPDOWN_PANEL_CLASS}`}>
-        {title ? (
-          <p className="px-4 pb-1 pt-2 text-[12px] font-medium text-[#9CA3AF]">{title}</p>
-        ) : null}
-        <ul className="py-1">
+      <div className={`w-[min(22rem,calc(100vw-2rem))] ${panelClass}`}>
+        {title ? <p className={titleClass}>{title}</p> : null}
+        <ul className={isAccountPanel ? 'pb-1.5' : 'py-1'}>
           {resolvedItems.map((item, index) => (
             <li key={`${item.title}-${index}`}>
               <MegaDropdownRow
                 item={item}
                 fallbackTo={fallbackTo}
                 fallbackAnchor={fallbackAnchor}
+                rowTone={panelTone}
                 onAnchorClick={onAnchorClick}
                 onForceClose={onForceClose}
               />
@@ -1215,45 +1573,69 @@ function MegaDropdownRow({
   item,
   fallbackTo,
   fallbackAnchor,
+  rowTone = 'mega',
   onAnchorClick,
   onForceClose,
 }: {
   item: MegaMenuItem;
   fallbackTo?: string;
   fallbackAnchor?: string;
+  rowTone?: 'mega' | 'account';
   onAnchorClick: (anchor: string) => void;
   onForceClose: () => void;
 }) {
-  const Icon = MEGA_ITEM_ICONS[item.accent ?? 'pink'];
+  const Icon = item.icon ?? MEGA_ITEM_ICONS[item.accent ?? 'pink'];
   const to =
     item.to ??
     (item.anchor ? landingAnchorHref(item.anchor) : undefined) ??
     (fallbackAnchor && !fallbackTo ? landingAnchorHref(fallbackAnchor) : fallbackTo);
   const anchor = !to ? (item.anchor ?? fallbackAnchor) : undefined;
 
-  const className =
-    'group flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[#F9FAFB] focus:outline-none focus-visible:bg-[#F9FAFB]';
+  const isAccountRow = rowTone === 'account';
+  const className = isAccountRow
+    ? LANDING_ACCOUNT_ROW_CLASS
+    : 'group flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[#F9FAFB] focus:outline-none focus-visible:bg-[#F9FAFB]';
 
   const content = (
     <>
-      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#111827]">
+      <span
+        className={
+          isAccountRow
+            ? LANDING_ACCOUNT_ROW_ICON_CLASS
+            : 'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#111827]'
+        }
+      >
         <Icon className="h-5 w-5" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="text-[14px] font-semibold text-[#111827]">{item.title}</span>
+          <span
+            className={`font-semibold text-[#1A1A1A] ${
+              isAccountRow ? 'text-[14px] leading-tight' : 'text-[14px]'
+            }`}
+          >
+            {item.title}
+          </span>
           {item.badge ? (
             <span className="rounded-full bg-[#FFF1F4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#F47C8C]">
               {item.badge}
             </span>
           ) : null}
         </span>
-        <span className="mt-0.5 block text-[12px] leading-snug text-[#9CA3AF]">{item.description}</span>
+        <span
+          className={`mt-0.5 block leading-snug ${
+            isAccountRow ? 'text-[12px] text-[#8E8E93]' : 'text-[12px] text-[#9CA3AF]'
+          }`}
+        >
+          {item.description}
+        </span>
       </span>
-      <HiChevronRight
-        className="mt-1 h-4 w-4 shrink-0 text-[#D1D5DB] transition group-hover:translate-x-0.5 group-hover:text-[#9CA3AF]"
-        aria-hidden
-      />
+      {isAccountRow ? null : (
+        <HiChevronRight
+          className="mt-1 h-4 w-4 shrink-0 text-[#D1D5DB] transition group-hover:translate-x-0.5 group-hover:text-[#9CA3AF]"
+          aria-hidden
+        />
+      )}
     </>
   );
 

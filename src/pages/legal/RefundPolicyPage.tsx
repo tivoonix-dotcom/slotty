@@ -2,8 +2,14 @@ import type { FC } from 'react';
 import { PaymentLegalTrustBlock } from '../../shared/ui/PaymentLogos';
 import { LEGAL_PAYMENT_PATH } from '../../app/paths';
 import { SITE_SUPPORT_EMAIL } from './legalSiteInfo';
+import { RefundFlowDemo } from './RefundFlowDemo';
 import { LegalPageShell } from './LegalPageShell';
-import { LegalDocIntro, LegalDocSection, legalDocLinkClass, type LegalTocItem } from './legalDocumentUi';
+import {
+  LegalDocLandingIntro,
+  LegalDocLandingSection,
+  legalDocLinkClass,
+  type LegalTocItem,
+} from './legalDocumentUi';
 
 const TOC: LegalTocItem[] = [
   { id: 'booking', label: '1. Запись к мастеру' },
@@ -19,45 +25,49 @@ export const RefundPolicyPage: FC = () => {
       titleHighlight="отмена оплаты"
       toc={TOC}
     >
-      <LegalDocIntro>
-        Действует в отношении сервиса <strong className="text-[#111827]">SLOTTY</strong>. До активации
+      <LegalDocLandingIntro>
+        Действует в отношении сервиса <strong className="font-semibold text-[#111827]">SLOTTY</strong>. До активации
         онлайн-оплаты возвраты по карте/ЕРИП на сайте не применяются.
-      </LegalDocIntro>
+      </LegalDocLandingIntro>
 
       <PaymentLegalTrustBlock className="mt-2" />
 
-      <LegalDocSection id="booking" title="1. Запись к мастеру (клиент)">
-        <p>
-          Отмена или перенос записи регулируются правилами мастера. Возврат за визит — по договорённости с мастером,
-          если была предоплата вне SLOTTY.
-        </p>
-      </LegalDocSection>
+      <RefundFlowDemo />
 
-      <LegalDocSection id="pro" title="2. Тариф Pro (мастер)">
-        <p>
-          При оплате Pro по реквизитам возврат рассматривается по обращению в поддержку с указанием даты платежа.
-        </p>
-      </LegalDocSection>
+      <div className="flex flex-col gap-12 sm:gap-14 lg:gap-20">
+        <LegalDocLandingSection id="booking" step={1} title="Запись к мастеру (клиент)">
+          <p>
+            Отмена или перенос записи регулируются правилами мастера. Возврат за визит — по договорённости с мастером,
+            если была предоплата вне SLOTTY.
+          </p>
+        </LegalDocLandingSection>
 
-      <LegalDocSection id="online" title="3. Онлайн-оплата (после подключения)">
-        <p>
-          Порядок возврата будет опубликован на этой странице и на{' '}
-          <a className={legalDocLinkClass} href={LEGAL_PAYMENT_PATH}>
-            «Оплате и безопасности»
-          </a>
-          .
-        </p>
-      </LegalDocSection>
+        <LegalDocLandingSection id="pro" step={2} title="Тариф Pro (мастер)">
+          <p>
+            При оплате Pro по реквизитам возврат рассматривается по обращению в поддержку с указанием даты платежа.
+          </p>
+        </LegalDocLandingSection>
 
-      <LegalDocSection id="contact" title="4. Контакты">
-        <p>
-          По вопросам возврата:{' '}
-          <a className={legalDocLinkClass} href={`mailto:${SITE_SUPPORT_EMAIL}`}>
-            {SITE_SUPPORT_EMAIL}
-          </a>
-          .
-        </p>
-      </LegalDocSection>
+        <LegalDocLandingSection id="online" step={3} title="Онлайн-оплата (после подключения)">
+          <p>
+            Порядок возврата будет опубликован на этой странице и на{' '}
+            <a className={legalDocLinkClass} href={LEGAL_PAYMENT_PATH}>
+              «Оплате и безопасности»
+            </a>
+            .
+          </p>
+        </LegalDocLandingSection>
+
+        <LegalDocLandingSection id="contact" step={4} title="Контакты">
+          <p>
+            По вопросам возврата:{' '}
+            <a className={legalDocLinkClass} href={`mailto:${SITE_SUPPORT_EMAIL}`}>
+              {SITE_SUPPORT_EMAIL}
+            </a>
+            .
+          </p>
+        </LegalDocLandingSection>
+      </div>
     </LegalPageShell>
   );
 };

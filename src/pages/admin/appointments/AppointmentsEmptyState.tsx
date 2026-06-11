@@ -12,10 +12,23 @@ import {
   apptListGap,
 } from './adminAppointmentsTheme';
 import { AppointmentsCardDetailFooter } from './AppointmentsCardDetailFooter';
+import { APPOINTMENTS_REQUESTS_GUIDE_DEMOS } from './appointmentsRequestsGuideDemos';
+
+function AppointmentsGuideStepDemo({ demoKey }: { demoKey?: string }) {
+  if (!demoKey) return null;
+  const Demo = APPOINTMENTS_REQUESTS_GUIDE_DEMOS[demoKey];
+  if (!Demo) return null;
+  return (
+    <div className="mt-3">
+      <Demo />
+    </div>
+  );
+}
 
 export type AppointmentsEmptyDetailStep = {
   title: string;
   text: string;
+  demoKey?: string;
 };
 
 export type AppointmentsEmptyDetail = {
@@ -26,6 +39,7 @@ export type AppointmentsEmptyDetail = {
   tips?: {
     title: string;
     items: string[];
+    demoKey?: string;
   };
   useLogo?: boolean;
   picture?: MiniPictureKey;
@@ -129,6 +143,7 @@ function AppointmentsEmptyGuideContent({
                     {step.title}
                   </p>
                   <p className="mt-1 text-[13px] leading-relaxed text-[#6B7280]">{step.text}</p>
+                  <AppointmentsGuideStepDemo demoKey={step.demoKey} />
                 </div>
               </li>
             );
@@ -139,6 +154,7 @@ function AppointmentsEmptyGuideContent({
       {detail.tips ? (
         <div className={apptDetailNextStepsCard}>
           <p className="text-[14px] font-bold tracking-[-0.02em] text-[#111827]">{detail.tips.title}</p>
+          <AppointmentsGuideStepDemo demoKey={detail.tips.demoKey} />
           <ul className="mt-3 space-y-2.5">
             {detail.tips.items.map((item) => (
               <li key={item} className="flex items-start gap-2.5 text-[13px] leading-relaxed text-[#6B7280]">

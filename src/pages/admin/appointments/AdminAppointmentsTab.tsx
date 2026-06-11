@@ -25,6 +25,7 @@ import {
   appointmentsDesktopCardPad,
   appointmentsShellCard,
   appointmentsTabPanelShell,
+  APPOINTMENTS_TAB_BAR_SCROLL_PAD,
 } from './adminAppointmentsTheme';
 import { AppointmentsPageHeader } from './AppointmentsPageHeader';
 import { AppointmentsSectionTabs } from './AppointmentsSectionTabs';
@@ -46,8 +47,10 @@ import {
 import { AppointmentsRequestCard } from './AppointmentsRequestCard';
 import { APPOINTMENTS_REQUESTS_GUIDE_DETAIL } from './appointmentsRequestsGuide';
 import { AppointmentsRequestsSummary } from './AppointmentsRequestsSummary';
+import { AppointmentsUpcomingCalendar } from './AppointmentsUpcomingCalendar';
 import { AppointmentsUpcomingRow } from './AppointmentsUpcomingRow';
 import { AppointmentsUpcomingSummary } from './AppointmentsUpcomingSummary';
+import { AppointmentsUpcomingViewToggle } from './AppointmentsUpcomingViewToggle';
 import {
   compareAppointmentsByDateAsc,
   compareAppointmentsByDateDesc,
@@ -74,6 +77,7 @@ import type {
   RequestsPeriodFilter,
   RequestsSort,
   UpcomingSort,
+  UpcomingViewMode,
 } from './appointmentsTypes';
 import { AppointmentsLoadMore } from './AppointmentsLoadMore';
 import { AppointmentsListSkeleton } from './AppointmentsListSkeleton';
@@ -87,6 +91,8 @@ import {
 import { mapMasterAppointmentRowToDemo } from '../../../features/admin/lib/masterCabinetMapper';
 
 const APPOINTMENTS_TABS = ['requests', 'upcoming', 'history'] as const satisfies readonly AppointmentsTabId[];
+
+const UPCOMING_VIEW_MODES = ['list', 'calendar'] as const satisfies readonly UpcomingViewMode[];
 
 const APPOINTMENTS_TOOLBAR_LABELS: Record<AppointmentsTabId, string> = {
   requests: 'Заявки',
@@ -139,6 +145,7 @@ export function AdminAppointmentsTab({
   const focusId = searchParams.get(APPOINTMENT_FOCUS_PARAM);
   const focusHandledRef = useRef<string | null>(null);
   const [tab, setTab] = useAdminSectionTab('tab', 'requests', APPOINTMENTS_TABS);
+  const [upcomingView, setUpcomingView] = useAdminSectionTab('view', 'list', UPCOMING_VIEW_MODES);
   const remote = useMasterAppointmentsPage({ enabled: useRemoteList, tab });
 
   const clearAppointmentFocus = useCallback(() => {
@@ -708,6 +715,15 @@ export function AdminAppointmentsTab({
         sheetAriaLabel={sheetAriaLabel}
       />
     );
+    const upcomingViewToggle = (
+      <AppointmentsUpcomingViewToggle value={upcomingView} onChange={setUpcomingView} />
+    );
+    const upcomingMobileToolbar = (
+      <div className="flex items-center justify-end gap-2">
+        {upcomingViewToggle}
+        {upcomingFilters}
+      </div>
+    );
     const upcomingSummaryBlock = (
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-5">
         <AppointmentsUpcomingSummary
@@ -719,9 +735,10 @@ export function AdminAppointmentsTab({
             title: upcomingMobileHeader.title,
             subtitle: upcomingMobileHeader.subtitle,
           }}
-          mobileFilter={upcomingFilters}
+          mobileFilter={upcomingMobileToolbar}
         />
-        <div className="hidden shrink-0 pt-1 lg:block">
+        <div className="hidden shrink-0 items-center gap-2 pt-1 lg:flex">
+          {upcomingViewToggle}
           <AppointmentsQuickFilters
             label={APPOINTMENTS_TOOLBAR_LABELS.upcoming}
             sheetActive={sheetFilterActive}
@@ -757,31 +774,61 @@ export function AdminAppointmentsTab({
     }
 
     if (!upcomingFiltered.length) {
+      if (upcomingView === 'calendar') {
+        return (
+          <div className="space-y-3 lg:space-y-5">
+            {upcomingSummaryBlock}
+            <AppointmentsUpcomingCalendar
+              appointments={upcomingFiltered}
+              nearestId={nearest?.id}
+              onOpen={(a) => onOpenDetail(a, 'upcoming')}
+            />
+          </div>
+        );
+      }
+
       return (
-        <AppointmentsEmptyState
-          title="Предстоящих записей нет"
-          text="Подтверждённые записи появятся здесь после того, как вы примете заявку"
-          illustrationSrc={APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC}
-          detail={{
-            title: 'Предстоящие записи',
-            illustrationSrc: APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC,
-            paragraphs: [
-              'После подтверждения заявки запись переходит во вкладку «Предстоящие».',
-              'Здесь видны ближайшие визиты — можно открыть карточку, начать или завершить визит.',
-            ],
-          }}
-          action={
-            stats.requests > 0 ? (
-              <button type="button" onClick={() => setTab('requests')} className={apptPinkBtn}>
-                Перейти к заявкам ({stats.requests})
-              </button>
-            ) : (
-              <Link to={ADMIN_SCHEDULE_PATH} className={`${apptPinkBtn} w-full`}>
-                Открыть расписание
-              </Link>
-            )
-          }
-        />
+        <div className="space-y-3 lg:space-y-5">
+          {upcomingSummaryBlock}
+          <AppointmentsEmptyState
+            title="Предстоящих записей нет"
+            text="Подтверждённые записи появятся здесь после того, как вы примете заявку"
+            illustrationSrc={APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC}
+            detail={{
+              title: 'Предстоящие записи',
+              illustrationSrc: APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC,
+              paragraphs: [
+                'После подтверждения заявки запись переходит во вкладку «Предстоящие».',
+                'Здесь видны ближайшие визиты — можно открыть карточку, начать или завершить визит.',
+              ],
+            }}
+            action={
+              stats.requests > 0 ? (
+                <button type="button" onClick={() => setTab('requests')} className={apptPinkBtn}>
+                  Перейти к заявкам ({stats.requests})
+                </button>
+              ) : (
+                <Link to={ADMIN_SCHEDULE_PATH} className={`${apptPinkBtn} w-full`}>
+                  Открыть расписание
+                </Link>
+              )
+            }
+          />
+        </div>
+      );
+    }
+
+    if (upcomingView === 'calendar') {
+      return (
+        <div className="space-y-3 lg:space-y-5">
+          {upcomingSummaryBlock}
+          <AppointmentsUpcomingCalendar
+            appointments={upcomingFiltered}
+            nearestId={nearest?.id}
+            onOpen={(a) => onOpenDetail(a, 'upcoming')}
+          />
+          {listPagination}
+        </div>
       );
     }
 
@@ -1058,7 +1105,7 @@ export function AdminAppointmentsTab({
 
   const mobileBody = (
     <section
-      className={`-mx-4 min-w-0 space-y-4 px-4 pb-[calc(5.75rem+1.25rem+env(safe-area-inset-bottom,0px))] lg:hidden ${APPOINTMENTS_PAGE_BG}`}
+      className={`-mx-4 min-w-0 space-y-4 px-4 ${APPOINTMENTS_TAB_BAR_SCROLL_PAD} lg:hidden ${APPOINTMENTS_PAGE_BG}`}
     >
       {showTabSummaryHeader ? null : <AppointmentsPageHeader tab={tab} stats={stats} />}
       {billingBanner}

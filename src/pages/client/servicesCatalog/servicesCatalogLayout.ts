@@ -1,21 +1,24 @@
-import { catalogListGap } from './servicesCatalogTheme';
-
-/** Десктоп-каталог: горизонтальные карточки на всю ширину */
-export function desktopCardLayout(): 'wide' {
-  return 'wide';
+/** Десктоп — плитка Kwork-style, 3 в ряд */
+export function desktopCardLayout(): 'grid' {
+  return 'grid';
 }
 
+/** Десктоп — плитка Kwork-style: 3 равные колонки, карточки одной высоты в ряду */
 export function desktopGridClassName(): string {
-  return catalogListGap;
+  return [
+    'grid items-stretch gap-4',
+    'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3',
+    '[&>*]:min-w-0 [&>*]:h-full',
+  ].join(' ');
 }
 
-/** Мобильный каталог — плитка 2 колонки как в маркетплейсах */
+/** Мобильный каталог — плитка 2 колонки */
 export function mobileCardLayout(): 'grid' {
   return 'grid';
 }
 
 export function mobileGridClassName(): string {
-  return 'grid grid-cols-2 items-start gap-2.5';
+  return 'grid grid-cols-2 items-stretch justify-items-stretch gap-2.5 sm:gap-3 [&>*]:min-w-0';
 }
 
 /** Один список без дублирующих секций */

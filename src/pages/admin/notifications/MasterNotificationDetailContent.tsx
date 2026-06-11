@@ -14,6 +14,16 @@ import {
   notifDetailSectionTitle,
 } from './adminNotificationsTheme';
 
+function contextValueClass(label: string): string {
+  if (label === 'Когда') {
+    return 'min-w-0 text-right text-[16px] font-black leading-snug tracking-[-0.03em] text-[#111827]';
+  }
+  if (label === 'Длительность' || label === 'Цена') {
+    return 'min-w-0 text-right text-[15px] font-black tabular-nums leading-none tracking-[-0.03em] text-[#111827]';
+  }
+  return 'min-w-0 text-right text-[14px] font-semibold leading-snug text-[#111827]';
+}
+
 function ContextBlock({ rows }: { rows: Array<{ label: string; value: string }> }) {
   if (!rows.length) return null;
   return (
@@ -23,9 +33,7 @@ function ContextBlock({ rows }: { rows: Array<{ label: string; value: string }> 
         {rows.map((row) => (
           <div key={row.label} className={notifDetailContextRow}>
             <span className="shrink-0 text-[13px] font-medium text-[#6B7280]">{row.label}</span>
-            <span className="min-w-0 text-right text-[14px] font-semibold leading-snug text-[#111827]">
-              {row.value}
-            </span>
+            <span className={contextValueClass(row.label)}>{row.value}</span>
           </div>
         ))}
       </div>

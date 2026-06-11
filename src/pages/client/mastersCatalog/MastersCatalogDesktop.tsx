@@ -1,7 +1,7 @@
 import { useLayoutEffect } from 'react';
 import type { ServiceCategoryDto } from '../../../features/master-onboarding/api/becomeMasterApi';
 import type { ServiceListingRecord } from '../../../features/services/model/demoMasters';
-import { CLIENT_DESKTOP_SHELL_CLASS } from '../../../shared/layout/clientShellLayout';
+import { CLIENT_CATALOG_DESKTOP_SHELL_CLASS } from '../../../shared/layout/clientShellLayout';
 import {
   countActiveCategoryFilters,
   getMastersViewTab,
@@ -72,7 +72,7 @@ export function MastersCatalogDesktop({
 
   return (
     <div className={`${catalogDesktopShellClass} hidden lg:flex ${catalogCanvasClass}`}>
-      <div className={`${CLIENT_DESKTOP_SHELL_CLASS} flex min-h-0 flex-1 flex-col overflow-hidden pt-2`}>
+      <div className={`${CLIENT_CATALOG_DESKTOP_SHELL_CLASS} flex min-h-0 flex-1 flex-col overflow-hidden pt-0`}>
         <div className={`grid min-h-0 flex-1 gap-4 overflow-hidden ${catalogSidebarWidth}`}>
           <div className="min-h-0 h-full">
             <MastersCatalogDesktopSidebar

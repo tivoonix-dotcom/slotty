@@ -3,7 +3,7 @@ import {
   ADMIN_PATH,
   BECOME_MASTER_PATH,
   HUB_PATH,
-  MASTERS_PATH,
+  MASTER_START_PATH,
   SERVICES_PATH,
 } from '../../../app/paths';
 
@@ -12,6 +12,9 @@ export const LANDING_ANCHOR_HOW = 'how-it-works';
 export const LANDING_ANCHOR_FOR_MASTERS = 'for-masters';
 export const LANDING_ANCHOR_TARIFFS = 'tarify';
 export const LANDING_ANCHOR_FAQ = 'faq';
+
+/** Hero лендинга мастера (`/master/start`). */
+export const LANDING_ANCHOR_MASTER_HOME = 'master-hero';
 
 /** Табы блока «Как это работает» на лендинге. */
 export const LANDING_HOW_TAB_SERVICE = 'how-service';
@@ -32,6 +35,10 @@ export type LandingHowTabId = (typeof LANDING_HOW_TAB_IDS)[number];
 
 export function landingAnchorHref(anchor: string): string {
   return `${HUB_PATH}#${anchor}`;
+}
+
+export function masterLandingAnchorHref(anchor: string): string {
+  return `${MASTER_START_PATH}#${anchor}`;
 }
 
 export function landingHowTabHref(tab: LandingHowTabId): string {
@@ -81,21 +88,35 @@ export function isLandingHowTab(id: string): id is LandingHowTabId {
   return (LANDING_HOW_TAB_IDS as readonly string[]).includes(id);
 }
 
+export function isMasterLandingAnchor(anchor: string): boolean {
+  return (
+    isLandingMastersTab(anchor) ||
+    anchor === LANDING_ANCHOR_FOR_MASTERS ||
+    anchor === LANDING_ANCHOR_TARIFFS ||
+    anchor === LANDING_ANCHOR_MASTER_HOME
+  );
+}
+
+/** Якоря, которые есть только на клиентском лендинге (`/book`). */
+export function isClientLandingAnchor(anchor: string): boolean {
+  return isLandingHowTab(anchor) || anchor === LANDING_ANCHOR_HOW;
+}
+
 export const SLOTTY_NAV_CATALOG = { label: 'Каталог', to: SERVICES_PATH } as const;
-export const SLOTTY_NAV_MASTERS = { label: 'Мастера', to: MASTERS_PATH } as const;
+export const SLOTTY_NAV_MASTERS = { label: 'Мастера', to: SERVICES_PATH } as const;
 
 export const SLOTTY_NAV_ANCHORS = [
   { label: 'Как это работает', anchor: LANDING_ANCHOR_HOW },
-  { label: 'Для мастеров', anchor: LANDING_ANCHOR_FOR_MASTERS },
-  { label: 'Тарифы', anchor: LANDING_ANCHOR_TARIFFS },
+  { label: 'Для мастеров', to: MASTER_START_PATH },
+  { label: 'Тарифы', to: `${MASTER_START_PATH}#${LANDING_ANCHOR_TARIFFS}` },
 ] as const;
 
 export const SLOTTY_MOBILE_MENU = [
   SLOTTY_NAV_CATALOG,
   SLOTTY_NAV_MASTERS,
   { label: 'Как это работает', anchor: LANDING_ANCHOR_HOW },
-  { label: 'Для мастеров', anchor: LANDING_ANCHOR_FOR_MASTERS },
-  { label: 'Тарифы', anchor: LANDING_ANCHOR_TARIFFS },
+  { label: 'Для мастеров', to: MASTER_START_PATH },
+  { label: 'Тарифы', to: `${MASTER_START_PATH}#${LANDING_ANCHOR_TARIFFS}` },
   { label: 'FAQ', anchor: LANDING_ANCHOR_FAQ },
 ] as const;
 

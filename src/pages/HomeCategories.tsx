@@ -1,19 +1,18 @@
 import type { FC } from 'react';
 import { ImageReveal } from '../shared/ui/ImageReveal';
-import { homeSection } from './home/homeTheme';
-
-const CATEGORIES = [
-  { key: 'manicure', label: 'Маникюр', image: '/photos/лендинг/каталог/маникюр.webp' },
-  { key: 'barbers', label: 'Барберы', image: '/photos/лендинг/каталог/барберы.webp' },
-  { key: 'brows-lashes', label: 'Брови и ресницы', image: '/photos/лендинг/каталог/брови.webp' },
-  { key: 'massage', label: 'Массаж', image: '/photos/лендинг/каталог/массаж.webp' },
-  { key: 'fitness', label: 'Фитнес', image: '/photos/лендинг/каталог/фитнес.webp' },
-  { key: 'tattoo', label: 'Тату', image: '/photos/лендинг/каталог/тату.webp' },
-] as const;
-
-function categoryImageSrc(category: (typeof CATEGORIES)[number]): string {
-  return category.image;
-}
+import { HOME_LANDING_CATEGORIES } from './home/homeLandingCategoryAssets';
+import { LandingReveal } from './home/LandingReveal';
+import {
+  homeLandingCategoryCard,
+  homeLandingCategoryCta,
+  homeLandingCategoryImage,
+  homeLandingCategoryImageWrap,
+  homeLandingCategoryLabel,
+  homeLandingCategoryOverlay,
+  homeLandingCategoryTitle,
+  homeLandingHeading,
+  homeSection,
+} from './home/homeTheme';
 
 type HomeCategoriesProps = {
   onCategory: (category: string) => void;
@@ -23,40 +22,48 @@ export const HomeCategories: FC<HomeCategoriesProps> = ({ onCategory }) => {
   return (
     <section
       className={`${homeSection} !mt-12 sm:!mt-16`}
-      style={{ animationDelay: '120ms' }}
       aria-labelledby="home-categories-heading"
     >
-      <h2
-        id="home-categories-heading"
-        className="text-left text-[clamp(2rem,6vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[#111827]"
-      >
+      <LandingReveal as="h2" id="home-categories-heading" className={`text-left ${homeLandingHeading}`} variant="blur-up">
         Выберите услугу
-      </h2>
+      </LandingReveal>
 
-      <div
-        className="mt-10 mr-[calc(50%-50vw)] overflow-x-auto [scrollbar-width:none] sm:mt-14 [&::-webkit-scrollbar]:hidden"
-      >
-        <ul className="flex w-max list-none snap-x snap-mandatory gap-5 pb-2 sm:gap-6">
-          {CATEGORIES.map((category, index) => (
-            <li key={category.key} className="w-[min(17.5rem,82vw)] shrink-0 snap-start sm:w-[19.5rem]">
+      <div className="mt-10 mr-[calc(50%-50vw)] overflow-x-auto [scrollbar-width:none] sm:mt-14 [&::-webkit-scrollbar]:hidden">
+        <ul className="flex w-max list-none snap-x snap-mandatory gap-4 pb-2 sm:gap-5">
+          {HOME_LANDING_CATEGORIES.map((category, index) => (
+            <LandingReveal
+              as="li"
+              key={category.key}
+              className={homeLandingCategoryCard}
+              variant="scale"
+              delay={80 + index * 65}
+              threshold={0.06}
+            >
               <button
                 type="button"
                 onClick={() => onCategory(category.key)}
-                aria-label={category.label}
-                className="group block w-full transition active:opacity-95"
+                aria-label={`${category.label}. ${category.headline}`}
+                className="group block w-full text-left transition active:opacity-95"
               >
-                <div className="overflow-hidden rounded-[22px] bg-[#F2F2F2] p-3 sm:rounded-[26px] sm:p-4">
+                <div className={homeLandingCategoryImageWrap}>
                   <ImageReveal
-                    src={categoryImageSrc(category)}
-                    alt={category.label}
+                    src={category.image}
+                    alt=""
                     loading={index < 2 ? 'eager' : 'lazy'}
                     fetchPriority={index < 2 ? 'high' : 'low'}
                     draggable={false}
-                    className="block h-auto w-full rounded-[20px] object-contain transition duration-500 group-hover:scale-[1.01] sm:rounded-[24px]"
+                    className={homeLandingCategoryImage}
                   />
+                  <div className={homeLandingCategoryOverlay}>
+                    <p className={homeLandingCategoryLabel}>{category.label}</p>
+                    <p className={homeLandingCategoryTitle}>{category.headline}</p>
+                    <span className={homeLandingCategoryCta} aria-hidden>
+                      каталог
+                    </span>
+                  </div>
                 </div>
               </button>
-            </li>
+            </LandingReveal>
           ))}
         </ul>
       </div>

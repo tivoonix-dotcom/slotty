@@ -28,7 +28,7 @@ export const adminSheetBodyPad = 'pb-5 lg:pb-8';
 export const adminSheetBodyInsetPad = 'pt-5 pb-5 lg:pt-6 lg:pb-8';
 
 export const adminSheetPinkBtn =
-  'flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] text-[15px] font-bold text-white shadow-[0_10px_28px_rgba(255,95,122,0.32)] transition hover:opacity-95 active:scale-[0.98] disabled:opacity-50';
+  'flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] text-[15px] font-bold text-white transition hover:opacity-95 active:scale-[0.98] disabled:opacity-50';
 
 export const adminSheetGhostBtn =
   'flex min-h-12 w-full items-center justify-center rounded-[18px] border border-[#EAECEF] bg-white text-[15px] font-semibold text-[#374151] transition hover:border-[#FDE8ED] hover:bg-[#FAFAFA] active:scale-[0.98]';
@@ -40,7 +40,7 @@ export const adminSheetSegmentWrap =
   'grid grid-cols-2 gap-2 rounded-[22px] bg-[#f6f7fb] p-1.5 lg:p-2';
 
 export const adminSheetSegmentActive =
-  'min-h-11 rounded-[16px] bg-white text-[14px] font-bold text-[#111827] shadow-[0_8px_20px_rgba(17,24,39,0.06)]';
+  'min-h-11 rounded-[16px] bg-white text-[14px] font-bold text-[#111827]';
 
 export const adminSheetSegmentIdle =
   'min-h-11 rounded-[16px] text-[14px] font-semibold text-[#6B7280] transition hover:text-[#374151]';

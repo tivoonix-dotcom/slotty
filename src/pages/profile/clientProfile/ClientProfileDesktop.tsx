@@ -5,9 +5,11 @@ import type { FavoriteMasterDto } from '../../../features/profile/api/clientFavo
 import type { BackendProfile } from '../../../features/auth/types';
 import {
   adminDesktopCabinetBody,
+  adminDesktopCabinetMainColumn,
   adminDesktopCabinetShell,
   adminDesktopMainScroll,
   ADMIN_DESKTOP_CANVAS,
+  CLIENT_CABINET_DESKTOP_MAIN,
 } from '../../admin/adminCabinetLayout';
 import {
   ClientProfileDesktopSidebar,
@@ -208,20 +210,20 @@ export function ClientProfileDesktop({
           favoritesCount={favorites.length}
         />
 
-        <div
-          ref={contentScrollRef}
-          className={`${adminDesktopMainScroll} ${ADMIN_DESKTOP_CANVAS} lg:pb-8`}
-        >
-          {!authLoading && !backendConfigured ? (
-            <div className="px-4 pt-3 lg:px-8 lg:pt-4">
-              <p className="rounded-[10px] bg-amber-50 px-4 py-3 text-[14px] font-medium text-amber-950">
-                В .env не задан VITE_API_URL — данные профиля с сервера недоступны.
-              </p>
-            </div>
-          ) : null}
+        <div className={adminDesktopCabinetMainColumn}>
+          <div
+            ref={contentScrollRef}
+            className={`${adminDesktopMainScroll} ${ADMIN_DESKTOP_CANVAS} lg:pb-8`}
+          >
+            {!authLoading && !backendConfigured ? (
+              <div className="px-4 pt-3 lg:px-8 lg:pt-4">
+                <p className="rounded-[10px] bg-amber-50 px-4 py-3 text-[14px] font-medium text-amber-950">
+                  В .env не задан VITE_API_URL — данные профиля с сервера недоступны.
+                </p>
+              </div>
+            ) : null}
 
-          <div className="w-full min-w-0 px-4 pt-4 lg:mx-auto lg:max-w-6xl lg:bg-transparent lg:px-8 lg:pt-6 lg:shadow-none lg:ring-0">
-            {cabinetContent}
+            <div className={CLIENT_CABINET_DESKTOP_MAIN}>{cabinetContent}</div>
           </div>
         </div>
         </div>

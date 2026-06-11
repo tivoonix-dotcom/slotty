@@ -64,6 +64,9 @@ export type MasterPublicDetailDto = {
     priceType: string;
     isActive: boolean;
     sortOrder: number;
+    coverImageUrl?: string | null;
+    coverFocalX?: number;
+    coverFocalY?: number;
   }[];
   locations: MasterPublicLocationDto[];
   bookingRules: {
@@ -191,6 +194,9 @@ export function mapMasterDetailToDemoProfile(detail: MasterPublicDetailDto): Dem
     price: s.price,
     description: s.description ?? '',
     priceType: s.priceType === 'from' ? 'from' : 'fixed',
+    coverImageUrl: s.coverImageUrl ?? undefined,
+    coverFocalX: s.coverFocalX,
+    coverFocalY: s.coverFocalY,
   }));
 
   const availableSlotsByServiceId = Object.fromEntries(services.map((s) => [s.id, []])) as DemoMasterProfile['availableSlotsByServiceId'];

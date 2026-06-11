@@ -4,11 +4,13 @@ export type CatalogDateRange = 'any' | 'today' | 'tomorrow' | 'week' | 'weekend'
 export type CatalogTimeOfDay = 'any' | 'morning' | 'afternoon' | 'evening';
 export type CatalogSortBy =
   | 'recommended'
+  | 'popular'
   | 'rating'
   | 'price_asc'
   | 'price_desc'
   | 'reviews'
-  | 'soonest';
+  | 'soonest'
+  | 'distance_asc';
 export type CatalogDurationPreset = 'any' | 'under30' | '30_60' | '60_120' | 'over120';
 export type CatalogVisitType = 'any' | 'studio' | 'at_home';
 
@@ -22,6 +24,11 @@ export type CatalogListingsQuery = {
   addressText?: string;
   dateRange: CatalogDateRange;
   timeOfDay: CatalogTimeOfDay;
+  /** ISO YYYY-MM-DD — точный день для фильтра слотов. */
+  slotDate?: string;
+  /** Диапазон часов 0–23 / 1–24 (Europe/Minsk). */
+  timeFromHour?: number;
+  timeToHour?: number;
   minPrice?: number;
   maxPrice?: number;
   minRating?: number;
@@ -33,6 +40,11 @@ export type CatalogListingsQuery = {
   sortBy: CatalogSortBy;
   page: number;
   limit: number;
+  onlyWithSlots?: boolean;
+  popularOnly?: boolean;
+  newOnly?: boolean;
+  userLat?: number;
+  userLng?: number;
 };
 
 export type CatalogListingItem = {
@@ -54,8 +66,14 @@ export type CatalogListingItem = {
   minServicePrice: number | null;
   primaryServiceId: string | null;
   primaryServiceName: string | null;
+  primaryServiceCoverUrl?: string | null;
+  primaryServiceCoverFocalX?: number | null;
+  primaryServiceCoverFocalY?: number | null;
   nextSlotStartsAt: string | null;
   nextSlotId: string | null;
+  hasPromotion?: boolean;
+  distanceKm?: number | null;
+  weeklyViews?: number;
 };
 
 export type CatalogListingsResult = {

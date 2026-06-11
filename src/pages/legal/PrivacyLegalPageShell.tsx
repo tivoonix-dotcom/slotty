@@ -2,11 +2,13 @@ import type { FC, ReactNode } from 'react';
 import { HiArrowLeft } from 'react-icons/hi2';
 import { SlottyHeader } from '../../shared/layout/SlottyHeader/SlottyHeader';
 import { CLIENT_DESKTOP_SHELL_CLASS } from '../../shared/layout/clientShellLayout';
-import { CLIENT_HEADER_OFFSET } from '../client/clientNavConstants';
 import { HomeFooter } from '../HomeFooter';
+import { LEGAL_LANDING_HEADER_OFFSET } from './LegalPageShell';
 import { PRIVACY_LEGAL_HERO_BG } from './legalSiteInfo';
 import {
   LegalDocDarkTocNav,
+  legalDocFontBody,
+  legalDocFontDisplay,
   shouldShowLegalDocToc,
   type LegalTocItem,
 } from './legalDocumentUi';
@@ -49,7 +51,9 @@ function PrivacyHeroTitle({ title, titleHighlight }: { title: string; titleHighl
     const before = title.slice(0, idx);
     const after = title.slice(idx + highlight.length);
     return (
-      <h1 className="max-w-4xl text-[28px] font-semibold leading-[1.15] tracking-[-0.03em] text-white sm:text-[36px] lg:text-[40px]">
+      <h1
+        className={`max-w-4xl ${legalDocFontDisplay} text-[28px] font-medium leading-[1.15] tracking-[-0.03em] text-white sm:text-[36px] lg:text-[40px]`}
+      >
         {before}
         <span className="relative inline-block pb-1 align-baseline">
           <span className="relative z-10 font-bold text-white">{highlight}</span>
@@ -61,7 +65,9 @@ function PrivacyHeroTitle({ title, titleHighlight }: { title: string; titleHighl
   }
 
   return (
-    <h1 className="max-w-4xl text-[28px] font-semibold leading-[1.12] tracking-[-0.03em] text-white sm:text-[36px] lg:text-[40px]">
+    <h1
+      className={`max-w-4xl ${legalDocFontDisplay} text-[28px] font-medium leading-[1.12] tracking-[-0.03em] text-white sm:text-[36px] lg:text-[40px]`}
+    >
       {title}
     </h1>
   );
@@ -80,8 +86,8 @@ export const PrivacyLegalPageShell: FC<Props> = ({
   const activeSectionId = useLegalTocActiveId(showToc ? toc.map((t) => t.id) : []);
 
   return (
-    <div className="min-h-dvh bg-[#0a0a0a] text-white">
-      <SlottyHeader variant="bar" barTone="dark" barMobileMenu />
+    <div className={`min-h-dvh bg-[#0a0a0a] text-white ${legalDocFontBody}`}>
+      <SlottyHeader variant="landing" landingTone="dark" />
 
       <section className="relative min-h-[min(440px,58vh)] overflow-hidden bg-[#0a0a0a] sm:min-h-[min(480px,62vh)] lg:min-h-[min(520px,65vh)] lg:mt-0">
         <div
@@ -94,26 +100,30 @@ export const PrivacyLegalPageShell: FC<Props> = ({
           aria-hidden
         />
         <div
-          className={`relative z-[2] ${CLIENT_DESKTOP_SHELL_CLASS} max-lg:px-4 ${CLIENT_HEADER_OFFSET} pb-10 pt-2 sm:pb-12 lg:pb-14 lg:pt-6`}
+          className={`relative z-[2] ${CLIENT_DESKTOP_SHELL_CLASS} max-lg:px-4 ${LEGAL_LANDING_HEADER_OFFSET} pb-10 sm:pb-12 lg:pb-14`}
         >
           <button
             type="button"
             onClick={goBack}
-            className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-semibold text-white/65 transition hover:text-white"
+            className={`inline-flex min-h-10 items-center gap-1.5 ${legalDocFontBody} text-[14px] font-semibold text-white/65 transition hover:text-white`}
           >
             <HiArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
             {backLabel}
           </button>
 
           <div className="relative mt-8 max-w-3xl sm:mt-10 lg:mt-12">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#ff8fa3]">
+            <p className={`${legalDocFontBody} text-[11px] font-bold uppercase tracking-[0.14em] text-[#ff8fa3]`}>
               Конфиденциальность SLOTTY
             </p>
             <div className="mt-3">
               <PrivacyHeroTitle title={title} titleHighlight={titleHighlight} />
             </div>
             {meta ? (
-              <div className="mt-4 max-w-2xl text-[16px] font-normal leading-relaxed text-white/50">{meta}</div>
+              <div
+                className={`mt-4 max-w-2xl ${legalDocFontBody} text-[16px] font-normal leading-relaxed text-white/50`}
+              >
+                {meta}
+              </div>
             ) : null}
           </div>
         </div>

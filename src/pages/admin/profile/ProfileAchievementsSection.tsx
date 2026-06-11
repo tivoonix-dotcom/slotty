@@ -84,13 +84,13 @@ export function ProfileAchievementsSection({ variant = 'cabinet' }: Props) {
                   return (
                     <div
                       key={achievement.id}
-                      className="flex w-[9.5rem] shrink-0 flex-col overflow-hidden rounded-[12px] bg-white"
+                      className="flex w-[10rem] shrink-0 flex-col overflow-hidden rounded-[12px] bg-white"
                     >
-                      <div className="relative h-16 overflow-hidden">
+                      <div className="relative flex h-[6.5rem] items-center justify-center overflow-hidden bg-[#FAFAFA] px-2 pt-1">
                         <img
                           src={visual.artSrc}
                           alt=""
-                          className="h-full w-full object-cover object-right"
+                          className="max-h-full max-w-full object-contain object-center"
                           loading="lazy"
                           decoding="async"
                         />

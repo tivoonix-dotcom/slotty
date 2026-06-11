@@ -6,6 +6,11 @@ import {
   profileDesktopTabsSticky,
   PROFILE_DESKTOP_PAGE_BG,
 } from '../profile/adminProfileDashboardTheme';
+import {
+  ADMIN_MOBILE_TAB_BAR_HEIGHT,
+  adminMobileTabBarFabBottom,
+  adminMobileTabBarListScrollPadClass,
+} from '../shared/adminMobileTabBarTheme';
 
 /** Акцент расписания — синий (только страница /admin/schedule). */
 export const SCHEDULE_ACCENT = '#3B4CCA';
@@ -35,7 +40,7 @@ export const scheduleSheetGhostBtn =
   'rounded-[10px] bg-[#EEF0FC] px-3 py-2 text-[12px] font-semibold text-[#3B4CCA] transition hover:bg-[#E0E4F8] active:scale-[0.98] disabled:opacity-50';
 
 export const scheduleTabFabClass =
-  'fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#4558D4] to-[#3B4CCA] text-white shadow-[0_14px_36px_rgba(59,76,202,0.42)] transition hover:scale-[1.04] active:scale-[0.96] max-lg:bottom-[calc(5.75rem+1rem+env(safe-area-inset-bottom,0px))] lg:bottom-8 lg:right-8 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100';
+  `fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#4558D4] to-[#3B4CCA] text-white transition hover:scale-[1.04] active:scale-[0.96] max-lg:bottom-[${adminMobileTabBarFabBottom}] lg:bottom-8 lg:right-8 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100`;
 
 export function scheduleSegmentClass(active: boolean): string {
   return `min-h-11 rounded-[10px] px-3 text-[14px] font-semibold leading-snug transition active:scale-[0.98] ${
@@ -50,7 +55,7 @@ export function scheduleChipClass(active: boolean): string {
 }
 
 export const scheduleSheetPrimaryBtnFull =
-  `${scheduleSheetPrimaryBtn} w-full min-h-12 rounded-[18px] text-[15px] font-bold shadow-[0_10px_28px_rgba(59,76,202,0.32)]`;
+  `${scheduleSheetPrimaryBtn} w-full min-h-12 rounded-[18px] text-[15px] font-bold`;
 
 export const scheduleSheetDangerBtn =
   'flex min-h-11 w-full items-center justify-center rounded-[10px] border border-[#FECACA] bg-white px-4 text-[14px] font-semibold text-[#DC2626] transition hover:bg-[#FEF2F2] active:scale-[0.98] disabled:opacity-50';
@@ -76,9 +81,9 @@ export const SCHEDULE_NO_WINDOWS_DAY_ILLUSTRATION_SRC =
 export const scheduleKpiTileOverlay = apptHistoryKpiTileOverlay;
 
 /** Высота нижней панели раздела «Расписание». */
-export const SCHEDULE_TAB_BAR_HEIGHT = '5.75rem';
+export const SCHEDULE_TAB_BAR_HEIGHT = ADMIN_MOBILE_TAB_BAR_HEIGHT;
 
-export const SCHEDULE_TAB_BAR_SCROLL_PAD = `calc(${SCHEDULE_TAB_BAR_HEIGHT} + 1.25rem + env(safe-area-inset-bottom, 0px))`;
+export const SCHEDULE_TAB_BAR_SCROLL_PAD = adminMobileTabBarListScrollPadClass;
 
 export const SCHEDULE_PAGE_BG = 'bg-white';
 

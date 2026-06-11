@@ -32,8 +32,18 @@ export const CATALOG_MASTER_ACCOUNT_SQL = PUBLIC_BOOKABLE_MASTER_ACCOUNT_SQL;
 export const CATALOG_SERVICE_VISIBLE_SQL = `ms.is_active = true and ms.admin_hidden_at is null`;
 
 /** Условие по свободным слотам (дата в Europe/Minsk + опционально время суток). */
+function isFullHourRange(from?: number, to?: number): boolean {
+  if (from == null || to == null) return true;
+  return from <= 0 && to >= 24;
+}
+
 function slotExistsSql(q: CatalogListingsQuery, paramOffset: number): { sql: string; nextParam: number } {
-  if (q.dateRange === 'any' && q.timeOfDay === 'any') {
+  const hasSlotDate = Boolean(q.slotDate?.trim());
+  const hasDateRange = q.dateRange !== 'any';
+  const hasExactTime = q.timeFromHour != null && q.timeToHour != null && !isFullHourRange(q.timeFromHour, q.timeToHour);
+  const hasTimeOfDay = q.timeOfDay !== 'any';
+
+  if (!hasSlotDate && !hasDateRange && !hasExactTime && !hasTimeOfDay) {
     return { sql: 'true', nextParam: paramOffset };
   }
 
@@ -47,7 +57,9 @@ function slotExistsSql(q: CatalogListingsQuery, paramOffset: number): { sql: str
 
   const msk = `(s.starts_at at time zone 'Europe/Minsk')`;
 
-  if (q.dateRange === 'today') {
+  if (hasSlotDate) {
+    parts.push(`and (${msk})::date = '${q.slotDate!.trim()}'::date`);
+  } else if (q.dateRange === 'today') {
     parts.push(`and (${msk})::date = (timezone('Europe/Minsk', now()))::date`);
   } else if (q.dateRange === 'tomorrow') {
     parts.push(`and (${msk})::date = ((timezone('Europe/Minsk', now()) + interval '1 day'))::date)`);
@@ -60,7 +72,10 @@ function slotExistsSql(q: CatalogListingsQuery, paramOffset: number): { sql: str
     parts.push(`and (${msk})::date <= ((timezone('Europe/Minsk', now()) + interval '14 day'))::date)`);
   }
 
-  if (q.timeOfDay === 'morning') {
+  if (hasExactTime) {
+    parts.push(`and extract(hour from (${msk})) >= ${q.timeFromHour}`);
+    parts.push(`and extract(hour from (${msk})) < ${q.timeToHour}`);
+  } else if (q.timeOfDay === 'morning') {
     parts.push(`and extract(hour from (${msk})) >= 8 and extract(hour from (${msk})) < 12`);
   } else if (q.timeOfDay === 'afternoon') {
     parts.push(`and extract(hour from (${msk})) >= 12 and extract(hour from (${msk})) < 17`);
@@ -102,6 +117,13 @@ function durationSql(preset: CatalogListingsQuery['durationPreset']): string {
   )`;
 }
 
+const LEGACY_POPULARITY_SCORE_SQL = `(
+  coalesce(rating_avg::numeric, 0) * 14
+  + least(coalesce(reviews_count, 0), 30) * 2.2
+  + case when next_slot_starts_at is not null then 12 else 0 end
+  + case when is_verified then 12 else 0 end
+)`;
+
 function orderBySql(sortBy: CatalogListingsQuery['sortBy']): string {
   if (sortBy === 'rating') {
     return 'rating_avg::numeric desc nulls last, display_name asc';
@@ -116,12 +138,27 @@ function orderBySql(sortBy: CatalogListingsQuery['sortBy']): string {
     return 'reviews_count desc nulls last, display_name asc';
   }
   if (sortBy === 'soonest') {
-    return 'next_slot_starts_at asc nulls last, rating_avg::numeric desc nulls last, display_name asc';
+    return `
+      case when next_slot_starts_at is null then 1 else 0 end asc,
+      next_slot_starts_at asc nulls last,
+      ${LEGACY_POPULARITY_SCORE_SQL} desc nulls last,
+      rating_avg::numeric desc nulls last,
+      display_name asc
+    `;
+  }
+  if (sortBy === 'popular') {
+    return `
+      ${LEGACY_POPULARITY_SCORE_SQL} desc nulls last,
+      reviews_count desc nulls last,
+      rating_avg::numeric desc nulls last,
+      display_name asc
+    `;
   }
   /* recommended */
   return `
     case when next_slot_starts_at is null then 1 else 0 end asc,
     next_slot_starts_at asc nulls last,
+    ${LEGACY_POPULARITY_SCORE_SQL} desc nulls last,
     rating_avg::numeric desc nulls last,
     reviews_count desc nulls last,
     display_name asc
@@ -136,13 +173,75 @@ import {
   suggestMasterLocationsRpc,
 } from './catalogListings.rpc.js';
 
+async function enrichCatalogItemsWithServiceCovers(
+  items: CatalogListingItem[],
+): Promise<CatalogListingItem[]> {
+  const ids = items.map((item) => item.primaryServiceId).filter((id): id is string => Boolean(id?.trim()));
+  if (!ids.length) return items;
+
+  try {
+    const r = await query<{
+      id: string;
+      cover_image_url: string | null;
+      cover_image_focal_x: number;
+      cover_image_focal_y: number;
+    }>(
+      `select id, cover_image_url, cover_image_focal_x, cover_image_focal_y
+         from public.master_services
+        where id = any($1::uuid[])`,
+      [ids],
+    );
+
+    const byId = new Map(r.rows.map((row) => [row.id, row]));
+    return items.map((item) => {
+      if (!item.primaryServiceId) return item;
+      const row = byId.get(item.primaryServiceId);
+      if (!row?.cover_image_url?.trim()) return item;
+      return {
+        ...item,
+        primaryServiceCoverUrl: row.cover_image_url,
+        primaryServiceCoverFocalX: row.cover_image_focal_x,
+        primaryServiceCoverFocalY: row.cover_image_focal_y,
+      };
+    });
+  } catch (err) {
+    const code = err && typeof err === 'object' ? (err as { code?: string }).code : undefined;
+    if (code === '42703') {
+      console.warn('[catalog] master_services cover columns missing — apply migration 079');
+      return items;
+    }
+    throw err;
+  }
+}
+
 export async function searchCatalogListings(q: CatalogListingsQuery): Promise<CatalogListingsResult> {
   try {
-    return await searchCatalogListingsRpc(q);
+    const out = await searchCatalogListingsRpc(q);
+    return { ...out, items: await enrichCatalogItemsWithServiceCovers(out.items) };
   } catch (err) {
     if (!isMissingRpcError(err)) throw err;
     console.warn('[catalog] RPC catalog_search_listings missing — apply migration 038; using legacy SQL');
     return searchCatalogListingsLegacy(q);
+  }
+}
+
+export async function recordCatalogListingView(
+  masterId: string,
+  serviceId?: string | null,
+): Promise<void> {
+  const id = masterId?.trim();
+  if (!id) return;
+
+  try {
+    await query(`select public.catalog_record_listing_view($1::uuid, $2::uuid)`, [
+      id,
+      serviceId?.trim() || null,
+    ]);
+  } catch (err) {
+    if (isMissingRpcError(err)) return;
+    const code = err && typeof err === 'object' ? (err as { code?: string }).code : undefined;
+    if (code === '42P01') return;
+    console.warn('[catalog] record listing view failed', err);
   }
 }
 
@@ -388,6 +487,8 @@ async function searchCatalogListingsLegacy(q: CatalogListingsQuery): Promise<Cat
   const page = clampInt(q.page, 1, 500);
   const limit = clampInt(q.limit, 1, 80);
   const offset = (page - 1) * limit;
+  const effectiveSort: CatalogListingsQuery['sortBy'] =
+    q.popularOnly && q.sortBy === 'recommended' ? 'popular' : q.sortBy;
 
   const params: unknown[] = [];
   let i = 1;
@@ -485,6 +586,22 @@ async function searchCatalogListingsLegacy(q: CatalogListingsQuery): Promise<Cat
     )`);
   }
 
+  if (q.newOnly) {
+    whereParts.push(`(
+      mp.reviews_count < 10
+      or (mp.published_at is not null and mp.published_at > now() - interval '60 days')
+    )`);
+  }
+
+  if (q.onlyWithSlots) {
+    whereParts.push(`exists (
+      select 1 from public.master_availability_slots s
+      where s.master_id = mp.master_id
+        and s.status = 'available'
+        and s.starts_at > now()
+    )`);
+  }
+
   whereParts.push(durationSql(q.durationPreset));
 
   const slotSql = slotExistsSql(q, i);
@@ -544,6 +661,9 @@ async function searchCatalogListingsLegacy(q: CatalogListingsQuery): Promise<Cat
         ps.id as primary_service_id,
         ps.title as primary_service_title,
         ps.price_amount::text as primary_service_price,
+        ps.cover_image_url as primary_service_cover_url,
+        ps.cover_image_focal_x as primary_service_cover_focal_x,
+        ps.cover_image_focal_y as primary_service_cover_focal_y,
         (
           select min(s.starts_at)
           from public.master_availability_slots s
@@ -564,7 +684,7 @@ async function searchCatalogListingsLegacy(q: CatalogListingsQuery): Promise<Cat
       left join public.service_categories sc on sc.id = mp.primary_category_id
       left join public.master_locations ml on ml.master_id = mp.master_id and ml.is_primary = true
       left join lateral (
-        select ms.id, ms.title, ms.price_amount
+        select ms.id, ms.title, ms.price_amount, ms.cover_image_url, ms.cover_image_focal_x, ms.cover_image_focal_y
         from public.master_services ms
         where ms.master_id = mp.master_id and ${CATALOG_SERVICE_VISIBLE_SQL}
         order by ms.sort_order asc, ms.price_amount asc nulls last, ms.title asc
@@ -573,7 +693,7 @@ async function searchCatalogListingsLegacy(q: CatalogListingsQuery): Promise<Cat
       where ${whereSql}
     )
     select * from base
-    order by ${orderBySql(q.sortBy)}
+    order by ${orderBySql(effectiveSort)}
     limit $${limitPlaceholder} offset $${offsetPlaceholder}
   `;
 
@@ -597,6 +717,9 @@ async function searchCatalogListingsLegacy(q: CatalogListingsQuery): Promise<Cat
       primary_service_id: string | null;
       primary_service_title: string | null;
       primary_service_price: string | null;
+      primary_service_cover_url: string | null;
+      primary_service_cover_focal_x: number | null;
+      primary_service_cover_focal_y: number | null;
       next_slot_starts_at: Date | string | null;
       next_slot_id: string | null;
     }>(listSql, listParams),
@@ -633,6 +756,9 @@ async function searchCatalogListingsLegacy(q: CatalogListingsQuery): Promise<Cat
       minServicePrice: num(row.primary_service_price),
       primaryServiceId: row.primary_service_id,
       primaryServiceName: row.primary_service_title,
+      primaryServiceCoverUrl: row.primary_service_cover_url,
+      primaryServiceCoverFocalX: row.primary_service_cover_focal_x,
+      primaryServiceCoverFocalY: row.primary_service_cover_focal_y,
       nextSlotStartsAt:
         row.next_slot_starts_at != null
           ? new Date(row.next_slot_starts_at as Date).toISOString()

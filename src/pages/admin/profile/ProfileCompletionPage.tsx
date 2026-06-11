@@ -4,7 +4,10 @@ import { ADMIN_PATH } from '../../../app/paths';
 import { buildProfileCompletionHref } from './profileCompletionNavigation';
 import { useProfileCompletionOverview } from './useProfileCompletionOverview';
 import {
+  PROFILE_COMPLETION_HERO_BG,
   profileCompletionDoneBadge,
+  profileCompletionHeroOverlay,
+  profileCompletionHeroPanel,
   profileCompletionList,
   profileCompletionMetaChip,
   profileCompletionPanel,
@@ -61,29 +64,38 @@ export function ProfileCompletionPage() {
 
   return (
     <div className="w-full min-w-0 space-y-4 lg:space-y-5">
-      <section className={`${profileCompletionPanel} ${profileCompletionRowPad} lg:py-6`}>
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-8">
-          <ProgressCircle percent={percent} />
+      <section className={profileCompletionHeroPanel}>
+        <div
+          className="pointer-events-none absolute inset-0 scale-105 bg-cover bg-center"
+          style={{ backgroundImage: `url(${PROFILE_COMPLETION_HERO_BG})` }}
+          aria-hidden
+        />
+        <div className={profileCompletionHeroOverlay} aria-hidden />
 
-          <div className="min-w-0 flex-1">
-            <p className={`mb-3 ${profileCompletionMetaChip}`}>
-              {doneCount} из {totalCount} разделов заполнено
-            </p>
+        <div className={`relative z-10 ${profileCompletionRowPad} lg:py-6`}>
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-8">
+            <ProgressCircle percent={percent} />
 
-            <h1 className="text-[22px] font-bold tracking-[-0.03em] text-[#111827] sm:text-[26px] lg:text-[28px]">
-              {isComplete ? 'Профиль заполнен на 100%' : 'Заполните профиль до конца'}
-            </h1>
+            <div className="min-w-0 flex-1">
+              <p className={`mb-3 ${profileCompletionMetaChip}`}>
+                {doneCount} из {totalCount} разделов заполнено
+              </p>
 
-            <p className="mt-2 max-w-[560px] text-[14px] leading-6 text-[#6B7280] sm:text-[15px] sm:leading-7">
-              {isComplete
-                ? 'Все основные данные готовы. Профиль выглядит аккуратно и готов для клиентов.'
-                : 'Заполните недостающие разделы, чтобы профиль выглядел доверительно и профессионально.'}
-            </p>
+              <h1 className="text-[22px] font-bold tracking-[-0.03em] text-[#111827] sm:text-[26px] lg:text-[28px]">
+                {isComplete ? 'Профиль заполнен на 100%' : 'Заполните профиль до конца'}
+              </h1>
+
+              <p className="mt-2 max-w-[560px] text-[14px] leading-6 text-[#6B7280] sm:text-[15px] sm:leading-7">
+                {isComplete
+                  ? 'Все основные данные готовы. Профиль выглядит аккуратно и готов для клиентов.'
+                  : 'Заполните недостающие разделы, чтобы профиль выглядел доверительно и профессионально.'}
+              </p>
+            </div>
+
+            <Link to={ADMIN_PATH} className={profileCompletionPrimaryBtn}>
+              Открыть профиль
+            </Link>
           </div>
-
-          <Link to={ADMIN_PATH} className={profileCompletionPrimaryBtn}>
-            Открыть профиль
-          </Link>
         </div>
       </section>
 

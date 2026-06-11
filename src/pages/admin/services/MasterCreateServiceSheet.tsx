@@ -16,6 +16,7 @@ import {
 } from './servicesCabinetSync';
 import type { ManagedService } from './servicesFormat';
 import { ServicesServiceFormFields } from './ServicesServiceFormFields';
+import type { ServiceCoverDraft } from './ServiceCoverFramingEditor';
 
 const DEFAULT_SERVICE_DURATION_MIN = 60;
 
@@ -65,6 +66,8 @@ export function MasterCreateServiceSheet({
   const [isActive, setIsActive] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
   const [templateHighlightId, setTemplateHighlightId] = useState<string | null>(null);
+  const [cover, setCover] = useState<ServiceCoverDraft | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
 
   const services = useMemo(
     () =>
@@ -89,6 +92,8 @@ export function MasterCreateServiceSheet({
     setIsActive(true);
     setFormError(null);
     setTemplateHighlightId(null);
+    setCover(null);
+    setCoverUploading(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -127,6 +132,7 @@ export function MasterCreateServiceSheet({
     }
 
     await run(async () => {
+      const coverUrl = cover?.imageUrl?.trim() ?? '';
       const nextService: ManagedService = {
         id: newServiceId(),
         title: preparedTitle,
@@ -136,6 +142,9 @@ export function MasterCreateServiceSheet({
         isActive,
         description: preparedDescription,
         sortOrder: services.length,
+        imageUrl: coverUrl || undefined,
+        coverFocalX: cover?.focalX ?? 50,
+        coverFocalY: cover?.focalY ?? 50,
       };
       const nextServices = [...services, nextService];
 
@@ -162,6 +171,9 @@ export function MasterCreateServiceSheet({
           priceAmount: priceNumber,
           priceType,
           sortOrder: nextService.sortOrder ?? 0,
+          coverImageUrl: coverUrl,
+          coverFocalX: cover?.focalX ?? 50,
+          coverFocalY: cover?.focalY ?? 50,
         });
         const synced = [...services, cabinetServiceDtoToManaged(row, services.length)];
         commitDraftBaseline(draftWithServices(draft, synced));
@@ -187,6 +199,7 @@ export function MasterCreateServiceSheet({
     services,
     title,
     useCabinetApi,
+    cover,
   ]);
 
   return (
@@ -201,6 +214,8 @@ export function MasterCreateServiceSheet({
       titleValue={title}
       price={price}
       durationMin={durationMin}
+      coverImageUrl={cover?.imageUrl ?? ''}
+      coverUploading={coverUploading}
     >
       {({ step, stepError }) => (
         <ServicesServiceFormFields
@@ -227,6 +242,11 @@ export function MasterCreateServiceSheet({
           onApplyTemplate={applyServiceTemplate}
           onClearTemplateHighlight={() => setTemplateHighlightId(null)}
           serviceTitlePlaceholder={serviceTitlePlaceholder}
+          cover={cover}
+          onCoverChange={setCover}
+          coverUploading={coverUploading}
+          onCoverUploadingChange={setCoverUploading}
+          useCabinetApi={useCabinetApi}
         />
       )}
     </ServicesServiceSheet>

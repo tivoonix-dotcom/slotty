@@ -231,6 +231,9 @@ type ServiceRow = {
   price_type: string;
   is_active: boolean;
   sort_order: number;
+  cover_image_url: string | null;
+  cover_image_focal_x: number;
+  cover_image_focal_y: number;
 };
 
 function mapService(row: ServiceRow) {
@@ -243,6 +246,9 @@ function mapService(row: ServiceRow) {
     priceType: row.price_type,
     isActive: row.is_active,
     sortOrder: row.sort_order,
+    coverImageUrl: row.cover_image_url,
+    coverFocalX: row.cover_image_focal_x,
+    coverFocalY: row.cover_image_focal_y,
   };
 }
 
@@ -356,7 +362,8 @@ export async function getMasterDetail(masterId: string) {
         )
       : { rows: [] as { code: string; name: string }[] };
     const services = await client.query(
-      `select id, title, description, duration_minutes, price_amount::text, price_type::text, is_active, sort_order
+      `select id, title, description, duration_minutes, price_amount::text, price_type::text, is_active, sort_order,
+              cover_image_url, cover_image_focal_x, cover_image_focal_y
          from public.master_services
         where master_id = $1 and is_active = true and admin_hidden_at is null
         order by sort_order asc, title asc`,

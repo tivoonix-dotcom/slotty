@@ -1,33 +1,22 @@
 import { Link } from 'react-router-dom';
 import { EMPTY_BOOKING_DATE } from '../../shared/lib/emptyDisplayText';
-import {
-  HiCalendarDays,
-  HiClock,
-  HiStar,
-} from 'react-icons/hi2';
+import { HiClock, HiStar } from 'react-icons/hi2';
 import { masterShowsVerifiedBadge } from '../../features/masters/lib/masterVerifiedBadge';
 import { MasterVerifiedBadge } from '../../shared/ui/MasterVerifiedBadge';
 import type { DemoMasterProfile, DemoMasterService } from '../../features/services/model/demoMasters';
 import { formatReviewsCountLabel } from '../../features/services/model/demoMasters';
 import { formatDurationMinutes, formatMasterCardSpecialty } from '../client/lib/catalogFormat';
-import {
-  catalogDesktopSectionLabel,
-  catalogSecondaryBtn,
-} from '../client/servicesCatalog/servicesCatalogTheme';
+import { catalogDesktopSectionLabel } from '../client/servicesCatalog/servicesCatalogTheme';
 import { MasterCardPortrait } from '../client/components/MasterCardPortrait';
 import { getMasterPath } from '../../app/paths';
 import type {
   DemoBookingGridDay,
   DemoBookingGridSlot,
 } from '../../features/booking/model/demoBookingSlotGrid';
-import {
-  bookingChipActive,
-  bookingChipIdle,
-  bookingMutedPanel,
-  bookingSlotActive,
-  bookingSlotIdle,
-} from './bookingUi';
+import { bookingMutedPanel } from './bookingUi';
 import { BookingCheckoutPanel } from './BookingCheckoutPanel';
+import { BookingDateStrip } from './BookingDateStrip';
+import { BookingTimeSlots } from './BookingTimeSlots';
 import { BookingDesktopHero } from './BookingDesktopHero';
 import { bookingDesktopCard, bookingDesktopPanel, bookingDesktopSectionTitle } from './bookingDesktopTheme';
 import { formatServicePrice } from './bookingFormat';
@@ -49,6 +38,7 @@ type Props = {
   onCommentChange: (value: string) => void;
   referencePhotoUrl: string | null;
   onReferencePhotoUrlChange: (url: string | null) => void;
+  isCalendarOpen: boolean;
   onPickDate: (dateIso: string) => void;
   onPickSlot: (slotId: string) => void;
   onOpenCalendar: () => void;
@@ -87,6 +77,7 @@ export function BookingFlowDesktopView({
   onCommentChange,
   referencePhotoUrl,
   onReferencePhotoUrlChange,
+  isCalendarOpen,
   onPickDate,
   onPickSlot,
   onOpenCalendar,
@@ -124,7 +115,8 @@ export function BookingFlowDesktopView({
                 <div className="flex items-start gap-2">
                   <Link
                     to={getMasterPath(master.masterId)}
-                    className="text-[22px] font-bold leading-tight tracking-[-0.03em] text-[#111827] underline-offset-2 transition hover:text-[#F47C8C] hover:underline"
+                    className="min-w-0 truncate text-[22px] font-bold leading-tight tracking-[-0.03em] text-[#111827] underline-offset-2 transition hover:text-[#F47C8C] hover:underline"
+                    title={master.masterName}
                   >
                     {master.masterName}
                   </Link>
@@ -162,76 +154,32 @@ export function BookingFlowDesktopView({
           </section>
 
           <section className={bookingDesktopPanel}>
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <p className={bookingDesktopSectionTitle}>Дата</p>
-              <button
-                type="button"
-                onClick={onOpenCalendar}
-                className={`${catalogSecondaryBtn} gap-2`}
-              >
-                <HiCalendarDays className="h-4 w-4 text-[#F47C8C]" aria-hidden />
-                Полный календарь
-              </button>
-            </div>
+            <p className={`${bookingDesktopSectionTitle} mb-4`}>Дата</p>
 
-            <div className={`${bookingMutedPanel} mb-5 px-4 py-3.5`}>
+            <div className={`${bookingMutedPanel} mb-4 px-4 py-3.5`}>
               <p className={catalogDesktopSectionLabel}>Выбранная дата</p>
               <p className="mt-1 text-[20px] font-bold capitalize tracking-[-0.02em] text-[#111827]">
                 {selectedDay?.fullDateLabel ?? EMPTY_BOOKING_DATE}
               </p>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-7">
-              {quickDateDays.map((day) => {
-                const hasTimes = day.times.length > 0;
-                const active = day.date === selectedDay?.date;
-                return (
-                  <button
-                    key={day.id}
-                    type="button"
-                    disabled={!hasTimes}
-                    onClick={() => onPickDate(day.date)}
-                    className={`min-h-10 rounded-[10px] px-2 py-2 text-[13px] transition disabled:opacity-40 ${
-                      active ? bookingChipActive : bookingChipIdle
-                    }`}
-                  >
-                    {day.dateLabel}
-                  </button>
-                );
-              })}
-            </div>
+            <BookingDateStrip
+              days={quickDateDays}
+              selectedDate={selectedDay?.date ?? null}
+              calendarOpen={isCalendarOpen}
+              onPickDate={onPickDate}
+              onOpenCalendar={onOpenCalendar}
+            />
           </section>
 
           <section className={bookingDesktopPanel}>
             <p className={`${bookingDesktopSectionTitle} mb-4`}>Время</p>
             {selectedDay && selectedDay.times.length > 0 ? (
-              <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6 xl:grid-cols-7">
-                {selectedDay.times.map((slot) => {
-                  const active = slot.slotId === selectedSlot?.slotId;
-                  const promo = slot.promotion;
-                  return (
-                    <button
-                      key={slot.slotId}
-                      type="button"
-                      onClick={() => onPickSlot(slot.slotId)}
-                      className={`min-h-11 rounded-[10px] px-3 py-2 text-[14px] transition ${
-                        active ? bookingSlotActive : bookingSlotIdle
-                      }`}
-                    >
-                      <span className="block">{slot.timeLabel}</span>
-                      {promo ? (
-                        <span
-                          className={`mt-0.5 block text-[10px] font-bold leading-none ${
-                            active ? 'text-white/90' : 'text-[#F47C8C]'
-                          }`}
-                        >
-                          {promo.discountLabel}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
+              <BookingTimeSlots
+                slots={selectedDay.times}
+                selectedSlotId={selectedSlot?.slotId ?? null}
+                onPickSlot={onPickSlot}
+              />
             ) : (
               <p className={`${bookingMutedPanel} px-4 py-8 text-center text-[15px] text-[#6B7280]`}>
                 На этот день свободных слотов нет — выберите другую дату
@@ -240,7 +188,7 @@ export function BookingFlowDesktopView({
           </section>
         </div>
 
-        <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
+        <aside className="min-w-0 xl:self-start">
           <BookingCheckoutPanel
             masterName={master.masterName}
             serviceTitle={service.title}

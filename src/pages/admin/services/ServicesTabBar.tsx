@@ -40,7 +40,7 @@ export function ServicesTabBar({
       mode="mobile"
       renderTabBadge={(tabId) =>
         tabId === 'catalog' && catalogAttention ? (
-          <AdminSectionAttentionBadge className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5" />
+          <AdminSectionAttentionBadge className="absolute right-2 top-1.5 z-20 h-4 w-4" />
         ) : null
       }
     />

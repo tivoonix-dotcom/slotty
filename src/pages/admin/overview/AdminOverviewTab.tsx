@@ -5,7 +5,8 @@ import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorag
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import { postOverviewReviewReply } from '../../../features/admin/api/masterOverviewApi';
 import { AdminDesktopSectionTabsShell } from '../shared/AdminDesktopSectionTabsShell';
-import { OVERVIEW_TAB_BAR_HEIGHT, overviewShellCard } from './adminOverviewTheme';
+import { adminMobileTabBarScrollPadClass } from '../shared/adminMobileTabBarTheme';
+import { overviewShellCard } from './adminOverviewTheme';
 import { OverviewAnalyticsTabBar } from './OverviewAnalyticsTabBar';
 import { OverviewPeriodFilter } from './OverviewPeriodFilter';
 import { OVERVIEW_TAB_INTRO_IMAGES } from './OverviewTabIntro';
@@ -330,7 +331,7 @@ export function AdminOverviewTab({
     <>
       {/* Mobile: период, контент, таббар снизу */}
       <section
-        className={`min-w-0 space-y-5 overflow-x-hidden pb-[calc(${OVERVIEW_TAB_BAR_HEIGHT}+1.25rem)] lg:hidden`}
+        className={`min-w-0 space-y-4 overflow-x-hidden ${adminMobileTabBarScrollPadClass} lg:hidden`}
       >
         <OverviewPeriodFilter value={periodPreset} onChange={setPeriodPreset} />
         <AdminTabContentTransition activeKey={transitionKey} className="min-w-0 space-y-5">

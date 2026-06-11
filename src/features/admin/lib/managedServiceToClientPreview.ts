@@ -12,5 +12,8 @@ export function managedServiceToClientPreview(
     price: service.priceByn,
     description: service.description?.trim() ?? '',
     priceType: service.priceType ?? 'fixed',
+    coverImageUrl: service.imageUrl?.trim() || undefined,
+    coverFocalX: service.coverFocalX,
+    coverFocalY: service.coverFocalY,
   };
 }

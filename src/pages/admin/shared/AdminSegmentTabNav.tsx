@@ -2,8 +2,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { ADMIN_SEGMENT_NAV_DESKTOP, ADMIN_SEGMENT_NAV_MOBILE } from '../adminCabinetLayout';
 import { sheetSegmentClass } from '../profile/adminProfileCabinetTheme';
 import { scheduleSegmentClass } from '../schedule/adminScheduleTheme';
-import { SCHEDULE_QUICK_SETUP_IMAGES } from '../schedule/scheduleQuickSetupAssets';
-import { ADMIN_MOBILE_TAB_ACTIVE_BG, adminMobileSegmentTabClass } from './adminMobileTabBarTheme';
+import { adminMobileSegmentTabClass } from './adminMobileTabBarTheme';
 
 export type AdminSegmentTab<T extends string> = {
   id: T;
@@ -51,13 +50,6 @@ function SegmentButtons<T extends string>({
 
         const badge = renderTabBadge?.(id);
 
-        const showBrandPhoto = compact && selected && accent === 'brand';
-        const showScheduleCreatePhoto = compact && selected && accent === 'schedule' && id === 'create';
-        const tabPhotoSrc = showScheduleCreatePhoto
-          ? SCHEDULE_QUICK_SETUP_IMAGES.tabCreateActiveBg
-          : ADMIN_MOBILE_TAB_ACTIVE_BG;
-        const tabPhotoOverlay = showScheduleCreatePhoto ? 'bg-[#3B4CCA]/20' : 'bg-[#F47C8C]/20';
-
         return (
           <button
             key={id}
@@ -65,25 +57,12 @@ function SegmentButtons<T extends string>({
             onClick={() => onChange(id)}
             className={`${btnClass} ${badge ? 'relative' : ''}`}
           >
-            {showBrandPhoto || showScheduleCreatePhoto ? (
-              <>
-                <span
-                  className="pointer-events-none absolute inset-0 overflow-hidden rounded-[12px] bg-cover bg-center"
-                  style={{ backgroundImage: `url(${tabPhotoSrc})` }}
-                  aria-hidden
-                />
-                <span
-                  className={`pointer-events-none absolute inset-0 overflow-hidden rounded-[12px] ${tabPhotoOverlay}`}
-                  aria-hidden
-                />
-              </>
-            ) : null}
             <Icon
-              className={`relative z-10 shrink-0 drop-shadow-sm ${compact ? 'h-[22px] w-[22px]' : 'h-5 w-5'}`}
+              className={`shrink-0 ${compact ? 'h-[22px] w-[22px]' : 'h-5 w-5'}`}
               aria-hidden
             />
             <span
-              className={`relative z-10 max-w-full truncate font-bold leading-none ${
+              className={`max-w-full truncate font-bold leading-none ${
                 compact ? 'text-[10px] sm:text-[11px]' : 'text-[12px] lg:text-[13px]'
               }`}
             >
@@ -124,8 +103,12 @@ export function AdminSegmentTabNav<T extends string>({
   );
 
   const mobileNav = (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[max(12px,env(safe-area-inset-bottom,0px))] lg:hidden">
-      <nav className={ADMIN_SEGMENT_NAV_MOBILE} aria-label={ariaLabel}>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 lg:hidden">
+      <nav
+        className={ADMIN_SEGMENT_NAV_MOBILE}
+        style={{ minHeight: '3.5rem' }}
+        aria-label={ariaLabel}
+      >
         <SegmentButtons
           tabs={tabs}
           active={active}

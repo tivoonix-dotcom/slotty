@@ -12,6 +12,50 @@ export const CATALOG_SERVICE_IMAGES = {
 
 export type CatalogServiceImageKey = keyof typeof CATALOG_SERVICE_IMAGES;
 
+const WORK_BASE = `/photos/${encodeURIComponent('work')}`;
+const LANDING_BASE = `/photos/${encodeURIComponent('лендинг')}/${encodeURIComponent('каталог')}`;
+const PLAN_BASE = `/photos/${encodeURIComponent('план')}`;
+
+/** Несколько пулов на категорию — детерминированный выбор по id услуги/мастера. */
+const CATEGORY_PHOTO_POOLS: Record<CatalogServiceImageKey, readonly string[]> = {
+  manicure: [
+    CATALOG_SERVICE_IMAGES.manicure,
+    `${WORK_BASE}/manicure.webp`,
+    `${LANDING_BASE}/${encodeURIComponent('маникюр')}.webp`,
+    `${PLAN_BASE}/${encodeURIComponent('маниюко')}.webp`,
+  ],
+  barbers: [
+    CATALOG_SERVICE_IMAGES.barbers,
+    `${WORK_BASE}/barbers.webp`,
+    `${LANDING_BASE}/${encodeURIComponent('барберы')}.webp`,
+    `${PLAN_BASE}/${encodeURIComponent('барбер')}.webp`,
+  ],
+  brows_lashes: [
+    CATALOG_SERVICE_IMAGES.brows_lashes,
+    `${WORK_BASE}/brows_lashes.webp`,
+    `${LANDING_BASE}/${encodeURIComponent('брови')}.webp`,
+    `${PLAN_BASE}/${encodeURIComponent('брови')}.webp`,
+  ],
+  massage: [
+    CATALOG_SERVICE_IMAGES.massage,
+    `${WORK_BASE}/massage.webp`,
+    `${LANDING_BASE}/${encodeURIComponent('массаж')}.webp`,
+    `${PLAN_BASE}/${encodeURIComponent('массаж')}.webp`,
+  ],
+  fitness: [
+    CATALOG_SERVICE_IMAGES.fitness,
+    `${WORK_BASE}/fitness.webp`,
+    `${LANDING_BASE}/${encodeURIComponent('фитнес')}.webp`,
+    `${PLAN_BASE}/${encodeURIComponent('фитнес')}.webp`,
+  ],
+  tattoo: [
+    CATALOG_SERVICE_IMAGES.tattoo,
+    `${WORK_BASE}/tattoo.webp`,
+    `${LANDING_BASE}/${encodeURIComponent('тату')}.webp`,
+    `${PLAN_BASE}/${encodeURIComponent('тату')}.webp`,
+  ],
+};
+
 const CODE_TO_IMAGE_KEY: Record<string, CatalogServiceImageKey> = {
   manicure: 'manicure',
   barbers: 'barbers',
@@ -42,16 +86,56 @@ function codeToImageKey(code: string): CatalogServiceImageKey {
   );
 }
 
-/** URL фото категории/услуги для клиентского каталога (код API, slug или русское название). */
-export function getCatalogServicePhotoUrl(codeOrLabel: string | null | undefined): string {
-  if (!codeOrLabel?.trim()) return CATALOG_SERVICE_IMAGES.manicure;
+function stableHash(input: string): number {
+  let h = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    h = (h * 31 + input.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
 
+function resolveImageKey(codeOrLabel: string | null | undefined): CatalogServiceImageKey {
+  if (!codeOrLabel?.trim()) return 'manicure';
   const fromKeywords = matchImageKeyByKeywords(codeOrLabel);
-  if (fromKeywords) return CATALOG_SERVICE_IMAGES[fromKeywords];
-
+  if (fromKeywords) return fromKeywords;
   const code = resolveCategoryWorkCode(codeOrLabel);
-  const key = codeToImageKey(code);
-  return CATALOG_SERVICE_IMAGES[key];
+  return codeToImageKey(code);
+}
+
+/** Детерминированный выбор фото из пула категории. */
+export function pickCatalogServicePhotoUrl(
+  codeOrLabel: string | null | undefined,
+  seed?: string | null,
+): string {
+  const key = resolveImageKey(codeOrLabel);
+  const pool = CATEGORY_PHOTO_POOLS[key];
+  if (!seed?.trim()) return pool[0];
+  const index = stableHash(seed.trim()) % pool.length;
+  return pool[index];
+}
+
+/** URL фото категории/услуги (без seed — первое из пула). */
+export function getCatalogServicePhotoUrl(codeOrLabel: string | null | undefined): string {
+  return pickCatalogServicePhotoUrl(codeOrLabel);
+}
+
+export type ServiceImageInput = {
+  serviceCoverUrl?: string | null;
+  categoryCode?: string | null;
+  categoryName?: string | null;
+  title?: string | null;
+  serviceId?: string | null;
+  masterId?: string | null;
+};
+
+/** Обложка карточки: backend → детерминированный stock по категории. */
+export function getServiceImage(input: ServiceImageInput): string {
+  const cover = input.serviceCoverUrl?.trim();
+  if (cover) return cover;
+
+  const label = input.categoryCode ?? input.categoryName ?? input.title ?? '';
+  const seed = input.serviceId ?? input.masterId ?? undefined;
+  return pickCatalogServicePhotoUrl(label, seed);
 }
 
 /** Обложка карточки услуги: фото категории из `каталог_услуги`, не аватар мастера. */
@@ -59,8 +143,14 @@ export function resolveServiceListingCoverUrl(listing: {
   category?: string | null;
   categoryCode?: string | null;
   serviceName?: string | null;
+  id?: string | null;
+  masterId?: string | null;
 }): string {
-  return getCatalogServicePhotoUrl(
-    listing.categoryCode ?? listing.category ?? listing.serviceName,
-  );
+  return getServiceImage({
+    categoryCode: listing.categoryCode,
+    categoryName: listing.category,
+    title: listing.serviceName,
+    serviceId: listing.id,
+    masterId: listing.masterId,
+  });
 }

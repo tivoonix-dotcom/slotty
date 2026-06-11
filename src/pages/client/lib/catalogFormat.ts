@@ -22,6 +22,25 @@ export function formatDurationMinutes(min: number): string {
   return `${h} ч ${rest} мин`;
 }
 
+export function formatPortfolioWorksLabel(count: number): string {
+  const n = Math.max(0, Math.round(count));
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  const word =
+    mod10 === 1 && mod100 !== 11
+      ? 'работа'
+      : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+        ? 'работы'
+        : 'работ';
+  return `${n} ${word}`;
+}
+
+export function formatProfilePhotosLabel(count: number): string {
+  const n = Math.max(0, Math.round(count));
+  if (n <= 0) return '';
+  return `${n} фото`;
+}
+
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -35,7 +54,20 @@ export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: numb
 export function formatDistanceKm(km: number | null | undefined): string | null {
   if (km == null || !Number.isFinite(km)) return null;
   if (km < 1) return `${Math.max(100, Math.round(km * 1000))} м`;
-  return `${km.toFixed(1)} км`;
+  return `${km.toFixed(1).replace('.', ',')} км`;
+}
+
+/** Адрес / формат визита + расстояние для карточки услуги в каталоге. */
+export function formatServiceCardMetaLocationLine(opts: {
+  locationLabel?: string | null;
+  visitLabel?: string | null;
+  distanceKm?: number | null;
+}): string | null {
+  const distance = formatDistanceKm(opts.distanceKm);
+  const place = opts.locationLabel?.trim() || opts.visitLabel?.trim() || null;
+  if (distance && place) return `${distance} · ${place}`;
+  if (distance) return distance;
+  return place;
 }
 
 /** Точные или приближённые координаты мастера для расчёта расстояния. */
@@ -98,6 +130,26 @@ export function formatMasterCategoryLabel(category: string): string {
   if (!c || c === 'Мастер') return 'Beauty-мастер';
   if (/мастер/i.test(c)) return c;
   return `Мастер · ${c}`;
+}
+
+/** Подпись категории на карточке услуги — нормальный регистр, без капса. */
+export function formatServiceCardCategoryLabel(
+  categoryName: string,
+  categoryCode?: string,
+): string {
+  let label = categoryCode?.trim()
+    ? getServiceCategoryLabel(categoryCode)
+    : categoryName.trim();
+  if (!label || label === 'Услуга') {
+    label = categoryName.trim() || 'Услуга';
+  }
+  if (isCategorySlug(label)) {
+    label = getServiceCategoryLabel(label);
+  }
+  if (label.length > 1 && label === label.toUpperCase()) {
+    return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+  }
+  return label;
 }
 
 /** Подпись специализации на карточке мастера («Мастер маникюра»). */
@@ -259,4 +311,16 @@ export function formatWeeklyViewsLabel(count: number): string {
         : n.toLocaleString('ru-RU');
 
   return `${display} ${word} / нед`;
+}
+
+/** Компактно для плитки маркетплейса. */
+export function formatReviewsCountCompact(count: number): string {
+  const n = Math.max(0, Math.floor(count));
+  if (n <= 0) return 'новый';
+  if (n >= 10_000) return `(${Math.round(n / 1000)}K+)`;
+  if (n >= 1000) {
+    const k = n / 1000;
+    return `(${k.toFixed(1).replace(/\.0$/, '')}K+)`;
+  }
+  return `(${n.toLocaleString('ru-RU')})`;
 }

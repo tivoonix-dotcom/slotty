@@ -16,7 +16,6 @@ import { SlottySelect } from '../../../../shared/ui/SlottySelect';
 import { AdminBottomSheet } from '../../shared/AdminBottomSheet';
 import { AdminToast } from '../../shared/AdminToast';
 import { useAdminToast } from '../../shared/useAdminToast';
-import { ServicesBrandPhotoLayers } from '../../services/ServicesBrandPhotoLayers';
 import { AppointmentsEmptyState } from '../../appointments/AppointmentsEmptyState';
 import {
   splitReferenceLabelToStreetBuilding,
@@ -297,7 +296,7 @@ export function AdminProfileAddressPage({ draft, cabinetLoading, saving = false,
     (streetSuggestOutcome === 'empty' || showErr('coords') === 'Адрес не найден');
 
   const mapPickBtnClass =
-    'relative flex min-h-10 w-full items-center justify-center gap-2 overflow-hidden rounded-[10px] px-4 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(239,68,68,0.2)] transition hover:opacity-95 active:scale-[0.98] disabled:opacity-50';
+    'flex min-h-10 w-full items-center justify-center gap-2 rounded-[10px] bg-[#F47C8C] px-4 text-[13px] font-semibold text-white transition hover:opacity-95 active:scale-[0.98] disabled:opacity-50';
 
   const mapPointPicker = (
     <LocationPickerModalField
@@ -317,7 +316,6 @@ export function AdminProfileAddressPage({ draft, cabinetLoading, saving = false,
       inputClassName={sheetFieldClass}
       triggerLabel="Изменить точку на карте"
       triggerClassName={mapPickBtnClass}
-      triggerBackdrop={<ServicesBrandPhotoLayers roundedClassName="rounded-[10px]" />}
       modalTitle="Точка на карте"
       modalSubtitle="Найдите адрес или поставьте метку."
       coordsError={showErr('coords')}
@@ -715,16 +713,8 @@ function ClientPreview({
   const isReady = pendingChecklist.length === 0;
 
   return (
-    <div className="relative w-full min-w-0 overflow-hidden rounded-[16px] bg-white">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[8.5rem] overflow-hidden sm:h-[9.5rem]"
-        aria-hidden
-      >
-        <ServicesBrandPhotoLayers roundedClassName="rounded-t-[16px]" />
-        <span className="absolute inset-0 bg-gradient-to-b from-[#EF4444]/15 via-white/55 to-white" />
-      </div>
-
-      <div className="relative z-10 px-4 py-4 sm:px-5 sm:py-5">
+    <div className="w-full min-w-0 overflow-hidden rounded-[16px] bg-white">
+      <div className="px-4 py-4 sm:px-5 sm:py-5">
         <div className="pb-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9CA3AF]">До записи</p>
           <p className="mt-1.5 text-[17px] font-bold leading-snug tracking-[-0.02em] text-[#111827]">

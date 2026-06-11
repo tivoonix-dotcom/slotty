@@ -34,7 +34,7 @@ export function buildHubFaqJsonLd(): Record<string, unknown> {
       name: item.q,
       acceptedAnswer: {
         '@type': 'Answer',
-        text: item.a,
+        text: `${item.lead} ${item.a}`,
       },
     })),
   };

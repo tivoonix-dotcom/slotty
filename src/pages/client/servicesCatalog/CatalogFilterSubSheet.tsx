@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { HiChevronLeft } from 'react-icons/hi2';
+import { CatalogFilterSheetHeaderShell } from './CatalogFilterSheetHeaderShell';
 import {
-  catalogFilterSheetHeaderBarClass,
   catalogFilterSheetBackBtnClass,
   catalogFilterSheetHeaderRowGridClass,
   catalogFilterSheetTitleCenterClass,
@@ -27,20 +27,20 @@ export function CatalogFilterSubSheet({ open, title, onBack, children }: Props) 
       aria-modal="true"
       aria-label={title}
     >
-      <header className={catalogFilterSheetHeaderBarClass}>
+      <CatalogFilterSheetHeaderShell>
         <div className={`${catalogFilterSheetHeaderRowGridClass} ${catalogMobilePadX}`}>
           <button
             type="button"
             onClick={onBack}
             aria-label="Назад"
-            className={`${catalogFilterSheetBackBtnClass} justify-self-start`}
+            className={catalogFilterSheetBackBtnClass}
           >
-            <HiChevronLeft className="h-6 w-6" aria-hidden />
+            <HiChevronLeft className="h-5 w-5" aria-hidden />
           </button>
           <h2 className={catalogFilterSheetTitleCenterClass}>{title}</h2>
-          <span className="h-9 w-9" aria-hidden />
+          <span className="h-9 w-9 justify-self-end" aria-hidden />
         </div>
-      </header>
+      </CatalogFilterSheetHeaderShell>
 
       <div
         className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain py-3 scrollbar-hidden ${catalogMobilePadX}`}

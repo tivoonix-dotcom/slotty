@@ -133,6 +133,30 @@ export function monthKeyFromIso(iso: string): string {
   return iso.slice(0, 7);
 }
 
+export function appointmentsCountRu(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return `${n} записей`;
+  if (mod10 === 1) return `${n} запись`;
+  if (mod10 >= 2 && mod10 <= 4) return `${n} записи`;
+  return `${n} записей`;
+}
+
+export function indexAppointmentsByDate(
+  rows: DemoMasterAppointment[],
+): Map<string, DemoMasterAppointment[]> {
+  const map = new Map<string, DemoMasterAppointment[]>();
+  for (const row of rows) {
+    const list = map.get(row.date) ?? [];
+    list.push(row);
+    map.set(row.date, list);
+  }
+  for (const list of map.values()) {
+    list.sort(compareAppointmentsByDateAsc);
+  }
+  return map;
+}
+
 export function groupAppointmentsByDay(
   rows: DemoMasterAppointment[],
   todayIso = isoDateLocal(new Date()),

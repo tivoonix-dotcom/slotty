@@ -333,6 +333,22 @@ export function masterBookingPendingDeadline(ctx: AppointmentNotifyContext): App
   };
 }
 
+export function masterBookingExpired(ctx: AppointmentNotifyContext): AppointmentNotificationPayload {
+  const { plain } = formatWhen(ctx);
+  return {
+    type: 'appointment_cancelled',
+    title: 'Заявка истекла',
+    body: `Заявка истекла: ${ctx.clientName}, ${ctx.serviceTitle}, ${plain}. Вы не успели подтвердить её — слот снова свободен.`,
+    telegramHtml:
+      `<b>Заявка истекла</b>\n\n` +
+      `Вы не успели подтвердить заявку — она отменена автоматически.\n` +
+      `Клиент: ${escapeTelegramHtml(ctx.clientName)}\n` +
+      `Услуга: ${escapeTelegramHtml(ctx.serviceTitle)}\n` +
+      `Когда: ${escapeTelegramHtml(plain)}` +
+      voucherFooter(ctx, true),
+  };
+}
+
 export function masterClientCancelledBooking(
   ctx: AppointmentNotifyContext,
 ): AppointmentNotificationPayload {

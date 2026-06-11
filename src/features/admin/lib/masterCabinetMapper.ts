@@ -243,6 +243,9 @@ export function cabinetDtoToMasterDraft(cabinet: MasterCabinetDto): MasterDraft 
     priceType: s.priceType === 'from' ? 'from' : 'fixed',
     isActive: s.isActive,
     sortOrder: s.sortOrder,
+    imageUrl: s.coverImageUrl ?? undefined,
+    coverFocalX: s.coverFocalX,
+    coverFocalY: s.coverFocalY,
   }));
 
   const certs: MasterCertificate[] = certificates.map((c) => ({

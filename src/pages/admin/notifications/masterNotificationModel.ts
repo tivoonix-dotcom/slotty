@@ -4,8 +4,9 @@ import {
   HiCheckBadge,
   HiClock,
   HiCreditCard,
+  HiExclamationTriangle,
+  HiInboxArrowDown,
   HiMapPin,
-  HiSparkles,
   HiStar,
   HiXCircle,
 } from 'react-icons/hi2';
@@ -29,6 +30,8 @@ export type MasterNotificationFilter =
 
 export type MasterNotificationVisualKind =
   | 'new_request'
+  | 'pending_request'
+  | 'expiring_request'
   | 'client_signal'
   | 'reminder'
   | 'success'
@@ -50,6 +53,7 @@ export type MasterNotificationVisualStyle = {
   icon: IconType;
   stripClass: string;
   stickerClass: string;
+  stickerClassRead: string;
   emoji: string;
 };
 
@@ -175,7 +179,12 @@ export function resolveMasterNotificationVisualKind(item: MeNotificationRow): Ma
   const title = titleLower(item);
 
   if (item.related_entity_type === 'review' || title.includes('отзыв')) return 'review';
-  if (item.type === 'appointment_cancelled' || title.includes('отмен') || title.includes('неявка')) {
+  if (
+    item.type === 'appointment_cancelled' ||
+    title.includes('отмен') ||
+    title.includes('неявка') ||
+    title.includes('заявка истекла')
+  ) {
     return 'cancelled';
   }
   if (item.type === 'appointment_reminder' || title.includes('напоминан')) return 'reminder';
@@ -196,57 +205,86 @@ export function resolveMasterNotificationVisualKind(item: MeNotificationRow): Ma
   ) {
     return 'success';
   }
-  if (item.type === 'appointment_new' || item.type === 'appointment_pending') return 'new_request';
+  if (title.includes('скоро истечёт')) return 'expiring_request';
+  if (title.includes('ждёт решения')) return 'pending_request';
+  if (title.includes('новая заявка') || item.type === 'appointment_new') return 'new_request';
+  if (item.type === 'appointment_pending') return 'pending_request';
   return 'system';
+}
+
+export function isMasterRequestNotificationKind(kind: MasterNotificationVisualKind): boolean {
+  return kind === 'new_request' || kind === 'pending_request' || kind === 'expiring_request';
 }
 
 const VISUAL_STYLES: Record<MasterNotificationVisualKind, Omit<MasterNotificationVisualStyle, 'kind'>> = {
   new_request: {
-    icon: HiSparkles,
+    icon: HiInboxArrowDown,
     stripClass: 'bg-[#FFF1F4]',
     stickerClass: 'bg-[#FFF1F4] text-[#F47C8C]',
-    emoji: '✨',
+    stickerClassRead: 'bg-[#F5F5F5] text-[#F47C8C]',
+    emoji: '📥',
+  },
+  pending_request: {
+    icon: HiClock,
+    stripClass: 'bg-[#EFF6FF]',
+    stickerClass: 'bg-[#EFF6FF] text-[#2563EB]',
+    stickerClassRead: 'bg-[#F5F5F5] text-[#2563EB]',
+    emoji: '⏳',
+  },
+  expiring_request: {
+    icon: HiExclamationTriangle,
+    stripClass: 'bg-[#FFF7ED]',
+    stickerClass: 'bg-[#FFF7ED] text-[#EA580C]',
+    stickerClassRead: 'bg-[#F5F5F5] text-[#EA580C]',
+    emoji: '⚠️',
   },
   client_signal: {
     icon: HiMapPin,
     stripClass: 'bg-[#EFF6FF]',
     stickerClass: 'bg-[#EFF6FF] text-[#2563EB]',
-    emoji: '🚗',
+    stickerClassRead: 'bg-[#F5F5F5] text-[#2563EB]',
+    emoji: '📍',
   },
   reminder: {
     icon: HiClock,
     stripClass: 'bg-[#F5F3FF]',
     stickerClass: 'bg-[#F5F3FF] text-[#7C3AED]',
+    stickerClassRead: 'bg-[#F5F5F5] text-[#7C3AED]',
     emoji: '⏰',
   },
   success: {
     icon: HiCheckBadge,
     stripClass: 'bg-[#ECFDF5]',
     stickerClass: 'bg-[#ECFDF5] text-[#15803D]',
+    stickerClassRead: 'bg-[#F5F5F5] text-[#15803D]',
     emoji: '✅',
   },
   review: {
     icon: HiStar,
     stripClass: 'bg-[#ECFDF5]',
     stickerClass: 'bg-[#ECFDF5] text-[#15803D]',
+    stickerClassRead: 'bg-[#F5F5F5] text-[#D97706]',
     emoji: '⭐',
   },
   cancelled: {
     icon: HiXCircle,
     stripClass: 'bg-[#FFF7ED]',
     stickerClass: 'bg-[#FFF7ED] text-[#EA580C]',
-    emoji: '⚠️',
+    stickerClassRead: 'bg-[#F5F5F5] text-[#EA580C]',
+    emoji: '✕',
   },
   billing: {
     icon: HiCreditCard,
     stripClass: 'bg-[#F5F3FF]',
     stickerClass: 'bg-[#F5F3FF] text-[#7C3AED]',
+    stickerClassRead: 'bg-[#F5F5F5] text-[#7C3AED]',
     emoji: '💳',
   },
   system: {
     icon: HiBellAlert,
     stripClass: 'bg-[#F3F4F6]',
     stickerClass: 'bg-[#F3F4F6] text-[#6B7280]',
+    stickerClassRead: 'bg-[#F5F5F5] text-[#6B7280]',
     emoji: 'ℹ️',
   },
 };
@@ -257,7 +295,9 @@ export function getMasterNotificationVisual(item: MeNotificationRow): MasterNoti
 }
 
 export function masterNotificationRequiresAction(item: MeNotificationRow): boolean {
-  if (!item.read_at && resolveMasterNotificationVisualKind(item) === 'new_request') return true;
+  if (!item.read_at && isMasterRequestNotificationKind(resolveMasterNotificationVisualKind(item))) {
+    return true;
+  }
   const title = titleLower(item);
   if (ACTION_TITLES.has(title)) return true;
   if (item.type === 'appointment_pending') return true;
@@ -348,12 +388,18 @@ export function matchesMasterNotificationFilter(
       return (
         item.related_entity_type === 'appointment' ||
         ['appointment_new', 'appointment_pending', 'appointment_confirmed'].includes(item.type) ||
-        kind === 'new_request' ||
+        isMasterRequestNotificationKind(kind) ||
         kind === 'client_signal' ||
         kind === 'success'
       );
     case 'reminders':
-      return kind === 'reminder' || title.includes('ждёт решения') || title.includes('скоро истечёт');
+      return (
+        kind === 'reminder' ||
+        kind === 'pending_request' ||
+        kind === 'expiring_request' ||
+        title.includes('ждёт решения') ||
+        title.includes('скоро истечёт')
+      );
     case 'reviews':
       return kind === 'review' || item.related_entity_type === 'review';
     case 'cancellations':
@@ -436,7 +482,10 @@ function resolveListActionLabel(item: MeNotificationRow): string {
   const kind = resolveMasterNotificationVisualKind(item);
   const title = titleLower(item);
 
-  if (kind === 'new_request' && (item.type === 'appointment_pending' || title.includes('заявк'))) {
+  if (
+    isMasterRequestNotificationKind(kind) &&
+    (item.type === 'appointment_pending' || title.includes('заявк'))
+  ) {
     return 'Открыть заявку';
   }
   if (kind === 'client_signal') return 'Открыть запись';
@@ -510,7 +559,7 @@ function buildNarrative(item: MeNotificationRow): string {
   if (title.includes('на месте')) {
     return `${client} сообщил, что на месте. Подтвердите приход, когда будете готовы начать визит.`;
   }
-  if (kind === 'new_request' && item.type === 'appointment_pending') {
+  if (kind === 'new_request') {
     return `${client} отправил заявку на ${service}${whenLabel ? ` на ${whenLabel}` : ''}. Примите или отклоните заявку.`;
   }
   if (title.includes('ждёт решения')) {
@@ -518,6 +567,9 @@ function buildNarrative(item: MeNotificationRow): string {
   }
   if (title.includes('скоро истечёт')) {
     return `Заявка от ${client} скоро истечёт — подтвердите или отклоните её.`;
+  }
+  if (title.includes('заявка истекла')) {
+    return `Заявка от ${client} на ${service} истекла — вы не успели её подтвердить. Слот снова свободен.`;
   }
   if (kind === 'reminder') {
     return `Напоминание о предстоящей записи${whenLabel ? `: ${whenLabel}` : ''}. Проверьте детали визита.`;

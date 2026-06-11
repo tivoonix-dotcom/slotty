@@ -16,6 +16,9 @@ const BLOCKED_CLIENT_TOKENS = new Set([
 const SERVICE_SUFFIX_RE =
   /\s+(копия|copy|тест|test|демо|demo|черновик|draft)(?:\s*\d*)?\s*$/iu;
 
+const TECHNICAL_SERVICE_FRAGMENT_RE =
+  /\b(batch\s*test|test\s*service|e2e|playwright|fixture|staging|qa|mock)\b/i;
+
 export type ClientNameFields = {
   full_name?: string | null;
   first_name?: string | null;
@@ -145,6 +148,13 @@ export function formatMasterName(raw: string | null | undefined, fallback = 'М�
   return n;
 }
 
+function isBlockedServiceTitle(value: string): boolean {
+  const t = value.trim();
+  if (!t || isBlockedDisplayValue(t)) return true;
+  if (/^(batch|test|e2e|demo|fixture|staging|qa|mock)/i.test(t)) return true;
+  return TECHNICAL_SERVICE_FRAGMENT_RE.test(t);
+}
+
 /** Название услуги без служебных суффиксов копии/теста. */
 export function formatServiceName(raw: string | null | undefined, fallback = 'Услуга'): string {
   const title = raw?.trim() || '';
@@ -155,6 +165,6 @@ export function formatServiceName(raw: string | null | undefined, fallback = 'У
     if (next === cleaned) break;
     cleaned = next;
   }
-  if (!cleaned || isBlockedDisplayValue(cleaned)) return fallback;
+  if (!cleaned || isBlockedServiceTitle(cleaned)) return fallback;
   return cleaned;
 }

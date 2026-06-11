@@ -46,15 +46,47 @@ export function parseClientDevice(userAgent: string | null | undefined): ParsedC
   return { deviceLabel: `${os} · ${browser}`, subtitle: 'Компьютер' };
 }
 
-export function maskClientIp(ip: string | null | undefined): string | null {
-  const raw = (ip ?? '').trim();
+import { isIP } from 'node:net';
+
+/** Нормализует IP перед сохранением и сравнением сеансов. */
+export function normalizeStoredClientIp(ip: string | null | undefined): string | null {
+  let raw = (ip ?? '').trim();
   if (!raw || raw === 'unknown') return null;
-  if (raw.includes(':')) {
-    const parts = raw.split(':').filter(Boolean);
-    if (parts.length >= 2) return `${parts[0]}:${parts[1]}:…`;
+
+  // IPv4 с портом (127.0.0.1:49366) — только адрес.
+  if (/^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(raw)) {
+    raw = raw.split(':')[0]!;
+  }
+
+  if (raw.startsWith('::ffff:')) {
+    const v4 = raw.slice(7);
+    if (isIP(v4) === 4) return v4;
+  }
+  if (raw === '::1') return '127.0.0.1';
+
+  return isIP(raw) ? raw : null;
+}
+
+function isPrivateOrLocalIp(ip: string): boolean {
+  if (ip === '127.0.0.1' || ip.startsWith('127.')) return true;
+  if (ip.startsWith('10.')) return true;
+  if (ip.startsWith('192.168.')) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return true;
+  return false;
+}
+
+export function maskClientIp(ip: string | null | undefined): string | null {
+  const normalized = normalizeStoredClientIp(ip);
+  if (!normalized) return null;
+  if (isPrivateOrLocalIp(normalized)) return 'Локальная сеть';
+
+  if (normalized.includes(':')) {
+    const parts = normalized.split(':').filter(Boolean);
+    if (parts.length >= 2) return `${parts.slice(0, 2).join(':')}:…`;
     return null;
   }
-  const octets = raw.split('.');
+
+  const octets = normalized.split('.');
   if (octets.length === 4) return `${octets[0]}.${octets[1]}.*.*`;
   return null;
 }

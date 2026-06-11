@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { getBookingPath, MASTERS_PATH } from '../app/paths';
+import { getBookingPath, SERVICES_PATH } from '../app/paths';
 import { fetchPublicSlots, type PublicSlotDto } from '../features/booking/api/publicSlotsApi';
 import { getLocalTodayIsoRange } from '../features/landing/homeLandingBounds';
 import { masterListingPortraitUrl } from '../features/masters/lib/masterListingPortrait';
@@ -139,7 +139,7 @@ export const HomeQuickSlots: FC = () => {
       ) : isError ? (
         <div className="rounded-[28px] bg-white px-5 py-8 text-center ring-1 ring-[#F3F4F6] shadow-[0_10px_30px_rgba(17,17,17,0.035)]">
           <p className="text-[16px] font-semibold text-[#374151]">Не удалось загрузить окна</p>
-          <Link to={MASTERS_PATH} className={`mt-5 ${homePinkBtn} px-6 text-[15px]`}>
+          <Link to={SERVICES_PATH} className={`mt-5 ${homePinkBtn} px-6 text-[15px]`}>
             Открыть каталог
           </Link>
         </div>

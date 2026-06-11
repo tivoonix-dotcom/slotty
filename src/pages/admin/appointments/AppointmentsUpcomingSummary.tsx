@@ -58,7 +58,7 @@ function UpcomingKpiContent({
   compact?: boolean;
 }) {
   return (
-    <div className={`relative z-10 flex w-full flex-col ${compact ? 'min-h-[4.75rem]' : 'min-h-[8.25rem]'}`}>
+    <div className={`relative z-10 flex w-full flex-col ${compact ? 'min-h-[5.5rem]' : 'min-h-[8.25rem]'}`}>
       <p className={upcomingKpiLabelClass}>{label}</p>
       <div className="mt-auto">
         {loading ? (
@@ -96,7 +96,7 @@ function MobileStat({
 
   return (
     <div
-      className={`relative flex min-w-0 flex-1 overflow-hidden rounded-[12px] p-2.5 sm:rounded-[14px] sm:p-3.5 ${
+      className={`relative flex min-h-[6.25rem] min-w-0 flex-1 overflow-hidden rounded-[12px] p-3 sm:min-h-[6.5rem] sm:rounded-[14px] sm:p-3.5 ${
         backgroundSrc ? '' : 'bg-[#F5F5F5]'
       }`}
     >
@@ -154,8 +154,8 @@ export function AppointmentsUpcomingSummary({
             {mobileFilter ? <div className="shrink-0 self-start">{mobileFilter}</div> : null}
           </div>
 
-          <div className="px-4 py-3.5 sm:py-4">
-            <div className="grid grid-cols-3 items-stretch gap-2 sm:gap-3">
+          <div className="px-4 pb-4 pt-3 sm:pb-5 sm:pt-3.5">
+            <div className="grid grid-cols-3 items-stretch gap-2.5 sm:gap-3">
               <MobileStat label="Всего" value={String(totalCount)} loading={loading} />
               <MobileStat label="Сегодня" value={String(todayCount)} loading={loading} />
               <MobileStat label="Требуют внимания" value={String(attentionCount)} loading={loading} />

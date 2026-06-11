@@ -7,6 +7,7 @@ import {
   profileDesktopTabsSticky,
 } from '../profile/adminProfileDashboardTheme';
 import { MINI_PICTURE } from '../../../shared/ui/miniPictureSrc';
+import { ADMIN_MOBILE_TAB_BAR_HEIGHT } from '../shared/adminMobileTabBarTheme';
 
 export const OVERVIEW_CANVAS_HEX = '#F6F7FB';
 
@@ -14,7 +15,7 @@ export const overviewPageBg = SERVICES_PAGE_BG;
 
 export const overviewDesktopCanvas = PROFILE_DESKTOP_PAGE_BG;
 
-export const OVERVIEW_TAB_BAR_HEIGHT = '5.75rem';
+export const OVERVIEW_TAB_BAR_HEIGHT = ADMIN_MOBILE_TAB_BAR_HEIGHT;
 
 export const ADMIN_CABINET_SHELL_MAX = 'w-full lg:max-w-none';
 
@@ -56,7 +57,7 @@ export const overviewIconCircle =
   'flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] bg-[#FFF1F4] text-[#F47C8C] lg:h-10 lg:w-10 lg:rounded-[14px] lg:text-[#ff5f7a]';
 
 export const overviewPinkBtn =
-  'rounded-[18px] bg-gradient-to-r from-[#F47C8C] to-[#F26D83] text-white shadow-[0_10px_26px_rgba(244,124,140,0.30)] transition hover:brightness-[0.98] active:scale-[0.98] lg:rounded-[14px] lg:from-[#ff6f88] lg:to-[#ff5f7a] lg:shadow-[0_8px_24px_rgba(255,95,122,0.28)] lg:hover:opacity-95';
+  'rounded-[18px] bg-gradient-to-r from-[#F47C8C] to-[#F26D83] text-white transition hover:brightness-[0.98] active:scale-[0.98] lg:rounded-[14px] lg:from-[#ff6f88] lg:to-[#ff5f7a] lg:hover:opacity-95';
 
 export const overviewPinkOutline =
   'shrink-0 rounded-[18px] border border-[#FDE8ED] bg-white px-4 py-2.5 text-[13px] font-bold text-[#F47C8C] transition hover:bg-[#FFF1F4] active:scale-[0.98] lg:rounded-[14px] lg:border-0 lg:bg-[#FFF1F4] lg:font-semibold lg:text-[#ff5f7a] lg:hover:bg-[#FFE4EA]';
@@ -80,7 +81,7 @@ export const overviewFilterChip =
   'inline-flex shrink-0 items-center justify-center rounded-full border px-4 py-2.5 text-[13px] font-semibold transition active:scale-[0.96]';
 
 export const overviewFilterChipActive =
-  'border-[#FDE8ED] bg-[#FFF1F4] text-[#ff5f7a] shadow-[inset_0_0_0_1px_rgba(255,95,122,0.12)]';
+  'border-[#FDE8ED] bg-[#FFF1F4] text-[#ff5f7a]';
 
 export const overviewFilterChipIdle =
   'border-[#EAECEF] bg-white text-[#6B7280] hover:border-[#FDE8ED] hover:bg-[#FAFAFA] hover:text-[#374151] lg:bg-white';

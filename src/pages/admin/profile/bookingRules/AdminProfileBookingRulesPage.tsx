@@ -19,7 +19,10 @@ import { ServicesBrandPhotoLayers } from '../../services/ServicesBrandPhotoLayer
 import { AdminBottomSheet } from '../../shared/AdminBottomSheet';
 import { AdminToast } from '../../shared/AdminToast';
 import { useAdminToast } from '../../shared/useAdminToast';
-import { adminMobileTabBarScrollPad } from '../../shared/adminMobileTabBarTheme';
+import {
+  adminMobileTabBarScrollPadMaxLgClass,
+  adminMobileTabBarWithFormFooterPadMaxLgClass,
+} from '../../shared/adminMobileTabBarTheme';
 import { SettingsErrorState, SettingsSkeleton, SettingsStatusBadge } from '../../settings/workspace/settingsUi';
 import { settingsPinkBtn } from '../../settings/workspace/settingsWorkspaceTheme';
 import {
@@ -797,8 +800,8 @@ export function AdminProfileBookingRulesPage({ useCabinetApi = true }: Props) {
 
   const refundEnabled = refundsCardEnabled(form);
   const mobileScrollPad = dirty
-    ? `max-lg:pb-[calc(${adminMobileTabBarScrollPad}+5.5rem)]`
-    : `max-lg:pb-[${adminMobileTabBarScrollPad}]`;
+    ? adminMobileTabBarWithFormFooterPadMaxLgClass
+    : adminMobileTabBarScrollPadMaxLgClass;
 
   return (
     <div className={`w-full min-w-0 space-y-4 ${mobileScrollPad} ${dirty ? 'lg:pb-20' : ''}`}>

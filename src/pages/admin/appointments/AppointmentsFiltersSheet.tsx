@@ -1,9 +1,13 @@
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import {
+  catalogFilterChipClass,
+  catalogFilterSectionClass,
+  catalogFilterSegmentClass,
   catalogSheetPrimaryBtn,
   catalogSheetSecondaryBtn,
 } from '../shared/adminCatalogSheetTheme';
-import { apptFilterChip, apptFilterChipClass, apptFilterSection } from './adminAppointmentsTheme';
+import { ADMIN_SEGMENT_NAV_DESKTOP } from '../adminCabinetLayout';
+import { sheetSectionTitleClass } from '../profile/adminProfileCabinetTheme';
 import type {
   HistoryPeriodFilter,
   HistorySort,
@@ -19,32 +23,45 @@ function FilterChipGroup<T extends string>({
   options,
   value,
   onChange,
+  layout = 'chips',
 }: {
   title: string;
   options: Array<{ id: T; label: string }>;
   value: T;
   onChange: (id: T) => void;
+  /** `chips` — длинные подписи (услуги); `segments` — короткие опции в серой дорожке. */
+  layout?: 'chips' | 'segments';
 }) {
+  const optionButtons = options.map((option) => {
+    const selected = value === option.id;
+    return (
+      <button
+        key={option.id}
+        type="button"
+        onClick={() => onChange(option.id)}
+        aria-pressed={selected}
+        className={
+          layout === 'segments' ? catalogFilterSegmentClass(selected) : catalogFilterChipClass(selected)
+        }
+      >
+        {option.label}
+      </button>
+    );
+  });
+
   return (
-    <div>
-      <p className="text-[13px] font-semibold text-[#6B7280]">{title}</p>
-      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={title}>
-        {options.map((option) => {
-          const selected = value === option.id;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => onChange(option.id)}
-              aria-pressed={selected}
-              className={`${apptFilterChip} ${apptFilterChipClass(selected)}`}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <section className={catalogFilterSectionClass}>
+      <p className={sheetSectionTitleClass}>{title}</p>
+      {layout === 'segments' ? (
+        <div className={`${ADMIN_SEGMENT_NAV_DESKTOP} relative mt-3`} role="group" aria-label={title}>
+          {optionButtons}
+        </div>
+      ) : (
+        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={title}>
+          {optionButtons}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -153,9 +170,6 @@ export function AppointmentsFiltersSheet(props: Props) {
           props.status !== 'all' ||
           props.period !== 'all';
 
-  const title =
-    mode === 'requests' ? 'Фильтры' : mode === 'upcoming' ? 'Фильтры' : 'Фильтры';
-
   const serviceOptions = props.serviceOptions.map((opt) => ({ id: opt.id, label: opt.label }));
 
   return (
@@ -163,7 +177,7 @@ export function AppointmentsFiltersSheet(props: Props) {
       variant="catalog"
       open={open}
       onClose={onClose}
-      title={title}
+      title="Фильтры"
       footer={
         <div className="flex w-full flex-col gap-2">
           <button type="button" className={catalogSheetPrimaryBtn} onClick={onClose}>
@@ -184,12 +198,13 @@ export function AppointmentsFiltersSheet(props: Props) {
         </div>
       }
     >
-      <section className={`${apptFilterSection} space-y-5`}>
+      <div className="space-y-3">
         <FilterChipGroup
           title="Услуга"
           options={serviceOptions}
           value={props.service}
           onChange={props.onService}
+          layout="chips"
         />
 
         {mode === 'history' ? (
@@ -199,18 +214,21 @@ export function AppointmentsFiltersSheet(props: Props) {
               options={HISTORY_STATUS}
               value={props.status}
               onChange={props.onStatus}
+              layout="segments"
             />
             <FilterChipGroup
               title="Период"
               options={HISTORY_PERIOD}
               value={props.period}
               onChange={props.onPeriod}
+              layout="segments"
             />
             <FilterChipGroup
               title="Сортировка"
               options={HISTORY_SORT}
               value={props.sort}
               onChange={props.onSort}
+              layout="segments"
             />
           </>
         ) : mode === 'requests' ? (
@@ -220,18 +238,21 @@ export function AppointmentsFiltersSheet(props: Props) {
               options={REQUESTS_PERIOD}
               value={props.period}
               onChange={props.onPeriod}
+              layout="segments"
             />
             <FilterChipGroup
               title="Сортировка"
               options={REQUESTS_SORT}
               value={props.sort}
               onChange={props.onSort}
+              layout="segments"
             />
             <FilterChipGroup
               title="Ещё"
               options={REQUESTS_FEATURE}
               value={props.feature}
               onChange={props.onFeature}
+              layout="segments"
             />
           </>
         ) : (
@@ -240,9 +261,10 @@ export function AppointmentsFiltersSheet(props: Props) {
             options={UPCOMING_SORT}
             value={props.sort}
             onChange={(id) => props.onSort(id as UpcomingSort)}
+            layout="segments"
           />
         )}
-      </section>
+      </div>
     </AdminBottomSheet>
   );
 }

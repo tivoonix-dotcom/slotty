@@ -12,11 +12,10 @@ export const bookingChipActive = catalogFilterChipActive;
 
 export const bookingChipIdle = catalogFilterChipIdle;
 
-export const bookingSlotActive =
-  'bg-[#F47C8C] text-white font-semibold';
-
-export const bookingSlotIdle =
-  'bg-[#F5F5F5] text-[#111827] font-semibold transition hover:bg-[#EBEBEB]';
+export {
+  bookingTimeSlotActive as bookingSlotActive,
+  bookingTimeSlotIdle as bookingSlotIdle,
+} from './bookingDateTimeUi';
 
 export const bookingSectionLabel =
   'text-[15px] font-bold tracking-[-0.02em] text-[#111827]';

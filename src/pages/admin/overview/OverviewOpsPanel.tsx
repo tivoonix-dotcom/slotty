@@ -34,6 +34,7 @@ import {
   type OverviewQuickActionHandlers,
 } from './useOverviewQuickActions';
 import { OverviewOpsKpiPhotoBackdrop } from './OverviewOpsKpiPhotoBackdrop';
+import { OverviewOpsKpiTileFrame } from './OverviewOpsKpiTileFrame';
 import { AppointmentsUpcomingRow } from '../appointments/AppointmentsUpcomingRow';
 
 function appointmentsTabForRow(row: DemoMasterAppointment): MasterAppointmentsTabParam | undefined {
@@ -139,47 +140,65 @@ function OpsMetricTile({
   hint,
   to,
   urgent,
+  flat = false,
+  className = '',
 }: {
   label: string;
   value: string;
   hint: string;
   to?: string;
   urgent?: boolean;
+  flat?: boolean;
+  className?: string;
 }) {
   const body = (
-    <div
-      className={`relative min-w-0 flex-1 overflow-hidden rounded-[16px] p-4 lg:rounded-[20px] lg:p-5 ${
-        urgent ? 'ring-1 ring-[#FED7AA]' : ''
-      }`}
-    >
-      <OverviewOpsKpiPhotoBackdrop />
-      <div className="relative z-10">
-        <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#6B7280] drop-shadow-sm">
+    <OverviewOpsKpiTileFrame urgent={urgent} flat={flat}>
+      {flat ? null : <OverviewOpsKpiPhotoBackdrop />}
+      <div className={flat ? undefined : 'relative z-10'}>
+        <p
+          className={`text-[10px] font-bold uppercase tracking-[0.06em] text-[#9CA3AF] ${
+            flat ? '' : 'drop-shadow-sm'
+          }`}
+        >
           {label}
         </p>
-        <p className="mt-2 text-[26px] font-black tabular-nums leading-none tracking-[-0.06em] text-[#111827] drop-shadow-sm lg:text-[28px]">
+        <p
+          className={`mt-1.5 font-black tabular-nums leading-none tracking-[-0.05em] text-[#111827] ${
+            flat ? 'text-[22px]' : 'mt-2 text-[26px] drop-shadow-sm lg:text-[28px]'
+          }`}
+        >
           {value}
         </p>
-        <p className="mt-2 text-[12px] font-semibold leading-snug text-[#374151] drop-shadow-sm">{hint}</p>
+        <p
+          className={`mt-1.5 text-[11px] font-medium leading-snug text-[#6B7280] ${
+            flat ? '' : 'mt-2 text-[12px] font-semibold text-[#374151] drop-shadow-sm'
+          }`}
+        >
+          {hint}
+        </p>
         {to ? (
-          <span className="mt-3 inline-flex items-center gap-1 text-[13px] font-bold text-[#ff5f7a] drop-shadow-sm">
+          <span
+            className={`mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[#F47C8C] ${
+              flat ? '' : 'mt-3 text-[13px] font-bold text-[#ff5f7a] drop-shadow-sm'
+            }`}
+          >
             Открыть
-            <HiArrowRight className="h-4 w-4" aria-hidden />
+            <HiArrowRight className="h-3.5 w-3.5" aria-hidden />
           </span>
         ) : null}
       </div>
-    </div>
+    </OverviewOpsKpiTileFrame>
   );
 
   if (to) {
     return (
-      <Link to={to} className="block min-w-0 transition active:scale-[0.99]">
+      <Link to={to} className={`block min-w-0 transition active:scale-[0.99] ${className}`.trim()}>
         {body}
       </Link>
     );
   }
 
-  return body;
+  return <div className={className}>{body}</div>;
 }
 
 function OpsPanelBody({
@@ -242,9 +261,17 @@ function OpsPanelBody({
       {!profileComplete && profileCompletionPercent != null ? (
         <Link
           to={ADMIN_PROFILE_COMPLETION_PATH}
-          className="flex items-start gap-3 rounded-[16px] bg-[#F5F3FF] px-4 py-3.5 ring-1 ring-[#E9D5FF] transition hover:bg-[#EDE9FE] active:scale-[0.99] lg:rounded-[20px] lg:px-5"
+          className={`flex items-start gap-3 rounded-[10px] px-4 py-3.5 transition active:scale-[0.99] ${
+            surface === 'mobile'
+              ? 'bg-[#FFF1F4] hover:bg-[#FFE4EA]'
+              : 'rounded-[16px] bg-[#F5F3FF] ring-1 ring-[#E9D5FF] hover:bg-[#EDE9FE] lg:rounded-[20px] lg:px-5'
+          }`}
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-[#A78BFA]">
+          <span
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] ${
+              surface === 'mobile' ? 'bg-white text-[#F47C8C]' : 'rounded-[14px] bg-white text-[#A78BFA]'
+            }`}
+          >
             <HiSparkles className="h-5 w-5" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
@@ -255,29 +282,44 @@ function OpsPanelBody({
               Дозаполните разделы — так клиенты чаще находят вас в каталоге.
             </p>
           </span>
-          <HiArrowRight className="mt-1 h-5 w-5 shrink-0 text-[#A78BFA]" aria-hidden />
+          <HiArrowRight
+            className={`mt-1 h-5 w-5 shrink-0 ${surface === 'mobile' ? 'text-[#F47C8C]' : 'text-[#A78BFA]'}`}
+            aria-hidden
+          />
         </Link>
       ) : null}
 
-      <div className={`grid gap-2 ${surface === 'desktop' ? 'lg:grid-cols-3 lg:gap-3' : 'grid-cols-1 sm:grid-cols-3'}`}>
+      <div
+        className={
+          surface === 'desktop'
+            ? 'grid gap-2 lg:grid-cols-3 lg:gap-3'
+            : 'flex gap-2 overflow-x-auto snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        }
+      >
         <OpsMetricTile
           label="Новые заявки"
           value={loading ? '…' : String(ops.pendingCount)}
           hint={pendingHint}
           to={requestsPath}
           urgent={ops.pendingCount > 0}
+          flat={surface === 'mobile'}
+          className={surface === 'mobile' ? 'min-w-[72%] shrink-0 snap-center sm:min-w-0 sm:flex-1' : ''}
         />
         <OpsMetricTile
           label="Сегодня"
           value={loading ? '…' : String(ops.todayAppointmentsCount)}
           hint={todayHint}
           to={todayPath}
+          flat={surface === 'mobile'}
+          className={surface === 'mobile' ? 'min-w-[72%] shrink-0 snap-center sm:min-w-0 sm:flex-1' : ''}
         />
         <OpsMetricTile
           label="Свободно"
           value={loading ? '…' : slotsLabel(ops.freeSlotsToday)}
           hint={slotsHint}
           to={ADMIN_SCHEDULE_PATH}
+          flat={surface === 'mobile'}
+          className={surface === 'mobile' ? 'min-w-[72%] shrink-0 snap-center sm:min-w-0 sm:flex-1' : ''}
         />
       </div>
 
@@ -364,17 +406,12 @@ export function OverviewOpsPanel(props: Props) {
 
   return (
     <>
-      <section className={`lg:hidden ${overviewCard} ${overviewCardPad}`}>
-        <div className="mb-4 flex items-center gap-3">
-          <span className={`${overviewIconCircle} h-11 w-11`}>
-            <HiCalendarDays className="h-5 w-5" aria-hidden />
-          </span>
-          <div>
-            <h2 className="text-[17px] font-black tracking-[-0.04em] text-[#111827]">Сегодня</h2>
-            <p className="mt-0.5 text-[13px] font-medium text-[#6B7280]">
-              Заявки, записи и свободные окна на сегодня
-            </p>
-          </div>
+      <section className="lg:hidden">
+        <div className="mb-3 px-0.5">
+          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">Сегодня</h2>
+          <p className="mt-0.5 text-[13px] leading-snug text-[#6B7280]">
+            Заявки, записи и свободные окна
+          </p>
         </div>
         <OpsPanelBody {...props} surface="mobile" quickActions={quickActions} />
       </section>

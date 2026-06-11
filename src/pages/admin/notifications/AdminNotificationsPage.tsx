@@ -8,8 +8,9 @@ import { AdminNotificationDetailSheet } from './AdminNotificationDetailSheet';
 import { useAdminNotifications } from './AdminNotificationsContext';
 import {
   NOTIFICATIONS_PAGE_BG,
+  NOTIFICATIONS_TAB_BAR_SCROLL_PAD,
+  notifCardShell,
   notifEmptyIcon,
-  notifErrorBox,
   notifPinkBtn,
   notificationsShellCard,
 } from './adminNotificationsTheme';
@@ -105,12 +106,13 @@ export function AdminNotificationsPage() {
       text="Уведомления приходят с сервера после входа в кабинет с подключённым API."
     />
   ) : error ? (
-    <div className="space-y-3">
-      <p className={notifErrorBox}>{error}</p>
-      <button type="button" onClick={() => void reload()} className={notifPinkBtn}>
+    <section className={`${notifCardShell} flex flex-col items-center px-6 py-8 text-center`}>
+      <p className="text-[16px] font-bold tracking-[-0.02em] text-[#111827]">Не удалось загрузить</p>
+      <p className="mt-2 max-w-[20rem] text-[14px] leading-relaxed text-[#6B7280]">{error}</p>
+      <button type="button" onClick={() => void reload()} className={`${notifPinkBtn} mt-5 w-full max-w-[14rem]`}>
         Повторить
       </button>
-    </div>
+    </section>
   ) : loading ? (
     <NotificationsListSkeleton />
   ) : notifications.length === 0 ? (
@@ -129,7 +131,7 @@ export function AdminNotificationsPage() {
       text={FILTER_EMPTY[filter].text}
     />
   ) : (
-    <div className="space-y-5">
+    <div className="space-y-3 lg:space-y-5">
       {grouped.map((group, groupIndex) => {
         const startIndex = grouped
           .slice(0, groupIndex)
@@ -147,31 +149,35 @@ export function AdminNotificationsPage() {
     </div>
   );
 
-  const filterBar =
-    useCabinetApi && !loading && !error && notifications.length > 0 ? (
-      <NotificationsFilterBar filter={filter} onFilter={setFilter} notifications={notifications} />
-    ) : null;
+  const showFilters = useCabinetApi && !loading && !error && notifications.length > 0;
+  const filterBar = showFilters ? (
+    <NotificationsFilterBar filter={filter} onFilter={setFilter} notifications={notifications} />
+  ) : null;
+
+  const markAllRead = stats.unread > 0 ? () => void markAllAsRead() : undefined;
+
+  const summaryBlock = (
+    <NotificationsPageHeader
+      stats={stats}
+      loading={loading}
+      onMarkAllRead={markAllRead}
+      mobileFiltersPanel={filterBar}
+      desktopFiltersPanel={filterBar}
+    />
+  );
 
   const mobileBody = (
     <section
-      className={`-mx-4 min-w-0 space-y-4 px-4 pb-[calc(5.75rem+1.25rem+env(safe-area-inset-bottom,0px))] lg:hidden ${NOTIFICATIONS_PAGE_BG}`}
+      className={`-mx-4 min-w-0 space-y-3 px-4 ${NOTIFICATIONS_TAB_BAR_SCROLL_PAD} lg:hidden ${NOTIFICATIONS_PAGE_BG}`}
     >
-      <NotificationsPageHeader
-        stats={stats}
-        onMarkAllRead={stats.unread > 0 ? () => void markAllAsRead() : undefined}
-        mobileFilter={filterBar}
-      />
+      {summaryBlock}
       {content}
     </section>
   );
 
   const desktopBody = (
     <div className={`${notificationsShellCard} space-y-5`}>
-      <NotificationsPageHeader
-        stats={stats}
-        onMarkAllRead={stats.unread > 0 ? () => void markAllAsRead() : undefined}
-      />
-      {filterBar}
+      {summaryBlock}
       <div className="min-w-0">{content}</div>
     </div>
   );

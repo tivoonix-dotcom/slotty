@@ -2,12 +2,13 @@ import type { ReactNode } from 'react';
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProfilePath } from '../../../app/paths';
-import { ADMIN_CABINET_SHELL_MAX } from '../../admin/overview/adminOverviewTheme';
 import {
   adminDesktopCabinetBody,
+  adminDesktopCabinetMainColumn,
   adminDesktopCabinetShell,
   adminDesktopMainScroll,
   ADMIN_DESKTOP_CANVAS,
+  CLIENT_CABINET_DESKTOP_MAIN,
 } from '../../admin/adminCabinetLayout';
 import {
   ClientProfileDesktopSidebar,
@@ -79,19 +80,17 @@ export function ClientCabinetDesktopShell({
           favoritesCount={favoritesCount}
         />
 
-        {workspace ? (
-          <div className={`${adminDesktopMainScroll} ${ADMIN_DESKTOP_CANVAS}`}>
-            <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">{children}</div>
-          </div>
-        ) : (
-          <div className={`${adminDesktopMainScroll} ${ADMIN_DESKTOP_CANVAS} lg:pb-8`}>
-            <div
-              className={`mx-auto w-full min-w-0 px-4 pt-4 ${ADMIN_CABINET_SHELL_MAX} lg:mx-auto lg:max-w-6xl lg:bg-transparent lg:px-8 lg:pt-6 lg:shadow-none lg:ring-0`}
-            >
-              {children}
+        <div className={adminDesktopCabinetMainColumn}>
+          {workspace ? (
+            <div className={`${adminDesktopMainScroll} ${ADMIN_DESKTOP_CANVAS}`}>
+              <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">{children}</div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className={`${adminDesktopMainScroll} ${ADMIN_DESKTOP_CANVAS} lg:pb-8`}>
+              <div className={CLIENT_CABINET_DESKTOP_MAIN}>{children}</div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

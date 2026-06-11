@@ -21,11 +21,12 @@ import { AdminSectionAttentionBadge } from './shared/AdminSectionAttentionBadge'
 import { useServicesCatalogAttention } from './services/useServicesCatalogAttention';
 import {
   adminDesktopNavItemClass,
+  adminDesktopSidebarNav,
   adminDesktopSidebarShell,
   adminSidebarFooterCard,
-  adminSidebarFooterCardAccent,
-  ADMIN_SIDEBAR_TARIFF_BG,
+  adminSidebarTariffCard,
 } from './adminCabinetLayout';
+import { AdminTariffSidebarCardContent } from './shared/AdminTariffSidebarCardContent';
 
 function SidebarUnreadBadge({ count }: { count: number }) {
   const label = count > 9 ? '9+' : String(count);
@@ -49,7 +50,7 @@ export function AdminDesktopSidebar() {
 
   return (
     <aside className={adminDesktopSidebarShell}>
-      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden px-3 py-4" aria-label="Кабинет мастера">
+      <nav className={adminDesktopSidebarNav} aria-label="Кабинет мастера">
         <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-[#9CA3AF]">
           Меню
         </p>
@@ -149,24 +150,12 @@ export function AdminDesktopSidebar() {
       </nav>
 
       <div className="shrink-0 space-y-2 border-t border-[#EEEEEE] p-3">
-        <Link to={ADMIN_BILLING_NAV.to} className={`${adminSidebarFooterCardAccent} mb-0`}>
-          <div
-            className="pointer-events-none absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${ADMIN_SIDEBAR_TARIFF_BG})` }}
-            aria-hidden
+        <Link to={ADMIN_BILLING_NAV.to} className={`${adminSidebarTariffCard} mb-0`}>
+          <AdminTariffSidebarCardContent
+            planLabel={planBadgeLabel(planId)}
+            subtitle="Управление подпиской и лимитами"
+            planId={planId}
           />
-          <div className="pointer-events-none absolute inset-0 bg-black/45" aria-hidden />
-          <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white/95 text-[#ff5f7a] shadow-sm">
-            <HiSparkles className="h-5 w-5" aria-hidden />
-          </span>
-          <div className="relative z-10 min-w-0 flex-1 text-left">
-            <p className="text-[14px] font-semibold tracking-[-0.02em] text-white">
-              Тариф {planBadgeLabel(planId)}
-            </p>
-            <p className="mt-0.5 text-[12px] leading-snug text-white/80">
-              Управление подпиской и лимитами
-            </p>
-          </div>
         </Link>
 
         <Link to={ADMIN_PATH} className={adminSidebarFooterCard}>

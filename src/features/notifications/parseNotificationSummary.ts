@@ -158,6 +158,15 @@ export function parseNotificationSummary(item: MeNotificationRow): NotificationS
     ]);
   }
 
+  const expiredRequest = body.match(/^Заявка истекла:\s*(.+?),\s*(.+?),\s*(.+)\./i);
+  if (expiredRequest) {
+    return fieldsOrEmpty([
+      { label: 'Клиент', value: expiredRequest[1].trim() },
+      { label: 'Услуга', value: expiredRequest[2].trim() },
+      { label: 'Когда', value: expiredRequest[3].trim() },
+    ]);
+  }
+
   return [];
 }
 

@@ -34,7 +34,7 @@ export const billingSegmentWrap = 'grid grid-cols-2 gap-1 rounded-[12px] bg-[#EB
 export const billingSegmentBtn = (active: boolean) =>
   `flex min-h-10 w-full items-center justify-center rounded-[10px] text-[14px] font-semibold transition active:scale-[0.98] ${
     active
-      ? 'bg-white text-[#111827] shadow-[0_2px_8px_rgba(17,17,17,0.06)]'
+      ? 'bg-white text-[#111827]'
       : 'bg-transparent text-[#6B7280] hover:text-[#374151]'
   }`;
 

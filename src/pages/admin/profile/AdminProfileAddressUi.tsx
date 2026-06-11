@@ -12,8 +12,8 @@ import {
   type MasterVisitType,
 } from '../../../features/profile/model/masterLocation';
 import { FormRequiredMark } from '../shared/AdminFormFieldLabel';
-import { ServicesBrandPhotoLayers } from '../services/ServicesBrandPhotoLayers';
-import { cabinetCard, cabinetCardPad, cabinetIconCircle } from './adminProfileCabinetTheme';
+import { cabinetCard, cabinetCardPad, cabinetIconCircle, cabinetInsetTile } from './adminProfileCabinetTheme';
+import { profileDashboardEditBtn } from './adminProfileDashboardTheme';
 import {
   addressDetailIconName,
   AddressDetailIcon,
@@ -30,7 +30,7 @@ export function addressDetailIcon(label: string, visitType: MasterVisitType) {
 function VisitTypeBadge({ visitType }: { visitType: MasterVisitType }) {
   const isHome = visitType === 'at_home';
   return (
-    <div className="flex items-center gap-3 rounded-[18px] bg-[#F7F7F8] p-3.5">
+    <div className={`flex items-center gap-3 p-3.5 ${cabinetInsetTile}`}>
       <span className={`${cabinetIconCircle} h-10 w-10`}>
         <CabinetIcon name={isHome ? 'home' : 'building'} size={20} />
       </span>
@@ -60,7 +60,7 @@ function AddressInfoRow({
   if (isEmptyDisplayValue(trimmed)) return null;
 
   return (
-    <div className="flex items-start gap-2.5 rounded-[16px] bg-[#F7F7F8] px-3 py-2.5">
+    <div className={`flex items-start gap-2.5 px-3 py-2.5 ${cabinetInsetTile}`}>
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF1F4] text-[#F47C8C]">
         <CabinetIcon name={iconName} size={18} />
       </span>
@@ -110,7 +110,7 @@ function AddressCatalogMap({
   const mapSrc = useMemo(() => buildCatalogMapWidgetUrl(address, { lat, lng }), [address, lat, lng]);
 
   return (
-    <div className="mt-2 overflow-hidden rounded-[18px] bg-[#F7F7F8] ring-1 ring-[#EAECEF]">
+    <div className={`mt-2 overflow-hidden ${cabinetInsetTile}`}>
       <iframe
         title={`Карта — ${address}`}
         src={mapSrc}
@@ -184,19 +184,12 @@ export function AddressSection({
   return (
     <section className={`${cabinetCard} ${cabinetCardPad}`}>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="min-w-0 flex-1 text-[18px] font-semibold leading-tight tracking-[-0.03em] text-[#111827]">
+          <h2 className="min-w-0 flex-1 text-[17px] font-semibold leading-tight tracking-[-0.03em] text-[#111827]">
             Адрес
           </h2>
-          <button
-            type="button"
-            onClick={onEditAddress}
-            className="relative inline-flex h-8 shrink-0 items-center gap-1 overflow-hidden rounded-full px-3 text-[12px] font-semibold leading-none text-white shadow-[0_2px_8px_rgba(239,68,68,0.22)] transition hover:opacity-95 active:scale-[0.98]"
-          >
-            <ServicesBrandPhotoLayers roundedClassName="rounded-full" />
-            <span className="relative z-10 flex items-center gap-1 drop-shadow-sm">
-              <CabinetIcon name="pencil" size={14} />
-              Редактировать
-            </span>
+          <button type="button" onClick={onEditAddress} className={profileDashboardEditBtn}>
+            <CabinetIcon name="pencil" size={16} />
+            Редактировать
           </button>
         </div>
 
@@ -206,7 +199,7 @@ export function AddressSection({
           <div>
             <AddressBlockTitle>На карточке в каталоге</AddressBlockTitle>
             {isEmptyDisplayValue(catalogMain) ? (
-              <p className="rounded-[16px] bg-[#F7F7F8] px-3 py-2.5 text-center text-[13px] leading-snug text-[#9CA3AF]">
+              <p className={`px-3 py-2.5 text-center text-[13px] leading-snug text-[#9CA3AF] ${cabinetInsetTile}`}>
                 Адрес не указан — нажмите «Редактировать»
               </p>
             ) : (
@@ -234,7 +227,7 @@ export function AddressSection({
               </div>
             </div>
           ) : (
-            <p className="rounded-[16px] bg-[#FAFAFA] px-3 py-2.5 text-center text-[13px] leading-snug text-[#9CA3AF]">
+            <p className={`px-3 py-2.5 text-center text-[13px] leading-snug text-[#9CA3AF] ${cabinetInsetTile}`}>
               Детали «после записи» не указаны — клиент увидит только адрес из каталога
             </p>
           )}

@@ -663,7 +663,7 @@ export function ProfilePage() {
     <div
       className={`min-h-dvh overflow-x-hidden text-neutral-900 ${
         clientShell
-          ? 'max-lg:h-dvh max-lg:overflow-hidden max-lg:bg-[#F5F5F5] lg:h-dvh lg:overflow-hidden lg:bg-white lg:p-0'
+          ? 'max-lg:h-dvh max-lg:overflow-hidden max-lg:bg-[#F5F5F5] lg:h-dvh lg:overflow-hidden lg:bg-[#f6f7fb] lg:p-0'
           : `${CLIENT_CONTENT_PAD_BOTTOM} bg-white pb-[calc(2rem+env(safe-area-inset-bottom,0px))] lg:pb-0 lg:bg-[#F5F5F5]`
       }`}
     >
@@ -674,7 +674,7 @@ export function ProfilePage() {
       {accountAccess.showRestrictedBanner ? (
         <div
           className={`mx-auto w-full px-4 pt-3 sm:px-5 ${
-            clientShell ? 'max-w-none lg:max-w-6xl lg:px-8' : 'max-w-lg'
+            clientShell ? 'max-w-none lg:px-8' : 'max-w-lg'
           }`}
         >
           <AccountAccessRestrictedBanner access={accountAccess} variant="client" />

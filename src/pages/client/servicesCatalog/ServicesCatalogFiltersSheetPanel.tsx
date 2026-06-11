@@ -2,17 +2,24 @@ import type { ServiceCategoryDto } from '../../../features/master-onboarding/api
 import { categoryCodesMatch } from '../../../features/catalog/serviceCategoryLabels';
 import type { CatalogFiltersState, PriceTier } from './catalogFiltersState';
 import {
-  DATE_FILTER_OPTIONS,
-  DURATION_FILTER_OPTIONS,
+  CATALOG_SORT_OPTIONS,
+  CATALOG_VIEW_TABS,
+  getCatalogViewTab,
+  setCatalogViewTab,
+  type CatalogViewTab,
+} from './catalogFiltersState';
+import { catalogFilterSheetPriceInputClass } from './catalogFilterSheetTheme';
+import {
   FilterChip,
   FilterPromoBar,
   FilterSection,
   FilterSwitch,
+  SHEET_DURATION_FILTER_OPTIONS,
   SHEET_PRICE_FILTER_OPTIONS,
   SHEET_RATING_FILTER_OPTIONS,
-  TIME_FILTER_OPTIONS,
-  VISIT_FILTER_OPTIONS,
+  SHEET_VISIT_FILTER_OPTIONS,
 } from './catalogFilterUi';
+import { CatalogFilterWhenTimeSection } from './CatalogFilterWhenTimeSection';
 
 type Props = {
   filters: CatalogFiltersState;
@@ -24,7 +31,9 @@ type Props = {
   hideCategory?: boolean;
 };
 
-/** Фильтры услуг — тот же плоский стиль, что у каталога мастеров. */
+const PICKUP_TABS = CATALOG_VIEW_TABS.filter((tab) => tab.id !== 'all');
+
+/** Полный набор фильтров каталога услуг — мобильный sheet и desktop-drawer. */
 export function ServicesCatalogFiltersSheetPanel({
   filters,
   onChange,
@@ -34,6 +43,7 @@ export function ServicesCatalogFiltersSheetPanel({
 }: Props) {
   const chipsClass = 'flex flex-wrap gap-2';
   const set = (patch: Partial<CatalogFiltersState>) => onChange({ ...filters, ...patch });
+  const activePickup = getCatalogViewTab(filters);
 
   const setPriceTier = (tier: PriceTier) => {
     const range =
@@ -54,15 +64,43 @@ export function ServicesCatalogFiltersSheetPanel({
     });
   };
 
+  const togglePickup = (tab: CatalogViewTab) => {
+    onChange(setCatalogViewTab(filters, activePickup === tab ? 'all' : tab));
+  };
+
   return (
     <div className="flex flex-col gap-5">
       {!hidePromo ? (
         <FilterPromoBar
-          active={filters.promotionOnly}
+          active={filters.promotionOnly || activePickup === 'promo'}
           label="Акции"
-          onChange={(promotionOnly) => set({ promotionOnly })}
+          onChange={(promotionOnly) => {
+            if (promotionOnly) {
+              onChange(setCatalogViewTab(filters, 'promo'));
+              return;
+            }
+            onChange(
+              activePickup === 'promo'
+                ? setCatalogViewTab(filters, 'all')
+                : { ...filters, promotionOnly: false },
+            );
+          }}
         />
       ) : null}
+
+      <FilterSection title="Подборки" variant="sheet" collapsible={false}>
+        <div className={chipsClass}>
+          {PICKUP_TABS.map((tab) => (
+            <FilterChip
+              key={tab.id}
+              active={activePickup === tab.id}
+              label={tab.label}
+              variant="sheet"
+              onClick={() => togglePickup(tab.id)}
+            />
+          ))}
+        </div>
+      </FilterSection>
 
       <FilterSection title="Цена, BYN" variant="sheet" collapsible={false}>
         <div className={chipsClass}>
@@ -76,21 +114,50 @@ export function ServicesCatalogFiltersSheetPanel({
             />
           ))}
         </div>
-      </FilterSection>
-
-      <FilterSection title="Срок записи" variant="sheet" collapsible={false}>
-        <div className={chipsClass}>
-          {DATE_FILTER_OPTIONS.map(({ value, label }) => (
-            <FilterChip
-              key={value}
-              active={filters.dateRange === value}
-              label={label}
-              variant="sheet"
-              onClick={() => set({ dateRange: value })}
+        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <label className="block min-w-0">
+            <span className="mb-1.5 block text-[12px] font-medium text-[#8E8E93]">От</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={filters.minPrice != null ? String(filters.minPrice) : ''}
+              onChange={(e) => {
+                const v = e.target.value.trim().replace(',', '.');
+                const n = v ? Number(v) : NaN;
+                set({
+                  priceTier: 'any',
+                  minPrice: v && Number.isFinite(n) ? n : null,
+                });
+              }}
+              placeholder="0"
+              className={catalogFilterSheetPriceInputClass}
             />
-          ))}
+          </label>
+          <span className="mt-5 text-[#8E8E93]" aria-hidden>
+            —
+          </span>
+          <label className="block min-w-0">
+            <span className="mb-1.5 block text-[12px] font-medium text-[#8E8E93]">До</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={filters.maxPrice != null ? String(filters.maxPrice) : ''}
+              onChange={(e) => {
+                const v = e.target.value.trim().replace(',', '.');
+                const n = v ? Number(v) : NaN;
+                set({
+                  priceTier: 'any',
+                  maxPrice: v && Number.isFinite(n) ? n : null,
+                });
+              }}
+              placeholder="∞"
+              className={catalogFilterSheetPriceInputClass}
+            />
+          </label>
         </div>
       </FilterSection>
+
+      <CatalogFilterWhenTimeSection filters={filters} onChange={onChange} />
 
       {!hideCategory && categories.length > 0 ? (
         <FilterSection title="Категория" variant="sheet" collapsible={false}>
@@ -114,35 +181,7 @@ export function ServicesCatalogFiltersSheetPanel({
         </FilterSection>
       ) : null}
 
-      <FilterSection title="Время дня" variant="sheet" collapsible={false}>
-        <div className={chipsClass}>
-          {TIME_FILTER_OPTIONS.map(({ value, label }) => (
-            <FilterChip
-              key={value}
-              active={filters.timeOfDay === value}
-              label={label}
-              variant="sheet"
-              onClick={() => set({ timeOfDay: value })}
-            />
-          ))}
-        </div>
-      </FilterSection>
-
-      <FilterSection title="Формат" variant="sheet" collapsible={false}>
-        <div className={chipsClass}>
-          {VISIT_FILTER_OPTIONS.map(({ value, label }) => (
-            <FilterChip
-              key={value}
-              active={filters.visitType === value}
-              label={label}
-              variant="sheet"
-              onClick={() => set({ visitType: value })}
-            />
-          ))}
-        </div>
-      </FilterSection>
-
-      <FilterSection title="Рейтинг" variant="sheet" collapsible={false}>
+      <FilterSection title="Рейтинг мастера" variant="sheet" collapsible={false}>
         <div className={chipsClass}>
           {SHEET_RATING_FILTER_OPTIONS.map(({ value, label }) => (
             <FilterChip
@@ -156,9 +195,23 @@ export function ServicesCatalogFiltersSheetPanel({
         </div>
       </FilterSection>
 
+      <FilterSection title="Формат" variant="sheet" collapsible={false}>
+        <div className={chipsClass}>
+          {SHEET_VISIT_FILTER_OPTIONS.map(({ value, label }) => (
+            <FilterChip
+              key={value}
+              active={filters.visitType === value}
+              label={label}
+              variant="sheet"
+              onClick={() => set({ visitType: value })}
+            />
+          ))}
+        </div>
+      </FilterSection>
+
       <FilterSection title="Длительность" variant="sheet" collapsible={false}>
         <div className={chipsClass}>
-          {DURATION_FILTER_OPTIONS.map(({ value, label }) => (
+          {SHEET_DURATION_FILTER_OPTIONS.map(({ value, label }) => (
             <FilterChip
               key={value}
               active={filters.duration === value}
@@ -170,12 +223,34 @@ export function ServicesCatalogFiltersSheetPanel({
         </div>
       </FilterSection>
 
-      <FilterSwitch
-        active={filters.onlineBookingOnly}
-        label="Только с онлайн-записью"
-        variant="sheet"
-        onChange={(onlineBookingOnly) => set({ onlineBookingOnly })}
-      />
+      <FilterSection title="Сортировка" variant="sheet" collapsible={false}>
+        <div className={chipsClass}>
+          {CATALOG_SORT_OPTIONS.map(({ value, label }) => (
+            <FilterChip
+              key={value}
+              active={filters.sortBy === value}
+              label={label}
+              variant="sheet"
+              onClick={() => set({ sortBy: value })}
+            />
+          ))}
+        </div>
+      </FilterSection>
+
+      <div className="flex flex-col gap-2">
+        <FilterSwitch
+          active={filters.onlineBookingOnly}
+          label="Только с онлайн-записью"
+          variant="sheet"
+          onChange={(onlineBookingOnly) => set({ onlineBookingOnly })}
+        />
+        <FilterSwitch
+          active={filters.verifiedOnly}
+          label="Проверенные мастера"
+          variant="sheet"
+          onChange={(verifiedOnly) => set({ verifiedOnly })}
+        />
+      </div>
     </div>
   );
 }

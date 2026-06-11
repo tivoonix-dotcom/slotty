@@ -34,3 +34,22 @@ export const catalogSheetSecondaryBtn =
 
 export const catalogSheetGhostBtn =
   'rounded-[10px] bg-[#FFF1F4] px-3 py-2 text-[12px] font-semibold text-[#F47C8C] transition hover:bg-[#FFE4EA] active:scale-[0.98] disabled:opacity-50';
+
+/** Белая секция фильтров — без overflow-hidden, чтобы не обрезать чипы. */
+export const catalogFilterSectionClass = 'rounded-[16px] bg-white p-4 sm:p-5';
+
+export function catalogFilterChipClass(active: boolean): string {
+  return `rounded-[12px] px-3.5 py-2 text-[14px] transition active:scale-[0.98] ${
+    active
+      ? 'bg-[#F47C8C] font-semibold text-white'
+      : 'bg-[#F0F0F2] font-medium text-[#111827]'
+  }`;
+}
+
+export function catalogFilterSegmentClass(active: boolean): string {
+  return `relative z-[1] min-h-10 shrink-0 rounded-[10px] px-3.5 text-[13px] font-semibold transition active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F47C8C]/35 sm:text-[14px] ${
+    active
+      ? 'bg-[#F47C8C] text-white'
+      : 'bg-white text-[#374151] ring-1 ring-[#EAECEF]'
+  }`;
+}

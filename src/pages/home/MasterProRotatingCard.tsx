@@ -222,7 +222,7 @@ export function MasterProRotatingCard({
 
       {topBadge ? (
         <span
-          className="absolute right-4 top-4 z-10 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors duration-700"
+          className="absolute right-4 top-4 z-10 rounded-full px-3 py-1 font-landing text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors duration-700"
           style={{ backgroundColor: colors.badgeBg, color: colors.badgeText }}
         >
           {topBadge}
@@ -231,13 +231,13 @@ export function MasterProRotatingCard({
 
       <div className={`relative z-10 flex flex-col ${denseCta ? 'flex-1' : 'flex-1'}`}>
         <p
-          className="text-[18px] font-semibold tracking-tight transition-colors duration-700"
+          className="font-hero-display text-[18px] font-medium tracking-tight transition-colors duration-700"
           style={{ color: colors.primary }}
           aria-live={motionOk ? 'polite' : 'off'}
         >
           Мастер Pro
           <span
-            className="mt-1 block text-[15px] font-bold transition-colors duration-700"
+            className="font-landing mt-1 block text-[15px] font-semibold transition-colors duration-700"
             style={{ color: theme.accent }}
           >
             {theme.label}
@@ -248,13 +248,13 @@ export function MasterProRotatingCard({
 
         <div className="mt-4 flex items-baseline gap-1">
           <span
-            className="text-[36px] font-bold tracking-tight transition-colors duration-700"
+            className="font-hero-display text-[36px] font-medium tracking-tight transition-colors duration-700"
             style={{ color: colors.primary }}
           >
             {priceValue}
           </span>
           <span
-            className="text-[14px] font-medium transition-colors duration-700"
+            className="font-landing text-[14px] font-medium transition-colors duration-700"
             style={{ color: colors.muted }}
           >
             {priceUnit}
@@ -262,7 +262,7 @@ export function MasterProRotatingCard({
         </div>
 
         <p
-          className="mt-3 text-[14px] leading-relaxed transition-colors duration-700"
+          className="font-landing mt-3 text-[14px] leading-relaxed transition-colors duration-700"
           style={{ color: colors.body }}
         >
           {description}
@@ -281,7 +281,7 @@ export function MasterProRotatingCard({
                 />
               </span>
               <span
-                className="text-[14px] font-medium transition-colors duration-700"
+                className="font-landing text-[14px] font-medium transition-colors duration-700"
                 style={{ color: colors.feature }}
               >
                 {feature}
@@ -295,7 +295,7 @@ export function MasterProRotatingCard({
             (ctaHref && ctaLabel ? (
               <Link
                 to={ctaHref}
-                className="flex min-h-12 w-full items-center justify-center rounded-full text-[15px] font-semibold transition active:scale-[0.98]"
+                className="font-landing flex min-h-12 w-full items-center justify-center rounded-full text-[15px] font-semibold transition active:scale-[0.98]"
                 style={{
                   backgroundColor: colors.ctaBg,
                   color: colors.ctaText,

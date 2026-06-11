@@ -3,7 +3,6 @@ import { categoryCodesMatch } from '../../../features/catalog/serviceCategoryLab
 import { ServiceCategoryRail } from '../components/ServiceCategoryRail';
 import type { CatalogFiltersState, PriceTier } from './catalogFiltersState';
 import {
-  DATE_FILTER_OPTIONS,
   DURATION_FILTER_OPTIONS,
   FilterChip,
   FilterSection,
@@ -11,16 +10,14 @@ import {
   HiBanknotes,
   PRICE_FILTER_OPTIONS,
   RATING_FILTER_OPTIONS,
-  TIME_FILTER_OPTIONS,
   VISIT_FILTER_OPTIONS,
 } from './catalogFilterUi';
+import { CatalogFilterWhenTimeSection } from './CatalogFilterWhenTimeSection';
 import { ServicesCatalogFiltersSheetPanel } from './ServicesCatalogFiltersSheetPanel';
 import {
   HiAdjustmentsHorizontal,
   HiBuildingStorefront,
-  HiCalendarDays,
   HiClock,
-  HiSquares2X2,
   HiStar,
 } from 'react-icons/hi2';
 import { catalogFieldClass } from './servicesCatalogTheme';
@@ -149,38 +146,9 @@ export function ServicesCatalogFiltersPanel({
         </div>
       </FilterSection>
 
-      <FilterSection
-        icon={HiCalendarDays}
-        title="Срок записи"
-        activeHint={hints.when}
-        variant={uiVariant}
-      >
-        <div className={chipsClass}>
-          {DATE_FILTER_OPTIONS.map(({ value, label }) => (
-            <FilterChip
-              key={value}
-              active={filters.dateRange === value}
-              label={label}
-              variant={uiVariant}
-              onClick={() => set({ dateRange: value })}
-            />
-          ))}
-        </div>
-      </FilterSection>
-
-      <FilterSection icon={HiClock} title="Время" activeHint={hints.time} variant={uiVariant}>
-        <div className={chipsClass}>
-          {TIME_FILTER_OPTIONS.map(({ value, label }) => (
-            <FilterChip
-              key={value}
-              active={filters.timeOfDay === value}
-              label={label}
-              variant={uiVariant}
-              onClick={() => set({ timeOfDay: value })}
-            />
-          ))}
-        </div>
-      </FilterSection>
+      <div className="min-w-0 md:col-span-2 xl:col-span-3">
+        <CatalogFilterWhenTimeSection filters={filters} onChange={onChange} />
+      </div>
 
       {showCategories ? (
         <FilterSection

@@ -11,6 +11,8 @@ export type RequestsFeatureFilter = 'all' | 'expiring' | 'with_photo';
 
 export type UpcomingSort = 'date' | 'newest';
 
+export type UpcomingViewMode = 'list' | 'calendar';
+
 export type HistoryStatusFilter = 'all' | 'completed' | 'cancelled';
 
 export type HistoryPeriodFilter = 'all' | 'month' | 'quarter';

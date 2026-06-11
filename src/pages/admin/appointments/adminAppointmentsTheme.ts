@@ -8,6 +8,10 @@ import {
   profileDesktopTabsSticky,
   PROFILE_DESKTOP_PAGE_BG,
 } from '../profile/adminProfileDashboardTheme';
+import {
+  ADMIN_MOBILE_TAB_BAR_HEIGHT,
+  adminMobileTabBarListScrollPadClass,
+} from '../shared/adminMobileTabBarTheme';
 
 export const APPOINTMENTS_PAGE_BG = 'max-lg:bg-transparent';
 
@@ -66,9 +70,9 @@ export const APPOINTMENTS_DETAIL_HERO_BG = {
   neutral: `${appointmentsHistoryPhotosDir}1.png`,
 } as const;
 
-export const APPOINTMENTS_TAB_BAR_HEIGHT = '5.75rem';
+export const APPOINTMENTS_TAB_BAR_HEIGHT = ADMIN_MOBILE_TAB_BAR_HEIGHT;
 
-export const APPOINTMENTS_TAB_BAR_SCROLL_PAD = `calc(${APPOINTMENTS_TAB_BAR_HEIGHT} + 1.25rem + env(safe-area-inset-bottom, 0px))`;
+export const APPOINTMENTS_TAB_BAR_SCROLL_PAD = adminMobileTabBarListScrollPadClass;
 
 /** Панель сортировки и кнопки фильтра. */
 export const apptListToolbar =
@@ -93,12 +97,30 @@ export function apptFilterSegmentClass(active: boolean): string {
   }`;
 }
 
+/** Переключатель список / календарь — плоские кнопки без бордеров, как кнопка фильтра. */
+export function apptViewToggleBtnClass(active: boolean): string {
+  return `inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-[10px] px-3.5 text-[13px] font-semibold transition active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F47C8C]/35 sm:text-[14px] ${
+    active ? 'bg-[#F47C8C] text-white' : 'bg-[#EBEBEB] text-[#374151]'
+  }`;
+}
+
+export const apptCalendarIconBtn =
+  'flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-[#EBEBEB] text-[#374151] transition hover:bg-[#E4E4E4] active:scale-[0.96]';
+
+export function apptCalendarDayChipClass(selected: boolean): string {
+  return `flex min-w-[3.25rem] shrink-0 flex-col items-center rounded-[10px] px-2.5 py-2 transition active:scale-[0.97] ${
+    selected
+      ? 'bg-[#F47C8C] text-white'
+      : 'bg-[#F5F5F5] text-[#374151] ring-1 ring-[#EEEEEE]'
+  }`;
+}
+
 export const apptFilterChip =
   'rounded-full px-3.5 py-2 text-[13px] font-semibold transition active:scale-[0.98]';
 
 export function apptFilterChipClass(active: boolean): string {
   return active
-    ? 'bg-[#F47C8C] text-white shadow-[0_2px_8px_rgba(244,124,140,0.35)]'
+    ? 'bg-[#F47C8C] text-white'
     : 'bg-[#F5F5F5] text-[#374151] ring-1 ring-[#EEEEEE]';
 }
 
@@ -182,6 +204,8 @@ export const apptDetailReportBtn =
 /** Split-карточка записи — белая панель без ring/border. */
 export const apptCardShell =
   'flex w-full flex-col overflow-hidden rounded-[16px] bg-white lg:rounded-[18px]';
+
+export const apptCalendarPanel = `${apptCardShell} p-4 sm:p-5`;
 
 export const apptCardShellInteractive =
   `${apptCardShell} transition active:scale-[0.99] hover:bg-[#FAFAFA]`;

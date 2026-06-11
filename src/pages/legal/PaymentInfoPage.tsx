@@ -1,12 +1,20 @@
 import type { FC } from 'react';
-import { LEGAL_REFUND_PATH, MASTER_SETTINGS_BILLING_PATH } from '../../app/paths';
+import { LEGAL_REFUND_PATH } from '../../app/paths';
 import { PaymentLogos } from '../../shared/ui/PaymentLogos';
 import { PAYMENT_DISCLAIMER_LEGAL_PAGE } from '../../shared/ui/PaymentLogos/paymentLogosConfig';
 import { SITE_SUPPORT_EMAIL } from './legalSiteInfo';
+import { PaymentFlowDemo } from './PaymentFlowDemo';
+import {
+  PaymentLegalMiniBooking,
+  PaymentLegalMiniPro,
+  PaymentLegalMiniRefund,
+  PaymentLegalMiniResult,
+  PaymentLegalMiniSecurity,
+} from './paymentLegalMiniDemos';
 import { LegalPageShell } from './LegalPageShell';
 import {
-  LegalDocIntro,
-  LegalDocSection,
+  LegalDocLandingIntro,
+  LegalDocLandingSection,
   legalDocLinkClass,
   legalDocListClass,
   type LegalTocItem,
@@ -14,8 +22,11 @@ import {
 
 const TOC: LegalTocItem[] = [
   { id: 'methods', label: 'Способы оплаты' },
-  { id: 'current', label: 'Как проходит оплата' },
-  { id: 'security', label: 'Безопасность платежей' },
+  { id: 'current', label: 'Как оплатить Pro' },
+  { id: 'booking', label: 'Запись к мастеру' },
+  { id: 'pro', label: 'Подписка Pro' },
+  { id: 'result', label: 'Результат платежа' },
+  { id: 'security', label: 'Безопасность' },
   { id: 'refunds', label: 'Возвраты' },
 ];
 
@@ -26,77 +37,112 @@ export const PaymentInfoPage: FC = () => {
       titleHighlight="безопасность платежей"
       toc={TOC}
     >
-      <LegalDocIntro>
-        Сервис <strong className="text-[#111827]">SLOTTY</strong> принимает онлайн-платежи в Республике Беларусь
-        через платёжного провайдера <strong className="text-[#111827]">bePaid</strong>. Данные карты обрабатываются
-        на стороне провайдера — SLOTTY не хранит полные реквизиты карты.
-      </LegalDocIntro>
+      <LegalDocLandingIntro>
+        На <strong className="font-semibold text-[#111827]">SLOTTY</strong> онлайн-оплата доступна{' '}
+        <strong className="font-semibold text-[#111827]">только мастерам</strong> — для подписки Pro через{' '}
+        <strong className="font-semibold text-[#111827]">bePaid</strong>. Клиенты записываются бесплатно; оплата
+        услуги мастера обычно происходит на месте. Данные карты обрабатывает провайдер — SLOTTY не хранит полные
+        реквизиты.
+      </LegalDocLandingIntro>
 
-      <LegalDocSection id="methods" title="Способы оплаты">
-        <p>
-          Оплата на сайте выполняется через защищённую платёжную страницу bePaid. В зависимости от сценария доступны
-          банковские карты (в том числе Visa, Mastercard, Белкарт) и другие методы, которые поддерживает провайдер в
-          вашем заказе.
-        </p>
-        <PaymentLogos
-          variant="legal"
-          className="mt-5"
-          showDisclaimer
-          disclaimerText={PAYMENT_DISCLAIMER_LEGAL_PAGE}
-        />
-      </LegalDocSection>
+      <div className="flex flex-col gap-12 sm:gap-14 lg:gap-20">
+        <LegalDocLandingSection
+          id="methods"
+          step={1}
+          title="Способы оплаты"
+          wideChildren={
+            <PaymentLogos
+              variant="cards"
+              showDisclaimer
+              disclaimerText={PAYMENT_DISCLAIMER_LEGAL_PAGE}
+            />
+          }
+        >
+          <p>
+            Оплата подписки Pro выполняется банковской картой (Visa, Mastercard, Белкарт) и другими методами,
+            которые поддерживает bePaid при оформлении платежа.
+          </p>
+        </LegalDocLandingSection>
 
-      <LegalDocSection id="current" title="Как проходит оплата">
-        <ul className={legalDocListClass}>
-          <li>
-            <strong>Запись к мастеру</strong> — оформление записи в SLOTTY бесплатно. Оплата услуги мастера, как
-            правило, производится на месте по договорённости с мастером.
-          </li>
-          <li>
-            <strong>Подписка Pro и платные функции мастера</strong> — оплата в кабинете в разделе{' '}
-            <a className={legalDocLinkClass} href={MASTER_SETTINGS_BILLING_PATH}>
-              «Тариф и оплата»
+        <PaymentFlowDemo />
+
+        <LegalDocLandingSection
+          id="booking"
+          step={2}
+          title="Запись к мастеру (клиент)"
+          miniVisual={<PaymentLegalMiniBooking />}
+        >
+          <p>
+            Оформление записи в SLOTTY <strong>бесплатно</strong> и не требует онлайн-оплаты на сайте. Оплата услуги
+            мастера, как правило, производится на месте по договорённости с мастером.
+          </p>
+        </LegalDocLandingSection>
+
+        <LegalDocLandingSection
+          id="pro"
+          step={3}
+          title="Подписка Pro (мастер)"
+          miniVisual={<PaymentLegalMiniPro />}
+        >
+          <p>
+            Мастер оплачивает подписку в кабинете в разделе «Тариф и оплата». После выбора тарифа Pro вы переходите
+            на страницу bePaid, вводите данные карты и возвращаетесь в SLOTTY с результатом операции.
+          </p>
+        </LegalDocLandingSection>
+
+        <LegalDocLandingSection
+          id="result"
+          step={4}
+          title="Результат платежа"
+          miniVisual={<PaymentLegalMiniResult />}
+        >
+          <p>
+            При успешной оплате подписки Pro статус обновляется автоматически после подтверждения банком. При ошибке
+            или отмене можно повторить оплату или обратиться в поддержку.
+          </p>
+        </LegalDocLandingSection>
+
+        <LegalDocLandingSection
+          id="security"
+          step={5}
+          title="Безопасность платежей"
+          miniVisual={<PaymentLegalMiniSecurity />}
+        >
+          <ul className={legalDocListClass}>
+            <li>
+              Платёж обрабатывается на инфраструктуре <strong>bePaid</strong> — сертифицированного платёжного
+              провайдера.
+            </li>
+            <li>SLOTTY не хранит полный номер карты, CVV и срок действия на своих серверах.</li>
+            <li>
+              Соединение с платёжной страницей защищено (HTTPS). Проверяйте адрес страницы оплаты и не передавайте
+              коды из SMS третьим лицам.
+            </li>
+            <li>
+              При ошибке, двойном списании или вопросе по чеку напишите на{' '}
+              <a className={legalDocLinkClass} href={`mailto:${SITE_SUPPORT_EMAIL}`}>
+                {SITE_SUPPORT_EMAIL}
+              </a>{' '}
+              — укажите дату, сумму и email аккаунта.
+            </li>
+          </ul>
+        </LegalDocLandingSection>
+
+        <LegalDocLandingSection
+          id="refunds"
+          step={6}
+          title="Возвраты"
+          miniVisual={<PaymentLegalMiniRefund />}
+        >
+          <p>
+            Условия возврата средств за платные функции SLOTTY описаны на странице{' '}
+            <a className={legalDocLinkClass} href={LEGAL_REFUND_PATH}>
+              «Возвраты»
             </a>
-            . После выбора тарифа вы переходите на страницу bePaid, вводите данные карты и возвращаетесь в SLOTTY с
-            результатом операции.
-          </li>
-          <li>
-            <strong>Результат платежа</strong> — при успешной оплате статус подписки обновляется автоматически. При
-            ошибке или отмене можно повторить оплату или обратиться в поддержку.
-          </li>
-        </ul>
-      </LegalDocSection>
-
-      <LegalDocSection id="security" title="Безопасность платежей">
-        <ul className={legalDocListClass}>
-          <li>
-            Платёж обрабатывается на инфраструктуре <strong>bePaid</strong> — сертифицированного платёжного
-            провайдера.
-          </li>
-          <li>SLOTTY не хранит полный номер карты, CVV и срок действия на своих серверах.</li>
-          <li>
-            Соединение с платёжной страницей защищено (HTTPS). Проверяйте адрес страницы оплаты и не передавайте
-            коды из SMS третьим лицам.
-          </li>
-          <li>
-            При ошибке, двойном списании или вопросе по чеку напишите на{' '}
-            <a className={legalDocLinkClass} href={`mailto:${SITE_SUPPORT_EMAIL}`}>
-              {SITE_SUPPORT_EMAIL}
-            </a>{' '}
-            — укажите дату, сумму и email аккаунта.
-          </li>
-        </ul>
-      </LegalDocSection>
-
-      <LegalDocSection id="refunds" title="Возвраты">
-        <p>
-          Условия возврата средств за платные функции SLOTTY описаны на странице{' '}
-          <a className={legalDocLinkClass} href={LEGAL_REFUND_PATH}>
-            «Возвраты»
-          </a>
-          . Обращения рассматриваются в сроки, указанные в политике возврата.
-        </p>
-      </LegalDocSection>
+            . Обращения рассматриваются в сроки, указанные в политике возврата.
+          </p>
+        </LegalDocLandingSection>
+      </div>
     </LegalPageShell>
   );
 };

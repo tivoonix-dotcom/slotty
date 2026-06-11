@@ -272,6 +272,20 @@ export const SHEET_RATING_FILTER_OPTIONS = [
   { value: 4.9, label: 'от 4.9' },
 ] as const;
 
+export const SHEET_VISIT_FILTER_OPTIONS = [
+  { value: 'any', label: 'Любой' },
+  { value: 'studio', label: 'В салоне' },
+  { value: 'at_home', label: 'На дому' },
+] as const;
+
+export const SHEET_DURATION_FILTER_OPTIONS = [
+  { value: 'any', label: 'Любая' },
+  { value: 'under30', label: 'До 30 мин' },
+  { value: '30_60', label: '30–60 мин' },
+  { value: '60_120', label: '1–2 ч' },
+  { value: 'over120', label: 'От 2 ч' },
+] as const;
+
 export const VISIT_FILTER_OPTIONS = [
   { value: 'any', label: 'Все', icon: HiSparkles },
   { value: 'studio', label: 'Салон', icon: HiBuildingStorefront },

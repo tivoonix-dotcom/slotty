@@ -19,7 +19,7 @@ const catalogFilterSectionClass = 'rounded-[16px] bg-white p-4 sm:p-5';
 function catalogFilterSegmentClass(active: boolean): string {
   return `relative z-[1] min-h-10 shrink-0 rounded-[10px] px-3.5 text-[13px] font-semibold transition active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F47C8C]/35 sm:text-[14px] ${
     active
-      ? 'bg-[#F47C8C] text-white shadow-sm'
+      ? 'bg-[#F47C8C] text-white'
       : 'bg-white text-[#374151] ring-1 ring-[#EAECEF]'
   }`;
 }

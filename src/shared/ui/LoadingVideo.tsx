@@ -1,73 +1,33 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { LOADING_VIDEO_SRC, LOADING_VIDEO_SRC_FALLBACK } from './loadingVideoSrc';
-
-/** Быстрее цикл анимации (выше = «чаще» повторяется движение). */
-const LOADING_PLAYBACK_RATE = 1.85;
+import { type ReactNode } from 'react';
 
 const SIZE_CLASS = {
-  sm: 'h-24 w-24',
-  md: 'h-44 w-44',
-  lg: 'h-64 w-64',
-  xl: 'h-[min(22rem,72vw)] w-[min(22rem,72vw)]',
+  sm: 'h-8 w-8 border-2',
+  md: 'h-10 w-10 border-2',
+  lg: 'h-12 w-12 border-[3px]',
+  xl: 'h-14 w-14 border-[3px]',
 } as const;
-
-const VIDEO_ROUNDED = 'overflow-hidden rounded-[26px]';
 
 type Size = keyof typeof SIZE_CLASS;
 
 type LoadingVideoProps = {
   size?: Size;
-  /** Видимая подпись — только если нужен контекст; по умолчанию только видео. */
+  /** Видимая подпись — только если нужен контекст; по умолчанию только анимация. */
   label?: string;
   className?: string;
 };
 
 export function LoadingVideo({ size = 'md', label, className = '' }: LoadingVideoProps) {
-  const [src, setSrc] = useState(LOADING_VIDEO_SRC);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const applyRate = () => {
-      video.playbackRate = LOADING_PLAYBACK_RATE;
-    };
-
-    applyRate();
-    video.addEventListener('loadedmetadata', applyRate);
-    return () => video.removeEventListener('loadedmetadata', applyRate);
-  }, [src]);
-
   return (
     <div
-      className={`mx-auto flex w-full max-w-full flex-col items-center justify-center gap-4 ${className}`.trim()}
+      className={`mx-auto flex flex-col items-center justify-center gap-3 ${className}`.trim()}
       role="status"
       aria-live="polite"
       aria-busy="true"
     >
       <div
-        className={`${SIZE_CLASS[size]} ${VIDEO_ROUNDED} shrink-0 shadow-[0_8px_28px_rgba(17,24,39,0.08)] ring-1 ring-[#F3F4F6]`}
-      >
-        <video
-          ref={videoRef}
-          key={src}
-          src={src}
-          autoPlay
-          loop
-          muted
-          playsInline
-          disablePictureInPicture
-          preload="auto"
-          className="h-full w-full object-cover"
-          aria-hidden
-          onError={() => {
-            setSrc((current) =>
-              current === LOADING_VIDEO_SRC ? LOADING_VIDEO_SRC_FALLBACK : current,
-            );
-          }}
-        />
-      </div>
+        className={`${SIZE_CLASS[size]} animate-spin rounded-full border-[#F47C8C] border-t-transparent`}
+        aria-hidden
+      />
       {label ? (
         <p className="max-w-[18rem] text-center text-[13px] font-medium leading-snug text-[#9CA3AF]">
           {label}
@@ -89,7 +49,7 @@ type LoadingScreenProps = {
 export function LoadingScreen({ label, className = '', children }: LoadingScreenProps) {
   return (
     <div
-      className={`flex min-h-dvh w-full flex-col items-center justify-center bg-white px-4 py-12 ${className}`}
+      className={`fixed inset-0 z-[120] flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-[#F1EFEF] px-4 py-12 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] ${className}`}
     >
       <LoadingVideo size="xl" label={label} />
       {children}
@@ -110,9 +70,7 @@ export function LoadingPanel({
   minHeight = 'min-h-[18rem]',
 }: LoadingPanelProps) {
   return (
-    <div
-      className={`flex w-full ${minHeight} items-center justify-center rounded-[24px] border border-[#F3F4F6] bg-white p-8 shadow-[0_8px_28px_rgba(17,24,39,0.04)] ${className}`}
-    >
+    <div className={`flex w-full ${minHeight} items-center justify-center ${className}`}>
       <LoadingVideo size="lg" label={label} />
     </div>
   );

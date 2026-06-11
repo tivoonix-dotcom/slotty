@@ -6,29 +6,53 @@ import {
   HiChevronRight,
   HiClock,
   HiEye,
+  HiMapPin,
   HiStar,
-  HiUserGroup,
   HiWallet,
 } from 'react-icons/hi2';
 import { getBookingPath, getMasterPath } from '../../../app/paths';
+import { recordCatalogListingView } from '../../../features/services/api/catalogListingsApi';
 import type { AggregatedServiceCard } from '../lib/aggregateServices';
 import {
   formatDurationMinutes,
   formatPriceFrom,
-  formatReviewsCountLabel,
+  formatReviewsCountCompact,
+  formatServiceCardCategoryLabel,
+  formatServiceCardMetaLocationLine,
   formatSlotCardSubline,
   formatWeeklyViewsLabel,
 } from '../lib/catalogFormat';
-import { getCatalogServicePhotoUrl } from '../../../features/catalog/catalogServicePhotos';
+import { formatServiceCardRatingDisplay } from '../lib/catalogDisplaySanitize';
+import {
+  formatServicePopularityHint,
+  resolveGridChoiceBadge,
+  resolveServiceInlineBadges,
+  resolveServicePhotoBadge,
+  resolveServiceCardCtaLabel,
+  resolveServiceCardGridCtaLabel,
+} from '../lib/serviceCardPresentation';
+import { getServiceImage } from '../../../features/catalog/catalogServicePhotos';
+import { serviceCoverImageStyle } from '../../../features/catalog/serviceCoverPresentation';
+import {
+  MASTER_ACHIEVEMENTS_EMPTY_ART,
+  resolveMasterAchievementArt,
+} from '../lib/masterAchievementAssets';
+import type { MasterTopAchievementKind } from '../lib/resolveMasterTopRankStatus';
 
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
+import { MasterCardPortrait } from './MasterCardPortrait';
+import { ServiceBadge, ServicePhotoBadge } from './ServiceBadge';
+import { ServiceCardBookingAside } from './ServiceCardBookingAside';
 import {
+  catalogDesktopSectionLabel,
   catalogInnerDivider,
   catalogListCardClass,
   catalogPanelRowClass,
   catalogPanelRowPad,
+  catalogGridCardClass,
   catalogPrimaryBtn,
   catalogSecondaryBtn,
+  catalogServiceCardClass,
 } from '../servicesCatalog/servicesCatalogTheme';
 
 type Props = {
@@ -37,6 +61,8 @@ type Props = {
   layout?: 'stack' | 'grid' | 'wide';
   /** row — строка внутри общей белой панели (OKX); card — отдельная карточка */
   surface?: 'card' | 'row';
+  /** compact — 2 колонки mobile; comfortable — 3 колонки desktop */
+  density?: 'compact' | 'comfortable';
 };
 
 function StatRow({
@@ -63,23 +89,8 @@ function StatRow({
   );
 }
 
-type BadgeTone = 'popular' | 'hit' | 'promo';
-
-function ServiceCardBadge({ label, tone }: { label: string; tone: BadgeTone }) {
-  const toneClass =
-    tone === 'hit'
-      ? 'bg-[#7C3AED]'
-      : tone === 'popular'
-        ? 'bg-[#111827]/85'
-        : 'bg-[#F47C8C]';
-
-  return (
-    <span
-      className={`inline-flex items-center rounded-[8px] px-2.5 py-1 text-[11px] font-semibold leading-none text-white shadow-[0_2px_8px_rgba(17,24,39,0.14)] ${toneClass}`}
-    >
-      {label}
-    </span>
-  );
+function ServiceCardBadge({ label }: { label: string }) {
+  return <ServicePhotoBadge>{label}</ServicePhotoBadge>;
 }
 
 function serviceCardHref(service: AggregatedServiceCard): string {
@@ -97,27 +108,448 @@ function serviceCardHref(service: AggregatedServiceCard): string {
   return getMasterPath(service.id);
 }
 
+function recordListingView(service: AggregatedServiceCard) {
+  void recordCatalogListingView({
+    masterId: service.masterId,
+    serviceId: service.primaryServiceId ?? null,
+  }).catch(() => undefined);
+}
+
 function serviceCardPhoto(service: AggregatedServiceCard): string {
-  if (service.serviceCoverUrl?.trim()) return service.serviceCoverUrl.trim();
-  return getCatalogServicePhotoUrl(
-    service.categoryCode || service.categoryName || service.title,
+  return getServiceImage({
+    serviceCoverUrl: service.serviceCoverUrl,
+    categoryCode: service.categoryCode,
+    categoryName: service.categoryName,
+    title: service.title,
+    serviceId: service.id,
+    masterId: service.masterId,
+  });
+}
+
+function serviceCardPhotoStyle(service: AggregatedServiceCard) {
+  return serviceCoverImageStyle({
+    focalX: service.serviceCoverFocalX,
+    focalY: service.serviceCoverFocalY,
+  });
+}
+
+const wideStatChipClass =
+  'inline-flex shrink-0 items-center gap-1.5 rounded-[8px] bg-[#F5F5F5] px-2.5 py-1 text-[12px] font-medium text-[#6B7280]';
+
+const wideCardCategoryClass =
+  'text-[14px] font-semibold leading-none text-[#8E8E93]';
+
+const wideCardTitleClass =
+  'text-[20px] font-bold leading-[1.2] tracking-[-0.025em] text-[#111827] lg:text-[22px]';
+
+function ServiceCardRatingReviews({
+  avgRating,
+  totalReviews,
+  size = 'wide',
+}: {
+  avgRating: number;
+  totalReviews: number;
+  size?: 'wide' | 'compact' | 'meta';
+}) {
+  const display = formatServiceCardRatingDisplay(avgRating, totalReviews);
+  const starSize =
+    size === 'wide' ? 'h-4 w-4' : size === 'meta' ? 'h-4 w-4' : 'h-3.5 w-3.5';
+  const ratingTextSize =
+    size === 'wide'
+      ? 'text-[16px]'
+      : size === 'meta'
+        ? 'text-[15px]'
+        : 'text-[11px] sm:text-[12px]';
+  const reviewsTextSize =
+    size === 'wide' ? 'text-[13px]' : size === 'meta' ? 'text-[13px]' : 'text-[11px]';
+
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+      {display.showRating && display.ratingText ? (
+        <span
+          className={`inline-flex items-center gap-1 font-extrabold leading-none text-[#D97706] tabular-nums ${ratingTextSize}`}
+        >
+          <HiStar className={`${starSize} shrink-0 text-[#F59E0B]`} aria-hidden />
+          {display.ratingText}
+        </span>
+      ) : null}
+      <span
+        className={`font-medium tabular-nums ${reviewsTextSize} ${
+          display.isNewMaster ? 'text-[#8E8E93]' : 'text-[#6B7280]'
+        }`}
+      >
+        {display.reviewsText}
+      </span>
+    </span>
   );
 }
 
-function serviceBadgeMeta(service: AggregatedServiceCard, showPromo: boolean) {
-  if (service.badge === 'hit') {
-    return { label: 'Топ выбор', tone: 'hit' as const };
-  }
-  if (service.badge === 'popular') {
-    return { label: 'Популярно', tone: 'popular' as const };
-  }
-  if (showPromo) {
-    return { label: 'Акция', tone: 'promo' as const };
-  }
-  return null;
+function ServiceCardGridChoiceBadge({
+  label,
+  tone = 'slotty',
+  density = 'compact',
+}: {
+  label: string;
+  tone?: 'today' | 'slotty' | 'promo';
+  density?: 'compact' | 'comfortable';
+}) {
+  const toneClass =
+    tone === 'today'
+      ? 'bg-[#22C55E]'
+      : tone === 'promo'
+        ? 'bg-[#F59E0B]'
+        : 'bg-[#F47C8C]';
+
+  return (
+    <span
+      className={`inline-flex max-w-full shrink-0 items-center rounded-full px-2.5 py-1 font-bold leading-none text-white shadow-[0_2px_8px_rgba(17,24,39,0.18)] ${
+        density === 'comfortable' ? 'text-[11px] sm:text-[12px]' : 'text-[10px] sm:text-[11px]'
+      } ${toneClass}`}
+    >
+      {label}
+    </span>
+  );
 }
 
-export function ServiceCard({ service, layout = 'stack', surface = 'card' }: Props) {
+function ServiceCardGridRatingBlock({
+  avgRating,
+  totalReviews,
+  density = 'compact',
+  className = '',
+}: {
+  avgRating: number;
+  totalReviews: number;
+  density?: 'compact' | 'comfortable';
+  className?: string;
+}) {
+  const display = formatServiceCardRatingDisplay(avgRating, totalReviews);
+  const reviews = Math.max(0, Math.floor(totalReviews));
+  const starSize = density === 'comfortable' ? 'h-3.5 w-3.5' : 'h-3 w-3';
+  const ratingSize = density === 'comfortable' ? 'text-[13px]' : 'text-[12px]';
+  const reviewsLabel =
+    reviews > 0 ? formatReviewsCountCompact(reviews) : display.reviewsText;
+
+  return (
+    <div className={`flex shrink-0 items-center leading-none ${className}`}>
+      <span className="inline-flex items-center gap-1 tabular-nums">
+        {display.showRating && display.ratingText ? (
+          <>
+            <HiStar className={`shrink-0 text-[#F59E0B] ${starSize}`} aria-hidden />
+            <span className={`font-bold text-[#111827] ${ratingSize}`}>{display.ratingText}</span>
+          </>
+        ) : null}
+        <span
+          className={`font-medium ${ratingSize} ${
+            display.isNewMaster ? 'text-[#8E8E93]' : 'text-[#6B7280]'
+          }`}
+        >
+          {reviewsLabel}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+function ServiceCardGridAchievements({
+  service,
+  density = 'compact',
+  className = '',
+}: {
+  service: AggregatedServiceCard;
+  density?: 'compact' | 'comfortable';
+  className?: string;
+}) {
+  const ids = service.achievementIds ?? [];
+  if (ids.length === 0) return null;
+  const maxIcons = density === 'comfortable' ? 3 : 2;
+  const visibleIds = ids.slice(0, maxIcons);
+
+  return (
+    <div
+      className={`flex min-w-0 flex-nowrap items-center overflow-hidden ${
+        density === 'comfortable' ? 'gap-1.5' : 'gap-0.5'
+      } ${className}`}
+    >
+      {visibleIds.map((kind, index) => (
+        <ServiceCardAchievementImage
+          key={`${kind}-${index}`}
+          kind={kind}
+          title={service.achievementLabels[index] ?? ''}
+          size="xs"
+        />
+      ))}
+    </div>
+  );
+}
+
+function ServiceCardGridMetaLines({
+  service,
+  density = 'compact',
+}: {
+  service: AggregatedServiceCard;
+  density?: 'compact' | 'comfortable';
+}) {
+  const slotLine = formatSlotCardSubline(service.nearestSlotIso);
+  const locationLine = formatServiceCardMetaLocationLine({
+    locationLabel: service.locationLabel,
+    visitLabel: service.visitLabel,
+    distanceKm: service.distanceKm,
+  });
+  const textSize = density === 'comfortable' ? 'text-[11px] sm:text-[12px]' : 'text-[10px] sm:text-[11px]';
+  const iconSize = density === 'comfortable' ? 'h-3.5 w-3.5' : 'h-3 w-3';
+  const lineClass = `inline-flex min-w-0 max-w-full items-center gap-1 font-medium leading-tight ${textSize}`;
+
+  return (
+    <div className={`flex flex-col gap-0.5 ${density === 'comfortable' ? 'mb-2' : 'mb-1.5'}`}>
+      {locationLine ? (
+        <p className={`${lineClass} text-[#8E8E93]`}>
+          <HiMapPin className={`shrink-0 ${iconSize}`} aria-hidden />
+          <span className="truncate">{locationLine}</span>
+        </p>
+      ) : null}
+      <p className={lineClass}>
+        <HiCalendarDays className={`shrink-0 ${iconSize} text-[#9CA3AF]`} aria-hidden />
+        <span
+          className={`truncate ${
+            slotLine
+              ? service.hasToday
+                ? 'font-semibold text-[#F47C8C]'
+                : 'text-[#374151]'
+              : 'text-[#8E8E93]'
+          }`}
+        >
+          {slotLine ?? EMPTY_SLOT}
+        </span>
+      </p>
+      {service.weeklyViews >= 1 ? (
+        <p className={`${lineClass} text-[#8E8E93]`}>
+          <HiEye className={`shrink-0 ${iconSize}`} aria-hidden />
+          <span className="truncate">{formatWeeklyViewsLabel(service.weeklyViews)}</span>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ServiceCardGridMasterFooter({
+  service,
+  density = 'compact',
+}: {
+  service: AggregatedServiceCard;
+  density?: 'compact' | 'comfortable';
+}) {
+  const hasAchievements = (service.achievementIds?.length ?? 0) > 0;
+  const avatarClass =
+    density === 'comfortable' ? 'relative h-8 w-8 shrink-0' : 'relative h-7 w-7 shrink-0';
+  const nameClass =
+    density === 'comfortable'
+      ? 'line-clamp-1 text-[12px] font-semibold leading-tight text-[#111827]'
+      : 'line-clamp-1 text-[11px] font-semibold leading-tight text-[#111827]';
+
+  return (
+    <div className={`mt-auto flex items-center gap-2 ${density === 'comfortable' ? 'pt-2.5' : 'pt-2'}`}>
+      <MasterCardPortrait
+        masterName={service.masterName}
+        photoUrl={service.photoUrl}
+        className={avatarClass}
+        imageClassName="h-full w-full rounded-full object-cover"
+        photoMaxEdge={density === 'comfortable' ? 64 : 56}
+      />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex min-w-0 items-center justify-between gap-1">
+          <p className={`${nameClass} min-w-0 flex-1`}>{service.masterName}</p>
+          <ServiceCardGridRatingBlock
+            avgRating={service.avgRating}
+            totalReviews={service.totalReviews}
+            density={density}
+            className="shrink-0"
+          />
+        </div>
+        {hasAchievements ? (
+          <ServiceCardGridAchievements service={service} density={density} />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ServiceCardGridPhotoCta({ label, hasSlot }: { label: string; hasSlot: boolean }) {
+  return (
+    <span className="pointer-events-none absolute bottom-2 right-2 z-10">
+      <span
+        className={`service-card-photo-cta ${
+          hasSlot ? 'service-card-photo-cta--primary' : 'service-card-photo-cta--muted'
+        }`}
+      >
+        <span className="service-card-photo-cta__beam" aria-hidden />
+        <span className="service-card-photo-cta__inner">{label}</span>
+      </span>
+    </span>
+  );
+}
+
+function ServiceCardGridMarketplace({
+  service,
+  href,
+  photo,
+  photoBadge,
+  hasSlot,
+  density = 'compact',
+}: {
+  service: AggregatedServiceCard;
+  href: string;
+  photo: string;
+  photoBadge: string | null;
+  hasSlot: boolean;
+  density?: 'compact' | 'comfortable';
+}) {
+  const priceLabel = service.minPrice > 0 ? formatPriceFrom(service.minPrice) : EMPTY_PRICE;
+  const choiceBadge = resolveGridChoiceBadge(service);
+  const isComfortable = density === 'comfortable';
+
+  const bodyPad = isComfortable ? 'px-2.5 pb-3 pt-2 sm:px-3 sm:pb-3.5' : 'px-2 pb-2.5 pt-1.5 sm:px-2.5 sm:pb-3';
+
+  return (
+    <Link
+      to={href}
+      onClick={() => recordListingView(service)}
+      className={`group flex h-full w-full min-w-0 flex-col overflow-hidden ${catalogGridCardClass}`}
+    >
+      <div className="relative aspect-[4/3] w-full shrink-0 bg-[#F3F4F6]">
+        <div className="absolute inset-0 overflow-hidden">
+          <ImageReveal
+            src={photo}
+            alt=""
+            className="h-full w-full object-cover"
+            style={serviceCardPhotoStyle(service)}
+            loading="lazy"
+          />
+        </div>
+        {photoBadge ? (
+          <span className="pointer-events-none absolute left-2 top-2 z-10">
+            <ServiceCardBadge label={photoBadge} />
+          </span>
+        ) : null}
+        {choiceBadge ? (
+          <span className="pointer-events-none absolute bottom-2 left-2 z-10 max-w-[calc(100%-5.5rem)]">
+            <ServiceCardGridChoiceBadge
+              label={choiceBadge.label}
+              tone={choiceBadge.tone}
+              density={density}
+            />
+          </span>
+        ) : null}
+        <ServiceCardGridPhotoCta
+          label={resolveServiceCardGridCtaLabel(hasSlot)}
+          hasSlot={hasSlot}
+        />
+      </div>
+
+      <div className={`flex min-h-0 flex-1 flex-col ${bodyPad}`}>
+        <h3
+          className={`line-clamp-2 leading-[1.25] text-[#111827] ${
+            isComfortable
+              ? 'text-[14px] font-medium sm:text-[15px]'
+              : 'text-[13px] font-medium'
+          }`}
+        >
+          {service.title}
+        </h3>
+
+        <p
+          className={`mt-1.5 text-right font-extrabold leading-none tracking-[-0.03em] text-[#111827] tabular-nums ${
+            isComfortable ? 'text-[20px] sm:text-[21px]' : 'text-[17px] sm:text-[18px]'
+          }`}
+        >
+          {priceLabel}
+        </p>
+
+        <ServiceCardGridMetaLines service={service} density={density} />
+
+        <ServiceCardGridMasterFooter service={service} density={density} />
+      </div>
+    </Link>
+  );
+}
+
+function ServiceCardAchievementImage({
+  kind,
+  title,
+  size = 'md',
+}: {
+  kind: MasterTopAchievementKind;
+  title: string;
+  size?: 'xs' | 'sm' | 'md';
+}) {
+  const artSrc = resolveMasterAchievementArt(kind, title);
+
+  return (
+    <img
+      src={artSrc}
+      alt={title}
+      title={title}
+      loading="lazy"
+      decoding="async"
+      onError={(event) => {
+        const img = event.currentTarget;
+        if (img.dataset.fallback) return;
+        img.dataset.fallback = '1';
+        img.src = MASTER_ACHIEVEMENTS_EMPTY_ART;
+      }}
+      className={
+        size === 'xs'
+          ? 'h-[18px] w-auto max-w-[52px] shrink-0 object-contain object-center sm:h-5 sm:max-w-[58px]'
+          : size === 'sm'
+            ? 'h-8 w-auto max-w-[96px] shrink-0 object-contain object-center'
+            : 'h-11 w-auto max-w-[128px] shrink-0 object-contain object-center sm:h-12 sm:max-w-[140px]'
+      }
+    />
+  );
+}
+
+function ServiceCardInlineBadgesRow({
+  service,
+  showPromo,
+  hasSlot,
+  badgeSize = 'sm',
+}: {
+  service: AggregatedServiceCard;
+  showPromo: boolean;
+  hasSlot: boolean;
+  badgeSize?: 'sm' | 'md';
+}) {
+  const badges = resolveServiceInlineBadges(service, { showPromo, hasSlot });
+  const achievementIds = service.achievementIds ?? [];
+  const hasAchievements = achievementIds.length > 0;
+  if (!hasAchievements && badges.length === 0) return null;
+
+  return (
+    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+      {achievementIds.map((kind, index) => (
+        <ServiceCardAchievementImage
+          key={`${kind}-${index}`}
+          kind={kind}
+          title={service.achievementLabels[index] ?? ''}
+          size={badgeSize}
+        />
+      ))}
+      {badges.map((badge) => (
+        <ServiceBadge key={badge.id} variant={badge.variant} size={badgeSize}>
+          {badge.label}
+        </ServiceBadge>
+      ))}
+    </div>
+  );
+}
+
+function servicePhotoBadgeLabel(
+  service: AggregatedServiceCard,
+  showPromo: boolean,
+): string | null {
+  return resolveServicePhotoBadge(service, showPromo);
+}
+
+export function ServiceCard({ service, layout = 'stack', surface = 'card', density = 'compact' }: Props) {
   const href = serviceCardHref(service);
   const photo = serviceCardPhoto(service);
   const slotLine = formatSlotCardSubline(service.nearestSlotIso);
@@ -131,15 +563,24 @@ export function ServiceCard({ service, layout = 'stack', surface = 'card' }: Pro
     return (
       <Link
         to={href}
+        onClick={() => recordListingView(service)}
         className={`group ${catalogPanelRowClass} ${catalogPanelRowPad}`}
       >
         <div className="flex items-center gap-4 lg:gap-5">
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[10px] bg-[#EBEBEB] lg:h-14 lg:w-14">
-            <ImageReveal src={photo} alt="" className="h-full w-full object-cover" loading="lazy" />
+            <ImageReveal
+              src={photo}
+              alt=""
+              className="h-full w-full object-cover"
+              style={serviceCardPhotoStyle(service)}
+              loading="lazy"
+            />
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] text-[#8E8E93]">{service.categoryName}</p>
+            <p className={catalogDesktopSectionLabel}>
+              {formatServiceCardCategoryLabel(service.categoryName, service.categoryCode)}
+            </p>
             <h3 className="mt-0.5 text-[16px] font-bold leading-snug text-[#111827] lg:text-[17px]">
               {service.title}
             </h3>
@@ -168,7 +609,7 @@ export function ServiceCard({ service, layout = 'stack', surface = 'card' }: Pro
           </div>
 
           <HiChevronRight
-            className="h-5 w-5 shrink-0 text-[#C7C7CC] transition group-hover:text-[#111827]"
+            className="h-5 w-5 shrink-0 text-[#C7C7CC]"
             aria-hidden
           />
         </div>
@@ -177,200 +618,113 @@ export function ServiceCard({ service, layout = 'stack', surface = 'card' }: Pro
   }
 
   if (isWide) {
-    const badgeMeta = serviceBadgeMeta(service, showPromo);
+    const photoBadge = servicePhotoBadgeLabel(service, showPromo);
+    const priceLabel =
+      service.minPrice > 0 ? formatPriceFrom(service.minPrice) : EMPTY_PRICE;
+    const popularityHint = formatServicePopularityHint(service);
 
     return (
       <Link
         to={href}
-        className={`group relative flex w-full ${catalogListCardClass} lg:min-h-[148px] lg:flex-row`}
+        onClick={() => recordListingView(service)}
+        className={`group relative flex w-full flex-col ${catalogServiceCardClass} lg:min-h-[148px] lg:grid lg:grid-cols-[176px_minmax(0,1fr)_200px] lg:items-stretch`}
       >
-        <div className="relative h-44 w-full shrink-0 overflow-hidden bg-[#EBEBEB] lg:h-auto lg:w-[168px] lg:min-h-[148px]">
+        <div className="relative h-36 w-full shrink-0 overflow-hidden bg-[#EBEBEB] lg:h-full lg:min-h-[148px]">
           <ImageReveal
             src={photo}
             alt=""
-            className="h-full min-h-[176px] w-full object-cover transition duration-300 group-hover:scale-[1.01] lg:min-h-[148px]"
+            className="h-full w-full object-cover"
+            style={serviceCardPhotoStyle(service)}
             loading="lazy"
           />
-          {badgeMeta ? (
+          {photoBadge ? (
             <span className="pointer-events-none absolute left-2 top-2 z-10">
-              <ServiceCardBadge label={badgeMeta.label} tone={badgeMeta.tone} />
+              <ServiceCardBadge label={photoBadge} />
             </span>
           ) : null}
         </div>
 
-        <div className="relative flex min-w-0 flex-1 flex-col p-5 lg:min-h-[148px] lg:p-4 lg:pr-[184px]">
-          <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-medium text-[#8E8E93]">{service.categoryName}</p>
-            <h3 className="mt-1 text-[18px] font-bold leading-snug tracking-[-0.02em] text-[#111827]">
-              {service.title}
-            </h3>
-            <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-[#8E8E93] lg:hidden">
-              {service.masterName}
+        <div className="flex min-w-0 flex-col justify-center gap-2 p-3.5 lg:gap-2.5 lg:px-5 lg:py-3.5">
+          <div className="min-w-0 space-y-1">
+            <p className={wideCardCategoryClass}>
+              {formatServiceCardCategoryLabel(service.categoryName, service.categoryCode)}
             </p>
-            {service.tags.length > 0 ? (
-              <div className="mt-2 hidden flex-wrap gap-1.5 lg:flex">
-                {service.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-[8px] bg-[#F5F5F5] px-2.5 py-1 text-[12px] font-medium text-[#6B7280]"
-                  >
-                    {tag}
-                  </span>
-                ))}
+            <h3 className={wideCardTitleClass}>{service.title}</h3>
+          </div>
+
+          <div className="flex min-w-0 items-center gap-2.5">
+            <MasterCardPortrait
+              masterName={service.masterName}
+              photoUrl={service.photoUrl}
+              className="relative h-10 w-10 shrink-0"
+              imageClassName="h-full w-full rounded-full object-cover ring-2 ring-white"
+              photoMaxEdge={80}
+            />
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-bold text-[#111827]">{service.masterName}</p>
+              <div className="mt-0.5">
+                <ServiceCardRatingReviews
+                  avgRating={service.avgRating}
+                  totalReviews={service.totalReviews}
+                  size="meta"
+                />
               </div>
-            ) : null}
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-medium text-[#374151]">
-              {service.avgRating > 0 ? (
-                <span className="inline-flex items-center gap-1">
-                  <HiStar className="h-4 w-4 text-[#F59E0B]" aria-hidden />
-                  {service.avgRating.toFixed(1)}
-                </span>
-              ) : null}
-              {service.masterName ? (
-                <span className="inline-flex items-center gap-1">
-                  <HiUserGroup className="h-4 w-4 text-[#9CA3AF]" aria-hidden />
-                  {service.masterName}
-                </span>
-              ) : null}
-              <span className="inline-flex items-center gap-1">
-                <HiEye className="h-4 w-4 text-[#9CA3AF]" aria-hidden />
-                {formatWeeklyViewsLabel(service.weeklyViews)}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <HiClock className="h-4 w-4 text-[#9CA3AF]" aria-hidden />
-                {formatDurationMinutes(service.durationMinutes)}
-              </span>
-              <span className="inline-flex items-center gap-1 font-semibold text-[#111827]">
-                {service.minPrice > 0 ? formatPriceFrom(service.minPrice) : 'Цена по запросу'}
-              </span>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {showPromo ? (
-                <span className="rounded-[8px] bg-[#FFF1F4] px-2.5 py-1 text-[12px] font-semibold text-[#F47C8C]">
-                  Акция {service.promoText ?? '-10%'}
-                </span>
-              ) : null}
-              {hasSlot ? (
-                <span className="rounded-[8px] bg-[#ECFDF5] px-2.5 py-1 text-[12px] font-semibold text-[#15803D]">
-                  Бесплатная отмена
-                </span>
-              ) : null}
             </div>
           </div>
 
-          <div className="mt-3 flex w-full flex-col items-stretch gap-2 lg:absolute lg:bottom-4 lg:right-4 lg:mt-0 lg:w-[168px]">
-            <div className="w-full rounded-[10px] bg-[#F5F5F5] px-3 py-2">
-              <p className="text-[11px] font-medium text-[#8E8E93]">Ближайшее окно</p>
-              <p
-                className={`mt-0.5 text-[13px] font-semibold leading-snug ${hasSlot ? 'text-[#111827]' : 'text-[#8E8E93]'}`}
-              >
-                {hasSlot ? slotLine : 'Уточните у мастера'}
-              </p>
-            </div>
-            <span className={`${hasSlot ? catalogPrimaryBtn : catalogSecondaryBtn} w-full !min-h-9 !text-[13px]`}>
-              {hasSlot ? 'Записаться' : 'К мастеру'}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={wideStatChipClass}>
+              <HiClock className="h-3.5 w-3.5 text-[#9CA3AF]" aria-hidden />
+              {formatDurationMinutes(service.durationMinutes)}
             </span>
+            {service.visitLabel ? (
+              <span className={wideStatChipClass}>{service.visitLabel}</span>
+            ) : null}
+            {service.locationLabel ? (
+              <span className={`${wideStatChipClass} max-w-full`}>
+                <HiMapPin className="h-3.5 w-3.5 shrink-0 text-[#9CA3AF]" aria-hidden />
+                <span className="truncate">{service.locationLabel}</span>
+              </span>
+            ) : null}
+            {popularityHint ? (
+              <span className={`${wideStatChipClass} bg-[#FFF1F4] text-[13px] font-semibold text-[#F47C8C]`}>
+                {popularityHint}
+              </span>
+            ) : null}
           </div>
+
+          <ServiceCardInlineBadgesRow service={service} showPromo={showPromo} hasSlot={hasSlot} badgeSize="md" />
         </div>
+
+        <ServiceCardBookingAside
+          priceLabel={priceLabel}
+          hasSlot={hasSlot}
+          slotLine={hasSlot ? slotLine : null}
+        />
       </Link>
     );
   }
 
   if (isGrid) {
-    const badgeMeta = serviceBadgeMeta(service, showPromo);
-    const priceLabel =
-      service.minPrice > 0 ? formatPriceFrom(service.minPrice) : EMPTY_PRICE;
-    const slotCta = service.hasToday
-      ? 'Сегодня'
-      : hasSlot && slotLine?.toLowerCase().startsWith('завтра')
-        ? 'Завтра'
-        : hasSlot
-          ? 'Есть окно'
-          : 'Выбрать мастера';
-    const masterLabel = service.masterName || null;
-    const durationLabel = formatDurationMinutes(service.durationMinutes);
+    const photoBadge = servicePhotoBadgeLabel(service, showPromo);
 
     return (
-      <Link
-        to={href}
-        className={`group relative flex flex-col overflow-hidden ${catalogListCardClass} active:scale-[0.98]`}
-      >
-        <div className="relative aspect-[5/6] w-full shrink-0 overflow-hidden bg-[#EBEBEB]">
-          <ImageReveal
-            src={photo}
-            alt=""
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-            loading="lazy"
-          />
-          {badgeMeta ? (
-            <span className="pointer-events-none absolute left-2 top-2 z-10">
-              <ServiceCardBadge label={badgeMeta.label} tone={badgeMeta.tone} />
-            </span>
-          ) : null}
-        </div>
-
-        <div className="flex flex-col gap-1.5 p-2.5 pt-2">
-          <p className="shrink-0 text-[17px] font-bold leading-none tracking-[-0.02em] text-[#F47C8C] tabular-nums">
-            {priceLabel}
-          </p>
-
-          <div className="min-w-0 shrink-0 space-y-0.5">
-            <h3 className="line-clamp-2 text-[12px] font-bold leading-snug text-[#111827]">
-              {service.title}
-            </h3>
-            <p className="line-clamp-1 text-[12px] font-medium leading-[1.4] text-[#8E8E93]">
-              {masterLabel ?? service.categoryName}
-            </p>
-          </div>
-
-          <div className="flex shrink-0 flex-wrap items-center gap-x-1 gap-y-0.5 text-[11px] font-medium">
-            {service.avgRating > 0 ? (
-              <span className="inline-flex items-center gap-0.5 text-[#111827]">
-                <HiStar className="h-3 w-3 shrink-0 text-[#F59E0B]" aria-hidden />
-                {service.avgRating.toFixed(1).replace('.', ',')}
-                {service.totalReviews > 0 ? (
-                  <span className="text-[#8E8E93]">
-                    · {formatReviewsCountLabel(service.totalReviews)}
-                  </span>
-                ) : null}
-              </span>
-            ) : service.isNew ? (
-              <span className="text-[#F47C8C]">Новинка</span>
-            ) : (
-              <span className="text-[#8E8E93]">Пока без отзывов</span>
-            )}
-          </div>
-
-          <p className="flex shrink-0 flex-wrap items-center gap-1 text-[10px] font-medium leading-none text-[#8E8E93]">
-            <span className="inline-flex items-center gap-0.5">
-              <HiClock className="h-3 w-3 shrink-0" aria-hidden />
-              {durationLabel}
-            </span>
-            {masterLabel ? (
-              <>
-                <span aria-hidden>·</span>
-                <span className="line-clamp-1 text-[#8E8E93]">{masterLabel}</span>
-              </>
-            ) : null}
-          </p>
-
-          <span
-            className={`${hasSlot ? catalogPrimaryBtn : catalogSecondaryBtn} mt-0.5 shrink-0 !min-h-8 w-full !rounded-full !px-2 !py-1.5 !text-[11px] !font-semibold`}
-          >
-            <span className="inline-flex items-center justify-center gap-1">
-              <HiCalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              {slotCta}
-            </span>
-          </span>
-        </div>
-      </Link>
+      <ServiceCardGridMarketplace
+        service={service}
+        href={href}
+        photo={photo}
+        photoBadge={photoBadge}
+        hasSlot={hasSlot}
+        density={density}
+      />
     );
   }
 
   return (
     <Link
       to={href}
-      className={`block w-full ${catalogListCardClass} active:scale-[0.99]`}
+      onClick={() => recordListingView(service)}
+      className={`block w-full ${catalogListCardClass}`}
     >
       <div className="p-4">
         <div className="flex gap-3.5">
@@ -379,6 +733,7 @@ export function ServiceCard({ service, layout = 'stack', surface = 'card' }: Pro
               src={photo}
               alt=""
               className="h-full w-full rounded-[20px] object-cover"
+              style={serviceCardPhotoStyle(service)}
               loading="lazy"
             />
             {showPopular ? (
@@ -396,7 +751,9 @@ export function ServiceCard({ service, layout = 'stack', surface = 'card' }: Pro
               {service.masterName}
             </p>
             {service.categoryName ? (
-              <p className="mt-2 text-[13px] font-medium text-[#9CA3AF]">{service.categoryName}</p>
+              <p className={`mt-2 ${catalogDesktopSectionLabel}`}>
+                {formatServiceCardCategoryLabel(service.categoryName, service.categoryCode)}
+              </p>
             ) : null}
           </div>
 
@@ -444,7 +801,7 @@ export function ServiceCard({ service, layout = 'stack', surface = 'card' }: Pro
               )}
             </div>
             <span className={hasSlot ? catalogPrimaryBtn : catalogSecondaryBtn}>
-              {hasSlot ? 'Записаться' : 'К мастеру'}
+              {resolveServiceCardCtaLabel(hasSlot)}
             </span>
           </div>
         </div>

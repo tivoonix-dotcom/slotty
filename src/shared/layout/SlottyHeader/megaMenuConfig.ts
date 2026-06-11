@@ -8,12 +8,12 @@ import {
   getMastersCatalogPath,
   getServiceCategoryPath,
   getServicesCatalogPath,
-  MASTERS_PATH,
+  MASTER_START_PATH,
   SERVICES_PATH,
 } from '../../../app/paths';
 import {
   landingHowTabHref,
-  landingMastersTabHref,
+  masterLandingAnchorHref,
   LANDING_ANCHOR_FOR_MASTERS,
   LANDING_ANCHOR_HOW,
   LANDING_ANCHOR_TARIFFS,
@@ -38,6 +38,8 @@ export type MegaMenuItem = {
   to?: string;
   anchor?: string;
   accent?: 'pink' | 'violet' | 'blue' | 'green' | 'orange';
+  /** Явная иконка строки (меню аккаунта). */
+  icon?: import('react-icons').IconType;
 };
 
 export type MegaMenuGroup = {
@@ -89,7 +91,7 @@ export const MEGA_MENU: Record<MegaMenuKey, MegaMenuGroup> = {
 
   masters: {
     label: 'Мастера',
-    to: MASTERS_PATH,
+    to: SERVICES_PATH,
     items: [
       {
         title: 'Топ рейтинг',
@@ -207,12 +209,14 @@ export const MEGA_MENU: Record<MegaMenuKey, MegaMenuGroup> = {
   mastersFor: {
     label: 'Для мастеров',
     anchor: LANDING_ANCHOR_FOR_MASTERS,
+    to: MASTER_START_PATH,
     items: [],
   },
 
   tariffs: {
     label: 'Тарифы',
     anchor: LANDING_ANCHOR_TARIFFS,
+    to: `${MASTER_START_PATH}#${LANDING_ANCHOR_TARIFFS}`,
     items: [
       {
         title: 'Free',
@@ -271,11 +275,11 @@ export function getMastersForMegaItems(isMasterUser: boolean): MegaMenuItem[] {
         ADMIN_OVERVIEW_PATH,
       ]
     : [
-        landingMastersTabHref(LANDING_MASTERS_TAB_PROFILE),
-        landingMastersTabHref(LANDING_MASTERS_TAB_APPOINTMENTS),
-        landingMastersTabHref(LANDING_MASTERS_TAB_SERVICES),
-        landingMastersTabHref(LANDING_MASTERS_TAB_SCHEDULE),
-        landingMastersTabHref(LANDING_MASTERS_TAB_OVERVIEW),
+        masterLandingAnchorHref(LANDING_MASTERS_TAB_PROFILE),
+        masterLandingAnchorHref(LANDING_MASTERS_TAB_APPOINTMENTS),
+        masterLandingAnchorHref(LANDING_MASTERS_TAB_SERVICES),
+        masterLandingAnchorHref(LANDING_MASTERS_TAB_SCHEDULE),
+        masterLandingAnchorHref(LANDING_MASTERS_TAB_OVERVIEW),
       ];
 
   return MASTERS_FOR_MEGA_META.map((item, index) => ({

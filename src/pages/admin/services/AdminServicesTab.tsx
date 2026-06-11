@@ -33,7 +33,7 @@ import { AdminTabContentTransition } from '../shared/AdminTabContentTransition';
 import { LoadingVideo } from '../../../shared/ui/LoadingVideo';
 import { managedServiceToClientPreview } from '../../../features/admin/lib/managedServiceToClientPreview';
 import { MasterServiceClientPreview } from '../../../features/profile/components/MasterServiceClientPreview';
-import { SERVICES_MOBILE_CANVAS, servicesShellCard } from './adminServicesTheme';
+import { SERVICES_MOBILE_CANVAS, SERVICES_TAB_BAR_SCROLL_PAD, servicesShellCard } from './adminServicesTheme';
 import { ServicesSectionTabs } from './ServicesSectionTabs';
 import { computeServicesTabMetrics } from './servicesTabMetrics';
 import { ServicesBundleFormSheet } from './ServicesBundleFormSheet';
@@ -68,6 +68,7 @@ import {
   type ServiceTemplate,
 } from '../../../constants/serviceTemplates';
 import { ServicesServiceFormFields } from './ServicesServiceFormFields';
+import type { ServiceCoverDraft } from './ServiceCoverFramingEditor';
 import { ServicesServiceSheet } from './ServicesServiceSheet';
 import { loadServiceBundles, loadServicePromotions, saveServiceBundles, saveServicePromotions } from './servicesStorage';
 import {
@@ -214,6 +215,8 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
   const [durationMin, setDurationMin] = useState(String(DEFAULT_SERVICE_DURATION_MIN));
   const [formError, setFormError] = useState<string | null>(null);
   const [templateHighlightId, setTemplateHighlightId] = useState<string | null>(null);
+  const [cover, setCover] = useState<ServiceCoverDraft | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
   const { busy: serviceActionBusy, run: runServiceAction } = useSingleFlight();
 
   const services = useMemo(
@@ -298,6 +301,8 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     setDurationMin(String(DEFAULT_SERVICE_DURATION_MIN));
     setFormError(null);
     setTemplateHighlightId(null);
+    setCover(null);
+    setCoverUploading(false);
   }, []);
 
   const loadServiceIntoForm = useCallback((service: ManagedService) => {
@@ -310,6 +315,16 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     setDurationMin(String(service.durationMin ?? DEFAULT_SERVICE_DURATION_MIN));
     setFormError(null);
     setTemplateHighlightId(null);
+    setCover(
+      service.imageUrl?.trim()
+        ? {
+            imageUrl: service.imageUrl.trim(),
+            focalX: service.coverFocalX ?? 50,
+            focalY: service.coverFocalY ?? 50,
+          }
+        : null,
+    );
+    setCoverUploading(false);
   }, []);
 
   const openCreate = useCallback(() => {
@@ -376,6 +391,22 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
       }
     }
 
+    if (!quickPrice) {
+      if (coverUploading) {
+        setFormError('Дождитесь окончания загрузки фото.');
+        return;
+      }
+      const coverUrl = cover?.imageUrl?.trim() ?? '';
+      if (!coverUrl || coverUrl.startsWith('blob:')) {
+        setFormError('Загрузите фото услуги — оно обязательно для каталога.');
+        return;
+      }
+      if (activeFlag && !coverUrl) {
+        setFormError('Без фото услугу нельзя показывать в каталоге.');
+        return;
+      }
+    }
+
     if (!editingId && freeServiceLimitReached) {
       setFormError('На тарифе Free можно не больше 3 услуг.');
       setFreeLimitOpen(true);
@@ -383,6 +414,10 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     }
 
     await runServiceAction(async () => {
+    const coverUrl = cover?.imageUrl?.trim() || existing?.imageUrl?.trim() || '';
+    const coverFocalX = cover?.focalX ?? existing?.coverFocalX ?? 50;
+    const coverFocalY = cover?.focalY ?? existing?.coverFocalY ?? 50;
+
     const nextService: ManagedService = {
       id: editingId ?? newServiceId(),
       title: preparedTitle,
@@ -394,6 +429,9 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
       sortOrder: editingId
         ? services.find((service) => service.id === editingId)?.sortOrder ?? services.length
         : services.length,
+      imageUrl: quickPrice ? existing?.imageUrl : coverUrl || undefined,
+      coverFocalX: quickPrice ? existing?.coverFocalX : coverFocalX,
+      coverFocalY: quickPrice ? existing?.coverFocalY : coverFocalY,
     };
 
     const nextServices = editingId
@@ -439,6 +477,13 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
           priceType: priceTypeValue,
           isActive: activeFlag,
           sortOrder: nextService.sortOrder ?? 0,
+          ...(quickPrice
+            ? {}
+            : {
+                coverImageUrl: coverUrl,
+                coverFocalX,
+                coverFocalY,
+              }),
         });
         const mapped = cabinetServiceDtoToManaged(row, nextService.sortOrder ?? 0);
         syncedServices = services.map((service) => (service.id === editingId ? mapped : service));
@@ -451,6 +496,9 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
           priceAmount: priceNumber,
           priceType: priceTypeValue,
           sortOrder: nextService.sortOrder ?? 0,
+          coverImageUrl: coverUrl,
+          coverFocalX,
+          coverFocalY,
         });
         syncedServices = [...services, cabinetServiceDtoToManaged(row, services.length)];
       } else {
@@ -488,10 +536,16 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     showSuccessToast,
     title,
     useCabinetApi,
+    cover,
+    coverUploading,
   ]);
 
   const toggleActive = useCallback(
     async (service: ManagedService) => {
+      if (!service.isActive && !service.imageUrl?.trim()) {
+        setListError('Сначала загрузите фото услуги — без него услугу нельзя показать в каталоге.');
+        return;
+      }
       const nextServices = services.map((item) =>
         item.id === service.id
           ? {
@@ -565,6 +619,9 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
           priceAmount: copy.priceByn,
           priceType: copy.priceType === 'from' ? 'from' : 'fixed',
           sortOrder: copy.sortOrder ?? 0,
+          coverImageUrl: copy.imageUrl?.trim() || '',
+          coverFocalX: copy.coverFocalX ?? 50,
+          coverFocalY: copy.coverFocalY ?? 50,
         });
         const hidden = await patchMasterService(created.id, { isActive: false });
         commitServices([
@@ -1058,7 +1115,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
       />
 
       <section
-        className={`-mx-4 min-w-0 space-y-4 px-4 pb-[calc(5.75rem+1.25rem)] lg:hidden ${SERVICES_MOBILE_CANVAS}`}
+        className={`-mx-4 min-w-0 space-y-4 px-4 ${SERVICES_TAB_BAR_SCROLL_PAD} lg:hidden ${SERVICES_MOBILE_CANVAS}`}
       >
         <ServicesPageHeader
           activeTab={activeTab}
@@ -1192,6 +1249,8 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
         titleValue={title}
         price={price}
         durationMin={durationMin}
+        coverImageUrl={cover?.imageUrl ?? ''}
+        coverUploading={coverUploading}
       >
         {({ step, stepError }) => (
           <ServicesServiceFormFields
@@ -1218,6 +1277,11 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
             onApplyTemplate={applyServiceTemplate}
             onClearTemplateHighlight={() => setTemplateHighlightId(null)}
             serviceTitlePlaceholder={serviceTitlePlaceholder}
+            cover={cover}
+            onCoverChange={setCover}
+            coverUploading={coverUploading}
+            onCoverUploadingChange={setCoverUploading}
+            useCabinetApi={useCabinetApi}
           />
         )}
       </ServicesServiceSheet>

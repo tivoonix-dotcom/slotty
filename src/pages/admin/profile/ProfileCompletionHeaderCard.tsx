@@ -25,28 +25,12 @@ export function ProfileCompletionHeaderCard({ variant = 'header', className = ''
       <Link
         to={ADMIN_PROFILE_COMPLETION_PATH}
         title="Заполненность профиля"
-        className={`inline-flex min-w-0 max-w-[11rem] flex-col gap-1 rounded-lg px-1 py-0.5 no-underline transition hover:opacity-80 active:scale-[0.98] sm:max-w-[13rem] ${className}`.trim()}
+        className={`inline-flex min-w-0 items-center gap-1 whitespace-nowrap no-underline transition hover:opacity-80 active:scale-[0.98] ${className}`.trim()}
       >
-        <span className="flex min-w-0 items-baseline gap-1.5">
-          <span className="truncate text-[12px] font-semibold text-[#6B7280] sm:text-[13px]">
-            Профиль
-          </span>
-          <span className="shrink-0 tabular-nums text-[13px] font-bold text-[#ff5f7a] sm:text-[14px]">
-            {completed ? (
-              <span className="inline-flex items-center gap-0.5">
-                <HiCheckCircle className="h-3.5 w-3.5" aria-hidden />
-                {percentLabel}
-              </span>
-            ) : (
-              percentLabel
-            )}
-          </span>
-        </span>
-        <span className="h-1 w-full overflow-hidden rounded-full bg-[#FFE8EE]">
-          <span
-            className="block h-full rounded-full bg-[#ff5f7a] transition-[width] duration-500"
-            style={{ width: completionLoading ? '0%' : `${completionPercent}%` }}
-          />
+        <span className="text-[11px] font-semibold text-[#6B7280]">Профиль</span>
+        <span className="inline-flex shrink-0 items-center gap-0.5 tabular-nums text-[12px] font-bold text-[#ff5f7a]">
+          {completed ? <HiCheckCircle className="h-3 w-3 shrink-0" aria-hidden /> : null}
+          {percentLabel}
         </span>
       </Link>
     );

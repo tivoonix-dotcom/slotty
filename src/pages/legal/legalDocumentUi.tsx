@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { homeLandingMastersRowStep } from '../home/homeTheme';
 import { scrollToLegalSection } from './useLegalTocActiveId';
 
 export type LegalTocItem = { id: string; label: string };
@@ -10,20 +11,76 @@ export function shouldShowLegalDocToc(sectionCount: number): boolean {
   return sectionCount > LEGAL_DOC_TOC_MIN_SECTIONS;
 }
 
+/** Шрифты лендинга: Montserrat Alternates — заголовки, Montserrat — текст. */
+export const legalDocFontBody = 'font-landing';
+export const legalDocFontDisplay = 'font-hero-display';
+
 /** Крупная читаемая типографика (Help Center). */
 export const legalDocProseClass =
-  'text-[17px] font-normal leading-[1.65] text-[#374151] antialiased sm:text-[18px] sm:leading-[1.7]';
+  `${legalDocFontBody} text-[17px] font-normal leading-[1.65] text-[#374151] antialiased sm:text-[18px] sm:leading-[1.7]`;
 
 export const legalDocSectionTitleClass =
-  'text-[18px] font-semibold leading-[1.35] text-[#111827] sm:text-[20px]';
+  `${legalDocFontDisplay} text-[18px] font-medium leading-[1.35] text-[#111827] sm:text-[20px]`;
 
 export const legalDocLinkClass =
   'font-medium text-[#111827] underline decoration-[#111827]/25 underline-offset-[3px] transition hover:decoration-[#111827]';
 
 export const legalDocListClass = 'list-disc space-y-2.5 pl-5 marker:text-[#D1D5DB]';
 
+/** Центрированная колонка legal-страниц — на всю ширину shell, без узкой полосы слева. */
+export const legalDocLandingArticleClass =
+  'mx-auto w-full min-w-0 max-w-[48rem] lg:max-w-[56rem] xl:max-w-[68rem]';
+
+export const legalDocLandingSectionTitleClass =
+  `${legalDocFontDisplay} mt-2 text-balance text-[clamp(1.35rem,3vw,2rem)] font-medium leading-[1.15] tracking-[-0.02em] text-[#111827] sm:mt-3 sm:text-[32px] lg:mt-4`;
+
+export const legalDocLandingProseClass =
+  `${legalDocFontBody} w-full max-w-none text-[16px] font-normal leading-[1.55] text-[#4B5563] sm:text-[17px] lg:text-[18px]`;
+
+export const legalDocLandingIntroClass =
+  `${legalDocFontBody} w-full max-w-none text-[17px] font-normal leading-[1.65] text-[#6B7280] sm:text-[18px] sm:leading-[1.7]`;
+
 export function LegalDocIntro({ children }: { children: ReactNode }) {
   return <p className={`${legalDocProseClass} text-[#6B7280]`}>{children}</p>;
+}
+
+/** Вводный абзац — крупный текст как на лендинге. */
+export function LegalDocLandingIntro({ children }: { children: ReactNode }) {
+  return <p className={legalDocLandingIntroClass}>{children}</p>;
+}
+
+/** Секция документа — розовый номер, крупный заголовок и текст как в блоке «Для мастеров». */
+export function LegalDocLandingSection({
+  id,
+  step,
+  title,
+  children,
+  wideChildren,
+  miniVisual,
+}: {
+  id: string;
+  step: number;
+  title: string;
+  children: ReactNode;
+  /** На всю ширину колонки — карточки, ленты и т.п. */
+  wideChildren?: ReactNode;
+  /** Компактная мини-анимация перед текстом секции. */
+  miniVisual?: ReactNode;
+}) {
+  return (
+    <section
+      id={id}
+      className="scroll-mt-[calc(6.5rem+env(safe-area-inset-top,0px)+0.75rem)] lg:scroll-mt-[calc(var(--slotty-header-height,4.25rem)+1rem)]"
+    >
+      <p className={homeLandingMastersRowStep} aria-hidden>
+        {step}.
+      </p>
+      <h2 className={legalDocLandingSectionTitleClass}>{title}</h2>
+      {miniVisual ? <div className="mt-3">{miniVisual}</div> : null}
+      <div className={`${legalDocLandingProseClass} space-y-3 ${miniVisual ? 'mt-3' : ''}`}>{children}</div>
+      {wideChildren ? <div className="mt-5 w-full min-w-0 max-w-none">{wideChildren}</div> : null}
+    </section>
+  );
 }
 
 export function LegalDocSection({
@@ -55,7 +112,11 @@ export function LegalDocSubsection({
 }) {
   return (
     <div className="pt-2">
-      <h3 className="text-[17px] font-semibold leading-snug text-[#111827] sm:text-[18px]">{title}</h3>
+      <h3
+        className={`${legalDocFontBody} text-[17px] font-semibold leading-snug text-[#111827] sm:text-[18px]`}
+      >
+        {title}
+      </h3>
       <div className={`mt-2 space-y-3 ${legalDocProseClass}`}>{children}</div>
     </div>
   );
@@ -74,7 +135,11 @@ export function LegalDocTocNav({
 
   return (
     <nav className={className} aria-label="Содержание документа">
-      <p className="text-[13px] font-medium uppercase tracking-[0.06em] text-[#9CA3AF]">Содержание</p>
+      <p
+        className={`${legalDocFontBody} text-[13px] font-medium uppercase tracking-[0.06em] text-[#9CA3AF]`}
+      >
+        Содержание
+      </p>
       <ul className="mt-2 space-y-0.5">
         {items.map((item) => {
           const active = activeId === item.id;
@@ -105,10 +170,10 @@ export function LegalDocTocNav({
 
 /** Тёмная тема — страница политики конфиденциальности. */
 export const legalDocDarkProseClass =
-  'text-[17px] font-normal leading-[1.65] text-white/75 antialiased sm:text-[18px] sm:leading-[1.7] [&_strong]:font-semibold [&_strong]:text-white';
+  `${legalDocFontBody} text-[17px] font-normal leading-[1.65] text-white/75 antialiased sm:text-[18px] sm:leading-[1.7] [&_strong]:font-semibold [&_strong]:text-white`;
 
 export const legalDocDarkSectionTitleClass =
-  'text-[18px] font-semibold leading-[1.35] text-white sm:text-[20px]';
+  `${legalDocFontDisplay} text-[18px] font-medium leading-[1.35] text-white sm:text-[20px]`;
 
 export const legalDocDarkLinkClass =
   'font-medium text-[#ff8fa3] underline decoration-[#ff8fa3]/35 underline-offset-[3px] transition hover:text-[#ffb3c0] hover:decoration-[#ffb3c0]';
@@ -152,7 +217,11 @@ export function LegalDocDarkTocNav({
 
   return (
     <nav className={className} aria-label="Содержание документа">
-      <p className="text-[13px] font-medium uppercase tracking-[0.06em] text-white/40">Содержание</p>
+      <p
+        className={`${legalDocFontBody} text-[13px] font-medium uppercase tracking-[0.06em] text-white/40`}
+      >
+        Содержание
+      </p>
       <ul className="mt-2 space-y-0.5">
         {items.map((item) => {
           const active = activeId === item.id;

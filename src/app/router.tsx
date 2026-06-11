@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import {
   ADMIN_PATH,
   BECOME_MASTER_PATH,
@@ -37,7 +37,6 @@ import { ProfilePage } from '../pages/profile/ProfilePage';
 import { ClientNotificationsPage } from '../pages/profile/notifications/ClientNotificationsPage';
 import { ClientSettingsPage } from '../pages/profile/settings/ClientSettingsPage';
 import { ClientLayout } from '../pages/client/ClientLayout';
-import { MastersCatalogPage } from '../pages/client/pages/MastersCatalogPage';
 import { ServiceCategoryPage } from '../pages/client/pages/ServiceCategoryPage';
 import { ServicesCatalogPage } from '../pages/client/pages/ServicesCatalogPage';
 import { PersonalDataConsentLegacyRedirect, PersonalDataConsentPage } from '../pages/legal/PersonalDataConsentPage';
@@ -57,7 +56,7 @@ import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { MasterLoginPage } from '../pages/auth/MasterLoginPage';
 import { MasterRegisterPage } from '../pages/auth/MasterRegisterPage';
-import { MasterStartPage } from '../pages/auth/MasterStartPage';
+import { MasterLanding } from '../pages/MasterLanding';
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
 import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage';
 import { GoogleOAuthDonePage } from '../pages/auth/GoogleOAuthDonePage';
@@ -74,6 +73,12 @@ import {
   UNSUBSCRIBE_NEWSLETTER_PATH,
   VERIFY_EMAIL_PATH,
 } from './paths';
+
+/** Старый URL каталога мастеров — ведём в каталог услуг. */
+function LegacyMastersRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`${SERVICES_PATH}${search}`} replace />;
+}
 
 export {
   ADMIN_APPOINTMENTS_PATH,
@@ -108,7 +113,7 @@ export function AppRoutes() {
         <Route element={<ClientLayout />}>
           <Route path={SERVICES_PATH} element={<ServicesCatalogPage />} />
           <Route path={`${SERVICES_PATH}/category/:categoryCode`} element={<ServiceCategoryPage />} />
-          <Route path={MASTERS_PATH} element={<MastersCatalogPage />} />
+          <Route path={MASTERS_PATH} element={<LegacyMastersRedirect />} />
           <Route path="/client/appointments/:bookingCode/review" element={<ClientAppointmentReviewPage />} />
           <Route path="/client/appointments/:bookingCode" element={<ClientBookingDetailPage />} />
           <Route path="/master/appointments/:bookingCode" element={<MasterBookingDetailPage />} />
@@ -123,7 +128,7 @@ export function AppRoutes() {
         <Route path={`${ADMIN_PATH}/*`} element={<AdminPage />} />
         <Route path="/platform-admin/*" element={<PlatformAdminPage />} />
         <Route path={LOGIN_PATH} element={<LoginPage />} />
-        <Route path={MASTER_START_PATH} element={<MasterStartPage />} />
+        <Route path={MASTER_START_PATH} element={<MasterLanding />} />
         <Route path={MASTER_LOGIN_PATH} element={<MasterLoginPage />} />
         <Route path={MASTER_REGISTER_PATH} element={<MasterRegisterPage />} />
         <Route path={VERIFY_EMAIL_PATH} element={<VerifyEmailPage />} />

@@ -1,16 +1,29 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ADMIN_PATH } from '../../../app/paths';
-import { NotificationsDesktopHero } from './NotificationsDesktopHero';
+import { NotificationsSummary } from './NotificationsSummary';
 import type { MasterNotificationStats } from './masterNotificationModel';
+import { notificationsSummaryCopy } from './notificationsTabSummaryModel';
 
 type Props = {
   stats: MasterNotificationStats;
+  loading?: boolean;
   onMarkAllRead?: () => void;
   mobileFilter?: ReactNode;
+  mobileFiltersPanel?: ReactNode;
+  desktopFiltersPanel?: ReactNode;
 };
 
-export function NotificationsPageHeader({ stats, onMarkAllRead, mobileFilter }: Props) {
+export function NotificationsPageHeader({
+  stats,
+  loading,
+  onMarkAllRead,
+  mobileFilter,
+  mobileFiltersPanel,
+  desktopFiltersPanel,
+}: Props) {
+  const copy = notificationsSummaryCopy(stats);
+
   return (
     <div className="space-y-3">
       <Link
@@ -19,13 +32,15 @@ export function NotificationsPageHeader({ stats, onMarkAllRead, mobileFilter }: 
       >
         ← Профиль мастера
       </Link>
-      <div className="pb-1 lg:pb-0">
-        <NotificationsDesktopHero
-          stats={stats}
-          onMarkAllRead={onMarkAllRead}
-          mobileFilter={mobileFilter}
-        />
-      </div>
+      <NotificationsSummary
+        stats={stats}
+        loading={loading}
+        onMarkAllRead={onMarkAllRead}
+        mobileHeader={copy}
+        mobileFilter={mobileFilter}
+        mobileFiltersPanel={mobileFiltersPanel}
+        desktopFiltersPanel={desktopFiltersPanel}
+      />
     </div>
   );
 }

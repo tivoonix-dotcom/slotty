@@ -70,3 +70,7 @@ export const PRIVACY_LEGAL_HERO_BG =
 /** Hero страницы пользовательского соглашения. */
 export const TERMS_LEGAL_HERO_BG =
   `/photos/${encodeURIComponent('контракт')}/${encodeURIComponent('1.webp')}`;
+
+/** Фон декора «Правила пользования» на странице соглашения. */
+export const TERMS_LEGAL_INTRO_BG =
+  `/photos/${encodeURIComponent('документы')}/back.jpg`;

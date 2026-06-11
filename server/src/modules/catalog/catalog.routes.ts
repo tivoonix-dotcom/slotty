@@ -4,6 +4,7 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { listActiveServiceCategories } from './catalog.service.js';
 import {
   recordCatalogSearchQuery,
+  recordCatalogListingView,
   searchCatalogListings,
   suggestCatalogSearch,
   suggestMasterLocations,
@@ -43,9 +44,38 @@ const listingsQuery = z.object({
     .transform((s) => s === 'true' || s === '1'),
   duration: z.enum(['any', 'under30', '30_60', '60_120', 'over120']).optional().default('any'),
   sortBy: z
-    .enum(['recommended', 'rating', 'price_asc', 'price_desc', 'reviews', 'soonest'])
+    .enum([
+      'recommended',
+      'popular',
+      'rating',
+      'price_asc',
+      'price_desc',
+      'reviews',
+      'soonest',
+      'distance_asc',
+    ])
     .optional()
     .default('recommended'),
+  onlyWithSlots: z
+    .string()
+    .optional()
+    .transform((s) => s === 'true' || s === '1'),
+  popularOnly: z
+    .string()
+    .optional()
+    .transform((s) => s === 'true' || s === '1'),
+  newOnly: z
+    .string()
+    .optional()
+    .transform((s) => s === 'true' || s === '1'),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  slotDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  timeFrom: z.coerce.number().int().min(0).max(23).optional(),
+  timeTo: z.coerce.number().int().min(1).max(24).optional(),
   page: z.coerce.number().int().min(1).max(500).optional().default(1),
   limit: z.coerce.number().int().min(1).max(80).optional().default(24),
 });
@@ -62,6 +92,9 @@ catalogRouter.get(
       addressText: q.address,
       dateRange: q.dateRange,
       timeOfDay: q.timeOfDay,
+      slotDate: q.slotDate,
+      timeFromHour: q.timeFrom,
+      timeToHour: q.timeTo,
       minPrice: q.minPrice,
       maxPrice: q.maxPrice,
       minRating: q.minRating,
@@ -73,6 +106,11 @@ catalogRouter.get(
       sortBy: q.sortBy,
       page: q.page,
       limit: q.limit,
+      onlyWithSlots: q.onlyWithSlots,
+      popularOnly: q.popularOnly,
+      newOnly: q.newOnly,
+      userLat: q.lat,
+      userLng: q.lng,
     };
     const out = await searchCatalogListings(body);
     res.json(out);
@@ -105,6 +143,21 @@ catalogRouter.get(
       .parse(req.query);
     const out = await suggestCatalogSearch(q.query, q.limit);
     res.json(out);
+  }),
+);
+
+catalogRouter.post(
+  '/listings/view',
+  publicCatalogRateLimit,
+  asyncHandler(async (req, res) => {
+    const body = z
+      .object({
+        masterId: z.string().uuid(),
+        serviceId: z.string().uuid().optional().nullable(),
+      })
+      .parse(req.body);
+    await recordCatalogListingView(body.masterId, body.serviceId);
+    res.status(204).end();
   }),
 );
 

@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { getServicesCatalogPath } from '../../../app/paths';
 import type { AggregatedServiceCard } from '../lib/aggregateServices';
 import { ServiceCard } from '../components/ServiceCard';
 import { SectionHeading } from '../components/SectionHeading';
 import type { CatalogFiltersState } from './catalogFiltersState';
 import { CatalogResultsHeader } from './CatalogResultsHeader';
+import { CatalogSparseResults } from './CatalogSparseResults';
 import { CatalogTrustBar } from './CatalogTrustBar';
 import { SkeletonServiceCard } from '../components/SkeletonCards';
 import { EmptyState } from '../components/EmptyState';
@@ -11,6 +14,7 @@ import { CatalogError } from '../components/CatalogError';
 import { catalogDesktopPanel, catalogInnerDivider } from './servicesCatalogTheme';
 import {
   desktopCardLayout,
+  desktopGridClassName,
   mobileCardLayout,
   mobileGridClassName,
   shouldUseUnifiedCatalogSections,
@@ -25,10 +29,12 @@ type Props = {
   filteredEmpty: boolean;
   showSections: boolean;
   filtered: AggregatedServiceCard[];
+  catalogServices: AggregatedServiceCard[];
   popular: AggregatedServiceCard[];
   promoServices: AggregatedServiceCard[];
   search: string;
   onClearSearch: () => void;
+  onResetFilters?: () => void;
   filters?: CatalogFiltersState;
   onFiltersChange?: (next: CatalogFiltersState) => void;
   /** Заголовок результатов вынесен в шапку каталога (десктоп) */
@@ -43,31 +49,19 @@ function ServiceList({
   layout: 'mobile' | 'desktop';
 }) {
   const isDesktop = layout === 'desktop';
-
-  if (!isDesktop) {
-    return (
-      <div className={mobileGridClassName()}>
-        {items.map((s) => (
-          <ServiceCard
-            key={s.id}
-            service={s}
-            layout={mobileCardLayout()}
-            surface="card"
-          />
-        ))}
-      </div>
-    );
-  }
+  const gridClass = isDesktop ? desktopGridClassName() : mobileGridClassName();
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={gridClass}>
       {items.map((s) => (
-        <ServiceCard
-          key={s.id}
-          service={s}
-          layout={desktopCardLayout()}
-          surface="card"
-        />
+        <div key={s.id} className="flex h-full min-w-0">
+          <ServiceCard
+            service={s}
+            layout={isDesktop ? desktopCardLayout() : mobileCardLayout()}
+            surface="card"
+            density={isDesktop ? 'comfortable' : 'compact'}
+          />
+        </div>
       ))}
     </div>
   );
@@ -110,15 +104,21 @@ function CatalogEmptyPanel({ children }: { children: ReactNode }) {
 
 function DesktopLoadingResults() {
   return (
-    <section className="flex flex-col gap-4">
-      <div className="space-y-2">
-        <div className="h-7 w-48 animate-pulse rounded bg-[#EBEBEB]" />
-        <div className="h-4 w-28 animate-pulse rounded bg-[#EBEBEB]" />
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-1.5">
+          <div className="h-4 w-32 animate-pulse rounded bg-[#EBEBEB]" />
+          <div className="h-6 w-20 animate-pulse rounded bg-[#EBEBEB]/80" />
+        </div>
+        <div className="h-8 w-36 animate-pulse rounded-[10px] bg-[#EBEBEB]" />
       </div>
-      <div className="flex flex-col gap-3">
-        <SkeletonServiceCard />
-        <SkeletonServiceCard />
-        <SkeletonServiceCard />
+      <div className={desktopGridClassName()}>
+        <SkeletonServiceCard variant="grid" />
+        <SkeletonServiceCard variant="grid" />
+        <SkeletonServiceCard variant="grid" />
+        <SkeletonServiceCard variant="grid" />
+        <SkeletonServiceCard variant="grid" />
+        <SkeletonServiceCard variant="grid" />
       </div>
     </section>
   );
@@ -133,10 +133,12 @@ export function ServicesCatalogResults({
   filteredEmpty,
   showSections,
   filtered,
+  catalogServices,
   popular,
   promoServices,
   search,
   onClearSearch,
+  onResetFilters,
   filters,
   onFiltersChange,
   hideResultsHeader = false,
@@ -169,7 +171,7 @@ export function ServicesCatalogResults({
       <CatalogEmptyPanel>
         <EmptyState
           title="Пока нет доступных услуг"
-          description="Загляните позже"
+          description="Мастера скоро добавят услуги — загляните позже или вернитесь на главную"
           variant="catalog"
           picture="servicesEmpty"
         />
@@ -178,15 +180,32 @@ export function ServicesCatalogResults({
   }
 
   if (filteredEmpty) {
+    const canReset = Boolean(onResetFilters);
+    const canClearSearch = Boolean(search.trim());
+
     return (
       <CatalogEmptyPanel>
         <EmptyState
-          title="Такой услуги пока нет"
-          description="Попробуйте другой запрос или снимите фильтры"
-          actionLabel={search.trim() ? 'Очистить поиск' : undefined}
-          onAction={search.trim() ? onClearSearch : undefined}
+          title="Ничего не нашли"
+          description="Попробуйте другой запрос или измените фильтры — возможно, услуга есть под другим названием"
+          actionLabel={
+            canClearSearch ? 'Очистить поиск' : canReset ? 'Сбросить фильтры' : undefined
+          }
+          onAction={
+            canClearSearch ? onClearSearch : canReset ? onResetFilters : undefined
+          }
           variant="catalog"
+          picture="searchEmpty"
         />
+        <p className="mt-4 text-center text-[14px] text-[#6B7280]">
+          Или{' '}
+          <Link
+            to={getServicesCatalogPath({ tab: 'popular' })}
+            className="font-semibold text-[#F47C8C] hover:underline"
+          >
+            посмотреть популярные услуги
+          </Link>
+        </p>
       </CatalogEmptyPanel>
     );
   }
@@ -195,7 +214,7 @@ export function ServicesCatalogResults({
 
   if (unified && layout === 'desktop') {
     return (
-      <section className="flex flex-col gap-4">
+      <section className="flex flex-col gap-2">
         {filters && onFiltersChange && !hideResultsHeader ? (
           <CatalogResultsHeader
             count={filtered.length}
@@ -204,6 +223,11 @@ export function ServicesCatalogResults({
           />
         ) : null}
         <ServiceList items={filtered} layout="desktop" />
+        <CatalogSparseResults
+          filtered={filtered}
+          catalogServices={catalogServices}
+          layout="desktop"
+        />
         <CatalogTrustBar />
       </section>
     );
@@ -226,6 +250,11 @@ export function ServicesCatalogResults({
           ) : null}
           <ServiceList items={filtered} layout={layout} />
         </div>
+        <CatalogSparseResults
+          filtered={filtered}
+          catalogServices={catalogServices}
+          layout={layout}
+        />
         <CatalogTrustBar />
       </div>
     );

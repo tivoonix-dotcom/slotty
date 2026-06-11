@@ -51,18 +51,16 @@ export function BookingReferencePhotoField({
       <span className={bookingDesktopSectionTitle}>{referencePhotoSectionTitle(categoryCode)}</span>
       <p className="mt-1 text-[13px] leading-relaxed text-[#6B7280]">{referencePhotoHint(categoryCode)}</p>
 
-      {pinterestUrl ? (
-        <a
-          href={pinterestUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`${catalogSecondaryBtn} mt-2.5 inline-flex w-full items-center justify-center gap-2`}
-        >
-          <SiPinterest className="h-4 w-4 shrink-0 text-[#E60023]" aria-hidden />
-          <span>Идеи на Pinterest</span>
-          <HiArrowTopRightOnSquare className="h-3.5 w-3.5 shrink-0 text-[#9CA3AF]" aria-hidden />
-        </a>
-      ) : null}
+      <a
+        href={pinterestUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`${catalogSecondaryBtn} mt-2.5 inline-flex w-full items-center justify-center gap-2`}
+      >
+        <SiPinterest className="h-4 w-4 shrink-0 text-[#E60023]" aria-hidden />
+        <span>Идеи на Pinterest</span>
+        <HiArrowTopRightOnSquare className="h-3.5 w-3.5 shrink-0 text-[#9CA3AF]" aria-hidden />
+      </a>
 
       {photoUrl ? (
         <div className="relative mt-3 overflow-hidden rounded-[12px] ring-1 ring-[#EEEEEE]">

@@ -8,7 +8,7 @@ import {
 } from '../../../shared/lib/emptyDisplayText';
 import { BY } from 'country-flag-icons/react/1x1';
 import { AboutDescriptionText } from './AboutDescriptionText';
-import { CabinetIcon, type CabinetIconName } from './cabinetIcons';
+import { CabinetIcon } from './cabinetIcons';
 import { ADMIN_SERVICES_PATH } from '../../../app/paths';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import {
@@ -30,20 +30,6 @@ import {
   cabinetIconCircle,
   cabinetInsetTile,
 } from './adminProfileCabinetTheme';
-import { servicesCatalogAddBtn } from '../services/adminServicesTheme';
-import { ServicesBrandPhotoLayers } from '../services/ServicesBrandPhotoLayers';
-
-/** Иконка секции на красном фоне бренда. */
-function CabinetSectionIcon({ name, size = 18 }: { name: CabinetIconName; size?: number }) {
-  return (
-    <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#EF4444] text-white">
-      <ServicesBrandPhotoLayers roundedClassName="rounded-xl" />
-      <span className="relative z-10">
-        <CabinetIcon name={name} size={size} />
-      </span>
-    </span>
-  );
-}
 
 export function CabinetPageShell({ children }: { children: ReactNode }) {
   return (
@@ -377,11 +363,21 @@ export function ScheduleWorkCard({
   const preview = formatScheduleClientPreview(draft.schedule).replace(/^Клиенты смогут записываться:\s*/i, '');
 
   return (
-    <section className={`${cabinetCard} ${cabinetCardPad}`}>
-      <div className="flex items-center gap-3">
-        <CabinetSectionIcon name="clock" />
+    <button
+      type="button"
+      onClick={onEditSchedule}
+      className={`${cabinetCard} ${cabinetCardPad} block w-full text-left transition hover:bg-[#FAFAFA] active:bg-[#F7F7F8]`}
+      aria-label="Изменить график работы"
+    >
+      <div className="flex items-start gap-3">
+        <span className={`${cabinetIconCircle} h-9 w-9`}>
+          <CabinetIcon name="clock" size={18} />
+        </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">График работы</h2>
+          <div className="flex items-start justify-between gap-2">
+            <h2 className="text-[17px] font-semibold tracking-[-0.03em] text-[#111827]">График работы</h2>
+            <CabinetIcon name="chevron-right" size={18} className="mt-0.5 shrink-0 text-[#C4C9D4]" />
+          </div>
           <p className="mt-0.5 text-[13px] leading-snug text-[#6B7280]">
             Клиенты смогут записываться {preview || EMPTY_SCHEDULE_PREVIEW}
           </p>
@@ -389,37 +385,27 @@ export function ScheduleWorkCard({
       </div>
 
       <div
-        className={`mt-4 grid grid-cols-7 gap-1.5 p-1.5 ${cabinetInsetTile}`}
-        role="list"
-        aria-label="Рабочие дни недели"
+        className={`mt-4 grid grid-cols-7 gap-0.5 px-2 py-2.5 ${cabinetInsetTile}`}
+        aria-hidden
       >
         {WEEKDAY_LABELS_SHORT.map((label, day) => {
           const active = workDays.has(day);
           return (
-            <div
+            <span
               key={label}
-              role="listitem"
-              className={`flex h-9 items-center justify-center rounded-[10px] text-[11px] font-bold ${
-                active
-                  ? 'bg-white text-[#F47C8C] shadow-[0_1px_3px_rgba(17,24,39,0.06)] ring-1 ring-[#FDE8ED]'
-                  : 'text-[#9CA3AF]'
+              className={`flex flex-col items-center gap-1 text-[11px] font-semibold tracking-[-0.02em] ${
+                active ? 'text-[#F47C8C]' : 'text-[#B8BEC8]'
               }`}
             >
               {label}
-            </div>
+              <span
+                className={`h-1 w-1 rounded-full ${active ? 'bg-[#F47C8C]' : 'bg-transparent'}`}
+              />
+            </span>
           );
         })}
       </div>
-
-      <button
-        type="button"
-        onClick={onEditSchedule}
-        className={`${servicesCatalogAddBtn} mt-4 text-[15px] font-semibold`}
-      >
-        <ServicesBrandPhotoLayers roundedClassName="rounded-[12px]" />
-        <span className="relative z-10 drop-shadow-sm">Изменить график работы</span>
-      </button>
-    </section>
+    </button>
   );
 }
 

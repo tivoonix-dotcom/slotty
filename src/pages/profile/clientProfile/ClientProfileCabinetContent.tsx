@@ -5,11 +5,13 @@ import type { DemoAppointmentRecord, DemoAppointmentTab } from '../../../feature
 import type { FavoriteMasterDto } from '../../../features/profile/api/clientFavorites';
 import type { BackendProfile } from '../../../features/auth/types';
 import { SERVICES_PATH } from '../../../app/paths';
+import { AppointmentsEmptyState } from '../../admin/appointments/AppointmentsEmptyState';
 import { NothingFoundCard } from '../../../shared/ui/NothingFoundCard';
 import { BelarusPhoneInline } from '../components/BelarusPhoneInline';
 import { ClientProfileAppointmentRow } from './ClientProfileAppointmentRow';
 import { ClientProfileFavoriteRow } from './ClientProfileFavoriteRow';
 import { ClientProfileIdentityCard } from './ClientProfileIdentityCard';
+import { catalogListCardClass } from '../../client/servicesCatalog/servicesCatalogTheme';
 import {
   catalogPrimaryBtn,
   clientCabinetMobilePanel,
@@ -61,11 +63,11 @@ type Props = {
 
 function EmptyAppointments() {
   return (
-    <NothingFoundCard
+    <AppointmentsEmptyState
       title="Записей пока нет"
-      picture="appointmentsEmpty"
+      text="Когда вы запишетесь на услугу, запись появится здесь."
       action={
-        <Link to={SERVICES_PATH} className={catalogPrimaryBtn}>
+        <Link to={SERVICES_PATH} className={`${catalogPrimaryBtn} w-full`}>
           Найти услуги
         </Link>
       }
@@ -89,7 +91,7 @@ function EmptyFavorites() {
 
 function ProfileField({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="px-6 py-4">
+    <div className="px-4 py-4 sm:px-6">
       <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">{label}</p>
       <p className="mt-1.5 text-[16px] font-semibold text-[#111827]">{value}</p>
     </div>
@@ -196,11 +198,7 @@ export function ClientProfileCabinetContent({
                 ))}
               </div>
             ) : apptRows.length === 0 ? (
-              <div className={clientCabinetMobilePanel}>
-                <div className="p-5">
-                  <EmptyAppointments />
-                </div>
-              </div>
+              <EmptyAppointments />
             ) : (
               <div className={`${clientCabinetMobilePanel} divide-y divide-[#EEEEEE]`}>
                 {apptRows.map((row) => (
@@ -247,12 +245,15 @@ export function ClientProfileCabinetContent({
           ) : favoritesError ? (
             <p className="rounded-[10px] bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800">{favoritesError}</p>
           ) : favoritesLoading ? (
-            <div className={`${clientCabinetMobilePanel} divide-y divide-[#EEEEEE]`}>
+            <div className="grid gap-3">
               {[0, 1].map((i) => (
-                <div key={i} className="flex items-center gap-4 px-6 py-5">
-                  <div className="h-14 w-14 animate-pulse rounded-[12px] bg-[#EBEBEB]" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-5 max-w-[10rem] animate-pulse rounded-full bg-[#EBEBEB]" />
+                <div
+                  key={i}
+                  className={`${catalogListCardClass} flex items-center gap-4 p-5 ring-1 ring-[#EEEEEE]`}
+                >
+                  <div className="h-[5.5rem] w-[5.5rem] shrink-0 animate-pulse rounded-[20px] bg-[#EBEBEB]" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-5 max-w-[12rem] animate-pulse rounded-full bg-[#EBEBEB]" />
                     <div className="h-4 max-w-[8rem] animate-pulse rounded-full bg-[#EBEBEB]" />
                   </div>
                 </div>
@@ -265,7 +266,7 @@ export function ClientProfileCabinetContent({
               </div>
             </div>
           ) : (
-            <ul className={`${clientCabinetMobilePanel} divide-y divide-[#EEEEEE]`}>
+            <ul className="grid list-none gap-3">
               {favorites.map((row, i) => (
                 <ClientProfileFavoriteRow
                   key={row.masterId}

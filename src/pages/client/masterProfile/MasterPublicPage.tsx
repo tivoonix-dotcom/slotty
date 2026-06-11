@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router-dom';
-import { LOGIN_PATH, MASTERS_PATH, getBookingPath, getMasterPath } from '../../../app/paths';
+import { LOGIN_PATH, SERVICES_PATH, getBookingPath, getMasterPath } from '../../../app/paths';
 import { SeoHead } from '../../../shared/seo/SeoHead';
 import { truncateMetaDescription } from '../../../shared/seo/seoConfig';
 import { SEO_DEFAULT_OG_IMAGE, SEO_DEFAULT_ROBOTS } from '../../../shared/seo/seoSite';
@@ -121,7 +121,7 @@ export function MasterPublicPage() {
           title="Мастер не найден"
           description="Попробуйте вернуться к каталогу"
           actionLabel="К мастерам"
-          onAction={() => navigate(MASTERS_PATH)}
+          onAction={() => navigate(SERVICES_PATH)}
         />
       </div>
     );
@@ -147,7 +147,7 @@ export function MasterPublicPage() {
           title={error ? 'Не получилось загрузить профиль мастера' : 'Мастер не найден'}
           description={error ? 'Проверьте соединение' : undefined}
           actionLabel={error ? 'Повторить' : 'К мастерам'}
-          onAction={() => (error ? reload() : navigate(MASTERS_PATH))}
+          onAction={() => (error ? reload() : navigate(SERVICES_PATH))}
         />
       </div>
     );

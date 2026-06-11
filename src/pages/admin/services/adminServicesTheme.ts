@@ -4,6 +4,10 @@ import {
   profileDesktopTabsSticky,
   PROFILE_DESKTOP_PAGE_BG,
 } from '../profile/adminProfileDashboardTheme';
+import {
+  ADMIN_MOBILE_TAB_BAR_HEIGHT,
+  adminMobileTabBarListScrollPadClass,
+} from '../shared/adminMobileTabBarTheme';
 
 export const SERVICES_PAGE_BG = 'bg-white';
 
@@ -17,11 +21,10 @@ export const servicesDesktopCard = profileDashboardCard;
 
 export const servicesDesktopCardPad = profileDashboardCardPad;
 
-/** Высота плавающего таббара (72px + нижний отступ контейнера). */
-export const SERVICES_TAB_BAR_HEIGHT = '5.75rem';
+export const SERVICES_TAB_BAR_HEIGHT = ADMIN_MOBILE_TAB_BAR_HEIGHT;
 
 /** Нижний отступ под FAB: на мобиле — над таббаром, на десктопе FAB снаружи — минимум. */
-export const servicesTabScrollBottomPad = `pb-[calc(${SERVICES_TAB_BAR_HEIGHT}+1rem+env(safe-area-inset-bottom,0px))] lg:pb-6`;
+export const servicesTabScrollBottomPad = `${adminMobileTabBarListScrollPadClass} lg:pb-6`;
 
 /** Контент таба: мобилка — на всю ширину серого полотна; desktop — белая карточка. */
 export const servicesTabPanelShell =
@@ -56,7 +59,7 @@ export function servicesTabHeroBg(fileName: '11.webp' | '22.webp' | '33.webp' | 
   return servicesTabPhotoSrc(fileName);
 }
 /** Отступ контента, чтобы список доскролливался выше фиксированного таббара. */
-export const SERVICES_TAB_BAR_SCROLL_PAD = `calc(${SERVICES_TAB_BAR_HEIGHT} + 1.25rem + env(safe-area-inset-bottom, 0px))`;
+export const SERVICES_TAB_BAR_SCROLL_PAD = adminMobileTabBarListScrollPadClass;
 
 export const servicesCard =
   'rounded-[22px] border border-[#EAECEF] bg-white shadow-[0_8px_28px_rgba(17,24,39,0.05)]';
@@ -139,11 +142,11 @@ export const servicesIconCircle =
   'flex shrink-0 items-center justify-center rounded-[16px] bg-[#FFF1F4] text-[#F47C8C]';
 
 export const servicesPinkBtn =
-  'flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] text-[15px] font-bold text-white shadow-[0_10px_28px_rgba(255,95,122,0.32)] transition hover:opacity-95 active:scale-[0.98] disabled:opacity-50';
+  'flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] text-[15px] font-bold text-white transition hover:opacity-95 active:scale-[0.98] disabled:opacity-50';
 
 /** Кнопка «Добавить услугу» в каталоге — красный фон с фото. */
 export const servicesCatalogAddBtn =
-  'relative inline-flex min-h-11 min-w-0 w-full items-center justify-center overflow-hidden rounded-[12px] bg-[#EF4444] px-3 text-[12px] font-bold text-[#111827] shadow-[0_4px_14px_rgba(239,68,68,0.28)] transition hover:opacity-95 active:scale-[0.98] disabled:opacity-45 sm:px-4 sm:text-[13px]';
+  'relative inline-flex min-h-11 min-w-0 w-full items-center justify-center overflow-hidden rounded-[12px] bg-[#EF4444] px-3 text-[12px] font-bold text-[#111827] transition hover:opacity-95 active:scale-[0.98] disabled:opacity-45 sm:px-4 sm:text-[13px]';
 
 /** Список действий в sheet услуги. */
 export const servicesSheetMenuList = 'overflow-hidden rounded-[14px] bg-[#F5F5F5]';
@@ -158,7 +161,7 @@ export const servicesChip =
   'shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-semibold transition active:scale-[0.96]';
 
 export const servicesChipActive =
-  'border-[#FDE8ED] bg-[#FFF1F4] text-[#F47C8C] shadow-[inset_0_0_0_1px_rgba(244,124,140,0.12)]';
+  'border-[#FDE8ED] bg-[#FFF1F4] text-[#F47C8C]';
 
 export const servicesChipIdle =
   'border-[#EAECEF] bg-white text-[#6B7280] hover:border-[#FDE8ED] hover:text-[#374151]';

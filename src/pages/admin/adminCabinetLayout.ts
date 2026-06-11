@@ -8,12 +8,20 @@ export const ADMIN_SIDEBAR_PX = 260;
 export const ADMIN_DESKTOP_TOPBAR_HEIGHT = '5rem';
 
 /** Shell: хедер поверх сайдбара, скролл только у main. */
-export const adminDesktopCabinetShell = 'relative h-dvh overflow-hidden';
+export const adminDesktopCabinetShell =
+  'relative flex h-dvh w-full min-w-0 flex-col overflow-hidden';
 
 export const adminDesktopCabinetBody =
-  'flex h-full min-h-0 lg:pt-[var(--slotty-admin-desktop-topbar-h,5rem)]';
+  'flex h-full min-h-0 w-full min-w-0 flex-1 lg:pt-[var(--slotty-admin-desktop-topbar-h,5rem)]';
+
+/** Правая колонка desktop-кабинета: растягивается на всю оставшуюся ширину. */
+export const adminDesktopCabinetMainColumn = 'flex min-h-0 w-full min-w-0 flex-1 flex-col';
 
 export const adminDesktopSidebarShell = `${ADMIN_SIDEBAR_WIDTH} hidden h-full shrink-0 flex-col overflow-hidden border-r border-[#eef0f5] bg-white lg:flex`;
+
+/** Прокручиваемый список пунктов меню (футер сайдбара остаётся закреплённым). */
+export const adminDesktopSidebarNav =
+  'flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-y-contain px-3 py-4 [scrollbar-width:thin]';
 
 export const adminDesktopMainScroll =
   'relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-contain';
@@ -39,6 +47,10 @@ export const ADMIN_CABINET_SHELL_MAX = 'w-full lg:max-w-none';
 export const ADMIN_CABINET_MAIN =
   'mx-auto w-full min-w-0 flex-1 lg:mx-0 lg:flex lg:flex-col lg:px-8 lg:py-6';
 
+/** Десктоп: main-область кабинета клиента на всю ширину между сайдбаром и краем. */
+export const CLIENT_CABINET_DESKTOP_MAIN =
+  'mx-auto w-full min-w-0 px-4 pt-4 lg:mx-0 lg:max-w-none lg:bg-transparent lg:px-8 lg:pt-6 lg:shadow-none lg:ring-0';
+
 export const ADMIN_DESKTOP_CANVAS = 'lg:bg-[#f6f7fb]';
 
 export const ADMIN_DESKTOP_PAGE =
@@ -55,16 +67,20 @@ export const adminDesktopNavItemClass = (active: boolean): string =>
 export const adminSidebarFooterCard =
   'flex w-full items-center gap-3 rounded-[14px] bg-[#F6F7FB] p-3.5 no-underline transition hover:bg-[#F1EFEF] active:scale-[0.99]';
 
-export const adminSidebarFooterCardAccent =
-  'relative flex w-full items-center gap-3 overflow-hidden rounded-[14px] p-3.5 no-underline transition active:scale-[0.99] hover:opacity-95';
+/** Карточка тарифа в сайдбаре — серый лоток, без фото. */
+export const adminSidebarTariffCard =
+  'flex w-full items-center gap-3 rounded-[14px] bg-[#F6F7FB] p-3.5 no-underline ring-1 ring-[#EEEEEE] transition hover:bg-[#F1EFEF] active:scale-[0.99]';
 
-/** Фон карточки тарифа в сайдбаре (`public/photos/fon.webp`). */
+/** @deprecated фото-фон тарифа убран — оставлено для совместимости импортов. */
 export const ADMIN_SIDEBAR_TARIFF_BG = '/photos/fon.webp';
+
+/** @deprecated используйте adminSidebarTariffCard */
+export const adminSidebarFooterCardAccent = adminSidebarTariffCard;
 
 /** Десктоп: сегменты в сером треке (как фильтры в расписании). */
 export const ADMIN_SEGMENT_NAV_DESKTOP =
   'flex w-full flex-wrap gap-1.5 rounded-[10px] bg-[#F5F5F5] p-1.5';
 
-/** Плавающая белая карточка на сером полотне — на всю ширину контента. */
+/** Нижняя панель табов — как ClientBottomNav в каталоге. */
 export const ADMIN_SEGMENT_NAV_MOBILE =
-  'pointer-events-auto flex h-[4.5rem] w-full items-stretch gap-1 rounded-[16px] bg-white p-1.5 ring-1 ring-[#EEEEEE]';
+  'pointer-events-auto box-border flex w-full min-w-full items-stretch overflow-hidden border-t border-[#E8E8E8] bg-white pb-[env(safe-area-inset-bottom,0px)] pt-1 shadow-[0_-6px_20px_rgba(17,24,39,0.06)]';

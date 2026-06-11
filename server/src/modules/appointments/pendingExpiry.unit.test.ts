@@ -12,6 +12,7 @@ describe('pendingExpiry lifecycle guards', () => {
     assert.match(src, /status = 'expired'/);
     assert.match(src, /status = 'available'/);
     assert.match(src, /notifyClientByAppointmentId\(appointmentId, 'expired'\)/);
+    assert.match(src, /notifyMasterBookingExpired\(appointmentId\)/);
   });
 
   it('master confirm rejects expired and past deadline', () => {

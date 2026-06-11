@@ -10,7 +10,7 @@ export function ServicesSheetPrimaryButton({ children, className = '', ...props 
   return (
     <button type="button" className={`${servicesCatalogAddBtn} ${className}`} {...props}>
       <ServicesBrandPhotoLayers roundedClassName="rounded-[12px]" />
-      <span className="relative z-10 drop-shadow-sm">{children}</span>
+      <span className="relative z-10">{children}</span>
     </button>
   );
 }

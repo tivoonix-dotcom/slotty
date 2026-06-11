@@ -11,11 +11,27 @@ import {
   LEGAL_PUBLIC_OFFER_PATH,
   LEGAL_REFUND_PATH,
   LEGAL_TERMS_PATH,
+  MASTER_START_PATH,
   SERVICES_PATH,
 } from '../app/paths';
 import { subscribeToNewsletter } from '../features/newsletter/api/newsletterApi';
 import { PaymentLogos } from '../shared/ui/PaymentLogos';
+import { LandingReveal } from './home/LandingReveal';
+import { HOME_LANDING_FOOTER_LOGO_SRC } from './home/homeLandingFooterAssets';
 import { homeShell } from './home/homeLayout';
+import {
+  homeLandingFooterBody,
+  homeLandingFooterCaption,
+  homeLandingFooterCta,
+  homeLandingFooterInput,
+  homeLandingFooterLegalLink,
+  homeLandingFooterLogoImg,
+  homeLandingFooterLogoWrap,
+  homeLandingFooterMarquee,
+  homeLandingFooterNavLabel,
+  homeLandingFooterNavLink,
+  homeLandingFooterTitle,
+} from './home/homeTheme';
 import { SITE_PUBLIC_URL } from './legal/legalSiteInfo';
 
 const FOOTER_MARQUEE_SERVICES = [
@@ -30,13 +46,15 @@ const FOOTER_MARQUEE_SERVICES = [
   'Стрижка',
 ] as const;
 
-const FOOTER_COL_A = [
-  { key: 'booking', label: 'Запись', to: BOOKING_PATH },
-  { key: 'catalog', label: 'Каталог', to: SERVICES_PATH },
-  { key: 'tarify', label: 'Тарифы', to: `${HUB_PATH}#tarify` },
-  { key: 'faq', label: 'FAQ', to: `${HUB_PATH}#faq` },
-  { key: 'masters', label: 'Для мастеров', to: `${HUB_PATH}#for-masters` },
-] as const;
+const FOOTER_COL_A = (sectionsPath: string) =>
+  [
+    { key: 'booking', label: 'Запись', to: BOOKING_PATH },
+    { key: 'catalog', label: 'Каталог', to: SERVICES_PATH },
+    { key: 'tarify', label: 'Тарифы', to: `${MASTER_START_PATH}#tarify` },
+    { key: 'faq', label: 'FAQ', to: `${sectionsPath}#faq` },
+    { key: 'masters', label: 'Для мастеров', to: MASTER_START_PATH },
+    { key: 'clients', label: 'Для клиентов', to: HUB_PATH },
+  ] as const;
 
 const FOOTER_COL_B = [
   { key: 'master', label: 'Кабинет мастера', to: BECOME_MASTER_PATH },
@@ -48,18 +66,6 @@ const FOOTER_COL_B = [
   { key: 'payment', label: 'Оплата', to: LEGAL_PAYMENT_PATH },
   { key: 'refund', label: 'Возвраты', to: LEGAL_REFUND_PATH },
 ] as const;
-
-const navLinkBrandClass =
-  'text-[15px] font-medium text-[#171717]/85 transition hover:text-[#171717] active:opacity-80';
-
-const navLinkDarkClass =
-  'text-[15px] font-medium text-white/75 transition hover:text-white active:opacity-80';
-
-const inputClass =
-  'h-10 w-full rounded-full bg-white/12 px-4 text-[13px] text-white placeholder:text-white/55 outline-none ring-1 ring-inset ring-white/12 transition focus:ring-white/30 disabled:opacity-60';
-
-const ctaClass =
-  'inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-white px-4 text-[13px] font-semibold text-[#171717] transition hover:bg-white/90 active:opacity-80 disabled:cursor-not-allowed disabled:opacity-60';
 
 function FooterLinkList({
   items,
@@ -87,11 +93,15 @@ function isValidEmail(value: string): boolean {
 
 type HomeFooterProps = {
   tone?: 'brand' | 'dark';
+  /** Базовый путь для якоря FAQ (клиентский лендинг). */
+  sectionsPath?: string;
 };
 
-export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
+export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand', sectionsPath = HUB_PATH }) => {
   const isDark = tone === 'dark';
-  const navLinkClass = isDark ? navLinkDarkClass : navLinkBrandClass;
+  const navLinkClass = `${homeLandingFooterNavLink} ${
+    isDark ? 'text-white/75 hover:text-white' : 'text-[#171717]/85 hover:text-[#171717]'
+  }`;
   const year = new Date().getFullYear();
   const marqueeTrack = Array.from({ length: 6 }).flatMap(() => FOOTER_MARQUEE_SERVICES);
 
@@ -114,8 +124,11 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
       const result = await subscribeToNewsletter(trimmed);
       setFeedback({ kind: 'success', text: result.message });
       setEmail('');
-    } catch {
-      setFeedback({ kind: 'error', text: 'Не удалось оформить подписку. Попробуйте позже.' });
+    } catch (err) {
+      setFeedback({
+        kind: 'error',
+        text: err instanceof Error ? err.message : 'Не удалось оформить подписку. Попробуйте позже.',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -137,7 +150,7 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
         <div className={`border-b py-5 sm:py-6 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
           <div className="relative left-1/2 w-[100vw] max-w-[100vw] -translate-x-1/2 overflow-hidden">
             <div
-              className={`flex w-max items-center gap-8 px-6 text-[30px] font-bold tracking-[-0.04em] sm:text-[40px] motion-reduce:animate-none animate-services-marquee-left ${
+              className={`flex w-max items-center gap-8 px-6 motion-reduce:animate-none animate-services-marquee-left ${homeLandingFooterMarquee} ${
                 isDark ? 'text-white/15' : 'text-white'
               }`}
             >
@@ -155,16 +168,17 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
 
         <div className={`${homeShell} px-5 pb-[max(0.9rem,env(safe-area-inset-bottom))] pt-10 sm:px-6 sm:pt-12 lg:pt-14`}>
           <div className="grid gap-10 lg:grid-cols-[minmax(0,420px)_1fr] lg:gap-16">
+            <LandingReveal variant="left" delay={40}>
             <div>
               <h3
-                className={`text-pretty text-[18px] font-semibold tracking-[-0.02em] sm:text-[19px] ${
+                className={`text-pretty ${homeLandingFooterTitle} ${
                   isDark ? 'text-white' : 'text-[#171717]'
                 }`}
               >
                 Подпишись на новости и обновления
               </h3>
               <p
-                className={`mt-2 text-[13px] leading-relaxed sm:text-[14px] ${
+                className={`mt-2 ${homeLandingFooterBody} ${
                   isDark ? 'text-white/55' : 'text-[#171717]/70'
                 }`}
               >
@@ -173,7 +187,11 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
 
               <form className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center" onSubmit={onSubscribe} noValidate>
                 <input
-                  className={inputClass}
+                  className={`${homeLandingFooterInput} ${
+                    isDark
+                      ? 'bg-white/12 text-white placeholder:text-white/55 ring-white/12 focus:ring-white/30'
+                      : 'bg-white text-[#171717] placeholder:text-[#9CA3AF] ring-black/10 focus:ring-black/25'
+                  }`}
                   type="email"
                   name="email"
                   autoComplete="email"
@@ -183,14 +201,14 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
                   disabled={submitting}
                   aria-label="Email для подписки на новости"
                 />
-                <button type="submit" className={ctaClass} disabled={submitting}>
+                <button type="submit" className={homeLandingFooterCta} disabled={submitting}>
                   {submitting ? 'Отправка…' : 'Подписаться'}
                 </button>
               </form>
 
               {feedback ? (
                 <p
-                  className={`mt-2 text-[12px] ${
+                  className={`mt-2 ${homeLandingFooterCaption} ${
                     feedback.kind === 'success'
                       ? isDark
                         ? 'text-white/65'
@@ -205,7 +223,7 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
                 </p>
               ) : null}
 
-              <p className={`mt-2 text-[12px] ${isDark ? 'text-white/40' : 'text-[#171717]/55'}`}>
+              <p className={`mt-2 ${homeLandingFooterCaption} ${isDark ? 'text-white/40' : 'text-[#171717]/55'}`}>
                 Нажимая «Подписаться», вы соглашаетесь с{' '}
                 <Link
                   to={LEGAL_PRIVACY_PATH}
@@ -220,21 +238,22 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
                 .
               </p>
             </div>
+            </LandingReveal>
 
-            <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-3 sm:gap-x-14 md:gap-x-20">
+            <LandingReveal className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-3 sm:gap-x-14 md:gap-x-20" variant="right" delay={100}>
               <nav aria-label="Разделы сайта">
                 <p
-                  className={`mb-3 text-[12px] font-semibold tracking-[0.08em] ${
+                  className={`${homeLandingFooterNavLabel} ${
                     isDark ? 'text-white/35' : 'text-[#171717]/55'
                   }`}
                 >
                   РАЗДЕЛЫ
                 </p>
-                <FooterLinkList items={FOOTER_COL_A} linkClass={navLinkClass} />
+                <FooterLinkList items={FOOTER_COL_A(sectionsPath)} linkClass={navLinkClass} />
               </nav>
               <nav aria-label="Мастерам и документы">
                 <p
-                  className={`mb-3 text-[12px] font-semibold tracking-[0.08em] ${
+                  className={`${homeLandingFooterNavLabel} ${
                     isDark ? 'text-white/35' : 'text-[#171717]/55'
                   }`}
                 >
@@ -244,7 +263,7 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
               </nav>
               <nav aria-label="Контакты">
                 <p
-                  className={`mb-3 text-[12px] font-semibold tracking-[0.08em] ${
+                  className={`${homeLandingFooterNavLabel} ${
                     isDark ? 'text-white/35' : 'text-[#171717]/55'
                   }`}
                 >
@@ -268,15 +287,11 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
                   </li>
                 </ul>
               </nav>
-            </div>
+            </LandingReveal>
           </div>
 
           <div className={`mt-10 max-w-2xl ${isDark ? '[&_p]:text-white/45 [&_p]:font-semibold' : ''}`}>
-            <PaymentLogos
-              variant="footer"
-              title="Планируемые способы оплаты"
-              showDisclaimer
-            />
+            <PaymentLogos variant="footer" title="Планируемые способы оплаты" showDisclaimer />
           </div>
 
           <div
@@ -286,7 +301,7 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <p className={`text-[13px] ${isDark ? 'text-white/40' : 'text-[#171717]/60'}`}>
+                <p className={`${homeLandingFooterCaption} ${isDark ? 'text-white/40' : 'text-[#171717]/60'}`}>
                   © SLOTTY 2024 – {year}
                 </p>
               </div>
@@ -294,7 +309,7 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
               <div className="flex flex-wrap gap-x-6 gap-y-2">
                 <Link
                   to={LEGAL_PRIVACY_PATH}
-                  className={`text-[13px] font-medium transition ${
+                  className={`${homeLandingFooterLegalLink} ${
                     isDark ? 'text-white/45 hover:text-white/80' : 'text-[#171717]/60 hover:text-[#171717]/80'
                   }`}
                 >
@@ -302,7 +317,7 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
                 </Link>
                 <Link
                   to={LEGAL_TERMS_PATH}
-                  className={`text-[13px] font-medium transition ${
+                  className={`${homeLandingFooterLegalLink} ${
                     isDark ? 'text-white/45 hover:text-white/80' : 'text-[#171717]/60 hover:text-[#171717]/80'
                   }`}
                 >
@@ -313,13 +328,14 @@ export const HomeFooter: FC<HomeFooterProps> = ({ tone = 'brand' }) => {
           </div>
 
           <div className="mt-6 pb-2 sm:mt-8 sm:pb-3">
-            <div
-              aria-hidden
-              className={`pointer-events-none relative left-1/2 w-[1200px] max-w-[120vw] -translate-x-1/2 -translate-y-[3%] select-none text-center text-[140px] font-black leading-none tracking-[-0.06em] sm:-translate-y-[4%] sm:text-[220px] md:text-[260px] lg:text-[320px] ${
-                isDark ? 'text-white/[0.07]' : 'text-white/60'
-              }`}
-            >
-              SLOTTY
+            <div aria-hidden className={homeLandingFooterLogoWrap}>
+              <img
+                src={HOME_LANDING_FOOTER_LOGO_SRC}
+                alt=""
+                className={`${homeLandingFooterLogoImg} ${isDark ? 'opacity-[0.14]' : 'opacity-65'}`}
+                loading="lazy"
+                decoding="async"
+              />
             </div>
           </div>
         </div>

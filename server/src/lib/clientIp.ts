@@ -57,6 +57,15 @@ function mayTrustCloudflareConnectingIp(): boolean {
   return process.env.TRUST_PROXY?.trim() === '2';
 }
 
+function normalizeClientIpValue(ip: string): string {
+  if (ip.startsWith('::ffff:')) {
+    const v4 = ip.slice(7);
+    if (isIP(v4) === 4) return v4;
+  }
+  if (ip === '::1') return '127.0.0.1';
+  return ip;
+}
+
 function normalizeSocketIp(remote: string | undefined): string | null {
   if (!remote?.trim()) return null;
   const r = remote.trim();
@@ -85,11 +94,11 @@ export function resolveClientIpDebug(req: Request): ClientIpDebug {
   }
 
   if (reqIp) {
-    return { clientIp: reqIp, reqIp, socketIp, usedHeader: 'req.ip' };
+    return { clientIp: normalizeClientIpValue(reqIp), reqIp, socketIp, usedHeader: 'req.ip' };
   }
 
   if (socketIp) {
-    return { clientIp: socketIp, reqIp, socketIp, usedHeader: 'socket' };
+    return { clientIp: normalizeClientIpValue(socketIp), reqIp, socketIp, usedHeader: 'socket' };
   }
 
   return { clientIp: 'unknown', reqIp, socketIp, usedHeader: 'socket' };

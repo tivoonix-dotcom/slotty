@@ -11,7 +11,8 @@ import {
   landingPlanCtaClass,
 } from '../features/billing/ui/landingTariffCards';
 import { PaymentPartnersStrip } from '../shared/ui/PaymentLogos';
-import { homeSection } from './home/homeTheme';
+import { LandingReveal } from './home/LandingReveal';
+import { homeLandingHeading, homeSection, homeTariffsToggle, homeTariffsToggleHint } from './home/homeTheme';
 
 type PlanCardConfig = {
   id: string;
@@ -77,9 +78,9 @@ function BillingToggle({
   onChange: (annual: boolean) => void;
 }) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-3 text-[14px] font-medium text-[#6B7280]">
+    <label className={`inline-flex cursor-pointer items-center gap-3 ${homeTariffsToggle}`}>
       <span>Оплата раз в год</span>
-      <span className="text-[13px] text-[#9CA3AF]">(экономия ~20%)</span>
+      <span className={homeTariffsToggleHint}>(экономия ~20%)</span>
       <button
         type="button"
         role="switch"
@@ -106,16 +107,16 @@ export const HomeTariffs: FC = () => {
   const plans = useMemo(() => PLANS, []);
 
   return (
-    <section id="tarify" className={homeSection} style={{ animationDelay: '60ms' }}>
-      <div className="mx-auto max-w-[44rem] text-center">
-        <h2 className="text-[clamp(2rem,6vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[#111827]">
+    <section id="tarify" className={homeSection} aria-labelledby="tarify-heading">
+      <LandingReveal className="mx-auto max-w-[44rem] text-center" variant="blur-up">
+        <h2 id="tarify-heading" className={`${homeLandingHeading} text-[#111827]`}>
           Тарифы
         </h2>
 
         <div className="mt-6 flex justify-center">
           <BillingToggle annual={annual} onChange={setAnnual} />
         </div>
-      </div>
+      </LandingReveal>
 
       <div className="relative mt-10 w-full sm:mt-12">
         <div
@@ -124,13 +125,13 @@ export const HomeTariffs: FC = () => {
         />
 
         <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-3 md:gap-4 lg:gap-5">
-          {plans.map((plan) => {
+          {plans.map((plan, planIndex) => {
             const wrapClass = plan.highlighted ? 'md:-mt-1 md:mb-1' : undefined;
             const { value, unit } = plan.price(period);
 
             if (plan.id === 'master-pro') {
               return (
-                <div key={plan.id} className={wrapClass}>
+                <LandingReveal key={plan.id} className={wrapClass} variant="scale" delay={100 + planIndex * 90}>
                   <LandingProTariffCard
                     priceValue={value}
                     priceUnit={unit}
@@ -141,12 +142,12 @@ export const HomeTariffs: FC = () => {
                       </Link>
                     }
                   />
-                </div>
+                </LandingReveal>
               );
             }
 
             return (
-              <div key={plan.id} className={wrapClass}>
+              <LandingReveal key={plan.id} className={wrapClass} variant="scale" delay={100 + planIndex * 90}>
                 <LandingPricingCard
                   name={plan.name}
                   priceValue={value}
@@ -164,12 +165,14 @@ export const HomeTariffs: FC = () => {
                     </Link>
                   }
                 />
-              </div>
+              </LandingReveal>
             );
           })}
         </div>
 
-        <PaymentPartnersStrip className="mt-10 sm:mt-12" />
+        <LandingReveal variant="up" delay={200}>
+          <PaymentPartnersStrip className="mt-10 sm:mt-12" />
+        </LandingReveal>
       </div>
     </section>
   );

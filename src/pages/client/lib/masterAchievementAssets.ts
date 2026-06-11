@@ -1,19 +1,40 @@
 import type { MasterTopAchievementKind } from './resolveMasterTopRankStatus';
 
-const ACHIEVEMENTS_DIR = `/photos/${encodeURIComponent('достижения')}`;
+const AWARDS_DIR = `/photos/${encodeURIComponent('награды')}`;
 
-function achievementArt(filename: string): string {
-  return `${ACHIEVEMENTS_DIR}/${encodeURIComponent(filename)}`;
+function awardArt(filename: string): string {
+  return `${AWARDS_DIR}/${encodeURIComponent(filename)}`;
 }
 
-/** Иллюстрации призов — имена файлов соответствуют типам достижений. */
+/** Иллюстрации достижений — PNG из public/photos/награды. */
 export const MASTER_ACHIEVEMENT_ART: Record<MasterTopAchievementKind, string> = {
-  week: achievementArt('В топе недели · Лучший результат за 7 дней.png'),
-  month: achievementArt('1 место · В топе месяца · Стабильный результат за месяц.png'),
-  rating: achievementArt('4.5-5.0 · Лучший рейтинг · Высокая оценка клиентов.png'),
-  reviews: achievementArt('“2 отзыва · Много отзывов · Клиенты делятся впечатлениями.png'),
-  new: achievementArt('Недавно на Slotty · Новая звезда · Профиль активно развивается.png'),
+  week: awardArt('втопенедели-Photoroom.png'),
+  month: awardArt('втопемесяцв-Photoroom.png'),
+  rating: awardArt('звезда-Photoroom.png'),
+  reviews: awardArt('многоотзывов-Photoroom.png'),
+  new: awardArt('недавно-Photoroom.png'),
 };
 
 /** Пустой блок достижений на публичном профиле. */
-export const MASTER_ACHIEVEMENTS_EMPTY_ART = achievementArt('нет достиедний.png');
+export const MASTER_ACHIEVEMENTS_EMPTY_ART = awardArt('нетдостижения-Photoroom.png');
+
+export function inferAchievementKindFromTitle(title: string): MasterTopAchievementKind | null {
+  const q = title.toLowerCase();
+  if (q.includes('недел')) return 'week';
+  if (q.includes('месяц')) return 'month';
+  if (q.includes('лучш') || q.includes('рейтинг') || q.includes('оцен')) return 'rating';
+  if (q.includes('отзыв')) return 'reviews';
+  if (q.includes('нов') || q.includes('звезд') || q.includes('недавн')) return 'new';
+  return null;
+}
+
+/** PNG достижения по типу; при сбое — по тексту заголовка. */
+export function resolveMasterAchievementArt(
+  kind: MasterTopAchievementKind | undefined | null,
+  title?: string,
+): string {
+  if (kind && MASTER_ACHIEVEMENT_ART[kind]) return MASTER_ACHIEVEMENT_ART[kind];
+  const inferred = title ? inferAchievementKindFromTitle(title) : null;
+  if (inferred) return MASTER_ACHIEVEMENT_ART[inferred];
+  return MASTER_ACHIEVEMENTS_EMPTY_ART;
+}

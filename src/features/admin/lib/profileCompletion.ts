@@ -104,8 +104,9 @@ function parseServicePriceByn(value: unknown): number | null {
   return null;
 }
 
-/** Услуга считается заполненной, если есть название и цена (видимость не важна). */
+/** Услуга в каталоге: название, цена и видимость (фото — отдельно при публикации в каталоге). */
 export function isCatalogServiceComplete(s: MasterOnboardingService): boolean {
+  if (s.isActive === false) return false;
   const title = (s.title ?? '').trim();
   if (title.length < 2 || title.length > 300) return false;
   const legacyPrice = (s as MasterOnboardingService & { price?: unknown }).price;
@@ -130,7 +131,7 @@ function servicesMissing(draft: MasterDraft): ProfileCompletionMissingItem[] {
   if (!hasCompletedServicesCatalog(list)) {
     missing.push({
       id: 'services-invalid',
-      label: 'Укажите название и цену у услуги',
+      label: 'Укажите название и цену у хотя бы одной активной услуги',
       actionId: 'services',
     });
   }

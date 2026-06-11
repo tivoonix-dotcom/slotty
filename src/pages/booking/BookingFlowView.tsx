@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { EMPTY_BOOKING_DATE, EMPTY_BOOKING_TIME } from '../../shared/lib/emptyDisplayText';
 import { getMasterPath } from '../../app/paths';
-import { HiCalendarDays, HiClock, HiStar } from 'react-icons/hi2';
+import { HiClock, HiStar } from 'react-icons/hi2';
 import { masterShowsVerifiedBadge } from '../../features/masters/lib/masterVerifiedBadge';
 import { MasterVerifiedBadge } from '../../shared/ui/MasterVerifiedBadge';
 import type { DemoMasterProfile } from '../../features/services/model/demoMasters';
@@ -16,17 +16,11 @@ import type {
   DemoBookingGridDay,
   DemoBookingGridSlot,
 } from '../../features/booking/model/demoBookingSlotGrid';
-import {
-  bookingCard,
-  bookingChipActive,
-  bookingChipIdle,
-  bookingMutedPanel,
-  bookingSectionLabel,
-  bookingSlotActive,
-  bookingSlotIdle,
-} from './bookingUi';
+import { bookingCard, bookingMutedPanel, bookingSectionLabel } from './bookingUi';
 import { formatServicePrice } from './bookingFormat';
 import { BookingCalendarOverlay } from './BookingCalendarOverlay';
+import { BookingDateStrip } from './BookingDateStrip';
+import { BookingTimeSlots } from './BookingTimeSlots';
 import { BookingCheckoutExtras } from './BookingCheckoutExtras';
 import { BookingFlowDesktopView } from './BookingFlowDesktopView';
 import { BookingSuccessModal } from './BookingSuccessModal';
@@ -129,6 +123,7 @@ export function BookingFlowView({
         onCommentChange={onCommentChange}
         referencePhotoUrl={referencePhotoUrl}
         onReferencePhotoUrlChange={onReferencePhotoUrlChange}
+        isCalendarOpen={isCalendarOpen}
         onPickDate={onPickDate}
         onPickSlot={onPickSlot}
         onOpenCalendar={onOpenCalendar}
@@ -137,10 +132,10 @@ export function BookingFlowView({
       />
 
       <div className="w-full min-w-0 lg:hidden">
-      <header className="mt-4">
+      <header className={`${bookingCard} mt-4 p-4`}>
         <nav
           aria-label="Маршрут записи"
-          className="mb-3 flex min-w-0 items-center gap-1 rounded-[12px] border border-[#EEEEEE] bg-[#FAFAFA] px-3 py-2"
+          className="mb-3 flex min-w-0 flex-wrap items-center gap-1"
         >
           <Link
             to={getMasterPath(master.masterId)}
@@ -155,7 +150,8 @@ export function BookingFlowView({
             {service.title}
           </span>
         </nav>
-        <h1 className="text-[26px] font-bold leading-tight tracking-[-0.03em] text-[#111827]">
+        <p className="text-[13px] font-medium text-[#8E8E93]">Онлайн-запись</p>
+        <h1 className="mt-1 text-[22px] font-bold leading-tight tracking-[-0.03em] text-[#111827]">
           Выберите дату и время
         </h1>
         <p className="mt-1.5 text-[14px] leading-relaxed text-[#6B7280]">
@@ -212,17 +208,7 @@ export function BookingFlowView({
       </section>
 
       <section className={`${bookingCard} mt-4 p-4`}>
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <p className={bookingSectionLabel}>Дата</p>
-          <button
-            type="button"
-            onClick={onOpenCalendar}
-            className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold ${bookingChipIdle}`}
-          >
-            <HiCalendarDays className="h-4 w-4 text-[#F47C8C]" aria-hidden />
-            Календарь
-          </button>
-        </div>
+        <p className={`${bookingSectionLabel} mb-3`}>Дата</p>
 
         <div className={`${bookingMutedPanel} mb-3 px-4 py-3.5`}>
           <p className="text-[11px] font-medium text-[#9CA3AF]">Выбранная дата</p>
@@ -231,57 +217,24 @@ export function BookingFlowView({
           </p>
         </div>
 
-        <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {quickDateDays.map((day) => {
-            const hasTimes = day.times.length > 0;
-            const active = day.date === selectedDay?.date;
-            return (
-              <button
-                key={day.id}
-                type="button"
-                disabled={!hasTimes}
-                onClick={() => onPickDate(day.date)}
-                className={`shrink-0 rounded-full px-4 py-2.5 text-[14px] font-semibold transition active:scale-[0.98] disabled:opacity-40 ${
-                  active ? bookingChipActive : bookingChipIdle
-                }`}
-              >
-                {day.dateLabel}
-              </button>
-            );
-          })}
-        </div>
+        <BookingDateStrip
+          days={quickDateDays}
+          selectedDate={selectedDay?.date ?? null}
+          calendarOpen={isCalendarOpen}
+          onPickDate={onPickDate}
+          onOpenCalendar={onOpenCalendar}
+        />
       </section>
 
       <section className={`${bookingCard} mt-3 p-4`}>
         <p className={`${bookingSectionLabel} mb-3`}>Время</p>
         {selectedDay && selectedDay.times.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {selectedDay.times.map((slot) => {
-              const active = slot.slotId === selectedSlot?.slotId;
-              const promo = slot.promotion;
-              return (
-                <button
-                  key={slot.slotId}
-                  type="button"
-                  onClick={() => onPickSlot(slot.slotId)}
-                  className={`relative min-h-11 min-w-[4.5rem] rounded-full px-4 text-[14px] font-semibold transition active:scale-[0.98] ${
-                    active ? bookingSlotActive : bookingSlotIdle
-                  }`}
-                >
-                  <span className="block">{slot.timeLabel}</span>
-                  {promo ? (
-                    <span
-                      className={`mt-0.5 block text-[10px] font-bold leading-none ${
-                        active ? 'text-white/90' : 'text-[#F47C8C]'
-                      }`}
-                    >
-                      {promo.discountLabel}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
+          <BookingTimeSlots
+            slots={selectedDay.times}
+            selectedSlotId={selectedSlot?.slotId ?? null}
+            onPickSlot={onPickSlot}
+            layout="wrap"
+          />
         ) : (
           <p className={`${bookingMutedPanel} px-4 py-6 text-center text-[14px] text-[#6B7280]`}>
             На этот день свободных слотов нет

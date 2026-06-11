@@ -23,8 +23,6 @@ import {
   overviewCardPad,
   overviewDesktopCard,
   overviewDesktopCardPad,
-  overviewIconCircle,
-  overviewPinkBtn,
 } from './adminOverviewTheme';
 import { OverviewKpiCarousel, OverviewKpiStatCard } from './OverviewKpiBlocks';
 import { formatAppointmentWhenRu, formatBynRu } from './overviewFormat';
@@ -32,9 +30,8 @@ import {
   OverviewVisitsBarChart,
   OverviewRevenueLineChart,
   OverviewHeroEmpty,
-  OverviewCompactMetricCard,
+  OverviewScheduleFillCard,
   OverviewSectionCard,
-  OverviewWideMetricCard,
 } from './OverviewSharedUi';
 import { OverviewSummaryHeroBackground } from './OverviewSummaryHeroBackground';
 
@@ -97,41 +94,36 @@ function SummaryMobileHeroCard({
   appointmentsPath: string;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-[16px] p-5 text-white">
-      <OverviewSummaryHeroBackground />
+    <section className={`${overviewCard} ${overviewCardPad}`}>
+      <h1 className="text-[20px] font-semibold leading-tight tracking-[-0.03em] text-[#111827]">
+        Привет, {firstName}
+      </h1>
+      <p className="mt-1 text-[13px] leading-snug text-[#6B7280]">
+        Сводка по записям и доходу за выбранный период
+      </p>
 
-      <div className="relative z-10 min-w-0">
-        <h1 className="text-[22px] font-black leading-tight tracking-[-0.05em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
-          Привет, {firstName}. Сегодня всё под контролем.
-        </h1>
-
-        <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.35)]">
-          Быстрая сводка по записям, доходу, ближайшему клиенту и расписанию.
-        </p>
-
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <div className="rounded-[14px] bg-white/10 px-3 py-3">
-            <p className="text-[11px] font-bold text-white/60">Записей</p>
-            <p className="mt-1 text-[22px] font-black leading-none tabular-nums tracking-[-0.06em] text-white">
-              {totalVisits}
-            </p>
-          </div>
-
-          <div className="rounded-[14px] bg-white/10 px-3 py-3">
-            <p className="text-[11px] font-bold text-white/60">Доход</p>
-            <p className="mt-1 text-[18px] font-black leading-none tabular-nums tracking-[-0.05em] text-white">
-              {formatBynRu(totalRevenue)}
-            </p>
-          </div>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="rounded-[10px] bg-[#F5F5F5] px-3 py-3">
+          <p className="text-[11px] font-semibold text-[#9CA3AF]">Записей</p>
+          <p className="mt-1 text-[22px] font-bold tabular-nums leading-none tracking-[-0.04em] text-[#111827]">
+            {totalVisits}
+          </p>
         </div>
 
-        <Link
-          to={appointmentsPath}
-          className="mt-4 inline-flex w-full min-h-11 items-center justify-center rounded-[12px] bg-white px-4 text-[14px] font-bold text-[#111827] transition active:scale-[0.98]"
-        >
-          Все записи
-        </Link>
+        <div className="rounded-[10px] bg-[#F5F5F5] px-3 py-3">
+          <p className="text-[11px] font-semibold text-[#9CA3AF]">Доход</p>
+          <p className="mt-1 text-[18px] font-bold tabular-nums leading-none tracking-[-0.04em] text-[#111827]">
+            {formatBynRu(totalRevenue)}
+          </p>
+        </div>
       </div>
+
+      <Link
+        to={appointmentsPath}
+        className="mt-3 inline-flex w-full min-h-10 items-center justify-center rounded-[10px] bg-[#F47C8C] px-4 text-[14px] font-semibold text-white transition hover:opacity-95 active:scale-[0.98]"
+      >
+        Все записи
+      </Link>
     </section>
   );
 }
@@ -142,7 +134,6 @@ function OverviewSummaryPanelMobile({
   appointmentsPath,
   dayStats,
   draft,
-  onOpenNearest,
   ops,
   opsLoading,
   slotsLoadError,
@@ -154,7 +145,7 @@ function OverviewSummaryPanelMobile({
   onPersistDraft,
   appointments,
 }: SummaryProps) {
-  const { totalRevenue, totalVisits, nearest } = metrics;
+  const { totalRevenue, totalVisits } = metrics;
   const activeServiceCount = countActiveServices(draft.services);
   const profileReady = assessMasterBookingReadiness({
     draft,
@@ -163,6 +154,7 @@ function OverviewSummaryPanelMobile({
   }).readyToAcceptBookings;
   const hasAny = metrics.hasAny || totalRevenue > 0 || totalVisits > 0;
   const avgCheck = totalVisits > 0 ? Math.round(totalRevenue / totalVisits) : 0;
+  const fillPercent = ops.scheduleFillPercent;
   const displayName = draft.name?.trim() || 'Мастер';
   const firstName = displayName.split(/\s+/)[0] || 'Мастер';
 
@@ -193,117 +185,61 @@ function OverviewSummaryPanelMobile({
 
       {!hasAny ? <OverviewHeroEmpty /> : null}
 
-      <OverviewWideMetricCard
-        icon={<HiWallet className="h-7 w-7" aria-hidden />}
-        label="Доход за период"
-        value={formatBynRu(totalRevenue)}
-        sub={hasAny ? 'Общая сумма активных и завершённых записей' : 'Пока данных за период нет'}
-      />
-
-      <div className="flex min-w-0 gap-2">
-        <OverviewCompactMetricCard
-          icon={<HiCalendar className="h-[18px] w-[18px]" aria-hidden />}
-          label="Записей"
-          value={String(totalVisits)}
-          sub="за период"
-        />
-
-        <OverviewCompactMetricCard
-          icon={<HiUsers className="h-[18px] w-[18px]" aria-hidden />}
-          label="Услуг"
-          value={String(serviceCount)}
-          sub="в каталоге"
-        />
-
-        <OverviewCompactMetricCard
-          icon={<HiBanknotes className="h-[18px] w-[18px]" aria-hidden />}
-          label="Ср. чек"
-          value={avgCheck > 0 ? formatBynRu(avgCheck) : '0 BYN'}
-          sub="за период"
-        />
-      </div>
-
-      <section className={`${overviewCard} ${overviewCardPad}`}>
-        {nearest ? (
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <span className={`${overviewIconCircle} h-12 w-12 rounded-[18px]`}>
-                <HiClock className="h-6 w-6" aria-hidden />
-              </span>
-
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold text-[#F47C8C]">Ближайшая запись</p>
-                <p className="mt-1 text-[21px] font-bold tracking-[-0.05em] text-[#111827]">
-                  {formatAppointmentWhenRu(nearest.date, nearest.time)}
-                </p>
-                <p className="mt-2 text-[15px] font-bold text-[#111827]">
-                  {nearest.clientName}
-                </p>
-                <p className="mt-1 text-[13px] text-[#6B7280]">
-                  {nearest.serviceTitle}
-                </p>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#FFF1F4] px-3 py-1 text-[12px] font-bold text-[#F47C8C]">
-                    {formatBynRu(nearest.priceByn)}
-                  </span>
-
-                  <span className="rounded-full bg-[#F3F4F6] px-3 py-1 text-[12px] font-bold text-[#6B7280]">
-                    {appointmentStatusLabel(nearest.status)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={onOpenNearest}
-                className={`flex min-h-12 items-center justify-center text-[14px] font-bold ${overviewPinkBtn}`}
-              >
-                Открыть
-              </button>
-
-              <Link
-                to={appointmentsPath}
-                className="flex min-h-12 items-center justify-center rounded-[18px] bg-[#F3F4F6] text-[14px] font-bold text-[#111827] transition hover:bg-[#EAECEF] active:scale-[0.98]"
-              >
-                Все записи
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <span className={`${overviewIconCircle} h-12 w-12 rounded-[18px]`}>
-              <HiBell className="h-6 w-6" aria-hidden />
-            </span>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-[17px] font-bold tracking-[-0.04em] text-[#111827]">
-                Ближайших записей нет
-              </p>
-              <p className="mt-1 text-[13px] leading-relaxed text-[#6B7280]">
-                Новые записи появятся здесь.
-              </p>
-            </div>
-          </div>
-        )}
+      <section className={`${overviewCard} overflow-hidden`}>
+        <div className="bg-white px-1 pb-3 pt-1">
+          <OverviewKpiCarousel indicatorBgClass="bg-[#F47C8C]">
+            <OverviewKpiStatCard
+              surface="carousel"
+              compact
+              label="Доход"
+              value={formatBynRu(totalRevenue)}
+              hint="За выбранный период"
+              icon={<HiWallet className="h-4 w-4" aria-hidden />}
+            />
+            <OverviewKpiStatCard
+              surface="carousel"
+              compact
+              label="Записи"
+              value={String(totalVisits)}
+              hint="Активные и завершённые"
+              icon={<HiCalendar className="h-4 w-4" aria-hidden />}
+            />
+            <OverviewKpiStatCard
+              surface="carousel"
+              compact
+              label="Услуги"
+              value={String(serviceCount)}
+              hint="В каталоге"
+              icon={<HiUsers className="h-4 w-4" aria-hidden />}
+            />
+            <OverviewKpiStatCard
+              surface="carousel"
+              compact
+              label="Средний чек"
+              value={avgCheck > 0 ? formatBynRu(avgCheck) : '0 BYN'}
+              hint="По всем записям"
+              icon={<HiBanknotes className="h-4 w-4" aria-hidden />}
+            />
+          </OverviewKpiCarousel>
+        </div>
       </section>
+
+      <OverviewScheduleFillCard percent={fillPercent} />
 
       <OverviewSectionCard
         title="Динамика записей"
-        subtitle="Наведите на график — увидите число записей по дням"
+        subtitle="Записи по дням за период"
         icon={<HiCalendar className="h-5 w-5" aria-hidden />}
       >
-        <OverviewVisitsBarChart stats={dayStats} size="large" emptyHint="Записей за период нет" />
+        <OverviewVisitsBarChart stats={dayStats} size="default" emptyHint="Записей за период нет" />
       </OverviewSectionCard>
 
       <OverviewSectionCard
         title="Динамика дохода"
-        subtitle="Выручка по завершённым записям за каждый день"
+        subtitle="Выручка по завершённым записям"
         icon={<HiBanknotes className="h-5 w-5" aria-hidden />}
       >
-        <OverviewRevenueLineChart stats={dayStats} size="large" emptyHint="Дохода за период нет" />
+        <OverviewRevenueLineChart stats={dayStats} size="default" emptyHint="Дохода за период нет" />
       </OverviewSectionCard>
     </div>
   );

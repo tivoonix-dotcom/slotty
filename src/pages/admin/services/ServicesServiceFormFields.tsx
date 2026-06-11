@@ -15,6 +15,10 @@ import { ServicesPhotoPlusIcon } from './ServicesPhotoPlusIcon';
 import { ServicesSheetNotice } from './ServicesSheetNotice';
 import { ServicesSheetPriceHero } from './ServicesSheetPriceHero';
 import type { ServiceFormStep } from './serviceFormSteps';
+import {
+  ServiceCoverFramingEditor,
+  type ServiceCoverDraft,
+} from './ServiceCoverFramingEditor';
 
 export type ServiceFormSheetMode = 'create' | 'full' | 'price';
 
@@ -44,6 +48,11 @@ type Props = {
   onApplyTemplate: (template: ServiceTemplate) => void;
   onClearTemplateHighlight: () => void;
   serviceTitlePlaceholder: string;
+  cover: ServiceCoverDraft | null;
+  onCoverChange: (next: ServiceCoverDraft | null) => void;
+  coverUploading: boolean;
+  onCoverUploadingChange: (uploading: boolean) => void;
+  useCabinetApi: boolean;
 };
 
 function formatPricePreview(price: string, priceType: PriceType): string {
@@ -77,6 +86,11 @@ export function ServicesServiceFormFields({
   onApplyTemplate,
   onClearTemplateHighlight,
   serviceTitlePlaceholder,
+  cover,
+  onCoverChange,
+  coverUploading,
+  onCoverUploadingChange,
+  useCabinetApi,
 }: Props) {
   const [descOpen, setDescOpen] = useState(false);
   const showCatalogFields = mode === 'create' || mode === 'full';
@@ -194,6 +208,18 @@ export function ServicesServiceFormFields({
 
   const stepCatalog = (
     <div className="space-y-3">
+      <ServiceCoverFramingEditor
+        value={cover}
+        onChange={onCoverChange}
+        uploading={coverUploading}
+        onUploadingChange={onCoverUploadingChange}
+        useCabinetApi={useCabinetApi}
+        titlePreview={title}
+        categoryLabel={categoryLabel}
+        categoryCode={serviceCategoryCode}
+        pricePreview={pricePreview}
+      />
+
       <div className={servicesSheetFormPanel}>
         <div>
           <p className={catalogSheetLabel}>Тип цены</p>

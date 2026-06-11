@@ -15,9 +15,9 @@ test.describe('Public smoke', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 
-  test('masters catalog loads', async ({ page }) => {
+  test('legacy masters url redirects to services', async ({ page }) => {
     await page.goto('/masters');
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page).toHaveURL(/\/services/);
   });
 });
 

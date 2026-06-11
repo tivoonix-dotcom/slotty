@@ -22,7 +22,7 @@ export const settingsRowIcon =
   'flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-[#ff5f7a] ring-1 ring-[#EAECEF] lg:bg-white';
 
 export const settingsPrimaryBtn =
-  'flex min-h-11 w-full items-center justify-center rounded-[14px] bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] px-4 text-[14px] font-bold text-white shadow-[0_6px_18px_rgba(255,95,122,0.28)] transition hover:opacity-95 active:scale-[0.98]';
+  'flex min-h-11 w-full items-center justify-center rounded-[14px] bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] px-4 text-[14px] font-bold text-white transition hover:opacity-95 active:scale-[0.98]';
 
 export const settingsOutlineBtn =
   'flex min-h-11 w-full items-center justify-center rounded-[14px] border border-[#EAECEF] bg-white px-4 text-[14px] font-semibold text-[#374151] transition hover:bg-[#FAFAFA] active:scale-[0.98]';

@@ -11,6 +11,25 @@ export default {
         },
       },
       fontFamily: {
+        'hero-display': [
+          '"Montserrat Alternates"',
+          'Montserrat',
+          'Inter',
+          'system-ui',
+          'sans-serif',
+        ],
+        landing: [
+          'Montserrat',
+          'Inter',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica Neue',
+          'Arial',
+          'sans-serif',
+        ],
         sans: [
           'Inter',
           'system-ui',
@@ -69,6 +88,19 @@ export default {
           '0%': { transform: 'translateX(0)' },
           '100%': { transform: 'translateX(-50%)' },
         },
+        'legal-mini-arrow': {
+          '0%, 100%': { transform: 'translateX(0)', opacity: '0.45' },
+          '50%': { transform: 'translateX(5px)', opacity: '1' },
+        },
+        'legal-mini-check': {
+          '0%, 40%': { transform: 'scale(0.55)', opacity: '0' },
+          '52%, 88%': { transform: 'scale(1)', opacity: '1' },
+          '100%': { transform: 'scale(0.55)', opacity: '0' },
+        },
+        'legal-mini-shield': {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(244, 124, 140, 0)' },
+          '50%': { boxShadow: '0 0 0 4px rgba(244, 124, 140, 0.18)' },
+        },
       },
       animation: {
         'fade-enter': 'fade-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both',
@@ -81,6 +113,9 @@ export default {
         'services-marquee-left': 'services-marquee-left 55s linear infinite',
         'services-marquee-right': 'services-marquee-right 60s linear infinite',
         'payment-marquee': 'payment-marquee 36s linear infinite',
+        'legal-mini-arrow': 'legal-mini-arrow 1.8s ease-in-out infinite',
+        'legal-mini-check': 'legal-mini-check 2.6s ease-in-out infinite',
+        'legal-mini-shield': 'legal-mini-shield 2.2s ease-in-out infinite',
       },
       borderRadius: {
         card: '1.5rem',

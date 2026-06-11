@@ -2,16 +2,16 @@ import type { ReactNode } from 'react';
 import { useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { HiXMark } from 'react-icons/hi2';
+import { CatalogFilterSheetHeaderShell } from './CatalogFilterSheetHeaderShell';
 import {
   catalogFilterSheetCardClass,
   catalogFilterSheetCloseBtnClass,
-  catalogFilterSheetHeaderBarClass,
+  catalogFilterSheetDesktopAsideClass,
   catalogFilterSheetHeaderRowClass,
   catalogFilterSheetPrimaryBtn,
   catalogFilterSheetSecondaryBtn,
   catalogFilterSheetTitleClass,
 } from './catalogFilterSheetTheme';
-import { catalogDesktopPanel, catalogMobilePadX } from './servicesCatalogTheme';
 
 type Props = {
   open: boolean;
@@ -77,8 +77,8 @@ export function CatalogFilterSheet({
         className="fixed inset-0 flex w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-[#F5F5F5] lg:hidden"
         style={{ height: '100dvh', maxHeight: '100dvh' }}
       >
-        <header className={catalogFilterSheetHeaderBarClass}>
-          <div className={`${catalogFilterSheetHeaderRowClass} ${catalogMobilePadX}`}>
+        <CatalogFilterSheetHeaderShell>
+          <div className={`${catalogFilterSheetHeaderRowClass} px-2 sm:px-3`}>
             <h2 id="catalog-filter-sheet-title-mobile" className={catalogFilterSheetTitleClass}>
               {title}
             </h2>
@@ -88,22 +88,22 @@ export function CatalogFilterSheet({
               aria-label="Закрыть"
               className={catalogFilterSheetCloseBtnClass}
             >
-              <HiXMark className="h-6 w-6" aria-hidden />
+              <HiXMark className="h-5 w-5" aria-hidden />
             </button>
           </div>
-        </header>
+        </CatalogFilterSheetHeaderShell>
 
         <div
-          className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain py-3 scrollbar-hidden ${catalogMobilePadX}`}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-3 scrollbar-hidden sm:px-3"
         >
-          <div className={catalogFilterSheetCardClass}>{children}</div>
+          <div className={`${catalogFilterSheetCardClass} mx-auto w-full max-w-none`}>{children}</div>
         </div>
 
         <FilterSheetFooter
           applyLabel={applyLabel}
           onApply={onApply}
           onReset={onReset}
-          className={catalogMobilePadX}
+          className="px-2 sm:px-3"
         />
       </div>
 
@@ -112,26 +112,25 @@ export function CatalogFilterSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby="catalog-filter-sheet-title-desktop"
-        className={`${catalogDesktopPanel} fixed inset-y-0 right-0 z-10 hidden w-full max-w-[400px] flex-col overflow-hidden shadow-[-16px_0_48px_rgba(17,24,39,0.14)] lg:flex`}
+        className={`${catalogFilterSheetDesktopAsideClass} bg-white`}
       >
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[#EEEEEE] px-5 py-4">
-          <h2
-            id="catalog-filter-sheet-title-desktop"
-            className="text-[18px] font-bold tracking-[-0.03em] text-[#111827]"
-          >
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Закрыть"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F0F0F0] text-[#6B7280] transition hover:bg-[#EBEBEB] hover:text-[#111827]"
-          >
-            <HiXMark className="h-5 w-5" aria-hidden />
-          </button>
-        </header>
+        <CatalogFilterSheetHeaderShell withSafeArea={false} className="shrink-0">
+          <div className={`${catalogFilterSheetHeaderRowClass} px-6`}>
+            <h2 id="catalog-filter-sheet-title-desktop" className={catalogFilterSheetTitleClass}>
+              {title}
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Закрыть"
+              className={catalogFilterSheetCloseBtnClass}
+            >
+              <HiXMark className="h-5 w-5" aria-hidden />
+            </button>
+          </div>
+        </CatalogFilterSheetHeaderShell>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 py-4 scrollbar-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-6 py-4 scrollbar-hidden">
           {children}
         </div>
 
@@ -139,7 +138,7 @@ export function CatalogFilterSheet({
           applyLabel={applyLabel}
           onApply={onApply}
           onReset={onReset}
-          className="border-t border-[#EEEEEE] bg-white px-5 py-4"
+          className="border-t border-[#EEEEEE] bg-white px-6 py-4"
           compact
         />
       </aside>
