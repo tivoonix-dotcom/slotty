@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useCatalogErrorModal } from '../hooks/useCatalogErrorModal';
-import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { useNavigate, useOutletContext, useParams, useLocation } from 'react-router-dom';
 import type { ClientOutletContext } from '../clientOutletContext';
 import { MasterCard } from '../components/MasterCard';
 import { GeoPromptCard } from '../components/GeoPromptCard';
@@ -34,13 +34,13 @@ import {
 } from '../servicesCatalog/servicesCatalogTheme';
 import { formatDurationMinutes, formatMastersCountLabel, formatPriceFrom } from '../lib/catalogFormat';
 import { CLIENT_CONTENT_PAD_BOTTOM } from '../clientNavConstants';
-import { CatalogSeoIntro } from '../../../shared/seo/catalogSeoIntroUi';
-import { getCategorySeoIntro } from '../../../shared/seo/catalogSeoIntro';
 import { JsonLd } from '../../../shared/seo/JsonLd';
 import { buildCategoryStructuredData } from '../../../shared/seo/categoryStructuredData';
+import { useScrollCatalogToTopOnChange } from '../servicesCatalog/scrollCatalogPageToTop';
 
 export function ServiceCategoryPage() {
   const { categoryCode } = useParams<{ categoryCode: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const { userLat, userLng, hasGeo, requestGeo } = useOutletContext<ClientOutletContext>();
   const [search, setSearch] = useState('');
@@ -53,14 +53,39 @@ export function ServiceCategoryPage() {
 
   const normalizedCategoryCode = categoryCode ? normalizeCategoryCode(categoryCode) : undefined;
 
+  const categoryScrollKey = useMemo(
+    () =>
+      JSON.stringify(
+        categoryFiltersToApiParams(
+          filters,
+          {
+            limit: 80,
+            category: normalizedCategoryCode,
+            search: search.trim() || undefined,
+          },
+          hasGeo,
+        ),
+      ),
+    [filters, normalizedCategoryCode, hasGeo, search],
+  );
+
+  useScrollCatalogToTopOnChange(`${location.pathname}|${categoryScrollKey}`, {
+    scrollOnMount: true,
+  });
+
   const apiParams = useMemo(
     () =>
       categoryFiltersToApiParams(
         filters,
-        { limit: 80, category: normalizedCategoryCode },
+        {
+          limit: 80,
+          category: normalizedCategoryCode,
+          search: search.trim() || undefined,
+        },
         hasGeo,
+        { userLat, userLng },
       ),
-    [filters, normalizedCategoryCode, hasGeo],
+    [filters, normalizedCategoryCode, hasGeo, search, userLat, userLng],
   );
 
   const { listings, categories, loading, error, reload } = useCatalogData(apiParams);
@@ -68,7 +93,7 @@ export function ServiceCategoryPage() {
 
   const categoryName = getServiceCategoryLabel(categoryCode, categories);
 
-  const masters = useMemo(() => {
+  const filteredMasters = useMemo(() => {
     let list = groupListingsByMaster(listings);
     list = sortMastersByDistance(list, userLat, userLng);
     if (filters.sortBy === 'rating' || filters.minRating) {
@@ -79,17 +104,6 @@ export function ServiceCategoryPage() {
     }
     return list;
   }, [listings, userLat, userLng, filters.sortBy, filters.minRating, filters.priceTier]);
-
-  const filteredMasters = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return masters;
-    return masters.filter(
-      (m) =>
-        m.masterName.toLowerCase().includes(q) ||
-        m.serviceName.toLowerCase().includes(q) ||
-        m.category.toLowerCase().includes(q),
-    );
-  }, [masters, search]);
 
   const stats = useMemo(() => {
     const prices = listings.map((l) => l.priceFrom).filter((p) => p > 0);
@@ -102,9 +116,9 @@ export function ServiceCategoryPage() {
     return {
       minPrice: prices.length ? Math.min(...prices) : null,
       duration: durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 90,
-      masterCount: masters.length,
+      masterCount: filteredMasters.length,
     };
-  }, [listings, masters.length]);
+  }, [listings, filteredMasters.length]);
 
   const toggleChip = (id: string) => {
     const turningOnNear = id === 'near' && !quickChipIds.has('near');
@@ -171,7 +185,6 @@ export function ServiceCategoryPage() {
     </>
   );
 
-  const categoryIntro = getCategorySeoIntro(normalizedCategoryCode);
   const categoryStructuredData = normalizedCategoryCode
     ? buildCategoryStructuredData(normalizedCategoryCode)
     : null;
@@ -221,8 +234,6 @@ export function ServiceCategoryPage() {
         <div
           className={`mx-auto w-full pt-2 ${catalogMobileContentBelowHeaderClass} ${catalogMobilePadX} ${CLIENT_CONTENT_PAD_BOTTOM}`}
         >
-          <CatalogSeoIntro text={categoryIntro} className="mb-3 px-0.5" />
-
           {geoPromptMobile}
 
           {!loading && !error && categories.length > 0 ? (

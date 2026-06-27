@@ -226,17 +226,20 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     [draft.services],
   );
 
+  const catalogSlotsReady = !useCabinetApi || catalogSlots !== null || catalogSlotsError !== null;
+
   const serviceStats = useServiceBookingStats(services, catalogSlotsError ? null : catalogSlots, appointments);
-  const catalogAttention = useMemo(
-    () => hasVisibleServicesWithoutSlots(services, serviceStats),
-    [serviceStats, services],
-  );
+  const catalogAttention = useMemo(() => {
+    if (!catalogSlotsReady) return false;
+    return hasVisibleServicesWithoutSlots(services, serviceStats);
+  }, [catalogSlotsReady, serviceStats, services]);
   const hasAnyBookableSlots = useMemo(() => {
+    if (!catalogSlotsReady) return true;
     if (catalogSlotsError || catalogSlots === null) return false;
     return catalogSlots.some(
       (slot) => slot.status === 'available' && new Date(slot.startsAt).getTime() > Date.now(),
     );
-  }, [catalogSlots, catalogSlotsError]);
+  }, [catalogSlots, catalogSlotsError, catalogSlotsReady]);
 
   const serviceCategoryCode = draft.primaryCategoryCode ?? draft.category;
 
@@ -592,7 +595,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
       const copy: ManagedService = {
         ...service,
         id: newServiceId(),
-        title: `${service.title.trim()} · 2`,
+        title: `${service.title.trim()} копия`,
         isActive: false,
         sortOrder: services.length,
       };
@@ -1056,11 +1059,13 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
             services={services}
             onAdd={openCreate}
             onOpenMenu={setMenuTarget}
+            onEdit={openEdit}
             onReorder={(activeId, overId) => void reorderServices(activeId, overId)}
             serviceStats={serviceStats}
             categoryLabel={draft.category}
             masterId={draft.masterId}
             hasAnySlots={hasAnyBookableSlots}
+            slotsStatsReady={catalogSlotsReady}
           />
       ) : null}
       {activeTab === 'price' ? (

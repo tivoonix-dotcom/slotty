@@ -119,6 +119,17 @@
     border-radius: 18px;
   }
 
+  @keyframes landingCursorClick {
+    0% {
+      transform: scale(0.35);
+      opacity: 0.75;
+    }
+    100% {
+      transform: scale(1.35);
+      opacity: 0;
+    }
+  }
+
   @keyframes master-terms-orb-in {
     0% {
       transform: translate(var(--orb-tx, 0), var(--orb-ty, 0)) scale(1);
@@ -301,106 +312,6 @@
         0 4px 18px rgba(17, 24, 39, 0.35),
         0 0 22px rgba(255, 255, 255, 0.18),
         0 0 32px rgba(244, 124, 140, 0.22);
-    }
-  }
-
-  @keyframes overview-ops-kpi-ring-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  @keyframes overview-ops-kpi-glow-flow {
-    0% {
-      background-position: 0% 50%;
-    }
-    100% {
-      background-position: 200% 50%;
-    }
-  }
-
-  /* KPI сводки: живая радужная обводка поверх фото-фона */
-  .overview-ops-kpi-frame {
-    isolation: isolate;
-    padding: 2px;
-    overflow: hidden;
-  }
-
-  .overview-ops-kpi-frame--urgent {
-    padding: 3px;
-  }
-
-  .overview-ops-kpi-frame__ring {
-    position: absolute;
-    inset: -120%;
-    z-index: 0;
-    border-radius: inherit;
-    background: conic-gradient(
-      from 0deg,
-      #a3e635,
-      #3b82f6,
-      #60a5fa,
-      #f47c8c,
-      #fbbf24,
-      #c4b5fd,
-      #a3e635
-    );
-    animation: overview-ops-kpi-ring-spin 5s linear infinite;
-    pointer-events: none;
-  }
-
-  .overview-ops-kpi-frame--urgent .overview-ops-kpi-frame__ring {
-    animation-duration: 2.8s;
-  }
-
-  .overview-ops-kpi-frame__glow {
-    position: absolute;
-    inset: 2px 2px auto;
-    z-index: 1;
-    height: 3px;
-    border-radius: 9999px 9999px 0 0;
-    background: linear-gradient(
-      90deg,
-      #a3e635,
-      #3b82f6,
-      #60a5fa,
-      #f47c8c,
-      #fbbf24,
-      #a3e635
-    );
-    background-size: 200% 100%;
-    animation: overview-ops-kpi-glow-flow 3.2s linear infinite;
-    opacity: 0.92;
-    filter: blur(0.4px);
-    pointer-events: none;
-  }
-
-  .overview-ops-kpi-frame--urgent .overview-ops-kpi-frame__glow {
-    height: 4px;
-    opacity: 1;
-    animation-duration: 2s;
-  }
-
-  .overview-ops-kpi-frame__inner {
-    position: relative;
-    z-index: 2;
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .overview-ops-kpi-frame__ring,
-    .overview-ops-kpi-frame__glow {
-      animation: none;
-    }
-
-    .overview-ops-kpi-frame__ring {
-      inset: 0;
-      background: linear-gradient(135deg, #93c5fd, #f47c8c);
-    }
-
-    .overview-ops-kpi-frame__glow {
-      background: linear-gradient(90deg, #a3e635, #3b82f6, #f47c8c);
-      background-size: 100% 100%;
     }
   }
 }

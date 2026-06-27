@@ -1,3 +1,6 @@
+import type { BillingCheckoutPurpose } from '../billing/billingCheckoutPurpose.js';
+import type { BillingPackageMonths } from '../billing/billingPackage.js';
+
 export type PaymentProvider = 'bepaid';
 
 export type PaymentType = 'master_pro_plan' | 'appointment_prepayment';
@@ -23,6 +26,8 @@ export type PaymentDto = {
   appointmentId: string | null;
   planId: string | null;
   billingPeriod: 'month' | 'year' | null;
+  checkoutPurpose: BillingCheckoutPurpose | null;
+  billingPackageMonths: BillingPackageMonths | null;
   trackingId: string;
   bepaidCheckoutToken: string | null;
   bepaidTransactionUid: string | null;
@@ -54,4 +59,5 @@ export type CreateBePaidPaymentResult = {
     token: string;
     redirectUrl: string;
   };
+  reused?: boolean;
 };

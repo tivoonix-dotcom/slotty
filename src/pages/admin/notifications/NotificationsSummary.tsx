@@ -60,57 +60,25 @@ const kpiLabelClass =
 const kpiValueClass =
   'text-[1.5rem] font-black tabular-nums leading-none tracking-[-0.04em] text-[#111827] drop-shadow-sm sm:text-[1.85rem] lg:text-[2.5rem]';
 
-const kpiValueCompactClass =
-  'text-[1.25rem] font-black tabular-nums leading-none tracking-[-0.03em] text-[#111827] drop-shadow-sm sm:text-[1.5rem]';
-
 function KpiContent({
   label,
   value,
   loading = false,
-  compact = false,
 }: {
   label: string;
   value: string;
   loading?: boolean;
-  compact?: boolean;
 }) {
   return (
-    <div className={`relative z-10 flex w-full flex-col ${compact ? 'min-h-[4.75rem]' : 'min-h-[8.25rem]'}`}>
+    <div className="relative z-10 flex w-full min-h-[8.25rem] flex-col">
       <p className={kpiLabelClass}>{label}</p>
       <div className="mt-auto">
         {loading ? (
-          <div
-            className={`animate-pulse rounded-md bg-[#EBEBEB] ${
-              compact ? 'h-6 w-[3rem] sm:h-7 sm:w-[3.5rem]' : 'h-9 w-[5rem] sm:h-10'
-            }`}
-          />
+          <div className="h-9 w-[5rem] animate-pulse rounded-md bg-[#EBEBEB] sm:h-10" />
         ) : (
-          <p className={compact ? kpiValueCompactClass : kpiValueClass}>{value}</p>
+          <p className={kpiValueClass}>{value}</p>
         )}
       </div>
-    </div>
-  );
-}
-
-function MobileStat({
-  label,
-  value,
-  loading = false,
-}: {
-  label: string;
-  value: string;
-  loading?: boolean;
-}) {
-  const backgroundSrc = kpiBackground(label);
-
-  return (
-    <div
-      className={`relative flex min-w-0 flex-1 overflow-hidden rounded-[12px] p-2.5 sm:rounded-[14px] sm:p-3.5 ${
-        backgroundSrc ? '' : 'bg-[#F5F5F5]'
-      }`}
-    >
-      {backgroundSrc ? <KpiPhotoBackdrop label={label} /> : null}
-      <KpiContent label={label} value={value} loading={loading} compact />
     </div>
   );
 }
@@ -181,15 +149,6 @@ export function NotificationsSummary({
   settingsTo = MASTER_SETTINGS_NOTIFICATIONS_PATH,
   desktopSubtitle = 'Все события по записям, клиентам и напоминаниям',
 }: Props) {
-  const kpiTiles = (
-    <>
-      <MobileStat label="Действия" value={String(stats.actionRequired)} loading={loading} />
-      <MobileStat label="Новые" value={String(stats.unread)} loading={loading} />
-      <MobileStat label="Сегодня" value={String(stats.today)} loading={loading} />
-      <MobileStat label="Прочитано" value={String(stats.read)} loading={loading} />
-    </>
-  );
-
   const desktopKpiTiles = (
     <>
       <DesktopStatBlock label="Действия" value={String(stats.actionRequired)} loading={loading} />
@@ -226,8 +185,7 @@ export function NotificationsSummary({
           </div>
 
           <div className="px-4 py-3.5 sm:py-4">
-            <div className="grid grid-cols-2 items-stretch gap-2 sm:gap-3">{kpiTiles}</div>
-            {mobileFiltersPanel ? <div className="mt-3.5">{mobileFiltersPanel}</div> : null}
+            {mobileFiltersPanel ? <div>{mobileFiltersPanel}</div> : null}
           </div>
         </section>
       ) : null}

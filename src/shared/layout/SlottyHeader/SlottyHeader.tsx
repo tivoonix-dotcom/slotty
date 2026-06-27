@@ -50,6 +50,7 @@ import {
   CLIENT_DESKTOP_SHELL_CLASS,
 } from '../clientShellLayout';
 import { catalogPrimaryBtn } from '../../../pages/client/servicesCatalog/servicesCatalogTheme';
+import { scrollCatalogPageToTop } from '../../../pages/client/servicesCatalog/scrollCatalogPageToTop';
 import { useTelegram } from '../../hooks/useTelegram';
 import { HeaderProfileAvatar } from './HeaderProfileAvatar';
 import {
@@ -312,7 +313,11 @@ function HeaderShell({
       }`
     : landingCatalogFlushTop
       ? CATALOG_LANDING_HEADER_PILL_CLASS
-      : LANDING_HEADER_PILL_CLASS;
+      : `${LANDING_HEADER_PILL_CLASS}${
+          megaOpen && !landingIsDark
+            ? ' rounded-b-none shadow-[0_20px_48px_rgba(17,24,39,0.1)]'
+            : ''
+        }`;
 
   const landingPositionClass = landingSticky
     ? 'sticky'
@@ -533,7 +538,9 @@ export function SlottyHeader({
   useEffect(() => {
     if (!mobileMenuOpen) return;
 
-    const prev = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
 
     const onKey = (e: KeyboardEvent) => {
@@ -543,7 +550,8 @@ export function SlottyHeader({
     window.addEventListener('keydown', onKey);
 
     return () => {
-      document.body.style.overflow = prev;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
       window.removeEventListener('keydown', onKey);
     };
   }, [mobileMenuOpen]);
@@ -658,6 +666,7 @@ export function SlottyHeader({
     closeHeaderPanels();
     void setProfileRole('client');
     navigate(SERVICES_PATH);
+    scrollCatalogPageToTop();
   }, [closeHeaderPanels, closeMobileMenu, navigate]);
 
   const goClientProfile = useCallback(() => {
@@ -907,15 +916,18 @@ export function SlottyHeader({
   const mobileMenu = (
     <div
       id="slotty-mobile-menu"
-      className={`overflow-hidden transition-all duration-300 lg:hidden ${
-        mobileMenuOpen ? 'max-h-[900px] opacity-100' : 'max-h-0 opacity-0'
+      aria-hidden={!mobileMenuOpen}
+      className={`scrollbar-hidden absolute inset-x-0 top-full z-50 overflow-hidden rounded-b-[25px] transition-[opacity,transform,visibility] duration-300 lg:hidden ${
+        mobileMenuDark
+          ? 'border-t border-white/10 bg-[#141414] shadow-[0_20px_56px_rgba(0,0,0,0.65)]'
+          : 'bg-[#FBEDEC] shadow-[0_20px_48px_rgba(17,24,39,0.1)]'
+      } ${
+        mobileMenuOpen
+          ? 'visible translate-y-0 opacity-100'
+          : 'pointer-events-none invisible -translate-y-2 opacity-0'
       }`}
     >
-      <div
-        className={`pb-5 pl-7 pr-4 pt-1 sm:pl-9 sm:pr-5 ${
-          mobileMenuDark ? 'border-t border-white/10' : ''
-        }`}
-      >
+      <div className="pb-5 pl-7 pr-7 pt-1 sm:pl-9 sm:pr-9">
         <nav aria-label="Меню">
           <ul className="flex flex-col">
             <li>
@@ -1139,7 +1151,7 @@ export function SlottyHeader({
       <button
         type="button"
         className={`fixed inset-0 z-40 cursor-default transition-opacity duration-300 lg:hidden ${
-          isDarkLanding ? 'bg-black/55' : 'bg-transparent'
+          isDarkLanding ? 'bg-black/55' : 'bg-black/15'
         } ${
           mobileMenuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         }`}
@@ -1148,7 +1160,12 @@ export function SlottyHeader({
         onClick={closeMobileMenu}
       />
 
-      <HeaderShell variant="landing" landingTone={landingTone} shellRef={headerRef}>
+      <HeaderShell
+        variant="landing"
+        landingTone={landingTone}
+        shellRef={headerRef}
+        innerClassName={mobileMenuOpen ? 'mega-open' : ''}
+      >
         <div ref={megaHostRef} className="relative" {...megaHostProps}>
           {topBar}
           {mobileMenu}
@@ -1585,6 +1602,9 @@ function MegaDropdownRow({
         onClick={() => {
           onForceClose();
           void setProfileRole('client');
+          if (to.startsWith(SERVICES_PATH)) {
+            scrollCatalogPageToTop();
+          }
         }}
       >
         {content}

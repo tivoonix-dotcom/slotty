@@ -62,20 +62,20 @@ export function MastersCatalogPage() {
   const apiFilters = isTopRankView ? filtersForTopRankCatalog(filters) : filters;
 
   const apiParams = useMemo(
-    () => categoryFiltersToApiParams(apiFilters, { limit: 80, search: search.trim() || undefined }, hasGeo),
-    [apiFilters, search, hasGeo],
+    () =>
+      categoryFiltersToApiParams(
+        apiFilters,
+        { limit: 80, search: search.trim() || undefined },
+        hasGeo,
+        { userLat, userLng },
+      ),
+    [apiFilters, search, hasGeo, userLat, userLng],
   );
 
   const { listings, categories, loading, error, reload } = useCatalogData(apiParams);
   useCatalogErrorModal(error, reload, 'Мастера');
 
-  const masters = useMemo(() => {
-    let list = groupListingsByMaster(listings);
-    if (filters.onlyWithSlots) {
-      list = list.filter((m) => Boolean(m.nextSlotStartsAt));
-    }
-    return list;
-  }, [listings, filters.onlyWithSlots]);
+  const masters = useMemo(() => groupListingsByMaster(listings), [listings]);
 
   const feed = useMemo(
     () =>

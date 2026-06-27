@@ -57,6 +57,8 @@ type SummaryProps = {
   useCabinetApi: boolean;
   onPersistDraft: (next: MasterDraft) => void;
   appointments: import('../../../features/master/model/demoMasterAppointments').DemoMasterAppointment[];
+  subscription?: import('../../../features/admin/api/adminBillingApi').MasterSubscriptionDto | null;
+  subscriptionLoading?: boolean;
 };
 
 function SoftIcon({
@@ -144,6 +146,8 @@ function OverviewSummaryPanelMobile({
   useCabinetApi,
   onPersistDraft,
   appointments,
+  subscription,
+  subscriptionLoading,
 }: SummaryProps) {
   const { totalRevenue, totalVisits } = metrics;
   const activeServiceCount = countActiveServices(draft.services);
@@ -181,6 +185,8 @@ function OverviewSummaryPanelMobile({
         useCabinetApi={useCabinetApi}
         appointments={appointments}
         onPersistDraft={onPersistDraft}
+        subscription={subscription}
+        subscriptionLoading={subscriptionLoading}
       />
 
       {!hasAny ? <OverviewHeroEmpty /> : null}
@@ -568,6 +574,8 @@ function OverviewSummaryPanelDesktop({
   useCabinetApi,
   onPersistDraft,
   appointments,
+  subscription,
+  subscriptionLoading,
 }: SummaryProps) {
   const { totalRevenue, totalVisits, nearest } = metrics;
   const activeServiceCount = countActiveServices(draft.services);
@@ -640,6 +648,8 @@ function OverviewSummaryPanelDesktop({
         useCabinetApi={useCabinetApi}
         appointments={appointments}
         onPersistDraft={onPersistDraft}
+        subscription={subscription}
+        subscriptionLoading={subscriptionLoading}
       />
 
       <DesktopChartCard dayStats={dayStats} totalVisits={totalVisits} />

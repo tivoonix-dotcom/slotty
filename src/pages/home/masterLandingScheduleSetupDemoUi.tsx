@@ -8,6 +8,8 @@ import {
   HiScissors,
   HiSparkles,
 } from 'react-icons/hi2';
+import { ADMIN_SEGMENT_NAV_MOBILE } from '../admin/adminCabinetLayout';
+import { adminMobileSegmentTabClass } from '../admin/shared/adminMobileTabBarTheme';
 import {
   adminSectionTabIconClass,
   adminSectionTabIconToneClass,
@@ -24,9 +26,11 @@ import {
   SCHEDULE_WINDOWS_HINT_TEXT,
   SCHEDULE_WINDOWS_HINT_TITLE,
 } from '../admin/shared/scheduleWindowsHintStorage';
-
-const DEMO_SCROLL_HIDE =
-  'overflow-y-auto overflow-x-hidden overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden';
+import {
+  masterDemoDesktopScrollClass,
+  masterDemoMobileScrollClass,
+} from './homeLandingMasterDemoTheme';
+import { useLandingDemoLayout } from './masterLandingDemoShared';
 
 type QuickCardProps = {
   title: string;
@@ -133,12 +137,24 @@ type MasterLandingScheduleCreateHubProps = {
 export const MasterLandingScheduleCreateHub: FC<MasterLandingScheduleCreateHubProps> = ({
   todayPressed = false,
   scrollRef,
-}) => (
-  <div className="flex min-h-0 flex-1 flex-col">
-    <nav className="flex h-8 shrink-0 border-b border-[#eef0f5] bg-white" aria-hidden>
+}) => {
+  const { mobile } = useLandingDemoLayout();
+
+  const scheduleTabs = (
+    <>
       {DEMO_TABS.map((tab) => {
         const selected = tab.id === 'create';
         const Icon = tab.Icon;
+
+        if (mobile) {
+          return (
+            <div key={tab.id} className={adminMobileSegmentTabClass(selected, 'schedule')}>
+              <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+              <span className="max-w-full truncate text-[9px] font-bold leading-none">{tab.label}</span>
+            </div>
+          );
+        }
+
         return (
           <div
             key={tab.id}
@@ -162,19 +178,38 @@ export const MasterLandingScheduleCreateHub: FC<MasterLandingScheduleCreateHubPr
           </div>
         );
       })}
-    </nav>
+    </>
+  );
+
+  return (
+  <div className="flex min-h-0 flex-1 flex-col">
+    {!mobile ? (
+      <nav className="flex h-8 shrink-0 border-b border-[#eef0f5] bg-white" aria-hidden>
+        {scheduleTabs}
+      </nav>
+    ) : null}
 
     <div
       ref={scrollRef}
-      className={`min-h-0 flex-1 ${DEMO_SCROLL_HIDE} px-2.5 pb-3 pt-2 sm:px-3 sm:pb-3.5 sm:pt-2.5`}
+      className={`min-h-0 flex-1 ${mobile ? masterDemoMobileScrollClass : masterDemoDesktopScrollClass} px-2.5 pb-3 pt-2 sm:px-3 sm:pb-3.5 sm:pt-2.5`}
     >
       <div className="flex w-full min-w-0 flex-col gap-2.5 sm:gap-3">
-        <header className="flex items-start justify-between gap-2">
-          <h2 className="text-[12px] font-black tracking-[-0.04em] text-[#111827] sm:text-[13px]">Расписание</h2>
-          <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[8px] font-semibold text-[#3B4CCA] ring-1 ring-[#E0E4F8] sm:text-[9px]">
-            Как видят клиенты
-          </span>
-        </header>
+        {!mobile ? (
+          <header className="flex items-start justify-between gap-2">
+            <h2 className="text-[12px] font-black tracking-[-0.04em] text-[#111827] sm:text-[13px]">
+              Расписание
+            </h2>
+            <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[8px] font-semibold text-[#3B4CCA] ring-1 ring-[#E0E4F8] sm:text-[9px]">
+              Как видят клиенты
+            </span>
+          </header>
+        ) : (
+          <div className="flex justify-end">
+            <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[8px] font-semibold text-[#3B4CCA] ring-1 ring-[#E0E4F8]">
+              Как видят клиенты
+            </span>
+          </div>
+        )}
 
         <article className="overflow-hidden rounded-[10px] bg-[#F5F5F5]" aria-hidden>
           <div className="p-2 sm:p-2.5">
@@ -279,5 +314,16 @@ export const MasterLandingScheduleCreateHub: FC<MasterLandingScheduleCreateHubPr
         </section>
       </div>
     </div>
+
+    {mobile ? (
+      <nav
+        className={`${ADMIN_SEGMENT_NAV_MOBILE} shrink-0`}
+        style={{ minHeight: '2.75rem' }}
+        aria-hidden
+      >
+        {scheduleTabs}
+      </nav>
+    ) : null}
   </div>
-);
+  );
+};

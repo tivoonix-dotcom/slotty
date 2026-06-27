@@ -96,6 +96,16 @@ export function apptFilterSegmentClass(active: boolean): string {
   }`;
 }
 
+/** Компактные табы фильтров под строкой поиска. */
+export const apptFilterSegmentTrack =
+  'scrollbar-hidden flex gap-1 overflow-x-auto rounded-[10px] bg-[#F5F5F5] p-1';
+
+export function apptFilterSegmentBtnClass(active: boolean): string {
+  return `shrink-0 rounded-[8px] px-3 py-1.5 text-[13px] font-semibold transition active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F47C8C]/35 ${
+    active ? 'bg-[#F47C8C] text-white' : 'text-[#374151] hover:bg-[#EBEBEB]'
+  }`;
+}
+
 /** Переключатель список / календарь — плоские кнопки без бордеров, как кнопка фильтра. */
 export function apptViewToggleBtnClass(active: boolean): string {
   return `inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-[10px] px-3.5 text-[13px] font-semibold transition active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F47C8C]/35 sm:text-[14px] ${
@@ -260,7 +270,7 @@ export const apptHistoryGroupCard =
   'overflow-hidden rounded-[16px] bg-white';
 
 export const apptHistoryKpiTile =
-  'relative min-w-0 overflow-hidden rounded-[18px] p-5';
+  'relative min-w-0 overflow-hidden rounded-[14px] p-3 sm:rounded-[16px] sm:p-3.5';
 
 /** Лёгкий градиент: фото видно, цифры внизу остаются читаемыми. */
 export const apptHistoryKpiTileOverlay =
@@ -268,6 +278,15 @@ export const apptHistoryKpiTileOverlay =
 
 export const apptHistorySummaryTray =
   'rounded-[16px] bg-[#F5F5F5] px-4 py-4 lg:px-5 lg:py-5';
+
+/** Поиск и фильтры вкладки «История». */
+export const apptHistorySearchInput =
+  'w-full min-h-11 rounded-[10px] border-0 bg-[#EBEBEB] py-2.5 pl-10 pr-3 text-[14px] font-medium text-[#111827] outline-none transition placeholder:text-[#8E8E93] focus:bg-[#E4E4E4] sm:min-h-12 sm:text-[15px]';
+
+export const apptHistoryToolbarSelect = 'min-w-0 w-full lg:w-auto lg:min-w-[9.5rem]';
+
+export const apptHistoryListCountBadge =
+  'inline-flex shrink-0 items-center rounded-full bg-[#EBEBEB] px-2.5 py-0.5 text-[12px] font-semibold text-[#6B7280]';
 
 export const apptOutlineBtn = catalogSheetSecondaryBtn;
 

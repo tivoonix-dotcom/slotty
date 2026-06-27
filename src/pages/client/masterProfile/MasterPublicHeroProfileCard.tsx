@@ -18,6 +18,7 @@ type Props = {
   layout?: 'desktop' | 'mobile';
   onChooseTime?: () => void;
   className?: string;
+  embeddedPreview?: boolean;
 };
 
 function LocationChips({
@@ -48,8 +49,10 @@ export function MasterPublicHeroProfileCard({
   layout = 'desktop',
   onChooseTime,
   className = '',
+  embeddedPreview = false,
 }: Props) {
   const isMobile = layout === 'mobile';
+  const isEmbeddedMobile = isMobile && embeddedPreview;
   const visitChip = visitChipLabel(master.location.visitType);
   const locationChip = formatMasterProfileLocationChip(master.location);
   const showVerified = masterShowsVerifiedBadge(master);
@@ -60,17 +63,23 @@ export function MasterPublicHeroProfileCard({
   const bio = master.bio?.trim() ?? '';
   const bioCollapsible = bio.length > 100;
 
-  const avatarSize = isMobile
-    ? 'h-[112px] w-[112px]'
-    : 'h-[148px] w-[148px] lg:h-[168px] lg:w-[168px]';
-  const portraitLiftClass = isMobile ? '-mt-[44px]' : '-mt-[52px] lg:-mt-[60px]';
-  const identityPt = isMobile ? 'pt-10' : 'pt-11 lg:pt-12';
+  const avatarSize = isEmbeddedMobile
+    ? 'h-[96px] w-[96px]'
+    : isMobile
+      ? 'h-[112px] w-[112px]'
+      : 'h-[148px] w-[148px] lg:h-[168px] lg:w-[168px]';
+  const portraitLiftClass = isEmbeddedMobile
+    ? '-mt-[36px]'
+    : isMobile
+      ? '-mt-[44px]'
+      : '-mt-[52px] lg:-mt-[60px]';
+  const identityPt = isEmbeddedMobile ? 'pt-8' : isMobile ? 'pt-10' : 'pt-11 lg:pt-12';
 
   return (
     <div className={`${masterProfileCard} relative z-[1] ${className}`}>
-      <div className={`bg-white ${isMobile ? 'px-4 pb-4' : 'px-6 pb-6 lg:px-8'}`}>
-        <div className={`${isMobile ? 'pt-2' : 'pt-4 lg:pt-5'}`}>
-          <div className="flex min-w-0 gap-4 sm:gap-5 lg:gap-7 xl:gap-8">
+      <div className={`bg-white ${isEmbeddedMobile ? 'px-3 pb-3' : isMobile ? 'px-4 pb-4' : 'px-6 pb-6 lg:px-8'}`}>
+        <div className={`${isEmbeddedMobile ? 'pt-1' : isMobile ? 'pt-2' : 'pt-4 lg:pt-5'}`}>
+          <div className="flex min-w-0 gap-3 sm:gap-5 lg:gap-7 xl:gap-8">
             <MasterPublicPortraitOverlap
               master={master}
               className={`relative z-10 shrink-0 ${avatarSize} ${portraitLiftClass}`}
@@ -79,8 +88,8 @@ export function MasterPublicHeroProfileCard({
             <div className={`min-w-0 flex-1 ${identityPt}`}>
               <div className="flex items-start gap-1.5">
                 <h1
-                  className={`min-w-0 font-bold leading-tight tracking-[-0.03em] text-[#111827] ${
-                    isMobile ? 'text-[20px]' : 'text-[24px] lg:text-[28px]'
+                  className={`min-w-0 flex-1 font-bold leading-tight tracking-[-0.03em] text-[#111827] ${
+                    isEmbeddedMobile ? 'text-[18px]' : isMobile ? 'text-[20px]' : 'text-[24px] lg:text-[28px]'
                   }`}
                 >
                   {master.masterName}
@@ -116,7 +125,9 @@ export function MasterPublicHeroProfileCard({
                 </>
               ) : null}
 
-              <MasterProfileTrustChips master={master} hasAvailableSlot={hasSlot} />
+              {!isEmbeddedMobile ? (
+                <MasterProfileTrustChips master={master} hasAvailableSlot={hasSlot} />
+              ) : null}
 
               {!isMobile ? (
                 <div className="mt-4 hidden max-w-xl lg:block">

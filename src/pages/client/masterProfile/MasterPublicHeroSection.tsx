@@ -13,6 +13,7 @@ type Props = {
   className?: string;
   /** Обложка вне max-width контейнера — только карточка профиля. */
   profileCardOnly?: boolean;
+  embeddedPreview?: boolean;
 };
 
 export function MasterPublicHeroSection({
@@ -25,6 +26,7 @@ export function MasterPublicHeroSection({
   onChooseTime,
   className = '',
   profileCardOnly = false,
+  embeddedPreview = false,
 }: Props) {
   if (profileCardOnly) {
     return (
@@ -35,6 +37,7 @@ export function MasterPublicHeroSection({
           nearestLoading={nearestLoading}
           layout={layout}
           onChooseTime={onChooseTime}
+          embeddedPreview={embeddedPreview}
         />
       </header>
     );

@@ -258,7 +258,7 @@ export function ServicesCatalogFiltersSheet({
         </div>
       }
     >
-      <div className="max-h-[min(62dvh,32rem)] space-y-3 overflow-y-auto overscroll-contain pb-1">
+      <div className="space-y-3 pb-1">
         <section className={`${catalogFilterSectionClass} flex items-start gap-3`}>
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#FFF1F4] text-[#F47C8C]">
             <HiFunnel className="h-5 w-5" aria-hidden />

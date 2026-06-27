@@ -3,6 +3,7 @@ import { HiCalendarDays, HiEllipsisHorizontal, HiReceiptPercent } from 'react-ic
 import { cabinetIconCircle } from '../profile/adminProfileCabinetTheme';
 import {
   servicesCatalogCardBody,
+  servicesCatalogCardGridShell,
   servicesCatalogCardShell,
   servicesCatalogCardThumbCol,
   servicesCatalogMenuBtn,
@@ -36,6 +37,7 @@ export type PromotionCardModel = ServicePromotion & {
 
 type Props = {
   promo: PromotionCardModel;
+  layout?: 'list' | 'grid';
   onMenu?: () => void;
   className?: string;
   as?: 'li' | 'article';
@@ -44,6 +46,7 @@ type Props = {
 
 export function PromotionBannerCard({
   promo,
+  layout = 'list',
   onMenu,
   className = '',
   as = 'article',
@@ -51,11 +54,13 @@ export function PromotionBannerCard({
 }: Props) {
   const muted = promo.status === 'finished';
   const bg = promo.backgroundImage?.trim();
+  const shell =
+    layout === 'grid' ? servicesCatalogCardGridShell : servicesCatalogCardShell;
   const Tag = as as ElementType;
 
   return (
     <Tag
-      className={`${servicesCatalogCardShell} ${muted && !examplePreview ? 'opacity-80' : ''} ${
+      className={`${shell} ${muted && !examplePreview ? 'opacity-85' : ''} ${
         examplePreview ? 'ring-2 ring-dashed ring-[#D1D5DB]' : ''
       } ${className}`.trim()}
     >
@@ -66,16 +71,20 @@ export function PromotionBannerCard({
               <img
                 src={bg}
                 alt=""
-                className={`absolute inset-0 h-full w-full object-cover ${examplePreview ? 'opacity-60 saturate-50' : ''}`}
+                className={`absolute inset-0 h-full w-full rounded-l-[16px] object-cover lg:rounded-l-[18px] ${
+                  examplePreview ? 'opacity-60 saturate-50' : ''
+                }`}
                 loading="lazy"
               />
               <div
-                className={`absolute inset-0 ${examplePreview ? 'bg-[#111827]/35' : 'bg-[#111827]/25'}`}
+                className={`absolute inset-0 rounded-l-[16px] lg:rounded-l-[18px] ${
+                  examplePreview ? 'bg-[#111827]/35' : 'bg-[#111827]/25'
+                }`}
                 aria-hidden
               />
             </>
           ) : (
-            <span className="flex h-full min-h-[5.5rem] w-full items-center justify-center bg-[#EBEBEB]">
+            <span className="flex h-full min-h-[5.5rem] w-full items-center justify-center rounded-l-[16px] bg-[#EBEBEB] lg:rounded-l-[18px]">
               <span className={`${cabinetIconCircle} h-11 w-11 rounded-[12px]`}>
                 <HiReceiptPercent className="h-5 w-5" aria-hidden />
               </span>
@@ -92,59 +101,69 @@ export function PromotionBannerCard({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center gap-2 px-3.5 py-3 sm:gap-3 sm:px-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              {examplePreview ? (
-                <span className="inline-flex rounded-full bg-[#FFFBEB] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#92400E] ring-1 ring-[#FDE68A]">
-                  Только пример
-                </span>
-              ) : (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusBadgeClass(promo.status)}`}
-                >
-                  {promotionStatusLabel(promo.status)}
-                </span>
-              )}
-            </div>
-
-            <h3 className="mt-1 line-clamp-2 text-[16px] font-bold leading-snug tracking-[-0.02em] text-[#111827]">
-              {promo.title}
-            </h3>
-
-            {promo.serviceTitle ? (
-              <p className={`mt-0.5 line-clamp-1 ${servicesCatalogMetaMuted}`}>{promo.serviceTitle}</p>
-            ) : null}
-
-            {promo.description ? (
-              <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-[#9CA3AF]">
-                {promo.description}
-              </p>
-            ) : null}
-
+        <div className="flex min-w-0 flex-1 flex-col px-3.5 py-3 sm:px-4">
+          <div className="flex items-start justify-between gap-2">
             {examplePreview ? (
-              <p className={`mt-1 text-[12px] ${servicesCatalogMetaMuted}`}>
-                Сроки и условия задаёте при создании своей акции в Pro
-              </p>
+              <span className="inline-flex rounded-full bg-[#FFFBEB] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#92400E] ring-1 ring-[#FDE68A]">
+                Только пример
+              </span>
             ) : (
-              <p className={`mt-1 flex items-center gap-1 text-[12px] ${servicesCatalogMetaMuted}`}>
-                <HiCalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                {formatDdMmRu(promo.startsAt)} — {formatDdMmRu(promo.endsAt)}
-              </p>
+              <span
+                className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${statusBadgeClass(promo.status)}`}
+              >
+                {promo.status === 'active' ? <span aria-hidden>✅</span> : null}
+                {promotionStatusLabel(promo.status)}
+              </span>
             )}
+            {onMenu ? (
+              <button
+                type="button"
+                onClick={onMenu}
+                className={servicesCatalogMenuBtn}
+                aria-label="Меню акции"
+              >
+                <HiEllipsisHorizontal className="h-5 w-5" aria-hidden />
+              </button>
+            ) : null}
           </div>
 
-          {onMenu ? (
-            <button
-              type="button"
-              onClick={onMenu}
-              className={servicesCatalogMenuBtn}
-              aria-label="Меню акции"
-            >
-              <HiEllipsisHorizontal className="h-5 w-5" aria-hidden />
-            </button>
+          <h3 className="mt-1.5 line-clamp-2 text-[15px] font-bold leading-snug tracking-[-0.02em] text-[#111827] sm:text-[16px]">
+            {promo.title}
+          </h3>
+
+          {promo.serviceTitle ? (
+            <p className={`mt-0.5 line-clamp-1 ${servicesCatalogMetaMuted}`}>{promo.serviceTitle}</p>
+          ) : null}
+
+          {promo.description ? (
+            <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-[#9CA3AF]">
+              {promo.description}
+            </p>
           ) : null}
         </div>
+      </div>
+
+      <div className="border-t border-[#F0F0F0] px-3.5 py-3 sm:px-4">
+        <p className="text-[22px] font-black leading-none tracking-[-0.03em] text-[#F47C8C]">
+          {promo.discountLabel}
+        </p>
+        {examplePreview ? (
+          <p className={`mt-2 text-[12px] ${servicesCatalogMetaMuted}`}>
+            Сроки и условия задаёте при создании своей акции в Pro
+          </p>
+        ) : (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[#F5F5F5] text-[#6B7280]">
+              <HiCalendarDays className="h-4 w-4" aria-hidden />
+            </span>
+            <div>
+              <p className="text-[14px] font-bold leading-none text-[#111827]">
+                {formatDdMmRu(promo.startsAt)} — {formatDdMmRu(promo.endsAt)}
+              </p>
+              <p className="mt-0.5 text-[11px] font-medium text-[#9CA3AF]">Период действия</p>
+            </div>
+          </div>
+        )}
       </div>
     </Tag>
   );

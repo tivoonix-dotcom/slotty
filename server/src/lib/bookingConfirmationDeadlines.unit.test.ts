@@ -33,7 +33,7 @@ describe('bookingConfirmationDeadlines', () => {
     assert.equal(msUntilStart('2026-06-05T17:00:00.000Z', now), 60 * 60_000);
   });
 
-  it('platform min lead is 1 hour', () => {
-    assert.equal(BOOKING_CONFIRMATION_RULES.PLATFORM_MIN_BOOKING_LEAD_MS, 60 * 60_000);
+  it('platform min lead is disabled (master rules only)', () => {
+    assert.equal(BOOKING_CONFIRMATION_RULES.PLATFORM_MIN_BOOKING_LEAD_MS, 0);
   });
 });

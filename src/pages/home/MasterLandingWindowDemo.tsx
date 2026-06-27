@@ -6,9 +6,13 @@ import { DEFAULT_REPEAT_SETTINGS } from '../admin/schedule/RepeatSettings';
 import { formatPreviewSummaryParts } from '../admin/schedule/scheduleUtils';
 import { catalogSheetField, catalogSheetLabel } from '../admin/shared/adminCatalogSheetTheme';
 import { centerInLandingStage, LandingDemoCursor } from './homeLandingDemoCursor';
-import { masterDemoFieldActiveSchedule, masterDemoFormPanel } from './homeLandingMasterDemoTheme';
-import { masterLandingDemoDrawerClass } from './MasterLandingDemoCabinetLogo';
-import { masterLandingDemoDrawerOverlayClass } from './masterLandingDemoOverlayTheme';
+import {
+  masterDemoFieldActiveSchedule,
+  masterDemoFormPanel,
+  masterDemoMobileHubClass,
+  masterDemoMobileHubUnderSheetClass,
+} from './homeLandingMasterDemoTheme';
+import { MasterLandingDemoDrawer } from './MasterLandingDemoDrawer';
 import { MasterLandingScheduleCreateHub } from './masterLandingScheduleSetupDemoUi';
 import {
   MASTER_LANDING_SCHEDULE_DEMO_DEFAULT_SERVICE_ID,
@@ -25,6 +29,7 @@ import {
 } from './MasterLandingDemoSheet';
 import {
   landingDemoTap,
+  useLandingDemoLayout,
   useLandingDemoReducedMotion,
 } from './masterLandingDemoShared';
 
@@ -60,6 +65,7 @@ export const MasterLandingWindowDemo: FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const hubScrollRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useLandingDemoReducedMotion();
+  const { mobile } = useLandingDemoLayout();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [todayPressed, setTodayPressed] = useState(false);
@@ -262,6 +268,7 @@ export const MasterLandingWindowDemo: FC = () => {
           rightPressing: primaryPressing,
           rightDataAttr: 'next',
           accent: 'schedule',
+          compact: mobile,
         })
       : demoFooterPair({
           leftLabel: 'Назад',
@@ -269,6 +276,7 @@ export const MasterLandingWindowDemo: FC = () => {
           rightPressing: primaryPressing,
           rightDataAttr: 'save',
           accent: 'schedule',
+          compact: mobile,
         });
 
   return (
@@ -278,16 +286,20 @@ export const MasterLandingWindowDemo: FC = () => {
       aria-label="Демо: создание расписания"
       aria-hidden
     >
-      <MasterLandingScheduleCreateHub
-        todayPressed={todayPressed || todayPressing}
-        scrollRef={hubScrollRef}
-      />
+      <div
+        className={`${masterDemoMobileHubClass} ${
+          mobile && drawerOpen ? masterDemoMobileHubUnderSheetClass : ''
+        }`}
+      >
+        <MasterLandingScheduleCreateHub
+          todayPressed={todayPressed || todayPressing}
+          scrollRef={hubScrollRef}
+        />
+      </div>
 
       {drawerOpen ? (
-        <>
-          <div className={masterLandingDemoDrawerOverlayClass} aria-hidden />
-          <div className={masterLandingDemoDrawerClass}>
-            <MasterLandingDemoSheet
+        <MasterLandingDemoDrawer>
+          <MasterLandingDemoSheet
               scrollRef={scrollRef}
               title="Новое окно"
               ariaLabel="Демо: форма нового окна"
@@ -363,7 +375,7 @@ export const MasterLandingWindowDemo: FC = () => {
               ) : null}
 
               {formStep === 2 ? (
-                <div className="origin-top scale-[0.96]">
+                <div className={`origin-top ${mobile ? 'scale-[0.92]' : 'scale-[0.96]'}`}>
                   <AddWindowFormSummary
                     dateIso={DEMO_DATE_ISO}
                     startTime={DEMO_START}
@@ -378,8 +390,7 @@ export const MasterLandingWindowDemo: FC = () => {
                 </div>
               ) : null}
             </MasterLandingDemoSheet>
-          </div>
-        </>
+        </MasterLandingDemoDrawer>
       ) : null}
 
       {!reducedMotion ? (

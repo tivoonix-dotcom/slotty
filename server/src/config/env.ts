@@ -285,6 +285,10 @@ const envSchema = z.object({
     (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
     z.string().url().optional(),
   ),
+  /** Минимальная сумма (minor) для update_card checkout (по умолчанию 100 = 1 BYN). */
+  BEPAID_CARD_UPDATE_AMOUNT_MINOR: z.coerce.number().int().positive().default(100),
+  /** TTL pending checkout для idempotency (минуты). */
+  BEPAID_PENDING_CHECKOUT_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
   BILLING_WORKER_ENABLED: z
     .string()
     .optional()

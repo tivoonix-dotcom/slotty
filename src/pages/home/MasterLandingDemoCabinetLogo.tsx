@@ -16,8 +16,18 @@ export function MasterLandingDemoCabinetLogo() {
 
 export const masterLandingDemoSidebarColClass = 'minmax(118px,26%)';
 
-export const masterLandingDemoDrawerClass =
+/** Desktop: боковая панель справа внутри демо-кабинета. */
+export const masterLandingDemoDesktopDrawerClass =
   'absolute inset-y-0 right-0 z-10 flex w-[54%] min-w-[180px] max-w-[360px] flex-col overflow-hidden rounded-l-[18px] border-l border-[#EEEEEE] bg-[#F5F5F5] shadow-[-10px_0_28px_rgba(17,24,39,0.1)] sm:max-w-[400px] lg:max-w-[480px] xl:max-w-[540px]';
+
+/** Mobile: bottom sheet над tab bar (как в приложении). */
+export const masterLandingDemoMobileTabBarInsetClass = 'bottom-[2.75rem]';
+
+export const masterLandingDemoMobileDrawerClass =
+  'absolute inset-x-0 bottom-[2.75rem] z-20 flex max-h-[min(70%,22rem)] w-full flex-col overflow-hidden rounded-t-[20px] border-t border-[#EEEEEE] bg-[#F5F5F5] shadow-[0_-12px_32px_rgba(17,24,39,0.14)] motion-safe:animate-demo-sheet-up motion-reduce:animate-none sm:max-h-[min(76%,24rem)]';
+
+/** @deprecated Используйте MasterLandingDemoDrawer или desktop/mobile классы. */
+export const masterLandingDemoDrawerClass = masterLandingDemoDesktopDrawerClass;
 
 export const masterLandingDemoShellRound = 'overflow-hidden rounded-[16px] sm:rounded-[18px] lg:rounded-[20px]';
 

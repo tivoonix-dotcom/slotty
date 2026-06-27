@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import type { BillingPeriod, PlanId } from '../../../features/billing/model/masterPlans';
+import type { BillingPackageMonths } from '../../../features/billing/billingCopy';
+import { BILLING_COPY, billingPackageLabel } from '../../../features/billing/billingCopy';
+import type { PlanId } from '../../../features/billing/model/masterPlans';
 import {
   LANDING_MASTER_FREE_FEATURES,
   LANDING_MASTER_PRO_FEATURES,
@@ -19,8 +21,8 @@ const BEPAID_METHOD = PAYMENT_METHODS.find((m) => m.id === 'bepaid')!;
 
 export type BillingPlansSectionProps = {
   plan: PlanId;
-  billingPeriod: BillingPeriod;
-  onPeriodChange: (period: BillingPeriod) => void;
+  packageMonths: BillingPackageMonths;
+  onPackageChange: (months: BillingPackageMonths) => void;
   servicesLen: number;
   maxSvc: number;
   monthlyCount: number;
@@ -32,6 +34,8 @@ export type BillingPlansSectionProps = {
   proPriceUnit: string;
   freeActive: boolean;
   proActive: boolean;
+  /** Подсветка «Текущий тариф» только для выбранного пакета при активном Pro */
+  proCardIsCurrent?: boolean;
   /** Показывать CTA оплаты на карточке Pro (false когда Pro уже активен) */
   showProCheckoutCta?: boolean;
   proCtaLabel?: string;
@@ -46,8 +50,8 @@ export type BillingPlansSectionProps = {
 
 export function BillingPlansSection({
   plan,
-  billingPeriod,
-  onPeriodChange,
+  packageMonths,
+  onPackageChange,
   servicesLen,
   maxSvc,
   monthlyCount,
@@ -59,6 +63,7 @@ export function BillingPlansSection({
   proPriceUnit,
   freeActive,
   proActive,
+  proCardIsCurrent = false,
   showProCheckoutCta = true,
   proCtaLabel = 'Подключить Pro',
   useLiveBilling,
@@ -140,10 +145,10 @@ export function BillingPlansSection({
             topBadge={proActive ? 'Активен' : 'Популярный'}
             denseCta
             slotAfterTitle={
-              !proActive ? (
+              useLiveBilling || !proActive ? (
                 <BillingPeriodSwitch
-                  period={billingPeriod}
-                  onPeriod={onPeriodChange}
+                  packageMonths={packageMonths}
+                  onPackage={onPackageChange}
                   variant="proCard"
                 />
               ) : undefined
@@ -151,12 +156,14 @@ export function BillingPlansSection({
             footer={
               <button
                 type="button"
-                disabled={proActive}
+                disabled={proActive && proCardIsCurrent}
                 onClick={onSelectPro}
-                className={`${landingProCtaClass(proActive)} gap-2.5`}
+                className={`${landingProCtaClass(proActive && proCardIsCurrent)} gap-2.5`}
               >
-                {proActive ? (
-                  'Текущий тариф'
+                {proActive && proCardIsCurrent ? (
+                  BILLING_COPY.currentPlan
+                ) : proActive && !proCardIsCurrent ? (
+                  `${BILLING_COPY.extendFor} ${billingPackageLabel(packageMonths)}`
                 ) : showProCheckoutCta ? (
                   <>
                     <span>{proCtaLabel}</span>

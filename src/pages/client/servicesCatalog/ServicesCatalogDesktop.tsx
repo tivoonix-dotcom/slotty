@@ -66,7 +66,7 @@ export function ServicesCatalogDesktop({
       />
 
       <div className={`${CLIENT_CATALOG_DESKTOP_SHELL_CLASS} relative z-10 flex flex-col gap-4 pb-10 pt-4`}>
-        {!error && !servicesEmpty ? (
+        {!error ? (
           <CatalogDesktopWbToolbar
             search={search}
             filters={filters}
@@ -94,6 +94,7 @@ export function ServicesCatalogDesktop({
           search={search}
           onClearSearch={() => onSearchChange('')}
           onResetFilters={onResetFilters}
+          onOpenFilters={onOpenFilters}
           filters={filters}
           onFiltersChange={onFiltersChange}
           hideResultsHeader

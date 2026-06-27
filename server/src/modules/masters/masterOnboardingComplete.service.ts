@@ -100,6 +100,7 @@ async function upsertPublishedProfile(
     masterPlan: 'basic' | 'pro';
     proInterested: boolean;
     proStatus: string | null;
+    isProfileActive: boolean;
   },
 ): Promise<void> {
   await client.query(`update public.profiles set role = 'master', updated_at = now() where id = $1`, [masterId]);
@@ -108,8 +109,8 @@ async function upsertPublishedProfile(
     `insert into public.master_profiles (
        master_id, display_name, slug, primary_category_id, bio, phone, contact, contacts, photo_url, publication_status,
        is_profile_active, master_plan, pro_interested, pro_status, published_at
-     ) values ($1, $2, null, $3, $4, $5, $6, $7::jsonb, $8, 'published'::public.master_publication_status,
-       true, $9, $10, $11, now())
+     ) values ($1, $2, null, $3, $4, $5, $6, $7::jsonb, $8, 'draft'::public.master_publication_status,
+       $9, $10, $11, $12, null)
      on conflict (master_id) do update set
        display_name = excluded.display_name,
        slug = coalesce(excluded.slug, public.master_profiles.slug),
@@ -119,12 +120,20 @@ async function upsertPublishedProfile(
        contact = excluded.contact,
        contacts = excluded.contacts,
        photo_url = excluded.photo_url,
-       publication_status = 'published'::public.master_publication_status,
-       is_profile_active = true,
+       publication_status = case
+         when public.master_profiles.publication_status = 'published'::public.master_publication_status
+           then public.master_profiles.publication_status
+         else 'draft'::public.master_publication_status
+       end,
+       is_profile_active = case
+         when public.master_profiles.publication_status = 'published'::public.master_publication_status
+           then public.master_profiles.is_profile_active
+         else false
+       end,
        master_plan = excluded.master_plan,
        pro_interested = excluded.pro_interested,
        pro_status = excluded.pro_status,
-       published_at = coalesce(public.master_profiles.published_at, excluded.published_at),
+       published_at = public.master_profiles.published_at,
        updated_at = now()`,
     [
       masterId,
@@ -135,6 +144,7 @@ async function upsertPublishedProfile(
       input.contact,
       input.contacts?.length ? JSON.stringify(input.contacts) : null,
       input.photoUrl,
+      input.isProfileActive,
       input.masterPlan,
       input.proInterested,
       input.proStatus,
@@ -492,7 +502,18 @@ export async function completeMyMasterOnboarding(masterId: string, body: Complet
       masterPlan: 'basic',
       proInterested,
       proStatus,
+      isProfileActive: false,
     });
+
+    const { getMasterEntitlementsWithClient } = await import('../billing/entitlements.service.js');
+    const ent = await getMasterEntitlementsWithClient(client, masterId);
+    const maxServices = ent.limits.maxServices;
+    if (maxServices != null && body.services.length > maxServices) {
+      throw ApiError.badRequest(
+        `На текущем тарифе можно добавить не более ${maxServices} услуг`,
+        'LIMIT_SERVICES_REACHED',
+      );
+    }
 
     await replacePrimaryLocation(client, masterId, body.location);
     await replaceScheduleRulesTx(client, masterId, body.scheduleRules);

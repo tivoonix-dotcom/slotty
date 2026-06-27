@@ -12,6 +12,7 @@ import { isPendingConfirmDisabled } from '../appointments/PendingDeadlineHint';
 import {
   buildBookingNotificationViewModel,
   resolveBookingNotificationActions,
+  resolveBookingVisitEndsAt,
   type BookingNotificationActionId,
 } from './bookingNotificationModel';
 import { MasterNotificationDetailContent } from './MasterNotificationDetailContent';
@@ -107,7 +108,11 @@ export function AdminNotificationDetailSheet({
     isPendingConfirmDisabled(viewModel.dbStatus, appointment?.pendingExpiresAt);
 
   const footerActions = useMemo(() => {
-    if (viewModel) return resolveBookingNotificationActions(viewModel.dbStatus);
+    if (viewModel && appointment) {
+      return resolveBookingNotificationActions(viewModel.dbStatus, {
+        endsAt: resolveBookingVisitEndsAt(appointment),
+      });
+    }
     if (isReview) {
       const actions: Array<{
         id: BookingNotificationActionId | 'contact' | 'profile';
@@ -149,7 +154,7 @@ export function AdminNotificationDetailSheet({
     }
     actions.push({ id: 'close', label: 'Закрыть', variant: 'secondary' });
     return actions;
-  }, [contactAction, isReview, isSystemStyle, navigateAction, systemScenario, viewModel]);
+  }, [appointment, contactAction, isReview, isSystemStyle, navigateAction, systemScenario, viewModel]);
 
   const runBookingMutation = useCallback(
     async (fn: () => Promise<void>) => {

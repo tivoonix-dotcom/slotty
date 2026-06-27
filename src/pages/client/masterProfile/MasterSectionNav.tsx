@@ -12,6 +12,7 @@ import {
 
 type Props = {
   visibleIds?: MasterProfileSectionId[];
+  embeddedPreview?: boolean;
 };
 
 function navGridClass(count: number): string {
@@ -21,7 +22,7 @@ function navGridClass(count: number): string {
   return 'grid-cols-3';
 }
 
-export function MasterSectionNav({ visibleIds }: Props) {
+export function MasterSectionNav({ visibleIds, embeddedPreview = false }: Props) {
   const items = useMemo(
     () =>
       visibleIds
@@ -60,6 +61,29 @@ export function MasterSectionNav({ visibleIds }: Props) {
   }, []);
 
   if (items.length === 0) return null;
+
+  if (embeddedPreview) {
+    return (
+      <nav className="min-w-0" aria-label="Разделы профиля">
+        <div className={masterProfileSectionNavTray}>
+          <div className="flex gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onClick(item.id)}
+                className={`shrink-0 rounded-[10px] px-3 py-2.5 text-[13px] font-semibold transition ${
+                  active === item.id ? masterProfileSectionNavTabActive : masterProfileSectionNavTabIdle
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav

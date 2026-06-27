@@ -1,6 +1,7 @@
 import { apiFetch } from '../../../shared/api/backendClient';
 import { readSlottyApiErrorMessage } from '../../../shared/api/slottyApiErrorMessage';
 import type { MasterSubscriptionDto } from '../../admin/api/adminBillingApi';
+import type { BillingPackageMonths } from '../billingCopy';
 
 async function readErr(res: Response): Promise<string> {
   return readSlottyApiErrorMessage(res);
@@ -15,9 +16,11 @@ export type SubscriptionUiState =
 
 export type BillingAction =
   | 'connect_pro'
+  | 'manual_topup'
   | 'cancel_auto_renew'
   | 'resume_auto_renew'
   | 'update_payment_method'
+  | 'delete_payment_method'
   | 'retry_payment'
   | 'view_payment_history'
   | 'download_receipt';
@@ -67,6 +70,14 @@ export type BillingSubscriptionResponse = {
   nextPaymentHint: string | null;
   autoRenewCapable: boolean;
   autoRenewLegalAllowed: boolean;
+  autoRenewEnabled: boolean;
+  billingPackageMonths?: BillingPackageMonths;
+};
+
+export type PaymentStatusDto = {
+  id: string;
+  status: string;
+  checkoutPurpose: string | null;
 };
 
 export async function getBillingSubscription(): Promise<BillingSubscriptionResponse> {
@@ -83,8 +94,19 @@ export async function listBillingPayments(limit = 25): Promise<BillingPaymentDto
   return j.payments ?? [];
 }
 
+export async function getPaymentStatus(paymentId: string): Promise<PaymentStatusDto> {
+  const res = await apiFetch(`/api/payments/${paymentId}`);
+  if (!res.ok) throw new Error(await readErr(res));
+  const j = (await res.json()) as { payment: PaymentStatusDto & { checkoutPurpose?: string | null } };
+  return {
+    id: j.payment.id,
+    status: j.payment.status,
+    checkoutPurpose: j.payment.checkoutPurpose ?? null,
+  };
+}
+
 export async function createBillingCheckout(input: {
-  billingPeriod: 'month' | 'year';
+  billingPackageMonths: BillingPackageMonths;
   returnUrl?: string;
   consentAccepted: true;
 }): Promise<{ paymentUrl: string; paymentId: string }> {
@@ -92,10 +114,22 @@ export async function createBillingCheckout(input: {
     method: 'POST',
     body: JSON.stringify({
       plan: 'MASTER_PRO',
-      billingPeriod: input.billingPeriod,
+      billingPackageMonths: input.billingPackageMonths,
       returnUrl: input.returnUrl,
       consentAccepted: input.consentAccepted,
     }),
+  });
+  if (!res.ok) throw new Error(await readErr(res));
+  return (await res.json()) as { paymentUrl: string; paymentId: string };
+}
+
+export async function createManualTopupCheckout(input: {
+  billingPackageMonths: BillingPackageMonths;
+  returnUrl?: string;
+}): Promise<{ paymentUrl: string; paymentId: string }> {
+  const res = await apiFetch('/api/billing/topup', {
+    method: 'POST',
+    body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error(await readErr(res));
   return (await res.json()) as { paymentUrl: string; paymentId: string };
@@ -125,6 +159,13 @@ export async function updatePaymentMethodCheckout(returnUrl?: string): Promise<{
   });
   if (!res.ok) throw new Error(await readErr(res));
   return (await res.json()) as { paymentUrl: string; paymentId: string };
+}
+
+export async function deletePaymentMethod(): Promise<BillingSubscriptionResponse> {
+  const res = await apiFetch('/api/billing/payment-method', { method: 'DELETE' });
+  if (!res.ok) throw new Error(await readErr(res));
+  const j = (await res.json()) as { billing: BillingSubscriptionResponse };
+  return j.billing;
 }
 
 export async function retrySubscriptionPayment(returnUrl?: string): Promise<{ paymentUrl: string; paymentId: string }> {

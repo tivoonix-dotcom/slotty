@@ -36,13 +36,25 @@
 
 См. `server/.env.example` (префикс `BEPAID_*`).
 
-`BEPAID_ENABLED=true` — только после проверки sandbox и миграции `052_payments_bepaid.sql`.
+**Production (обязательно):**
+- `BEPAID_WEBHOOK_SECRET` — без него webhook отклоняется в production
+- Basic Auth (Shop ID + Secret Key) — альтернатива или дополнение
+
+**Опционально:**
+- `BEPAID_CARD_UPDATE_AMOUNT_MINOR` — сумма привязки карты (default 100 = 1 BYN)
+- `BEPAID_PENDING_CHECKOUT_TTL_MINUTES` — окно idempotency pending checkout (default 15)
+
+`BEPAID_ENABLED=true` — только после проверки sandbox и миграций `052`, `060`, `084`.
 
 ## Backend API
 
 | Method | Path | Описание |
 |--------|------|----------|
-| POST | `/api/payments/bepaid/create` | Создать платёж + checkout (auth) |
+| POST | `/api/billing/checkout` | Checkout Pro (initial / trial prepay), `billingPackageMonths`: 1/3/12 |
+| POST | `/api/billing/topup` | Ручное продление active Pro |
+| DELETE | `/api/billing/payment-method` | Удалить карту (очистить token, выключить auto-renew) |
+| POST | `/api/billing/update-payment-method` | Привязка/смена карты (minimal charge) |
+| POST | `/api/billing/retry-payment` | Retry past_due |
 | POST | `/api/payments/bepaid/webhook` | Webhook bePaid |
 | GET | `/api/payments/:id` | Статус платежа |
 | GET | `/api/admin/payments` | Список (platform_admin) |

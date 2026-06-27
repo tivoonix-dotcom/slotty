@@ -1,14 +1,28 @@
 import { randomUUID } from 'crypto';
 import { query, withTransaction } from '../../config/db.js';
+import { env } from '../../config/env.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { getMasterPlanAccess } from '../billing/billing.service.js';
+import type { BillingCheckoutPurpose } from '../billing/billingCheckoutPurpose.js';
+import {
+  type BillingPackageMonths,
+  packageMonthsToBillingPeriod,
+  resolvePackageAmount,
+  uniqueCheckoutIdempotencyKey,
+} from '../billing/billingPackage.js';
 import {
   assertBePaidReady,
   getBePaidFailUrl,
   getBePaidNotificationUrl,
   getBePaidSuccessUrl,
+  getCardUpdateAmountMinor,
+  getPendingCheckoutTtlMinutes,
 } from './bepaid.config.js';
 import { createBePaidCheckout } from './bepaid.client.js';
+import {
+  extractWebhookTrackingId,
+  validateWebhookAgainstPayment,
+} from './bepaidWebhookValidation.js';
 import { sanitizePayloadForLog } from './paymentLogSanitizer.js';
 import type {
   CreateBePaidPaymentResult,
@@ -30,6 +44,9 @@ type PaymentRow = {
   appointment_id: string | null;
   plan_id: string | null;
   billing_period: 'month' | 'year' | null;
+  checkout_purpose: BillingCheckoutPurpose | null;
+  billing_package_months: number | null;
+  checkout_idempotency_key: string | null;
   tracking_id: string;
   bepaid_checkout_token: string | null;
   bepaid_transaction_uid: string | null;
@@ -57,6 +74,12 @@ function mapPayment(row: PaymentRow): PaymentDto {
     appointmentId: row.appointment_id,
     planId: row.plan_id,
     billingPeriod: row.billing_period,
+    checkoutPurpose: row.checkout_purpose,
+    billingPackageMonths: (row.billing_package_months === 1 ||
+    row.billing_package_months === 3 ||
+    row.billing_package_months === 12
+      ? row.billing_package_months
+      : null) as BillingPackageMonths | null,
     trackingId: row.tracking_id,
     bepaidCheckoutToken: row.bepaid_checkout_token,
     bepaidTransactionUid: row.bepaid_transaction_uid,
@@ -105,24 +128,24 @@ async function transitionPaymentStatus(
     providerPayload?: unknown;
     paidAt?: Date | null;
   },
-): Promise<PaymentDto | null> {
+): Promise<{ payment: PaymentDto | null; transitioned: boolean }> {
   return withTransaction(async (client) => {
     const lock = await client.query<PaymentRow>(
       `select * from public.payments where id = $1 for update`,
       [paymentId],
     );
     const row = lock.rows[0];
-    if (!row) return null;
+    if (!row) return { payment: null, transitioned: false };
 
     const current = row.status;
     if (current === nextStatus) {
-      return mapPayment(row);
+      return { payment: mapPayment(row), transitioned: false };
     }
     if (current === 'success' && nextStatus !== 'refunded') {
-      return mapPayment(row);
+      return { payment: mapPayment(row), transitioned: false };
     }
     if (['cancelled', 'refunded'].includes(current) && nextStatus !== 'refunded') {
-      return mapPayment(row);
+      return { payment: mapPayment(row), transitioned: false };
     }
 
     const paidAt =
@@ -168,14 +191,23 @@ async function transitionPaymentStatus(
       ],
     );
 
-    return mapPayment(updated.rows[0]!);
+    return { payment: mapPayment(updated.rows[0]!), transitioned: true };
   });
 }
 
-async function resolveProPlanAmountMinor(
-  billingPeriod: 'month' | 'year',
+async function recordRejectedWebhook(
+  paymentId: string | null,
+  code: string,
+  body: Record<string, unknown>,
+): Promise<void> {
+  if (!paymentId) return;
+  await insertStatusEvent(paymentId, null, 'pending', 'webhook_rejected', code, body);
+}
+
+async function resolveProPlanPricing(
+  packageMonths: BillingPackageMonths,
   planId?: string,
-): Promise<{ amountMinor: number; planId: string; description: string }> {
+): Promise<{ amountMinor: number; amount: number; planId: string; description: string; billingPeriod: 'month' | 'year' }> {
   const r = planId
     ? await query<{ id: string; code: string; price_month: string; price_year: string; name: string }>(
         `select id, code, name, price_month::text, price_year::text
@@ -190,16 +222,45 @@ async function resolveProPlanAmountMinor(
   if (!plan || plan.code !== 'pro') {
     throw ApiError.badRequest('План Pro не найден', 'PLAN_NOT_FOUND');
   }
-  const price = billingPeriod === 'year' ? Number(plan.price_year) : Number(plan.price_month);
-  const amountMinor = Math.round(price * 100);
-  if (!Number.isFinite(amountMinor) || amountMinor <= 0) {
+  const pkg = resolvePackageAmount(packageMonths, {
+    priceMonth: Number(plan.price_month),
+    priceYear: Number(plan.price_year),
+  });
+  if (!Number.isFinite(pkg.amountMinor) || pkg.amountMinor <= 0) {
     throw ApiError.badRequest('Некорректная цена плана', 'PLAN_PRICE_INVALID');
   }
   return {
-    amountMinor,
+    amountMinor: pkg.amountMinor,
+    amount: pkg.amount,
     planId: plan.id,
-    description: `SLOTTY Pro (${billingPeriod === 'year' ? 'год' : 'месяц'})`,
+    description: pkg.description,
+    billingPeriod: packageMonthsToBillingPeriod(packageMonths),
   };
+}
+
+async function findReusablePendingCheckout(input: {
+  masterId: string;
+  purpose: BillingCheckoutPurpose;
+  packageMonths: BillingPackageMonths;
+}): Promise<{ paymentId: string; redirectUrl: string } | null> {
+  const ttlMin = getPendingCheckoutTtlMinutes();
+  const r = await query<{ id: string; bepaid_redirect_url: string | null }>(
+    `select id, bepaid_redirect_url
+       from public.payments
+      where master_id = $1
+        and checkout_purpose = $2
+        and billing_package_months = $3
+        and status = 'pending'::public.payment_status
+        and bepaid_redirect_url is not null
+        and created_at > now() - ($4::int || ' minutes')::interval
+      order by created_at desc
+      limit 1`,
+    [input.masterId, input.purpose, input.packageMonths, ttlMin],
+  );
+  const row = r.rows[0];
+  const url = row?.bepaid_redirect_url?.trim();
+  if (!row || !url) return null;
+  return { paymentId: row.id, redirectUrl: url };
 }
 
 export async function createBePaidPayment(input: {
@@ -211,34 +272,72 @@ export async function createBePaidPayment(input: {
   appointmentId?: string;
   planId?: string;
   billingPeriod?: 'month' | 'year';
+  billingPackageMonths?: BillingPackageMonths;
   returnUrl?: string;
   customerEmail?: string | null;
-  /** initial — первая оплата; renewal/update_card — повтор или смена карты при активном Pro */
-  checkoutPurpose?: 'initial' | 'renewal' | 'update_card';
+  checkoutPurpose?: BillingCheckoutPurpose;
+  skipIdempotency?: boolean;
 }): Promise<CreateBePaidPaymentResult> {
   assertBePaidReady();
 
-  const currency = (input.currency ?? 'BYN').toUpperCase();
+  const currency = (input.currency ?? env.BEPAID_CURRENCY ?? 'BYN').toUpperCase();
   let amountMinor = input.amountMinor;
   let planId: string | null = input.planId ?? null;
   let billingPeriod: 'month' | 'year' | null = input.billingPeriod ?? null;
+  let packageMonths: BillingPackageMonths = input.billingPackageMonths ?? (billingPeriod === 'year' ? 12 : 1);
   let description = 'Оплата SLOTTY';
+  const purpose: BillingCheckoutPurpose = input.checkoutPurpose ?? 'initial_purchase';
 
   if (input.type === 'master_pro_plan') {
-    if (!billingPeriod) {
-      throw ApiError.badRequest('Укажите billingPeriod', 'BILLING_PERIOD_REQUIRED');
-    }
-    const pro = await resolveProPlanAmountMinor(billingPeriod, input.planId);
-    amountMinor = pro.amountMinor;
-    planId = pro.planId;
-    description = pro.description;
-    const purpose = input.checkoutPurpose ?? 'initial';
-    const access = await getMasterPlanAccess(input.masterId);
-    if (purpose === 'initial' && access.isProActive) {
-      throw ApiError.badRequest('Тариф Pro уже активен', 'PRO_ALREADY_ACTIVE');
-    }
-    if (purpose === 'renewal' && !access.isProActive && !access.proExpired) {
-      throw ApiError.badRequest('Продление недоступно', 'RENEWAL_NOT_ALLOWED');
+    if (purpose === 'update_card') {
+      amountMinor = getCardUpdateAmountMinor();
+      billingPeriod = billingPeriod ?? 'month';
+      packageMonths = 1;
+      description = 'SLOTTY — привязка карты';
+      const access = await getMasterPlanAccess(input.masterId);
+      if (!access.isProEntitled && !access.proExpired) {
+        throw ApiError.badRequest('Сначала подключите Pro', 'PRO_REQUIRED');
+      }
+    } else {
+      if (!input.billingPackageMonths && !billingPeriod) {
+        throw ApiError.badRequest('Укажите billingPackageMonths или billingPeriod', 'BILLING_PERIOD_REQUIRED');
+      }
+      if (input.billingPackageMonths) {
+        packageMonths = input.billingPackageMonths;
+      } else if (billingPeriod === 'year') {
+        packageMonths = 12;
+      } else {
+        packageMonths = 1;
+      }
+      const pro = await resolveProPlanPricing(packageMonths, input.planId);
+      amountMinor = pro.amountMinor;
+      planId = pro.planId;
+      billingPeriod = pro.billingPeriod;
+      description = pro.description;
+
+      const access = await getMasterPlanAccess(input.masterId);
+      if (purpose === 'initial_purchase') {
+        if (access.isProActive && access.subscriptionStatus !== 'trialing') {
+          throw ApiError.badRequest(
+            'Тариф Pro уже активен. Используйте «Продлить» для добавления оплаченного периода.',
+            'PRO_ALREADY_ACTIVE',
+          );
+        }
+      }
+      if (purpose === 'retry_payment' && access.subscriptionStatus !== 'past_due' && access.uiState !== 'past_due') {
+        throw ApiError.badRequest('Повтор оплаты недоступен в текущем статусе', 'RETRY_NOT_ALLOWED');
+      }
+      if (purpose === 'manual_topup') {
+        if (!access.isProEntitled && access.uiState !== 'expired' && access.uiState !== 'free') {
+          throw ApiError.badRequest('Продление недоступно', 'TOPUP_NOT_ALLOWED');
+        }
+        if (access.uiState === 'free' || access.uiState === 'expired') {
+          throw ApiError.badRequest(
+            'Для первой покупки используйте «Подключить Pro»',
+            'USE_INITIAL_CHECKOUT',
+          );
+        }
+      }
     }
   } else if (input.type === 'appointment_prepayment') {
     throw ApiError.badRequest(
@@ -251,28 +350,78 @@ export async function createBePaidPayment(input: {
     throw ApiError.badRequest('Некорректная сумма', 'AMOUNT_INVALID');
   }
 
+  if (!input.skipIdempotency) {
+    const reusable = await findReusablePendingCheckout({
+      masterId: input.masterId,
+      purpose,
+      packageMonths,
+    });
+    if (reusable) {
+      return {
+        paymentId: reusable.paymentId,
+        provider: 'bepaid',
+        status: 'pending',
+        checkout: { token: '', redirectUrl: reusable.redirectUrl },
+        reused: true,
+      };
+    }
+  }
+
   const paymentId = randomUUID();
   const trackingId = paymentId;
+  const idempotencyKey = uniqueCheckoutIdempotencyKey({
+    masterId: input.masterId,
+    purpose,
+    packageMonths,
+    attemptId: paymentId,
+  });
 
-  await query<PaymentRow>(
-    `insert into public.payments (
-       id, profile_id, provider, payment_type, status, amount_minor, currency,
-       master_id, appointment_id, plan_id, billing_period, tracking_id
-     ) values ($1, $2, 'bepaid', $3, 'pending', $4, $5, $6, $7, $8, $9, $10)
-     returning *`,
-    [
-      paymentId,
-      input.profileId,
-      input.type,
-      amountMinor,
-      currency,
-      input.masterId,
-      input.appointmentId ?? null,
-      planId,
-      billingPeriod,
-      trackingId,
-    ],
-  );
+  const insertPaymentRow = async (key: string) => {
+    await query<PaymentRow>(
+      `insert into public.payments (
+         id, profile_id, provider, payment_type, status, amount_minor, currency,
+         master_id, appointment_id, plan_id, billing_period, tracking_id,
+         checkout_purpose, billing_package_months, checkout_idempotency_key
+       ) values ($1, $2, 'bepaid', $3, 'pending', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       returning *`,
+      [
+        paymentId,
+        input.profileId,
+        input.type,
+        amountMinor,
+        currency,
+        input.masterId,
+        input.appointmentId ?? null,
+        planId,
+        billingPeriod,
+        trackingId,
+        purpose,
+        packageMonths,
+        key,
+      ],
+    );
+  };
+
+  try {
+    await insertPaymentRow(idempotencyKey);
+  } catch (e) {
+    const code = e && typeof e === 'object' && 'code' in e ? String((e as { code: string }).code) : '';
+    if (code === '23505') {
+      const retryKey = uniqueCheckoutIdempotencyKey({
+        masterId: input.masterId,
+        purpose,
+        packageMonths,
+        attemptId: randomUUID(),
+      });
+      try {
+        await insertPaymentRow(retryKey);
+      } catch {
+        throw ApiError.internal('Не удалось создать платёж. Попробуйте ещё раз.', 'CHECKOUT_CREATE_FAILED');
+      }
+    } else {
+      throw e;
+    }
+  }
 
   await insertStatusEvent(paymentId, null, 'pending', 'api', 'created');
 
@@ -289,7 +438,11 @@ export async function createBePaidPayment(input: {
       currency,
       description,
       notificationUrl,
-      successUrl: getBePaidSuccessUrl(input.returnUrl),
+      successUrl: getBePaidSuccessUrl(
+        input.returnUrl
+          ? `${input.returnUrl}${input.returnUrl.includes('?') ? '&' : '?'}payment_id=${paymentId}`
+          : `${getBePaidSuccessUrl()}?payment_id=${paymentId}`,
+      ),
       failUrl: getBePaidFailUrl(),
       customerEmail: input.customerEmail,
     });
@@ -374,21 +527,18 @@ async function fulfillMasterProPlan(
   payment: PaymentDto,
   webhookBody?: Record<string, unknown>,
 ): Promise<void> {
-  if (!payment.masterId || !payment.billingPeriod) return;
-  const { activateSubscriptionFromPayment } = await import('../billing/subscriptionBilling.service.js');
-  await activateSubscriptionFromPayment(payment, webhookBody);
+  if (!payment.masterId) return;
+  const { fulfillSubscriptionFromPayment } = await import('../billing/subscriptionBilling.service.js');
+  await fulfillSubscriptionFromPayment(payment, webhookBody);
 }
 
-export async function processBePaidWebhook(body: Record<string, unknown>): Promise<{ ok: boolean; paymentId?: string }> {
-  const trackingId =
-    (body.transaction && typeof body.transaction === 'object'
-      ? String((body.transaction as Record<string, unknown>).tracking_id ?? '')
-      : '') ||
-    (body.order && typeof body.order === 'object'
-      ? String((body.order as Record<string, unknown>).tracking_id ?? '')
-      : '') ||
-    String(body.tracking_id ?? '');
-
+export async function processBePaidWebhook(body: Record<string, unknown>): Promise<{
+  ok: boolean;
+  paymentId?: string;
+  rejected?: boolean;
+  rejectCode?: string;
+}> {
+  const trackingId = extractWebhookTrackingId(body);
   const token = body.token ? String(body.token) : undefined;
 
   let find = trackingId
@@ -412,7 +562,23 @@ export async function processBePaidWebhook(body: Record<string, unknown>): Promi
   }
 
   const mapped = mapWebhookToStatus(body);
-  const updated = await transitionPaymentStatus(row.id, mapped.status, 'webhook', {
+
+  if (mapped.status === 'success') {
+    const validation = validateWebhookAgainstPayment(body, {
+      id: row.id,
+      trackingId: row.tracking_id,
+      amountMinor: row.amount_minor,
+      currency: row.currency,
+      status: row.status,
+    });
+    if (!validation.ok) {
+      console.warn('[bepaid] webhook rejected', { paymentId: row.id, code: validation.code });
+      await recordRejectedWebhook(row.id, validation.code, body);
+      return { ok: false, paymentId: row.id, rejected: true, rejectCode: validation.code };
+    }
+  }
+
+  const { payment: updated, transitioned } = await transitionPaymentStatus(row.id, mapped.status, 'webhook', {
     bepaidTransactionUid: mapped.transactionUid ?? null,
     paymentMethodBrand: mapped.brand ?? null,
     paymentMethodType: mapped.methodType ?? null,
@@ -429,10 +595,16 @@ export async function processBePaidWebhook(body: Record<string, unknown>): Promi
         paymentId: updated.id,
         err: e instanceof Error ? e.message : 'unknown',
       });
+      throw e;
     }
   }
 
-  if (updated?.status === 'failed' && updated.masterId && updated.paymentType === 'master_pro_plan') {
+  if (
+    transitioned &&
+    updated?.status === 'failed' &&
+    updated.masterId &&
+    updated.paymentType === 'master_pro_plan'
+  ) {
     const { markSubscriptionPaymentFailed } = await import('../billing/subscriptionBilling.service.js');
     await markSubscriptionPaymentFailed(updated).catch(() => {});
   }

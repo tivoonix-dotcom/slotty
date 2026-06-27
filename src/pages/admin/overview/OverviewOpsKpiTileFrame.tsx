@@ -7,7 +7,7 @@ type Props = {
   flat?: boolean;
 };
 
-/** KPI «Сегодня»: фото-фон + живая радужная обводка (десктоп); flat — серые плитки на мобиле. */
+/** KPI «Сегодня»: фото-фон без декоративной обводки. */
 export function OverviewOpsKpiTileFrame({ children, urgent = false, flat = false }: Props) {
   if (flat) {
     return (
@@ -23,15 +23,11 @@ export function OverviewOpsKpiTileFrame({ children, urgent = false, flat = false
 
   return (
     <div
-      className={`overview-ops-kpi-frame relative min-w-0 flex-1 rounded-[18px] lg:rounded-[22px] ${
-        urgent ? 'overview-ops-kpi-frame--urgent' : ''
+      className={`relative min-w-0 flex-1 overflow-hidden rounded-[16px] p-4 lg:rounded-[20px] lg:p-5 ${
+        urgent ? 'ring-2 ring-[#F47C8C]/35' : ''
       }`}
     >
-      <span className="overview-ops-kpi-frame__ring" aria-hidden />
-      <span className="overview-ops-kpi-frame__glow" aria-hidden />
-      <div className="overview-ops-kpi-frame__inner relative overflow-hidden rounded-[16px] p-4 lg:rounded-[20px] lg:p-5">
-        {children}
-      </div>
+      {children}
     </div>
   );
 }

@@ -66,7 +66,7 @@ export const MasterLandingHero: FC<MasterLandingHeroProps> = ({ onBecomeMaster, 
         <LandingReveal immediate variant="scale" delay={180}>
           <div className={homeHeroCtaRow}>
             <button type="button" onClick={() => onBecomeMaster()} className={homeHeroBecomeMasterBtn}>
-              стать мастером
+              регистрация мастера
             </button>
             <button
               type="button"

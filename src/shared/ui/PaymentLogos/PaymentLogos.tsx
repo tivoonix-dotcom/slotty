@@ -52,13 +52,13 @@ export const PaymentLogos: FC<Props> = ({
         {title ? (
           <p className="mb-2 text-[12px] font-semibold tracking-[0.06em] text-[#171717]/55">{title}</p>
         ) : null}
-        <div className="-mx-1 flex flex-wrap items-end gap-4 sm:gap-5">
+        <div className="grid grid-cols-3 items-end gap-x-3 gap-y-3 sm:flex sm:flex-wrap sm:items-end sm:gap-x-5 sm:gap-y-4">
           {methods.map((method) => (
             <PaymentLogoImage
               key={method.id}
               method={method}
               logoHeightClass={footerLogoHeightClass(method.id)}
-              className="shrink-0"
+              className={`shrink-0 ${method.id === 'belkart' ? 'col-span-2 sm:col-span-1' : ''}`}
             />
           ))}
         </div>

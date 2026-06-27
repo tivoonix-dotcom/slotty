@@ -35,6 +35,7 @@ type Props = {
   search: string;
   onClearSearch: () => void;
   onResetFilters?: () => void;
+  onOpenFilters?: () => void;
   filters?: CatalogFiltersState;
   onFiltersChange?: (next: CatalogFiltersState) => void;
   /** Заголовок результатов вынесен в шапку каталога (десктоп) */
@@ -139,6 +140,7 @@ export function ServicesCatalogResults({
   search,
   onClearSearch,
   onResetFilters,
+  onOpenFilters,
   filters,
   onFiltersChange,
   hideResultsHeader = false,
@@ -182,6 +184,7 @@ export function ServicesCatalogResults({
   if (filteredEmpty) {
     const canReset = Boolean(onResetFilters);
     const canClearSearch = Boolean(search.trim());
+    const canOpenFilters = Boolean(onOpenFilters);
 
     return (
       <CatalogEmptyPanel>
@@ -189,14 +192,37 @@ export function ServicesCatalogResults({
           title="Ничего не нашли"
           description="Попробуйте другой запрос или измените фильтры — возможно, услуга есть под другим названием"
           actionLabel={
-            canClearSearch ? 'Очистить поиск' : canReset ? 'Сбросить фильтры' : undefined
+            canClearSearch
+              ? 'Очистить поиск'
+              : canOpenFilters
+                ? 'Изменить фильтры'
+                : canReset
+                  ? 'Сбросить фильтры'
+                  : undefined
           }
           onAction={
-            canClearSearch ? onClearSearch : canReset ? onResetFilters : undefined
+            canClearSearch
+              ? onClearSearch
+              : canOpenFilters
+                ? onOpenFilters
+                : canReset
+                  ? onResetFilters
+                  : undefined
           }
           variant="catalog"
           picture="searchEmpty"
         />
+        {canReset && (canClearSearch || canOpenFilters) ? (
+          <p className="mt-3 text-center">
+            <button
+              type="button"
+              onClick={onResetFilters}
+              className="text-[14px] font-semibold text-[#F47C8C] hover:underline"
+            >
+              Сбросить все фильтры
+            </button>
+          </p>
+        ) : null}
         <p className="mt-4 text-center text-[14px] text-[#6B7280]">
           Или{' '}
           <Link

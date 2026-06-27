@@ -3,7 +3,7 @@
 export const catalogSheetCanvas = 'bg-[#F5F5F5]';
 
 export const catalogSheetHeader =
-  'shrink-0 border-b border-[#EEEEEE] bg-white px-[18px] pb-4 pt-4 lg:px-8 lg:pb-5 lg:pt-6';
+  'shrink-0 bg-[#F5F5F5] px-[18px] pb-4 pt-4 lg:px-8 lg:pb-5 lg:pt-6';
 
 export const catalogSheetTitle =
   'text-[20px] font-bold tracking-[-0.03em] text-[#111827] lg:text-[22px]';
@@ -19,7 +19,7 @@ export const catalogSheetScrollPadFlush =
   'px-[18px] pb-6 pt-4 lg:px-8 lg:pb-8 lg:pt-5';
 
 export const catalogSheetFooter =
-  'shrink-0 border-t border-[#eef0f5] bg-white px-[18px] py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] lg:px-8 lg:py-5';
+  'mt-auto shrink-0 bg-[#F5F5F5] px-[18px] pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] lg:px-8 lg:pt-4 lg:pb-5';
 
 export const catalogSheetField =
   'mt-1.5 w-full rounded-[10px] border-0 bg-[#EBEBEB] px-4 py-3 text-[15px] font-medium text-[#111827] outline-none transition placeholder:text-[#8E8E93] focus:bg-[#E4E4E4]';

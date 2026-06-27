@@ -1,4 +1,4 @@
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   HiBell,
   HiCalendarDays,
@@ -17,6 +17,10 @@ import {
 import { optimizeAvatarUrl } from '../../../shared/lib/optimizeAvatarUrl';
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
 import { settingsRailItemClass, SETTINGS_RAIL_WIDTH } from '../../admin/settings/workspace/settingsWorkspaceTheme';
+import {
+  resolveClientCabinetMobileTab,
+  type ClientProfileMainTab,
+} from '../clientProfile/clientCabinetMobileTabs';
 import { useClientCabinetShellData } from '../clientProfile/useClientCabinetShellData';
 
 function RailTooltip({ label }: { label: string }) {
@@ -30,22 +34,44 @@ function RailTooltip({ label }: { label: string }) {
   );
 }
 
-const RAIL_ITEMS = [
-  { to: getProfilePath('appointments'), label: 'Мои записи', icon: HiCalendarDays, end: false },
-  { to: getProfilePath('favorites'), label: 'Избранное', icon: HiHeart, end: false },
-  { to: getProfilePath('profile'), label: 'Профиль', icon: HiUser, end: true },
+type RailItem = {
+  id: ClientProfileMainTab | 'settings';
+  to: string;
+  label: string;
+  icon: typeof HiCalendarDays;
+  showBadge?: boolean;
+};
+
+const RAIL_ITEMS: RailItem[] = [
+  { id: 'appointments', to: getProfilePath('appointments'), label: 'Мои записи', icon: HiCalendarDays },
+  { id: 'favorites', to: getProfilePath('favorites'), label: 'Избранное', icon: HiHeart },
+  { id: 'profile', to: getProfilePath('profile'), label: 'Профиль', icon: HiUser },
   {
+    id: 'notifications',
     to: PROFILE_NOTIFICATIONS_PATH,
     label: 'Уведомления',
     icon: HiBell,
-    end: true,
     showBadge: true,
   },
-  { to: PROFILE_SETTINGS_PATH, label: 'Настройки', icon: HiCog6Tooth, end: false },
-] as const;
+  { id: 'settings', to: PROFILE_SETTINGS_PATH, label: 'Настройки', icon: HiCog6Tooth },
+];
+
+function isRailItemActive(item: RailItem, pathname: string, search: string): boolean {
+  if (item.id === 'settings') {
+    return pathname.startsWith(PROFILE_SETTINGS_PATH);
+  }
+  if (item.id === 'notifications') {
+    return pathname === PROFILE_NOTIFICATIONS_PATH;
+  }
+  if (pathname !== PROFILE_PATH) {
+    return false;
+  }
+  return resolveClientCabinetMobileTab(pathname, search) === item.id;
+}
 
 export function ClientSettingsIconRail() {
   const shell = useClientCabinetShellData();
+  const { pathname, search } = useLocation();
   const avatarSrc =
     (shell.profileAvatarUrl ? optimizeAvatarUrl(shell.profileAvatarUrl, 80) : null) ??
     (shell.telegramPhotoUrl ? optimizeAvatarUrl(shell.telegramPhotoUrl, 80) : null);
@@ -76,16 +102,14 @@ export function ClientSettingsIconRail() {
       >
         {RAIL_ITEMS.map((item) => {
           const Icon = item.icon;
-          const showBadge = 'showBadge' in item && item.showBadge && shell.hasNewNotifications;
+          const active = isRailItemActive(item, pathname, search);
+          const showBadge = item.showBadge && shell.hasNewNotifications;
 
           return (
             <NavLink
-              key={item.to}
+              key={item.id}
               to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `group/rail relative max-w-full ${settingsRailItemClass(isActive)}`
-              }
+              className={`group/rail relative max-w-full ${settingsRailItemClass(active)}`}
               title={item.label}
             >
               <Icon className="h-5 w-5 shrink-0" aria-hidden />

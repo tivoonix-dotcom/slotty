@@ -14,6 +14,7 @@ import {
   bookingNotificationHint,
   formatBookingSource,
   formatServicePrice,
+  resolveBookingVisitEndsAt,
   type BookingNotificationViewModel,
 } from './bookingNotificationModel';
 
@@ -198,7 +199,12 @@ export function BookingNotificationDetailView({
         <p className="text-[12px] font-bold uppercase tracking-wide text-[#F47C8C]">Что дальше</p>
         <PendingDeadlineHint pendingExpiresAt={appointment.pendingExpiresAt} className="mt-2" />
         <p className="mt-2 text-[14px] font-medium leading-snug text-[#111827]">
-          {bookingNotificationHint(model.dbStatus, notificationType, appointment.pendingExpiresAt)}
+          {bookingNotificationHint(
+            model.dbStatus,
+            notificationType,
+            appointment.pendingExpiresAt,
+            { endsAt: resolveBookingVisitEndsAt(appointment) },
+          )}
         </p>
       </div>
     </div>

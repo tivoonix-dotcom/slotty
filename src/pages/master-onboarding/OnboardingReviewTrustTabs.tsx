@@ -231,14 +231,14 @@ export function OnboardingReviewTrustTabs({ certificates, educationItems, classN
                 role="tab"
                 aria-selected={selected}
                 onClick={() => setActive(tab.id)}
-                className={`relative flex min-w-[7.5rem] shrink-0 flex-1 items-center justify-center gap-1.5 rounded-t-[12px] px-2 py-3 transition sm:min-w-0 sm:px-3 ${
+                className={`relative flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-t-[12px] px-3 py-3 transition ${
                   selected
                     ? 'bg-white text-[#F47C8C]'
                     : 'text-[#6B7280] hover:bg-[#FAFAFA] hover:text-[#374151]'
                 }`}
               >
                 <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
-                <span className="truncate text-[12px] font-semibold sm:text-[13px]">{tab.label}</span>
+                <span className="text-[12px] font-semibold sm:text-[13px]">{tab.label}</span>
                 {tab.count > 0 ? (
                   <span
                     className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${

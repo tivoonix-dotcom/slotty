@@ -1,14 +1,21 @@
 import type { FC } from 'react';
 import { HiCalendarDays, HiCheckBadge, HiEnvelope, HiStar } from 'react-icons/hi2';
 import { BY } from 'country-flag-icons/react/1x1';
+import { ADMIN_SEGMENT_NAV_MOBILE } from '../admin/adminCabinetLayout';
 import { profileDashboardCard, profileDashboardEditBtn } from '../admin/profile/adminProfileDashboardTheme';
 import { CabinetIcon } from '../admin/profile/cabinetIcons';
+import { adminMobileSegmentTabClass } from '../admin/shared/adminMobileTabBarTheme';
 import {
   adminSectionTabIndicatorClass,
   adminSectionTabLabelClass,
   adminSectionTabTextClass,
 } from '../admin/shared/adminSectionTabsTheme';
+import {
+  masterDemoDesktopScrollClass,
+  masterDemoMobileScrollClass,
+} from './homeLandingMasterDemoTheme';
 import { MASTER_LANDING_DEMO_MASTER_EMAIL } from './masterLandingDemoPersona';
+import { useLandingDemoLayout } from './masterLandingDemoShared';
 
 const PROFILE_TABS = [
   { id: 'main', label: 'Профиль', icon: 'user' as const },
@@ -16,9 +23,6 @@ const PROFILE_TABS = [
   { id: 'address', label: 'Адрес', icon: 'map-pin' as const },
   { id: 'rules', label: 'Правила', icon: 'rules' as const },
 ];
-
-const DEMO_SCROLL_HIDE =
-  'overflow-y-auto overflow-x-hidden overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden';
 
 type MasterLandingProfileHubProps = {
   name: string;
@@ -64,6 +68,52 @@ function DemoStatTile({ label, value, icon }: { label: string; value: string; ic
   );
 }
 
+function DemoProfileTabs({ mobile }: { mobile: boolean }) {
+  if (mobile) {
+    return (
+      <nav
+        className={`${ADMIN_SEGMENT_NAV_MOBILE} shrink-0`}
+        style={{ minHeight: '2.75rem' }}
+        aria-hidden
+      >
+        {PROFILE_TABS.map((tab) => {
+          const selected = tab.id === 'main';
+          return (
+            <div key={tab.id} className={adminMobileSegmentTabClass(selected, 'brand')}>
+              <CabinetIcon name={tab.icon} size={18} className="shrink-0" />
+              <span className="max-w-full truncate text-[9px] font-bold leading-none">{tab.label}</span>
+            </div>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  return (
+    <nav className="flex h-8 border-t border-[#eef0f5] bg-white sm:h-9" aria-hidden>
+      {PROFILE_TABS.map((tab) => {
+        const selected = tab.id === 'main';
+        return (
+          <div
+            key={tab.id}
+            className={adminSectionTabTextClass(selected)
+              .replace('h-full', 'h-8 sm:h-9')
+              .replace('lg:px-5', 'px-1.5 sm:px-2')}
+          >
+            <CabinetIcon name={tab.icon} size={14} className={selected ? 'text-[#ff5f7a]' : 'text-[#9CA3AF]'} />
+            <span className={`${adminSectionTabLabelClass.replace('text-[14px]', 'text-[9px]')} sm:text-[10px]`}>
+              {tab.label}
+            </span>
+            {selected ? (
+              <span className={adminSectionTabIndicatorClass().replace('inset-x-3', 'inset-x-2')} aria-hidden />
+            ) : null}
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
 export const MasterLandingProfileHub: FC<MasterLandingProfileHubProps> = ({
   name,
   about,
@@ -72,6 +122,7 @@ export const MasterLandingProfileHub: FC<MasterLandingProfileHubProps> = ({
   const displayName = name.trim() || 'Мастер';
   const aboutPreview =
     about.trim() || 'Добавьте описание в профиле — клиенты увидят его перед записью.';
+  const { mobile } = useLandingDemoLayout();
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#f6f7fb]">
@@ -122,25 +173,12 @@ export const MasterLandingProfileHub: FC<MasterLandingProfileHubProps> = ({
           </button>
         </div>
 
-        <nav className="flex h-8 border-t border-[#eef0f5] bg-white sm:h-9" aria-hidden>
-          {PROFILE_TABS.map((tab) => {
-            const selected = tab.id === 'main';
-            return (
-              <div key={tab.id} className={adminSectionTabTextClass(selected).replace('h-full', 'h-8 sm:h-9').replace('lg:px-5', 'px-1.5 sm:px-2')}>
-                <CabinetIcon name={tab.icon} size={14} className={selected ? 'text-[#ff5f7a]' : 'text-[#9CA3AF]'} />
-                <span className={`${adminSectionTabLabelClass.replace('text-[14px]', 'text-[9px]')} sm:text-[10px]`}>
-                  {tab.label}
-                </span>
-                {selected ? (
-                  <span className={adminSectionTabIndicatorClass().replace('inset-x-3', 'inset-x-2')} aria-hidden />
-                ) : null}
-              </div>
-            );
-          })}
-        </nav>
+        {!mobile ? <DemoProfileTabs mobile={false} /> : null}
       </section>
 
-      <div className={`min-h-0 flex-1 ${DEMO_SCROLL_HIDE} px-2 pb-3 pt-2 sm:px-2.5 sm:pb-3.5 sm:pt-2.5`}>
+      <div
+        className={`min-h-0 flex-1 ${mobile ? masterDemoMobileScrollClass : masterDemoDesktopScrollClass} px-2 pb-3 pt-2 sm:px-2.5 sm:pb-3.5 sm:pt-2.5`}
+      >
         <div className="space-y-2 pb-1 sm:space-y-2.5">
           <section className={`${profileDashboardCard} overflow-hidden p-2.5 sm:p-3`}>
             <div className="flex items-center justify-between gap-2">
@@ -227,6 +265,8 @@ export const MasterLandingProfileHub: FC<MasterLandingProfileHubProps> = ({
           </section>
         </div>
       </div>
+
+      {mobile ? <DemoProfileTabs mobile /> : null}
     </div>
   );
 };

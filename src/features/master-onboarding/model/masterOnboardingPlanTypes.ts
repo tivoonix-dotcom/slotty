@@ -27,8 +27,17 @@ export type PlanLimits = {
   maxPortfolioPhotos: number;
 };
 
-/** Выбор на шаге онбординга: базовый или интерес к Pro без оплаты. */
-export type MasterPlanSelection = 'basic' | 'pro_interest';
+/** Выбор на шаге онбординга: базовый или покупка Pro через bePaid. */
+export type MasterPlanSelection = 'basic' | 'pro_purchase';
+
+/** Legacy draft value до оплаты через bePaid. */
+export type LegacyMasterPlanSelection = MasterPlanSelection | 'pro_interest';
+
+export function normalizePlanSelection(
+  sel: LegacyMasterPlanSelection | undefined,
+): MasterPlanSelection {
+  return sel === 'pro_purchase' || sel === 'pro_interest' ? 'pro_purchase' : 'basic';
+}
 
 export const BASIC_ONBOARDING_LIMITS: PlanLimits = {
   maxServices: 3,
@@ -48,6 +57,6 @@ export const PRO_ONBOARDING_LIMITS: PlanLimits = {
   maxPortfolioPhotos: 30,
 };
 
-export function planLimitsForSelection(sel: MasterPlanSelection): PlanLimits {
-  return sel === 'pro_interest' ? PRO_ONBOARDING_LIMITS : BASIC_ONBOARDING_LIMITS;
+export function planLimitsForSelection(sel: LegacyMasterPlanSelection): PlanLimits {
+  return normalizePlanSelection(sel) === 'pro_purchase' ? PRO_ONBOARDING_LIMITS : BASIC_ONBOARDING_LIMITS;
 }

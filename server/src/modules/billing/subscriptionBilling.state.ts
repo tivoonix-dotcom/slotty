@@ -75,9 +75,11 @@ export function isProEntitled(row: SubscriptionRowLite, now = Date.now()): boole
 
 export type BillingAction =
   | 'connect_pro'
+  | 'manual_topup'
   | 'cancel_auto_renew'
   | 'resume_auto_renew'
   | 'update_payment_method'
+  | 'delete_payment_method'
   | 'retry_payment'
   | 'view_payment_history'
   | 'download_receipt';
@@ -89,15 +91,24 @@ export function availableBillingActions(ui: SubscriptionUiState): BillingAction[
       return ['connect_pro'];
     case 'pro_active':
       return [
+        'manual_topup',
         'cancel_auto_renew',
         'update_payment_method',
+        'delete_payment_method',
         'view_payment_history',
         'download_receipt',
       ];
     case 'pro_canceled_at_period_end':
-      return ['resume_auto_renew', 'view_payment_history', 'download_receipt'];
+      return [
+        'manual_topup',
+        'resume_auto_renew',
+        'update_payment_method',
+        'delete_payment_method',
+        'view_payment_history',
+        'download_receipt',
+      ];
     case 'past_due':
-      return ['retry_payment', 'update_payment_method', 'connect_pro'];
+      return ['retry_payment', 'update_payment_method', 'delete_payment_method', 'connect_pro'];
     default:
       return [];
   }

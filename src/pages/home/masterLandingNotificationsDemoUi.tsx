@@ -22,10 +22,12 @@ import {
   notifListToolbar,
   notifTimeGroupLabel,
 } from '../admin/notifications/adminNotificationsTheme';
+import {
+  masterDemoDesktopScrollClass,
+  masterDemoMobileScrollClass,
+} from './homeLandingMasterDemoTheme';
 import { MASTER_LANDING_DEMO_MASTER_EMAIL } from './masterLandingDemoPersona';
-
-const DEMO_SCROLL_HIDE =
-  'overflow-y-auto overflow-x-hidden overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden';
+import { useLandingDemoLayout } from './masterLandingDemoShared';
 
 const CLIENT = 'Анна Смирнова';
 const SERVICE = 'Маникюр с покрытием';
@@ -255,19 +257,29 @@ export const MasterLandingNotificationsHub: FC<MasterLandingNotificationsHubProp
   const readCount = showConfirmed ? 1 : 0;
   const totalNotifications = (showIncoming ? 1 : 0) + (showConfirmed ? 1 : 0);
   const hasNotifications = showIncoming || showConfirmed;
+  const { mobile } = useLandingDemoLayout();
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[inherit] bg-[#f6f7fb]">
-      <div ref={scrollRef} className={`min-h-0 flex-1 ${DEMO_SCROLL_HIDE} p-2.5 sm:p-3`}>
+      <div
+        ref={scrollRef}
+        className={`min-h-0 flex-1 ${mobile ? masterDemoMobileScrollClass : masterDemoDesktopScrollClass} p-2.5 sm:p-3`}
+      >
         <div className="space-y-2.5 sm:space-y-3">
-          <header className="min-w-0">
-            <h2 className="text-[13px] font-bold tracking-[-0.03em] text-[#111827] sm:text-[14px]">
-              Уведомления
-            </h2>
-            <p className={`${notifHeroSubtitle} !mt-0.5 !text-[10px] sm:!text-[11px]`}>
+          {!mobile ? (
+            <header className="min-w-0">
+              <h2 className="text-[13px] font-bold tracking-[-0.03em] text-[#111827] sm:text-[14px]">
+                Уведомления
+              </h2>
+              <p className={`${notifHeroSubtitle} !mt-0.5 !text-[10px] sm:!text-[11px]`}>
+                В кабинет, Telegram и на почту
+              </p>
+            </header>
+          ) : (
+            <p className={`${notifHeroSubtitle} !text-[10px] text-[#6B7280]`}>
               В кабинет, Telegram и на почту
             </p>
-          </header>
+          )}
 
           {hasNotifications ? (
             <div className="flex w-full min-w-0 justify-end">

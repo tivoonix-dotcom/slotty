@@ -23,7 +23,7 @@ import { MasterLandingJsonLd } from '../shared/seo/MasterLandingJsonLd';
 export function MasterLanding() {
   useLandingHashScroll();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   const isMasterUser = useIsMasterUser();
 
   const registerPath = useMemo(() => getMasterRegisterPath(BECOME_MASTER_PATH), []);
@@ -33,12 +33,8 @@ export function MasterLanding() {
       navigate(ADMIN_PATH);
       return;
     }
-    if (isAuthenticated) {
-      navigate(BECOME_MASTER_PATH);
-      return;
-    }
     navigate(registerPath);
-  }, [isAuthenticated, isMasterUser, navigate, registerPath]);
+  }, [isMasterUser, navigate, registerPath]);
 
   const onCatalog = useCallback(() => {
     navigate(SERVICES_PATH);
@@ -62,7 +58,7 @@ export function MasterLanding() {
         />
 
         <main
-          className={`relative z-10 overflow-x-visible ${homeShell} pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-0`}
+          className={`relative z-10 overflow-x-clip ${homeShell} pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-0`}
         >
           <HomeMasterBookingsPromo onMasterCabinet={onBecomeMaster} ctaLabel="Начать бесплатно" />
 

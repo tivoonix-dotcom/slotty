@@ -6,7 +6,7 @@ export function desktopCardLayout(): 'grid' {
 /** Десктоп — плитка Kwork-style: 3 равные колонки, карточки одной высоты в ряду */
 export function desktopGridClassName(): string {
   return [
-    'grid items-stretch gap-4',
+    'grid items-stretch gap-5',
     'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3',
     '[&>*]:min-w-0 [&>*]:h-full',
   ].join(' ');
@@ -18,7 +18,7 @@ export function mobileCardLayout(): 'grid' {
 }
 
 export function mobileGridClassName(): string {
-  return 'grid grid-cols-2 items-stretch justify-items-stretch gap-2.5 sm:gap-3 [&>*]:min-w-0';
+  return 'grid grid-cols-2 items-stretch justify-items-stretch gap-3 sm:gap-3.5 [&>*]:min-w-0';
 }
 
 /** Один список без дублирующих секций */

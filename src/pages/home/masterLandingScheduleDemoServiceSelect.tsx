@@ -2,6 +2,7 @@ import type { FC } from 'react';
 import { HiChevronDown } from 'react-icons/hi2';
 import { catalogSheetField, catalogSheetLabel } from '../admin/shared/adminCatalogSheetTheme';
 import { masterDemoFieldActiveSchedule } from './homeLandingMasterDemoTheme';
+import { useLandingDemoLayout } from './masterLandingDemoShared';
 
 export const MASTER_LANDING_SCHEDULE_DEMO_SERVICES = [
   { id: 'manicure', label: 'Маникюр с покрытием' },
@@ -39,14 +40,17 @@ export const MasterLandingScheduleDemoServiceSelect: FC<Props> = ({
   highlightedOptionId = null,
   optionPressing = false,
 }) => {
+  const { mobile } = useLandingDemoLayout();
   const selectedLabel = masterLandingScheduleDemoServiceLabel(selectedId);
 
   return (
     <div className="block">
-      <p className={`${catalogSheetLabel} !text-[11px]`}>Услуга</p>
+      <p className={`${catalogSheetLabel} ${mobile ? '!text-[10px]' : '!text-[11px]'}`}>Услуга</p>
       <div
         data-master-demo-service
-        className={`${catalogSheetField} mt-1 flex !min-h-0 items-center justify-between gap-2 !py-2 !text-[13px] ${
+        className={`${catalogSheetField} mt-1 flex !min-h-0 items-center justify-between gap-2 !py-2 ${
+          mobile ? '!text-[12px]' : '!text-[13px]'
+        } ${
           triggerActive || open ? masterDemoFieldActiveSchedule : ''
         }`}
       >
@@ -72,7 +76,8 @@ export const MasterLandingScheduleDemoServiceSelect: FC<Props> = ({
                 key={option.id}
                 data-master-demo={`service-option-${option.id}`}
                 className={[
-                  'rounded-[8px] px-2.5 py-2 text-[12px] font-medium leading-snug transition',
+                  'rounded-[8px] px-2.5 py-2 font-medium leading-snug transition',
+                  mobile ? 'text-[11px]' : 'text-[12px]',
                   selected
                     ? 'bg-[#EEF0FC] font-semibold text-[#3B4CCA]'
                     : 'text-[#374151]',

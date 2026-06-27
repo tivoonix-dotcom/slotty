@@ -2,18 +2,24 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ADMIN_SCHEDULE_PATH } from '../../../app/paths';
 import { MasterPublicPreviewLink } from '../shared/MasterPublicPreviewLink';
-import { HiChevronLeft, HiChevronRight, HiFunnel, HiMagnifyingGlass } from 'react-icons/hi2';
+import { HiArrowTopRightOnSquare, HiChevronLeft, HiChevronRight, HiFunnel, HiMagnifyingGlass } from 'react-icons/hi2';
+import { SlottyImg } from '../../../shared/ui/SlottyImg';
+import { SlottySelect } from '../../../shared/ui/SlottySelect';
 import type { MasterDraft } from '../../../features/profile/lib/demoMasterStorage';
 import {
-  servicesCatalogAddBtn,
-  servicesCatalogFilterBtn,
+  servicesCatalogAddBtnHeader,
   servicesCatalogFilterBtnActive,
+  servicesCatalogFilterBtnText,
+  servicesCatalogGridCanvas,
+  servicesCatalogPreviewBtn,
   servicesCatalogSearchInput,
+  servicesCatalogSlotsAlert,
+  servicesCatalogToolbarSelect,
   servicesTabContentPad,
   servicesTabPanelShell,
   servicesTabScrollBottomPad,
 } from './adminServicesTheme';
-import { ServicesBrandPhotoLayers } from './ServicesBrandPhotoLayers';
+import { ADMIN_ATTENTION_EXCLAMATION_ICON_SRC } from '../shared/AdminSectionAttentionBadge';
 import { MiniPicture } from '../../../shared/ui/MiniPicture';
 import { profileDashboardCard } from '../profile/adminProfileDashboardTheme';
 import { useMasterPlatformAccess } from '../../../features/auth/context/MasterPlatformAccessContext';
@@ -23,14 +29,21 @@ import { filterCatalogServices } from './catalogFilterUtils';
 import type { ManagedService } from './servicesFormat';
 import { serviceCatalogThumbnailUrl } from './servicesFormat';
 import { CatalogActiveFiltersBar } from './CatalogActiveFiltersBar';
-import { getActiveCatalogFilterChips } from './catalogFilterLabels';
+import { catalogSortSelectOptions, getActiveCatalogFilterChips } from './catalogFilterLabels';
 import {
   catalogFiltersAreActive,
   DEFAULT_CATALOG_FILTERS,
   ServicesCatalogFiltersSheet,
   type CatalogFiltersState,
 } from './ServicesCatalogFiltersSheet';
+import { countVisibleServicesWithoutSlots } from './servicesCatalogAttention';
+import { reorderManagedServiceList } from './servicesCatalogReorder';
+import { ServicesCatalogViewToggle, type CatalogViewMode } from './ServicesCatalogViewToggle';
 import { useCatalogServiceDragReorder } from './useCatalogServiceDragReorder';
+import {
+  loadServicesCatalogPrefs,
+  saveServicesCatalogPrefs,
+} from './servicesCatalogPrefsStorage';
 
 type ServiceStats = {
   serviceId: string;
@@ -43,14 +56,28 @@ type Props = {
   services: ManagedService[];
   onAdd: () => void;
   onOpenMenu: (service: ManagedService) => void;
+  onEdit?: (service: ManagedService) => void;
   onReorder?: (activeId: string, overId: string) => void;
   serviceStats?: ServiceStats[];
   categoryLabel?: string | null;
   masterId?: string | null;
   hasAnySlots?: boolean;
+  slotsStatsReady?: boolean;
 };
 
 const CATALOG_PAGE_SIZE = 10;
+
+function pluralServicesInCatalog(count: number): string {
+  if (count === 1) return '1 услуга в каталоге';
+  if (count < 5) return `${count} услуги в каталоге`;
+  return `${count} услуг в каталоге`;
+}
+
+function pluralServicesWithoutSlots(count: number): string {
+  if (count === 1) return '1 услуга без времени для записи';
+  if (count < 5) return `${count} услуги без времени для записи`;
+  return `${count} услуг без времени для записи`;
+}
 
 function CatalogPagination({
   page,
@@ -106,30 +133,35 @@ export function ServicesCatalogTab({
   services,
   onAdd,
   onOpenMenu,
+  onEdit,
   onReorder,
   serviceStats = [],
   categoryLabel,
   masterId,
   hasAnySlots = true,
+  slotsStatsReady = true,
 }: Props) {
   const masterWrite = useMasterPlatformAccess();
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<CatalogFiltersState>(DEFAULT_CATALOG_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<CatalogViewMode>(() =>
+    loadServicesCatalogPrefs(masterId).viewMode,
+  );
   const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    setViewMode(loadServicesCatalogPrefs(masterId).viewMode);
+  }, [masterId]);
+
+  useEffect(() => {
+    saveServicesCatalogPrefs(masterId, { viewMode });
+  }, [masterId, viewMode]);
 
   const filtered = useMemo(
     () => filterCatalogServices(services, query, filters),
     [filters, query, services],
   );
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / CATALOG_PAGE_SIZE));
-  const safePage = Math.min(page, pageCount - 1);
-
-  const pageItems = useMemo(() => {
-    const start = safePage * CATALOG_PAGE_SIZE;
-    return filtered.slice(start, start + CATALOG_PAGE_SIZE);
-  }, [filtered, safePage]);
 
   const filterIsActive = catalogFiltersAreActive(filters);
   const activeFilterChips = useMemo(() => getActiveCatalogFilterChips(filters), [filters]);
@@ -149,10 +181,6 @@ export function ServicesCatalogTab({
     setPage(0);
   }, [query, filters]);
 
-  useEffect(() => {
-    if (page !== safePage) setPage(safePage);
-  }, [page, safePage]);
-
   const patchFilters = (patch: Partial<CatalogFiltersState>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
   };
@@ -166,6 +194,13 @@ export function ServicesCatalogTab({
     !filterIsActive &&
     !query.trim();
 
+  const servicesWithoutSlotsCount = useMemo(
+    () => countVisibleServicesWithoutSlots(services, serviceStats),
+    [serviceStats, services],
+  );
+
+  const sortSelectOptions = useMemo(() => catalogSortSelectOptions(), []);
+
   const handleReorder = useCallback(
     (activeId: string, overId: string) => {
       onReorder?.(activeId, overId);
@@ -178,47 +213,92 @@ export function ServicesCatalogTab({
     onReorder: handleReorder,
   });
 
+  const displayList = useMemo(() => {
+    if (!isDragging || !draggingId || !overId || draggingId === overId) {
+      return filtered;
+    }
+    return reorderManagedServiceList(filtered, draggingId, overId) ?? filtered;
+  }, [filtered, draggingId, isDragging, overId]);
+
+  const pageCount = Math.max(1, Math.ceil(displayList.length / CATALOG_PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+
+  const pageItems = useMemo(() => {
+    const start = safePage * CATALOG_PAGE_SIZE;
+    return displayList.slice(start, start + CATALOG_PAGE_SIZE);
+  }, [displayList, safePage]);
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage);
+  }, [page, safePage]);
+
   return (
     <div className={servicesTabPanelShell}>
       <div className={`${servicesTabContentPad} ${servicesTabScrollBottomPad}`}>
-      <div className="space-y-3">
-        <div>
-          <h2 className="text-[18px] font-black tracking-[-0.04em] text-[#111827] lg:text-[22px] lg:tracking-[-0.05em]">
-            Услуги
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={onAdd}
-            disabled={!masterWrite.canMutate}
-            title={masterWrite.mutateDisabledTitle}
-            className={servicesCatalogAddBtn}
-          >
-            <ServicesBrandPhotoLayers />
-            <span className="relative z-10">Добавить услугу</span>
-          </button>
-          <MasterPublicPreviewLink
-            masterId={masterId}
-            ready={hasAnySlots}
-            variant="secondary"
-            className="min-w-0 w-full px-2.5 text-[11px] sm:px-4 sm:text-[13px]"
-          />
-          {services.length > 0 && !hasAnySlots ? (
-            <Link
-              to={`${ADMIN_SCHEDULE_PATH}?tab=create&wizard=month`}
-              className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-[12px] bg-[#FFF1F4] px-4 text-[13px] font-bold text-[#F47C8C] transition hover:bg-[#FFE4EA] active:scale-[0.98]"
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+          <div className="min-w-0">
+            <h2 className="text-[20px] font-bold tracking-[-0.03em] text-[#111827] lg:text-[22px]">
+              Каталог услуг
+            </h2>
+            <p className="mt-0.5 text-[13px] font-medium text-[#6B7280] sm:text-[14px]">
+              {pluralServicesInCatalog(services.length)}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <MasterPublicPreviewLink
+              masterId={masterId}
+              ready={hasAnySlots}
+              variant="secondary"
+              className={`${servicesCatalogPreviewBtn} min-w-0`}
+            />
+            <button
+              type="button"
+              onClick={onAdd}
+              disabled={!masterWrite.canMutate}
+              title={masterWrite.mutateDisabledTitle}
+              className={servicesCatalogAddBtnHeader}
             >
-              Добавить окна для услуг
-            </Link>
-          ) : null}
+              Добавить услугу +
+            </button>
+          </div>
         </div>
+
+        {slotsStatsReady && servicesWithoutSlotsCount > 0 ? (
+          <div className={servicesCatalogSlotsAlert} role="status">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/80">
+                <SlottyImg
+                  src={ADMIN_ATTENTION_EXCLAMATION_ICON_SRC}
+                  alt=""
+                  className="h-5 w-5 object-contain"
+                  decoding="async"
+                />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[14px] font-bold text-[#111827]">
+                  {pluralServicesWithoutSlots(servicesWithoutSlotsCount)}
+                </p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-[#6B7280] sm:text-[13px]">
+                  Клиенты видят их в каталоге, но не могут выбрать дату и время.
+                </p>
+              </div>
+            </div>
+            <Link
+              to={ADMIN_SCHEDULE_PATH}
+              className="inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold text-[#F47C8C] transition hover:opacity-90"
+            >
+              Перейти в расписание
+              <HiArrowTopRightOnSquare className="h-4 w-4" aria-hidden />
+            </Link>
+          </div>
+        ) : null}
       </div>
 
-      <div className="flex gap-2 lg:gap-3">
-        <label className="relative min-w-0 flex-1">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <label className="relative min-w-0 flex-1 sm:min-w-[12rem]">
           <HiMagnifyingGlass
-            className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9CA3AF] lg:left-4 lg:h-6 lg:w-6"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#9CA3AF]"
             aria-hidden
           />
           <input
@@ -228,23 +308,34 @@ export function ServicesCatalogTab({
             className={servicesCatalogSearchInput}
           />
         </label>
-        <button
-          type="button"
-          onClick={() => setFilterOpen(true)}
-          className={`${servicesCatalogFilterBtn} active:scale-[0.96] ${
-            filterIsActive ? servicesCatalogFilterBtnActive : ''
-          }`}
-          aria-label={filterIsActive ? 'Фильтры: выбраны' : 'Фильтры каталога'}
-          aria-expanded={filterOpen}
-        >
-          <HiFunnel className="h-5 w-5" aria-hidden />
-          {filterIsActive ? (
-            <span
-              className="absolute right-2 top-2 h-2 w-2 rounded-full bg-white shadow-sm"
-              aria-hidden
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setFilterOpen(true)}
+            className={`${servicesCatalogFilterBtnText} ${
+              filterIsActive ? servicesCatalogFilterBtnActive : 'bg-[#EBEBEB] text-[#374151]'
+            }`}
+            aria-label={filterIsActive ? 'Фильтры: выбраны' : 'Фильтры каталога'}
+            aria-expanded={filterOpen}
+          >
+            <HiFunnel className="h-5 w-5 shrink-0" aria-hidden />
+            Фильтры
+            {filterIsActive ? (
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-white" aria-hidden />
+            ) : null}
+          </button>
+          <div className={`hidden min-w-[11rem] sm:block ${servicesCatalogToolbarSelect}`}>
+            <SlottySelect
+              tone="catalog"
+              value={filters.sort}
+              onChange={(value) => patchFilters({ sort: value as CatalogFiltersState['sort'] })}
+              options={sortSelectOptions}
+              aria-label="Сортировка"
+              sheetTitle="Сортировка"
             />
-          ) : null}
-        </button>
+          </div>
+          <ServicesCatalogViewToggle value={viewMode} onChange={setViewMode} />
+        </div>
       </div>
 
       <CatalogActiveFiltersBar
@@ -283,7 +374,11 @@ export function ServicesCatalogTab({
       ) : (
         <>
           <ul
-            className={`flex w-full max-w-none flex-col gap-2.5 lg:gap-3 ${isDragging ? 'select-none' : ''}`}
+            className={`w-full max-w-none ${
+              viewMode === 'grid'
+                ? `${servicesCatalogGridCanvas} grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3`
+                : 'flex flex-col gap-2.5 lg:gap-3'
+            } ${isDragging ? 'select-none' : ''}`}
           >
             {pageItems.map((service) => {
               const stats = statsById.get(service.id);
@@ -291,11 +386,14 @@ export function ServicesCatalogTab({
               <CatalogServiceCard
                 key={service.id}
                 service={service}
+                layout={viewMode}
                 imageSrc={serviceCatalogThumbnailUrl(service, draft)}
                 categoryLabel={categoryLabel}
                 availableSlotsCount={stats?.availableSlotsCount}
-                upcomingAppointmentsCount={stats?.upcomingAppointmentsCount}
+                upcomingAppointmentsCount={stats?.upcomingAppointmentsCount ?? 0}
+                slotsStatsReady={slotsStatsReady}
                 onOpenMenu={onOpenMenu}
+                onEdit={onEdit}
                 showDragHandle={canReorder}
                 isDragSource={draggingId === service.id}
                 isDragOver={overId === service.id && draggingId !== service.id}

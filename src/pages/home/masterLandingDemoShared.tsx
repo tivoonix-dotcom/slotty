@@ -1,4 +1,45 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+
+const LANDING_DEMO_MOBILE_MQ = '(max-width: 1023px)';
+
+type LandingDemoLayoutValue = {
+  mobile: boolean;
+};
+
+const LandingDemoLayoutContext = createContext<LandingDemoLayoutValue>({ mobile: false });
+
+export function LandingDemoLayoutProvider({
+  mobile,
+  children,
+}: {
+  mobile: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <LandingDemoLayoutContext.Provider value={{ mobile }}>{children}</LandingDemoLayoutContext.Provider>
+  );
+}
+
+export function useLandingDemoLayout(): LandingDemoLayoutValue {
+  return useContext(LandingDemoLayoutContext);
+}
+
+/** Мобильная вёрстка демо кабинета (< lg), как на телефоне. */
+export function useLandingDemoMobileLayout(): boolean {
+  const [mobile, setMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(LANDING_DEMO_MOBILE_MQ).matches : false,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(LANDING_DEMO_MOBILE_MQ);
+    const apply = () => setMobile(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  return mobile;
+}
 
 export function useLandingDemoReducedMotion(): boolean {
   const [reducedMotion, setReducedMotion] = useState(false);

@@ -22,7 +22,7 @@ export const LANDING_HEADER_ROW_CLASS =
   'relative grid min-h-[74px] grid-cols-[1fr_auto] items-center gap-4 py-2 pl-3 pr-6 sm:pl-4 sm:pr-8 lg:grid-cols-[1fr_auto_1fr] lg:pl-5 lg:pr-10';
 
 export const LANDING_HEADER_LOGO_LINK_CLASS =
-  'inline-flex w-auto shrink-0 items-center justify-start !h-auto min-h-0 -ml-1 p-0 leading-none opacity-100 hover:opacity-100 sm:-ml-1.5';
+  'inline-flex w-auto shrink-0 items-center justify-start !h-auto min-h-0 -ml-1 p-0 leading-none opacity-100 hover:opacity-100 max-lg:translate-y-[5px] sm:-ml-1.5 lg:translate-y-0';
 
 export const LANDING_HEADER_LOGO_IMG_CLASS =
   'block h-12 w-auto max-w-none shrink-0 object-contain object-left opacity-100 sm:h-14';

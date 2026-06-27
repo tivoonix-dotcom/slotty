@@ -8,7 +8,9 @@ import { listSubscriptionPlans } from './billing.service.js';
 import {
   cancelSubscriptionAtPeriodEnd,
   createBillingCheckout,
+  createManualTopupCheckout,
   createUpdatePaymentMethodCheckout,
+  deletePaymentMethod,
   getBillingSubscription,
   listBillingPayments,
   resumeSubscriptionAutoRenew,
@@ -50,13 +52,29 @@ billingRouter.get(
   }),
 );
 
-const checkoutBody = z.object({
-  plan: z.literal('MASTER_PRO'),
-  billingPeriod: z.enum(['month', 'year']),
-  returnUrl: z.string().url().optional(),
-  cancelUrl: z.string().url().optional(),
-  consentAccepted: z.literal(true),
-});
+const packageMonthsSchema = z.union([z.literal(1), z.literal(3), z.literal(12)]);
+
+function resolveCheckoutPackageMonths(body: {
+  billingPackageMonths?: 1 | 3 | 12;
+  billingPeriod?: 'month' | 'year';
+}): 1 | 3 | 12 {
+  if (body.billingPackageMonths != null) return body.billingPackageMonths;
+  if (body.billingPeriod === 'year') return 12;
+  return 1;
+}
+
+const checkoutBody = z
+  .object({
+    plan: z.literal('MASTER_PRO'),
+    billingPackageMonths: packageMonthsSchema.optional(),
+    billingPeriod: z.enum(['month', 'year']).optional(),
+    returnUrl: z.string().url().optional(),
+    cancelUrl: z.string().url().optional(),
+    consentAccepted: z.literal(true),
+  })
+  .refine((b) => b.billingPackageMonths != null || b.billingPeriod != null, {
+    message: 'Укажите billingPackageMonths или billingPeriod',
+  });
 
 billingRouter.post(
   '/checkout',
@@ -66,7 +84,7 @@ billingRouter.post(
     const result = await createBillingCheckout({
       masterId: req.user!.id,
       profileId: req.user!.id,
-      billingPeriod: body.billingPeriod,
+      billingPackageMonths: resolveCheckoutPackageMonths(body),
       returnUrl: body.returnUrl,
       consentAccepted: body.consentAccepted,
     });
@@ -74,6 +92,35 @@ billingRouter.post(
       paymentUrl: result.paymentUrl,
       paymentId: result.paymentId,
     });
+  }),
+);
+
+const topupBody = z.object({
+  billingPackageMonths: packageMonthsSchema,
+  returnUrl: z.string().url().optional(),
+});
+
+billingRouter.post(
+  '/topup',
+  ...billingMaster,
+  asyncHandler(async (req, res) => {
+    const body = topupBody.parse(req.body);
+    const result = await createManualTopupCheckout({
+      masterId: req.user!.id,
+      profileId: req.user!.id,
+      billingPackageMonths: body.billingPackageMonths,
+      returnUrl: body.returnUrl,
+    });
+    res.status(201).json(result);
+  }),
+);
+
+billingRouter.delete(
+  '/payment-method',
+  ...billingMaster,
+  asyncHandler(async (req, res) => {
+    const billing = await deletePaymentMethod(req.user!.id);
+    res.json({ billing });
   }),
 );
 

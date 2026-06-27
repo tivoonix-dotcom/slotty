@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { env } from '../../config/env.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { authMiddleware } from '../../middlewares/auth.js';
 import { ApiError } from '../../utils/ApiError.js';
@@ -7,6 +8,8 @@ import {
   verifyBePaidWebhookBasicAuth,
   verifyBePaidWebhookSecret,
 } from './bepaid.client.js';
+import { isBePaidEnabled, isWebhookSecretConfigured } from './bepaid.config.js';
+import { assertWebhookAuthorized } from './bepaidWebhookValidation.js';
 import { sanitizePayloadForLog } from './paymentLogSanitizer.js';
 import {
   createBePaidPayment,
@@ -90,15 +93,29 @@ paymentsRouter.post(
         ? req.headers['x-webhook-secret']
         : undefined,
     );
-    if (!authOk && !secretOk) {
-      throw ApiError.unauthorized('Invalid webhook credentials', 'WEBHOOK_UNAUTHORIZED');
+
+    const authCheck = assertWebhookAuthorized({
+      basicAuthOk: authOk,
+      secretHeaderOk: secretOk,
+      webhookSecretConfigured: isWebhookSecretConfigured(),
+      bePaidEnabled: isBePaidEnabled(),
+      isProduction: env.NODE_ENV === 'production' || env.BEPAID_ENV === 'production',
+    });
+    if (!authCheck.ok) {
+      console.warn('[bepaid] webhook auth rejected', { code: authCheck.code });
+      throw ApiError.unauthorized(authCheck.message, authCheck.code);
     }
 
     const body = req.body && typeof req.body === 'object' ? (req.body as Record<string, unknown>) : {};
     console.info('[bepaid] webhook received', sanitizePayloadForLog(body));
 
     const result = await processBePaidWebhook(body);
-    res.status(200).json({ ok: result.ok, paymentId: result.paymentId ?? null });
+    res.status(result.rejected ? 422 : 200).json({
+      ok: result.ok,
+      paymentId: result.paymentId ?? null,
+      rejected: result.rejected ?? false,
+      rejectCode: result.rejectCode ?? null,
+    });
   }),
 );
 

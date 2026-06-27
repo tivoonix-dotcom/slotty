@@ -1,6 +1,6 @@
 import { HiArrowRight, HiCalendarDays, HiPhoto, HiShare, HiSparkles } from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
-import { ADMIN_PATH, getMasterPath } from '../../app/paths';
+import { ADMIN_PATH, ADMIN_SCHEDULE_PATH, getMasterPath } from '../../app/paths';
 import {
   onboardingEyebrowClass,
   onboardingStepTitleClass,
@@ -10,19 +10,23 @@ import { MINI_PICTURE } from '../../shared/ui/miniPictureSrc';
 
 const NEXT_STEPS = [
   {
+    icon: HiCalendarDays,
+    title: 'Окна для записи',
+    text: 'Добавьте свободные слоты — без них клиенты не смогут выбрать время',
+    href: `${ADMIN_SCHEDULE_PATH}?tab=create&wizard=month`,
+    primary: true,
+  },
+  {
     icon: HiPhoto,
     title: 'Портфолио',
     text: 'Добавьте фото работ — клиенты чаще записываются',
-  },
-  {
-    icon: HiCalendarDays,
-    title: 'Расписание',
-    text: 'Откройте свободные окна для онлайн-записи',
+    href: ADMIN_PATH,
   },
   {
     icon: HiShare,
-    title: 'Ссылка на профиль',
-    text: 'Отправьте карточку в соцсетях и мессенджерах',
+    title: 'Публикация профиля',
+    text: 'После слотов включите видимость профиля в кабинете',
+    href: ADMIN_PATH,
   },
 ] as const;
 
@@ -32,7 +36,7 @@ type Props = {
 };
 
 export function OnboardingPublishSuccess({ masterName, onOpenProfile }: Props) {
-  const greeting = masterName?.trim() ? `${masterName.trim()}, всё готово` : 'Всё готово';
+  const greeting = masterName?.trim() ? `${masterName.trim()}, профиль создан` : 'Профиль создан';
 
   return (
     <div className="flex min-h-dvh flex-col bg-white text-[#111827] lg:bg-[#F5F5F5]">
@@ -48,14 +52,14 @@ export function OnboardingPublishSuccess({ masterName, onOpenProfile }: Props) {
                       {greeting}
                     </span>
 
-                    <p className={`${onboardingEyebrowClass} mt-4`}>Публикация</p>
+                    <p className={`${onboardingEyebrowClass} mt-4`}>Почти готово</p>
                     <h1 className={`${onboardingStepTitleClass} lg:text-[34px] xl:text-[38px]`}>
-                      Профиль опубликован
+                      Осталось добавить окна записи
                     </h1>
 
                     <p className="mt-3 max-w-md text-[15px] font-medium leading-relaxed text-[#6B7280] lg:text-[16px]">
-                      Клиенты уже могут найти вас в каталоге и записаться онлайн. Дальше — пара шагов в
-                      кабинете, чтобы усилить карточку.
+                      Услуги и профиль сохранены. Чтобы клиенты могли записаться онлайн, создайте окна в
+                      расписании и опубликуйте профиль в кабинете.
                     </p>
                   </div>
 
@@ -70,11 +74,19 @@ export function OnboardingPublishSuccess({ masterName, onOpenProfile }: Props) {
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFF1F4] text-[#F47C8C]">
                             <Icon className="h-[18px] w-[18px]" aria-hidden />
                           </span>
-                          <span className="min-w-0 pt-0.5 text-left">
+                          <span className="min-w-0 flex-1 pt-0.5 text-left">
                             <span className="block text-[14px] font-semibold text-[#111827]">{item.title}</span>
                             <span className="mt-0.5 block text-[12px] font-medium leading-snug text-[#6B7280]">
                               {item.text}
                             </span>
+                            {'primary' in item && item.primary ? (
+                              <Link
+                                to={item.href}
+                                className="mt-2 inline-flex text-[13px] font-semibold text-[#F47C8C] hover:underline"
+                              >
+                                Добавить окна записи
+                              </Link>
+                            ) : null}
                           </span>
                         </li>
                       );
@@ -82,13 +94,19 @@ export function OnboardingPublishSuccess({ masterName, onOpenProfile }: Props) {
                   </ul>
 
                   <div className="mt-8 flex w-full flex-col gap-2.5 sm:flex-row lg:flex-col xl:flex-row">
+                    <Link
+                      to={`${ADMIN_SCHEDULE_PATH}?tab=create&wizard=month`}
+                      className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#E29595] px-5 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.26)] transition hover:opacity-95 active:scale-[0.98]"
+                    >
+                      Добавить окна записи
+                      <HiArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+                    </Link>
                     <button
                       type="button"
                       onClick={onOpenProfile}
-                      className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#E29595] px-5 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.26)] transition hover:opacity-95 active:scale-[0.98]"
+                      className="flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#F1EFEF] px-5 text-[15px] font-semibold text-[#111827] transition hover:bg-[#EBE8E8] active:scale-[0.98]"
                     >
                       Перейти в профиль
-                      <HiArrowRight className="h-5 w-5 shrink-0" aria-hidden />
                     </button>
                     <Link
                       to={ADMIN_PATH}

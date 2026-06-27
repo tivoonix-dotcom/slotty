@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   cancelSubscriptionAutoRenew,
+  deletePaymentMethod,
   getBillingSubscription,
   listBillingPayments,
   resumeSubscriptionAutoRenew,
@@ -9,6 +10,7 @@ import {
   type BillingPaymentDto,
   type BillingSubscriptionResponse,
 } from '../../../../../features/billing/api/masterBillingApi';
+import { BILLING_COPY, formatBillingUserError } from '../../../../../features/billing/billingCopy';
 import { PAYMENT_SUCCESS_PATH } from '../../../../../app/paths';
 import { readPublicAppOrigin } from '../../../../../shared/lib/masterBookingLink';
 import { useAdminMasterCabinet } from '../../../AdminMasterCabinetContext';
@@ -108,7 +110,7 @@ export function useSettingsBilling() {
         void refreshSubscription?.();
         void loadPayments();
       } catch (e) {
-        showErrorToast(e instanceof Error ? e.message : 'Ошибка');
+        showErrorToast(formatBillingUserError(e, BILLING_COPY.billingActionFailed));
       } finally {
         setBillingBusy(false);
       }
@@ -123,7 +125,7 @@ export function useSettingsBilling() {
         const { paymentUrl } = await createUrl();
         window.location.assign(paymentUrl);
       } catch (e) {
-        showErrorToast(e instanceof Error ? e.message : 'Не удалось открыть оплату');
+        showErrorToast(formatBillingUserError(e, BILLING_COPY.checkoutFailed));
         setBillingBusy(false);
       }
     },
@@ -169,6 +171,12 @@ export function useSettingsBilling() {
       void runBillingAction(async () => {
         await resumeSubscriptionAutoRenew();
         showToast('Автопродление включено');
+      }),
+    onDeleteCard: () =>
+      void runBillingAction(async () => {
+        if (!window.confirm(BILLING_COPY.deleteCardConfirm)) return;
+        await deletePaymentMethod();
+        showToast(BILLING_COPY.cardDeleted);
       }),
     reload: () => {
       void reloadBilling();

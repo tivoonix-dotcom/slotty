@@ -714,6 +714,30 @@ export async function patchMyMasterProfile(
     const next = patch.publicationStatus;
     const current = currentRow.publication_status;
 
+    if (next === 'published') {
+      const svcCnt = await query<{ c: number }>(
+        `select count(*)::int as c from public.master_services where master_id = $1 and is_active = true`,
+        [profileId],
+      );
+      if ((svcCnt.rows[0]?.c ?? 0) < 1) {
+        throw ApiError.badRequest('Добавьте хотя бы одну активную услугу', 'NO_ACTIVE_SERVICE');
+      }
+      const slotCnt = await query<{ c: number }>(
+        `select count(*)::int as c
+           from public.master_slots s
+          where s.master_id = $1
+            and s.status = 'available'
+            and s.starts_at > now()`,
+        [profileId],
+      );
+      if ((slotCnt.rows[0]?.c ?? 0) < 1) {
+        throw ApiError.badRequest(
+          'Создайте хотя бы одно окно для записи в разделе «Расписание»',
+          'NO_BOOKABLE_SLOTS',
+        );
+      }
+    }
+
     if (next === 'blocked') {
       throw ApiError.forbidden('Статус «заблокирован» назначает только администратор', 'FORBIDDEN_STATUS');
     }

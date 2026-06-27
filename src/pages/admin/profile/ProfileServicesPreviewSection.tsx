@@ -37,15 +37,23 @@ export function ProfileServicesPreviewSection({ variant = 'cabinet', maxItems = 
   const navigate = useNavigate();
   const { draft, appointments, useCabinetApi } = useAdminMasterCabinet();
   const [slots, setSlots] = useState<MySlotDto[] | null>(null);
+  const [slotsReady, setSlotsReady] = useState(!useCabinetApi);
 
   const reloadSlots = useCallback(() => {
     if (!useCabinetApi) {
       setSlots(null);
+      setSlotsReady(true);
       return;
     }
     void getMySlots()
-      .then(setSlots)
-      .catch(() => setSlots(null));
+      .then((rows) => {
+        setSlots(rows);
+        setSlotsReady(true);
+      })
+      .catch(() => {
+        setSlots(null);
+        setSlotsReady(true);
+      });
   }, [useCabinetApi]);
 
   useEffect(() => {
@@ -119,8 +127,9 @@ export function ProfileServicesPreviewSection({ variant = 'cabinet', maxItems = 
                     service={managed}
                     imageSrc={serviceCatalogThumbnailUrl(managed, draft as MasterDraft)}
                     categoryLabel={categoryLabel}
-                    availableSlotsCount={stats?.availableSlotsCount ?? 0}
+                    availableSlotsCount={stats?.availableSlotsCount}
                     upcomingAppointmentsCount={stats?.upcomingAppointmentsCount ?? 0}
+                    slotsStatsReady={slotsReady}
                     showMenu={false}
                     onCardClick={() => navigate(ADMIN_SERVICES_PATH)}
                   />

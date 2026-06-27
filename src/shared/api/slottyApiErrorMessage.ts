@@ -91,6 +91,7 @@ const PAYMENT_MESSAGES: Record<string, string> = {
   BEPAID_DISABLED: 'Онлайн-оплата временно недоступна',
   BEPAID_CHECKOUT_FAILED: 'Не удалось открыть страницу оплаты. Попробуйте позже.',
   PRO_ALREADY_ACTIVE: 'Тариф Pro уже активен',
+  CHECKOUT_FAILED: 'Не удалось открыть страницу привязки карты. Попробуйте позже или обратитесь в поддержку.',
 };
 
 const LIMIT_MESSAGES: Record<string, string> = {

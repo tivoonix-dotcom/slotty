@@ -1,5 +1,7 @@
 import type { FC, RefObject } from 'react';
 import { HiArchiveBox, HiCalendarDays, HiCheck, HiChevronRight, HiInbox, HiXMark } from 'react-icons/hi2';
+import { ADMIN_SEGMENT_NAV_MOBILE } from '../admin/adminCabinetLayout';
+import { adminMobileSegmentTabClass } from '../admin/shared/adminMobileTabBarTheme';
 import {
   apptBadgeConfirmed,
   apptBadgeNew,
@@ -27,9 +29,7 @@ import {
   adminSectionTabsNavClass,
   adminSectionTabTextClass,
 } from '../admin/shared/adminSectionTabsTheme';
-
-const DEMO_SCROLL_HIDE =
-  'overflow-y-auto overflow-x-hidden overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden';
+import { useLandingDemoLayout } from './masterLandingDemoShared';
 
 const CLIENT = 'Анна Смирнова';
 const SERVICE = 'Маникюр с покрытием';
@@ -53,15 +53,41 @@ const TABS: Array<{
   { id: 'upcoming', label: 'Предстоящие', Icon: HiCalendarDays },
 ];
 
-function DemoSectionTabs({ active, requestCount, upcomingCount }: { active: DemoTab; requestCount: number; upcomingCount: number }) {
+function DemoSectionTabs({
+  active,
+  requestCount,
+  upcomingCount,
+  placement = 'top',
+}: {
+  active: DemoTab;
+  requestCount: number;
+  upcomingCount: number;
+  placement?: 'top' | 'bottom';
+}) {
   const countFor = (id: DemoTab) => (id === 'requests' ? requestCount : upcomingCount);
+  const { mobile } = useLandingDemoLayout();
+  const atBottom = mobile || placement === 'bottom';
 
-  return (
-    <nav className={`${adminSectionTabsNavClass} shrink-0 !px-2.5 sm:!px-3`} aria-label="Разделы записей">
+  const tabItems = (
+    <>
       {TABS.map((tab) => {
         const selected = active === tab.id;
         const Icon = tab.Icon;
         const n = countFor(tab.id);
+
+        if (atBottom) {
+          return (
+            <div key={tab.id} className={`relative ${adminMobileSegmentTabClass(selected, 'brand')}`}>
+              <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+              <span className="max-w-full truncate text-[9px] font-bold leading-none">{tab.label}</span>
+              {n > 0 ? (
+                <span className="absolute right-2 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F47C8C] px-1 text-[8px] font-black text-white">
+                  {n}
+                </span>
+              ) : null}
+            </div>
+          );
+        }
 
         return (
           <span key={tab.id} className={adminSectionTabTextClass(selected)}>
@@ -83,10 +109,34 @@ function DemoSectionTabs({ active, requestCount, upcomingCount }: { active: Demo
           </span>
         );
       })}
-      <span className={`${adminSectionTabTextClass(false)} opacity-40`} aria-hidden>
-        <HiArchiveBox className={`${adminSectionTabIconClass} text-[#9CA3AF]`} />
-        <span className={adminSectionTabLabelClass}>История</span>
-      </span>
+      {!atBottom ? (
+        <span className={`${adminSectionTabTextClass(false)} opacity-40`} aria-hidden>
+          <HiArchiveBox className={`${adminSectionTabIconClass} text-[#9CA3AF]`} />
+          <span className={adminSectionTabLabelClass}>История</span>
+        </span>
+      ) : null}
+    </>
+  );
+
+  if (atBottom) {
+    return (
+      <nav
+        className={`${ADMIN_SEGMENT_NAV_MOBILE} relative shrink-0`}
+        style={{ minHeight: '2.75rem' }}
+        aria-label="Разделы записей"
+      >
+        {tabItems}
+        <div className={adminMobileSegmentTabClass(false, 'brand')}>
+          <HiArchiveBox className="h-[18px] w-[18px] shrink-0 opacity-40" aria-hidden />
+          <span className="max-w-full truncate text-[9px] font-bold leading-none opacity-40">История</span>
+        </div>
+      </nav>
+    );
+  }
+
+  return (
+    <nav className={`${adminSectionTabsNavClass} shrink-0 !px-2.5 sm:!px-3`} aria-label="Разделы записей">
+      {tabItems}
     </nav>
   );
 }
@@ -256,12 +306,15 @@ export const MasterLandingAppointmentsHub: FC<MasterLandingAppointmentsHubProps>
 }) => {
   const requestCount = showRequest ? 1 : 0;
   const upcomingCount = showUpcoming ? 1 : 0;
+  const { mobile } = useLandingDemoLayout();
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#F5F5F5]">
-      <DemoSectionTabs active={activeTab} requestCount={requestCount} upcomingCount={upcomingCount} />
+      {!mobile ? (
+        <DemoSectionTabs active={activeTab} requestCount={requestCount} upcomingCount={upcomingCount} />
+      ) : null}
 
-      <div ref={scrollRef} className={`min-h-0 flex-1 ${DEMO_SCROLL_HIDE}`}>
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-hidden">
         {activeTab === 'requests' ? (
           <div className="space-y-2 px-2.5 pb-3 pt-2 sm:px-3 sm:pb-4">
             {showRequest ? (
@@ -298,6 +351,10 @@ export const MasterLandingAppointmentsHub: FC<MasterLandingAppointmentsHubProps>
           </div>
         )}
       </div>
+
+      {mobile ? (
+        <DemoSectionTabs active={activeTab} requestCount={requestCount} upcomingCount={upcomingCount} />
+      ) : null}
     </div>
   );
 };

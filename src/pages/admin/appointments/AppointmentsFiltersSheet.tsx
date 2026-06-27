@@ -9,11 +9,7 @@ import {
 import { ADMIN_SEGMENT_NAV_DESKTOP } from '../adminCabinetLayout';
 import { sheetSectionTitleClass } from '../profile/adminProfileCabinetTheme';
 import type {
-  HistoryPeriodFilter,
   HistorySort,
-  HistoryStatusFilter,
-  RequestsFeatureFilter,
-  RequestsPeriodFilter,
   RequestsSort,
   UpcomingSort,
 } from './appointmentsTypes';
@@ -74,10 +70,6 @@ type RequestsProps = {
   onService: (id: string) => void;
   sort: RequestsSort;
   onSort: (sort: RequestsSort) => void;
-  period: RequestsPeriodFilter;
-  onPeriod: (period: RequestsPeriodFilter) => void;
-  feature: RequestsFeatureFilter;
-  onFeature: (feature: RequestsFeatureFilter) => void;
   onReset: () => void;
 };
 
@@ -98,10 +90,6 @@ type HistoryProps = {
   onService: (id: string) => void;
   sort: HistorySort;
   onSort: (sort: HistorySort) => void;
-  status: HistoryStatusFilter;
-  onStatus: (status: HistoryStatusFilter) => void;
-  period: HistoryPeriodFilter;
-  onPeriod: (period: HistoryPeriodFilter) => void;
   onReset: () => void;
 };
 
@@ -117,34 +105,9 @@ const REQUESTS_SORT: Array<{ id: RequestsSort; label: string }> = [
   { id: 'price_low', label: 'Дешевле' },
 ];
 
-const REQUESTS_PERIOD: Array<{ id: RequestsPeriodFilter; label: string }> = [
-  { id: 'all', label: 'Все даты' },
-  { id: 'today', label: 'Сегодня' },
-  { id: 'week', label: 'Неделя' },
-  { id: 'month', label: 'Месяц' },
-];
-
-const REQUESTS_FEATURE: Array<{ id: RequestsFeatureFilter; label: string }> = [
-  { id: 'all', label: 'Все' },
-  { id: 'expiring', label: 'Срочные' },
-  { id: 'with_photo', label: 'С фото' },
-];
-
 const UPCOMING_SORT: Array<{ id: UpcomingSort; label: string }> = [
   { id: 'date', label: 'По дате' },
   { id: 'newest', label: 'Новые' },
-];
-
-const HISTORY_STATUS: Array<{ id: HistoryStatusFilter; label: string }> = [
-  { id: 'all', label: 'Все' },
-  { id: 'completed', label: 'Завершено' },
-  { id: 'cancelled', label: 'Отменено' },
-];
-
-const HISTORY_PERIOD: Array<{ id: HistoryPeriodFilter; label: string }> = [
-  { id: 'all', label: 'Всё время' },
-  { id: 'month', label: 'Месяц' },
-  { id: 'quarter', label: '3 месяца' },
 ];
 
 const HISTORY_SORT: Array<{ id: HistorySort; label: string }> = [
@@ -159,16 +122,10 @@ export function AppointmentsFiltersSheet(props: Props) {
 
   const hasActive =
     mode === 'requests'
-      ? props.service !== 'all' ||
-        props.sort !== 'newest' ||
-        props.period !== 'all' ||
-        props.feature !== 'all'
+      ? props.service !== 'all' || props.sort !== 'newest'
       : mode === 'upcoming'
         ? props.service !== 'all' || props.sort !== 'date'
-        : props.service !== 'all' ||
-          props.sort !== 'newest' ||
-          props.status !== 'all' ||
-          props.period !== 'all';
+        : props.service !== 'all' || props.sort !== 'newest';
 
   const serviceOptions = props.serviceOptions.map((opt) => ({ id: opt.id, label: opt.label }));
 
@@ -208,53 +165,21 @@ export function AppointmentsFiltersSheet(props: Props) {
         />
 
         {mode === 'history' ? (
-          <>
-            <FilterChipGroup
-              title="Статус"
-              options={HISTORY_STATUS}
-              value={props.status}
-              onChange={props.onStatus}
-              layout="segments"
-            />
-            <FilterChipGroup
-              title="Период"
-              options={HISTORY_PERIOD}
-              value={props.period}
-              onChange={props.onPeriod}
-              layout="segments"
-            />
-            <FilterChipGroup
-              title="Сортировка"
-              options={HISTORY_SORT}
-              value={props.sort}
-              onChange={props.onSort}
-              layout="segments"
-            />
-          </>
+          <FilterChipGroup
+            title="Сортировка"
+            options={HISTORY_SORT}
+            value={props.sort}
+            onChange={props.onSort}
+            layout="segments"
+          />
         ) : mode === 'requests' ? (
-          <>
-            <FilterChipGroup
-              title="Дата"
-              options={REQUESTS_PERIOD}
-              value={props.period}
-              onChange={props.onPeriod}
-              layout="segments"
-            />
-            <FilterChipGroup
-              title="Сортировка"
-              options={REQUESTS_SORT}
-              value={props.sort}
-              onChange={props.onSort}
-              layout="segments"
-            />
-            <FilterChipGroup
-              title="Ещё"
-              options={REQUESTS_FEATURE}
-              value={props.feature}
-              onChange={props.onFeature}
-              layout="segments"
-            />
-          </>
+          <FilterChipGroup
+            title="Сортировка"
+            options={REQUESTS_SORT}
+            value={props.sort}
+            onChange={props.onSort}
+            layout="segments"
+          />
         ) : (
           <FilterChipGroup
             title="Сортировка"

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { MasterSubscriptionDto } from '../admin/api/adminBillingApi';
 import { useAdminMasterCabinet } from '../../pages/admin/AdminMasterCabinetContext';
 import { isDevDemoAllowed } from '../../shared/lib/appMode';
 import { getMyMasterEntitlements, type MasterEntitlementsDto } from './api/masterEntitlementsApi';
@@ -19,20 +18,6 @@ function limitsFromEntitlements(ent: MasterEntitlementsDto): PlanLimits {
     maxMonthlyAppointments: ent.limits.maxMonthlyAppointments,
     scheduleHorizonDays: ent.limits.scheduleHorizonDays,
   };
-}
-
-function limitsFromSubscription(sub: MasterSubscriptionDto): PlanLimits {
-  return {
-    maxServices: sub.plan.maxServices,
-    maxMonthlyAppointments: sub.plan.maxMonthlyAppointments,
-    scheduleHorizonDays: sub.plan.maxScheduleDaysAhead,
-  };
-}
-
-function isProFromSubscription(sub: MasterSubscriptionDto | null): boolean {
-  if (!sub) return false;
-  if (sub.plan.maxServices == null) return true;
-  return sub.plan.code === 'pro';
 }
 
 /** Entitlements с API — единственный источник прав в live mode. */
@@ -86,25 +71,18 @@ export function useMasterPlanEntitlements() {
       subscription == null &&
       (cabinetLoading || entitlementsLoading);
 
-    const isProEntitled = Boolean(
-      entitlements?.isProEntitled ?? (useCabinetApi ? isProFromSubscription(subscription) : false),
-    );
+    const entitlementsLoadFailed =
+      useCabinetApi && !entitlementsLoading && !cabinetLoading && entitlements == null;
 
-    const planId: PlanId = isProEntitled
-      ? 'pro'
-      : useCabinetApi && entitlements
-        ? 'free'
-        : useCabinetApi && subscription
-          ? subscription.plan.code === 'pro'
-            ? 'pro'
-            : 'free'
-          : localPlan.plan;
+    const isProEntitled = Boolean(entitlements?.isProEntitled);
+
+    const planId: PlanId = isProEntitled ? 'pro' : useCabinetApi ? 'free' : localPlan.plan;
 
     const limits: PlanLimits =
       useCabinetApi && entitlements
         ? limitsFromEntitlements(entitlements)
-        : useCabinetApi && subscription
-          ? limitsFromSubscription(subscription)
+        : useCabinetApi
+          ? getPlanLimits('free')
           : getPlanLimits(planId);
 
     const servicesCount =
@@ -139,6 +117,7 @@ export function useMasterPlanEntitlements() {
       isProEntitled,
       entitlements,
       entitlementsLoading,
+      entitlementsLoadFailed,
       subscriptionPending: planStatePending,
       billingPeriod:
         useCabinetApi && subscription
@@ -149,9 +128,9 @@ export function useMasterPlanEntitlements() {
       limits,
       servicesCount,
       monthlyAppointments,
-      canUseBundlesAndPromotions: entitlements?.features.bundlesAndPromotions ?? planId === 'pro',
-      canUseAdvancedAnalytics: entitlements?.features.advancedAnalytics ?? planId === 'pro',
-      canUseDataExport: entitlements?.features.dataExport ?? planId === 'pro',
+      canUseBundlesAndPromotions: entitlements?.features.bundlesAndPromotions ?? false,
+      canUseAdvancedAnalytics: entitlements?.features.advancedAnalytics ?? false,
+      canUseDataExport: entitlements?.features.dataExport ?? false,
       freeServiceLimitReached,
       freeAppointmentLimitReached,
       freeAppointmentLimitAlmostReached,

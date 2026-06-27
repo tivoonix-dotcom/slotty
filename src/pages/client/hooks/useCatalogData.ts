@@ -20,7 +20,8 @@ function paramsKey(params: CatalogListingsParams): string {
   return JSON.stringify(params);
 }
 
-export function useCatalogData(params: CatalogListingsParams = {}) {
+export function useCatalogData(params: CatalogListingsParams = {}, options?: { enabled?: boolean }) {
+  const enabled = options?.enabled !== false;
   const paramsRef = useRef(params);
   paramsRef.current = params;
   const key = paramsKey(params);
@@ -69,8 +70,9 @@ export function useCatalogData(params: CatalogListingsParams = {}) {
   }, [key]);
 
   useEffect(() => {
+    if (!enabled) return;
     void reload();
-  }, [reload]);
+  }, [reload, enabled]);
 
   return { ...state, reload };
 }

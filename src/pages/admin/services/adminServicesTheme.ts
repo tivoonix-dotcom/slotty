@@ -66,14 +66,23 @@ export const servicesCard =
 export const servicesCatalogCardShell =
   'flex w-full flex-col overflow-hidden rounded-[16px] bg-white lg:rounded-[18px]';
 
-/** Видимая услуга без слотов в расписании — красная обводка. */
-export const servicesCatalogCardNoSlotsShell =
-  `${servicesCatalogCardShell} ring-2 ring-[#EF4444] ring-offset-2 ring-offset-[#F5F5F5]`;
+/** Плитка: контур и тень, чтобы карточки не сливались с белым полотном таба. */
+export const servicesCatalogCardGridShell =
+  'flex w-full flex-col overflow-hidden rounded-[16px] border border-[#EAECEF] bg-white shadow-[0_2px_14px_rgba(17,24,39,0.06)] ring-1 ring-black/[0.03] lg:rounded-[18px]';
+
+/** Видимая услуга без слотов — без красной обводки; предупреждение внутри карточки. */
+export const servicesCatalogCardNoSlotsShell = servicesCatalogCardShell;
+
+export const servicesCatalogCardGridNoSlotsShell = servicesCatalogCardGridShell;
+
+/** Подложка сетки каталога — отделяет плитки от фона страницы. */
+export const servicesCatalogGridCanvas =
+  'rounded-[16px] bg-[#F5F5F5] p-2 max-lg:-mx-0 sm:p-2.5 lg:rounded-[18px] lg:p-3';
 
 export const servicesCatalogCardBody = 'flex min-h-[5.5rem] min-w-0 flex-1';
 
 export const servicesCatalogDragHandle =
-  'flex w-9 shrink-0 cursor-grab touch-none items-center justify-center self-stretch border-r border-[#F0F0F0] text-[#C4C9D1] transition enabled:active:cursor-grabbing enabled:active:text-[#6B7280] disabled:cursor-default disabled:opacity-40';
+  'flex w-9 shrink-0 cursor-grab touch-none items-center justify-center self-stretch border-r border-[#F0F0F0] text-[#C4C9D1] transition enabled:active:cursor-grabbing enabled:active:text-[#6B7280] disabled:cursor-default disabled:opacity-40 select-none';
 
 export const servicesCatalogCardThumbCol =
   'relative w-[4.75rem] shrink-0 self-stretch sm:w-20';
@@ -85,7 +94,7 @@ export const servicesCatalogSlotsLink =
   'mt-1.5 inline-flex w-fit items-center gap-1 rounded-[10px] bg-[#EEF0FC] px-2.5 py-1 text-[12px] font-bold tabular-nums leading-none text-[#3B4CCA] ring-1 ring-[#DDE2F7] transition hover:bg-[#E4E8FA] active:scale-[0.98] sm:text-[13px]';
 
 export const servicesCatalogPriceText =
-  'mt-2 inline-flex w-fit items-center rounded-[10px] bg-[#FFF1F4] px-2.5 py-1 text-[17px] font-black tabular-nums leading-none tracking-[-0.04em] text-[#ff5f7a] ring-1 ring-[#FDE8ED] sm:text-[18px]';
+  'mt-1.5 inline-flex w-fit items-center rounded-full bg-[#FFF1F4] px-2.5 py-1 text-[13px] font-bold tabular-nums leading-none text-[#F47C8C] sm:text-[14px]';
 
 export const servicesCatalogMenuBtn =
   'flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#F5F5F5] text-[#6B7280] transition hover:bg-[#EEEEEE] active:scale-[0.96]';
@@ -106,6 +115,22 @@ export const servicesCatalogFilterBtn =
   'relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border-0 bg-[#EBEBEB] text-[#6B7280] transition active:scale-[0.96] lg:h-12 lg:w-12 lg:rounded-[14px]';
 
 export const servicesCatalogFilterBtnActive = 'bg-[#F47C8C] text-white';
+
+/** Кнопка «Фильтры» с подписью — как в записях. */
+export const servicesCatalogFilterBtnText =
+  'relative flex h-11 shrink-0 items-center gap-1.5 rounded-[10px] px-3.5 text-[13px] font-semibold transition active:scale-[0.98] sm:h-12 sm:text-[14px]';
+
+export const servicesCatalogToolbarSelect = 'min-w-0 w-full sm:min-w-[11rem] sm:w-auto';
+
+/** Баннер: услуги без слотов в расписании. */
+export const servicesCatalogSlotsAlert =
+  'flex flex-col gap-3 rounded-[12px] bg-[#FFF1F4] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between';
+
+export const servicesCatalogAddBtnHeader =
+  'inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-[12px] bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] px-4 text-[13px] font-bold text-white transition hover:opacity-95 active:scale-[0.98] disabled:opacity-45 sm:px-5 sm:text-[14px]';
+
+export const servicesCatalogPreviewBtn =
+  'inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-[12px] border border-[#EAECEF] bg-white px-4 text-[13px] font-semibold text-[#374151] transition hover:bg-[#FAFAFA] active:scale-[0.98] sm:text-[14px]';
 
 /** Белая панель в модалке услуги (на сером полотне каталога). */
 export const servicesFormPanelClass = 'rounded-[16px] bg-white p-4 sm:p-5';
@@ -142,9 +167,9 @@ export const servicesIconCircle =
 export const servicesPinkBtn =
   'flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] text-[15px] font-bold text-white transition hover:opacity-95 active:scale-[0.98] disabled:opacity-50';
 
-/** Кнопка «Добавить услугу» в каталоге — красный фон с фото. */
+/** Кнопка «Добавить услугу» в каталоге — фирменный розовый градиент. */
 export const servicesCatalogAddBtn =
-  'relative inline-flex min-h-11 min-w-0 w-full items-center justify-center overflow-hidden rounded-[12px] bg-[#EF4444] px-3 text-[12px] font-bold text-[#111827] transition hover:opacity-95 active:scale-[0.98] disabled:opacity-45 sm:px-4 sm:text-[13px]';
+  'inline-flex min-h-11 min-w-0 w-full items-center justify-center rounded-[12px] bg-gradient-to-r from-[#ff6f88] to-[#ff5f7a] px-3 text-[12px] font-bold text-white transition hover:opacity-95 active:scale-[0.98] disabled:opacity-45 sm:px-4 sm:text-[13px]';
 
 /** Список действий в sheet услуги. */
 export const servicesSheetMenuList = 'overflow-hidden rounded-[14px] bg-[#F5F5F5]';

@@ -92,7 +92,7 @@ export function AdminBottomSheet({
         data-admin-sheet
         aria-labelledby={title ? 'admin-sheet-title' : undefined}
         className={`fixed inset-x-0 bottom-0 z-10 flex max-h-[min(92dvh,720px)] w-full flex-col overflow-hidden rounded-t-[16px] ${
-          isBorderlessCatalog ? 'bg-[#F5F5F5]' : 'bg-white'
+          isCatalog ? 'bg-[#F5F5F5]' : 'bg-white'
         } ${
           isCatalog
             ? 'shadow-[0_-8px_32px_rgba(17,24,39,0.08)] lg:shadow-[-12px_0_40px_rgba(17,24,39,0.08)]'
@@ -168,10 +168,10 @@ export function AdminBottomSheet({
           ) : null}
         </header>
 
-        <div className={`flex min-h-0 flex-1 flex-col ${isBorderlessCatalog ? 'bg-[#F5F5F5]' : 'bg-white'}`}>
+        <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${isCatalog ? 'bg-[#F5F5F5]' : 'bg-white'}`}>
           <div
             data-admin-sheet-scroll
-            className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain [-webkit-overflow-scrolling:touch] ${
+            className={`min-h-0 w-full max-h-full shrink self-start overflow-y-auto overflow-x-hidden overscroll-contain [-webkit-overflow-scrolling:touch] ${
               isCatalog
                 ? `${catalogSheetCanvas} ${headerAfter ? catalogSheetScrollPadFlush : catalogSheetScrollPad}`
                 : `bg-white lg:bg-[#f6f7fb] ${adminSheetScrollPad}`
@@ -184,10 +184,10 @@ export function AdminBottomSheet({
             <div
               className={
                 isBorderlessCatalog
-                  ? 'shrink-0 bg-[#F5F5F5] px-[18px] py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] lg:px-8 lg:py-5'
+                  ? 'mt-auto shrink-0 bg-[#F5F5F5] px-[18px] pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] lg:px-8 lg:pt-4 lg:pb-5'
                   : isCatalog
                     ? catalogSheetFooter
-                    : 'shrink-0 border-t border-[#eef0f5] bg-white px-[18px] py-4 shadow-[0_-8px_32px_rgba(17,24,39,0.06)] pb-[max(1rem,env(safe-area-inset-bottom,0px))] lg:px-8 lg:py-5'
+                    : 'mt-auto shrink-0 border-t border-[#eef0f5] bg-white px-[18px] pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] shadow-[0_-8px_32px_rgba(17,24,39,0.06)] lg:px-8 lg:pt-4 lg:pb-5'
               }
             >
               {footer}

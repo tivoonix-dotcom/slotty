@@ -33,6 +33,7 @@ import {
 } from './useOverviewQuickActions';
 import { OverviewOpsKpiPhotoBackdrop } from './OverviewOpsKpiPhotoBackdrop';
 import { OverviewOpsKpiTileFrame } from './OverviewOpsKpiTileFrame';
+import { OverviewSubscriptionStatusCard } from './OverviewSubscriptionStatusCard';
 import { AppointmentsUpcomingRow } from '../appointments/AppointmentsUpcomingRow';
 
 function appointmentsTabForRow(row: DemoMasterAppointment): MasterAppointmentsTabParam | undefined {
@@ -65,6 +66,8 @@ type Props = {
   useCabinetApi: boolean;
   appointments: DemoMasterAppointment[];
   onPersistDraft: (next: MasterDraft) => void;
+  subscription?: import('../../../features/admin/api/adminBillingApi').MasterSubscriptionDto | null;
+  subscriptionLoading?: boolean;
 };
 
 function pendingLabel(n: number): string {
@@ -211,6 +214,8 @@ function OpsPanelBody({
   masterId,
   profileReady = false,
   quickActions,
+  subscription,
+  subscriptionLoading,
 }: Props & { surface: 'mobile' | 'desktop'; quickActions: OverviewQuickActionHandlers }) {
   const navigate = useNavigate();
   const activeSlotCount = ops.activeFutureSlotCount;
@@ -360,6 +365,8 @@ function OpsPanelBody({
           </ul>
         </div>
       ) : null}
+
+      <OverviewSubscriptionStatusCard subscription={subscription ?? null} loading={subscriptionLoading} />
 
       <div>
         <p className="mb-2 text-[13px] font-bold text-[#111827]">Быстрые действия</p>

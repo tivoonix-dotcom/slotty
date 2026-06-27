@@ -7,6 +7,12 @@ import { processBePaidWebhook } from '../payments/payments.service.js';
 import { notifyUser } from '../notifications/notifyUser.js';
 import { subscriptionRenewalReminderNotification } from '../notifications/templates/billingNotificationTemplates.js';
 import { recordBillingEvent } from './billingEvents.service.js';
+import { INSERT_PENDING_BILLING_PAYMENT_SQL } from './billingPendingPaymentSql.js';
+import {
+  type BillingPackageMonths,
+  packageMonthsToBillingPeriod,
+  resolvePackageAmount,
+} from './billingPackage.js';
 
 export type BillingWorkerTickReport = {
   scheduledRenewals: number;
@@ -237,41 +243,78 @@ async function processRenewalChargeJob(jobId: string, subscriptionId: string, ma
   const plan = await query<{ price_month: string; price_year: string }>(
     `select price_month::text, price_year::text from public.subscription_plans where code = 'pro' limit 1`,
   );
-  const price =
-    sub.price_amount != null
-      ? Number(sub.price_amount)
+  const planPrices = {
+    priceMonth: Number(plan.rows[0]?.price_month ?? 29),
+    priceYear: Number(plan.rows[0]?.price_year ?? 290),
+  };
+
+  const lastPkgRow = await query<{ billing_package_months: number | null }>(
+    `select p.billing_package_months
+       from public.payments p
+      where p.master_id = $1
+        and p.status = 'success'::public.payment_status
+        and p.payment_type = 'master_pro_plan'
+        and p.billing_package_months in (1, 3, 12)
+      order by coalesce(p.paid_at, p.updated_at, p.created_at) desc
+      limit 1`,
+    [masterId],
+  );
+  const lastPkg = lastPkgRow.rows[0]?.billing_package_months;
+  const packageMonths: BillingPackageMonths =
+    lastPkg === 3 || lastPkg === 12 || lastPkg === 1
+      ? lastPkg
       : sub.billing_period === 'year'
-        ? Number(plan.rows[0]?.price_year ?? 290)
-        : Number(plan.rows[0]?.price_month ?? 29);
+        ? 12
+        : 1;
+
+  const pkg = resolvePackageAmount(packageMonths, planPrices);
+  const price = sub.price_amount != null ? Number(sub.price_amount) : pkg.amount;
   const amountMinor = Math.round(price * 100);
+  const billingPeriod = packageMonthsToBillingPeriod(packageMonths);
 
   const paymentId = randomUUID();
   const trackingId = paymentId;
 
+  const idempotencyKey = `renewal_charge:${subscriptionId}:${new Date(sub.next_charge_at).toISOString().slice(0, 10)}`;
+
   await query(
     `insert into public.payments (
        id, profile_id, provider, payment_type, status, amount_minor, currency,
-       master_id, billing_period, tracking_id
-     ) values ($1, $2, 'bepaid', 'master_pro_plan', 'pending', $3, $4, $5, $6::public.billing_period, $7)`,
-    [paymentId, masterId, amountMinor, sub.currency, masterId, sub.billing_period, trackingId],
+       master_id, billing_period, tracking_id, checkout_purpose, billing_package_months, checkout_idempotency_key
+     ) values ($1, $2, 'bepaid', 'master_pro_plan', 'pending', $3, $4, $5, $6::public.billing_period, $7,
+               'renewal_charge', $8, $9)`,
+    [
+      paymentId,
+      masterId,
+      amountMinor,
+      sub.currency,
+      masterId,
+      billingPeriod,
+      trackingId,
+      packageMonths,
+      idempotencyKey,
+    ],
   );
 
-  const bpKey = `renewal_payment:${subscriptionId}:${new Date(sub.next_charge_at).toISOString().slice(0, 10)}`;
-  await query(
-    `insert into public.billing_payments (
-       subscription_id, master_id, profile_id, payment_id, provider_payment_id,
-       amount, currency, status, payment_kind, idempotency_key
-     ) values ($1, $2, $3, $4, $4, $5, $6, 'pending', 'recurring_payment', $7)
-     on conflict (idempotency_key) do nothing`,
-    [subscriptionId, masterId, masterId, paymentId, price, sub.currency, bpKey],
-  );
+  const bpKey = idempotencyKey;
+  await query(INSERT_PENDING_BILLING_PAYMENT_SQL, [
+    subscriptionId,
+    masterId,
+    masterId,
+    paymentId,
+    paymentId,
+    price,
+    sub.currency,
+    'recurring_payment',
+    bpKey,
+  ]);
 
   try {
     const charge = await chargeBePaidWithCardToken({
       trackingId,
       amountMinor,
       currency: sub.currency,
-      description: `SLOTTY Master Pro (${sub.billing_period === 'year' ? 'год' : 'месяц'})`,
+      description: `SLOTTY Master Pro (${packageMonths === 12 ? 'год' : packageMonths === 3 ? '3 месяца' : 'месяц'})`,
       cardToken: sub.provider_card_token,
     });
 

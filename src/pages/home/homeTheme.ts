@@ -200,7 +200,7 @@ export const homeLandingMasterPromoCaption =
   'font-landing mx-auto mt-8 max-w-[36rem] text-center text-[14px] leading-relaxed text-[#9CA3AF] sm:mt-12 sm:text-[15px]';
 
 export const homeLandingMasterPromoGrid =
-  'mt-8 grid grid-cols-1 gap-6 sm:mt-10 lg:mt-12 lg:grid-cols-[minmax(0,28%)_minmax(0,1.35fr)] lg:grid-rows-[auto_auto] lg:gap-x-10 lg:gap-y-0 xl:grid-cols-[minmax(0,26%)_minmax(0,1.45fr)] xl:gap-x-12';
+  'mt-8 grid min-w-0 grid-cols-1 gap-6 overflow-x-clip sm:mt-10 lg:mt-12 lg:grid-cols-[minmax(0,28%)_minmax(0,1.35fr)] lg:grid-rows-[auto_auto] lg:gap-x-10 lg:gap-y-0 xl:grid-cols-[minmax(0,26%)_minmax(0,1.45fr)] xl:gap-x-12';
 
 export const homeLandingMasterPromoStepsCol =
   'order-4 min-w-0 max-w-[22rem] lg:order-none lg:col-start-1 lg:row-start-1 lg:self-center';

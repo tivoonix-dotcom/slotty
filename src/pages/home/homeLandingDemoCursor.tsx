@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { HiEnvelope } from 'react-icons/hi2';
 import { GoogleBrandIcon, TelegramBrandIcon } from '../admin/settings/workspace/integrationBrandIcons';
+import { useLandingDemoLayout } from './masterLandingDemoShared';
 
 export type LandingDemoCursorPoint = { x: number; y: number };
 
@@ -24,7 +25,15 @@ export const LandingDemoCursor: FC<{
   point: LandingDemoCursorPoint;
   visible: boolean;
   pressing: boolean;
-}> = ({ point, visible, pressing }) => (
+}> = ({ point, visible, pressing }) => {
+  const { mobile } = useLandingDemoLayout();
+  const scale = mobile ? 0.72 : 1;
+  const svgW = mobile ? 20 : 28;
+  const svgH = mobile ? 23 : 32;
+  const rippleSize = mobile ? 'size-6' : 'size-8';
+  const rippleOffset = mobile ? '-left-3 -top-3' : '-left-4 -top-4';
+
+  return (
   <div
     aria-hidden
     className={[
@@ -35,7 +44,7 @@ export const LandingDemoCursor: FC<{
     style={{
       left: point.x,
       top: point.y,
-      transform: pressing ? 'scale(0.92)' : 'scale(1)',
+      transform: pressing ? `scale(${scale * 0.92})` : `scale(${scale})`,
       transformOrigin: '0 0',
       transition:
         'opacity 260ms ease-out, transform 120ms ease-out, left 620ms cubic-bezier(0.22, 1, 0.36, 1), top 620ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -43,7 +52,7 @@ export const LandingDemoCursor: FC<{
   >
     {pressing ? (
       <span
-        className="absolute -left-4 -top-4 size-8 rounded-full border border-pink-300/70 bg-pink-300/15"
+        className={`absolute ${rippleOffset} ${rippleSize} rounded-full border border-pink-300/70 bg-pink-300/15`}
         style={{
           animation: 'landingCursorClick 420ms ease-out forwards',
         }}
@@ -51,8 +60,8 @@ export const LandingDemoCursor: FC<{
     ) : null}
 
     <svg
-      width="28"
-      height="32"
+      width={svgW}
+      height={svgH}
       viewBox="-3 -3 31 36"
       fill="none"
       aria-hidden
@@ -100,7 +109,8 @@ export const LandingDemoCursor: FC<{
       </defs>
     </svg>
   </div>
-);
+  );
+};
 
 const CHANNEL_ICON_SIZE = 48;
 const NOTIFY_PANEL_ICON_SIZE = 52;

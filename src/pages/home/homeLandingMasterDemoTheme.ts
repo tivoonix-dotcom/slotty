@@ -5,6 +5,25 @@ export const MASTER_DEMO_FRAME_BG_SRC = '/photos/landing/background.webp';
 
 export const masterDemoFrameBgClass = 'bg-cover bg-center bg-no-repeat';
 
+/** Мобилка: без фона ноутбука — фиксированная высота, чтобы flex-демо не схлопывалось. */
+export const masterDemoMobileFrame =
+  'relative w-full min-w-0 overflow-hidden rounded-[28px] bg-[#F2F1ED] sm:rounded-[32px]';
+
+/** Внутренняя высота мобильного демо-кабинета (main + анимация). */
+export const masterDemoMobileStageClass = 'flex h-[29rem] min-h-0 flex-col sm:h-[31rem]';
+
+/** Hub под открытым sheet на мобилке — не дублирует заголовок и не просвечивает. */
+export const masterDemoMobileHubUnderSheetClass =
+  'pointer-events-none opacity-0 transition-opacity duration-300';
+
+export const masterDemoMobileHubClass = 'min-h-0 flex-1 transition-opacity duration-300';
+
+/** Скролл в демо: на мобилке контент подгоняем без полосы прокрутки. */
+export const masterDemoMobileScrollClass = 'overflow-x-hidden overflow-y-hidden overscroll-none';
+
+export const masterDemoDesktopScrollClass =
+  'overflow-y-auto overflow-x-hidden overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden';
+
 export const masterDemoMediaFrame =
   `relative aspect-[4/5] w-full min-h-0 overflow-hidden rounded-[28px] ${masterDemoFrameBgClass} sm:aspect-auto sm:min-h-[580px] sm:rounded-[32px] lg:min-h-[660px] lg:rounded-[36px] xl:min-h-[720px]`;
 

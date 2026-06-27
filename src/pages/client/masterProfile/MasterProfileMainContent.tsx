@@ -22,6 +22,8 @@ type Props = {
   onBookFromReviews?: () => void;
   layout?: 'desktop' | 'mobile';
   showMobileExtra?: boolean;
+  /** Узкий embed (онбординг step 7): без sticky-навигации, компактные отступы. */
+  embeddedPreview?: boolean;
 };
 
 export function MasterProfileMainContent({
@@ -36,6 +38,7 @@ export function MasterProfileMainContent({
   onBookFromReviews,
   layout = 'desktop',
   showMobileExtra = true,
+  embeddedPreview = false,
 }: Props) {
   const isDesktop = layout === 'desktop';
   const navIds: MasterProfileSectionId[] = [
@@ -48,14 +51,16 @@ export function MasterProfileMainContent({
   ];
 
   return (
-    <div className="space-y-4">
-      <MasterSectionNav visibleIds={navIds} />
+    <div className={`space-y-4 ${embeddedPreview ? 'min-w-0' : ''}`}>
+      <MasterSectionNav visibleIds={navIds} embeddedPreview={embeddedPreview} />
 
-      <MasterProfileTopAchievements
-        achievements={topAchievements}
-        ready={topAchievementsReady}
-        layout={isDesktop ? 'desktop' : 'stack'}
-      />
+      {embeddedPreview && topAchievements.length === 0 ? null : (
+        <MasterProfileTopAchievements
+          achievements={topAchievements}
+          ready={topAchievementsReady}
+          layout={isDesktop ? 'desktop' : 'stack'}
+        />
+      )}
 
       <div id={MASTER_PROFILE_SECTION_IDS.services}>
         <MasterServicesList
@@ -67,6 +72,7 @@ export function MasterProfileMainContent({
           onViewAll={() => onChooseTime()}
           onBookService={(service) => onChooseTime(service.id)}
           layout={isDesktop ? 'desktop' : 'stack'}
+          previewMode={embeddedPreview}
         />
       </div>
 

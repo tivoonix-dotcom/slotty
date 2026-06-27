@@ -2,16 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { HiArrowLeft, HiBars3 } from 'react-icons/hi2';
 import { PROFILE_PATH } from '../../../app/paths';
-import {
-  ADMIN_DESKTOP_CANVAS,
-  adminDesktopCabinetBody,
-  adminDesktopCabinetMainColumn,
-  adminDesktopCabinetShell,
-} from '../../admin/adminCabinetLayout';
+import { ADMIN_DESKTOP_CANVAS } from '../../admin/adminCabinetLayout';
+import { ClientCabinetDesktopShell } from '../clientProfile/ClientCabinetDesktopShell';
 import { ClientCabinetMobileShell } from '../clientProfile/ClientCabinetMobileShell';
-import { ClientProfileDesktopTopBar } from '../clientProfile/ClientProfileDesktopTopBar';
-import { useClientCabinetShellData } from '../clientProfile/useClientCabinetShellData';
-import { ClientSettingsIconRail } from './ClientSettingsIconRail';
 import { ClientSettingsMobileDrawer } from './ClientSettingsMobileDrawer';
 import { ClientSettingsSidebar } from './ClientSettingsSidebar';
 
@@ -19,7 +12,6 @@ export function ClientSettingsLayout() {
   const [search, setSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
-  const shell = useClientCabinetShellData();
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -54,39 +46,25 @@ export function ClientSettingsLayout() {
   );
 
   const desktopBody = (
-    <div className={adminDesktopCabinetMainColumn}>
-      <main
-        className={`min-h-0 w-full min-w-0 flex-1 overflow-y-auto overscroll-y-contain ${ADMIN_DESKTOP_CANVAS} px-4 py-5 sm:px-6 lg:px-8 lg:py-6 lg:pb-8`}
+    <>
+      <ClientSettingsSidebar search={search} onSearchChange={setSearch} className="h-full max-h-full" />
+      <div
+        className={`min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain ${ADMIN_DESKTOP_CANVAS} px-4 py-5 sm:px-6 lg:px-8 lg:py-6 lg:pb-8`}
       >
         <div className="w-full min-w-0">
           <Outlet />
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 
   return (
     <>
       <ClientCabinetMobileShell>{mobileBody}</ClientCabinetMobileShell>
 
-      <div
-        className={`hidden ${adminDesktopCabinetShell} text-[#111827] lg:flex ${ADMIN_DESKTOP_CANVAS}`}
-      >
-        <ClientProfileDesktopTopBar
-          title="Настройки"
-          hasNewNotifications={shell.hasNewNotifications}
-          notificationCount={shell.notificationCount}
-        />
-
-        <div className={adminDesktopCabinetBody}>
-          <div className="sticky top-0 hidden h-full max-w-full shrink-0 overflow-x-hidden lg:flex">
-            <ClientSettingsIconRail />
-            <ClientSettingsSidebar search={search} onSearchChange={setSearch} />
-          </div>
-
-          {desktopBody}
-        </div>
-      </div>
+      <ClientCabinetDesktopShell title="Настройки" workspace>
+        {desktopBody}
+      </ClientCabinetDesktopShell>
     </>
   );
 }

@@ -4,12 +4,15 @@ import { HUB_PATH, PROFILE_PATH } from '../../app/paths';
 
 export const PaymentResultLayout: FC<{
   title: string;
-  tone: 'success' | 'fail';
+  tone: 'success' | 'fail' | 'pending';
   children: ReactNode;
 }> = ({ title, tone, children }) => {
-  const accent = tone === 'success' ? 'text-[#15803D]' : 'text-[#B91C1C]';
-  const ring = tone === 'success' ? 'ring-[#DCFCE7]' : 'ring-[#FEE2E2]';
-  const bg = tone === 'success' ? 'bg-[#F0FDF4]' : 'bg-[#FEF2F2]';
+  const accent =
+    tone === 'success' ? 'text-[#15803D]' : tone === 'fail' ? 'text-[#B91C1C]' : 'text-[#92400E]';
+  const ring =
+    tone === 'success' ? 'ring-[#DCFCE7]' : tone === 'fail' ? 'ring-[#FEE2E2]' : 'ring-[#FDE68A]';
+  const bg =
+    tone === 'success' ? 'bg-[#F0FDF4]' : tone === 'fail' ? 'bg-[#FEF2F2]' : 'bg-[#FFFBEB]';
 
   return (
     <div className="min-h-dvh bg-[#F8F6F6] px-4 py-10 sm:px-6">

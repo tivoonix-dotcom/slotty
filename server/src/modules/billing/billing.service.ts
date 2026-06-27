@@ -10,26 +10,44 @@ function num(v: string): number {
   return Number(v);
 }
 
+import type { SubscriptionUiState } from './subscriptionBilling.state.js';
+
 export type MasterPlanAccess = {
   subscriptionPlanCode: string;
   isProActive: boolean;
+  isProEntitled: boolean;
   proExpired: boolean;
   effectivePlanCode: EffectivePlanCode;
   currentPeriodEnd: string | null;
   proExpiresAt: string | null;
+  subscriptionStatus: string;
+  uiState: SubscriptionUiState;
 };
 
 /** Единая проверка активного Pro (plan + статус подписки + даты + trial). */
 export async function getMasterPlanAccess(masterId: string): Promise<MasterPlanAccess> {
   const { getMasterEntitlements } = await import('./entitlements.service.js');
+  const { deriveSubscriptionUiState } = await import('./subscriptionBilling.state.js');
   const ent = await getMasterEntitlements(masterId);
+  const planCode = ent.effectivePlan === 'free' ? 'free' : 'pro';
+  const uiState = deriveSubscriptionUiState({
+    planCode,
+    status: ent.subscription.status,
+    currentPeriodEnd: ent.subscription.currentPeriodEnd,
+    cancelAtPeriodEnd: ent.subscription.cancelAtPeriodEnd,
+    proExpiresAt: ent.trial.endsAt ?? ent.subscription.currentPeriodEnd,
+    trialEndsAt: ent.trial.endsAt,
+  });
   return {
     subscriptionPlanCode: ent.effectivePlan === 'free' ? 'free' : 'pro',
-    isProActive: ent.isProEntitled,
-    proExpired: ent.trial.consumed && !ent.trial.isActive && !ent.isProEntitled,
+    isProActive: ent.isProEntitled && ent.subscription.status !== 'trialing',
+    isProEntitled: ent.isProEntitled,
+    proExpired: uiState === 'expired',
     effectivePlanCode: ent.isProEntitled ? 'pro' : 'free',
     currentPeriodEnd: ent.subscription.currentPeriodEnd,
     proExpiresAt: ent.trial.endsAt ?? ent.subscription.currentPeriodEnd,
+    subscriptionStatus: ent.subscription.status,
+    uiState,
   };
 }
 

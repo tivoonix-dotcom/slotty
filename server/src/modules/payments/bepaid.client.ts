@@ -118,9 +118,9 @@ export function verifyBePaidWebhookBasicAuth(authorizationHeader: string | undef
   }
 }
 
-/** Дополнительная проверка shared secret в заголовке (если задан BEPAID_WEBHOOK_SECRET). */
+/** Проверка shared secret в заголовке X-Webhook-Secret. Без секрета в env — false (fail-closed). */
 export function verifyBePaidWebhookSecret(headerValue: string | undefined): boolean {
   const expected = env.BEPAID_WEBHOOK_SECRET?.trim();
-  if (!expected) return true;
+  if (!expected) return false;
   return Boolean(headerValue?.trim() && headerValue.trim() === expected);
 }

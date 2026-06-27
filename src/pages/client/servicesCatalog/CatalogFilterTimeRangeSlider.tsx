@@ -3,6 +3,18 @@ import { formatTimeRangeLabel } from './catalogFilterDateTime';
 
 const TICK_HOURS = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24] as const;
 
+function formatTickLabel(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`;
+}
+
+function tickLabelClassName(hour: number): string {
+  const hideOnMobile = hour % 6 !== 0 ? 'max-sm:hidden' : '';
+  const align =
+    hour === 0 ? 'translate-x-0' : hour === 24 ? '-translate-x-full' : '-translate-x-1/2';
+
+  return `absolute top-0 whitespace-nowrap text-[10px] font-medium tabular-nums text-[#9CA3AF] ${align} ${hideOnMobile}`;
+}
+
 type Props = {
   startHour: number;
   endHour: number;
@@ -33,10 +45,11 @@ export function CatalogFilterTimeRangeSlider({ startHour, endHour, onChange }: P
 
   return (
     <div className="min-w-0">
-      <div className="mb-3 flex items-baseline justify-between gap-3">
+      <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
         <span className="text-[15px] font-bold text-[#111827]">Время</span>
-        <span className="text-right text-[13px] font-medium text-[#6B7280]">
-          Выбранный период:{' '}
+        <span className="text-[13px] font-medium text-[#6B7280] sm:text-right">
+          <span className="sm:hidden">Период: </span>
+          <span className="hidden sm:inline">Выбранный период: </span>
           <span className="font-semibold text-[#111827]">{formatTimeRangeLabel(start, end)}</span>
         </span>
       </div>
@@ -70,10 +83,10 @@ export function CatalogFilterTimeRangeSlider({ startHour, endHour, onChange }: P
         />
       </div>
 
-      <div className="mt-1 flex justify-between px-0.5">
+      <div className="relative mt-1 h-4 px-0.5">
         {TICK_HOURS.map((h) => (
-          <span key={h} className="w-0 shrink-0 text-center text-[10px] font-medium text-[#9CA3AF]">
-            <span className="relative -left-2 block w-4">{String(h).padStart(2, '0')}:00</span>
+          <span key={h} className={tickLabelClassName(h)} style={{ left: `${(h / 24) * 100}%` }}>
+            {formatTickLabel(h)}
           </span>
         ))}
       </div>

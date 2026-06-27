@@ -36,9 +36,18 @@ import {
 import { AppointmentsBottomTabBar } from './AppointmentsBottomTabBar';
 import { AppointmentsEmptyState } from './AppointmentsEmptyState';
 import { AppointmentsFiltersSheet } from './AppointmentsFiltersSheet';
-import { AppointmentsQuickFilters } from './AppointmentsQuickFilters';
 import { AppointmentsHistoryRow } from './AppointmentsHistoryRow';
 import { AppointmentsHistorySummary } from './AppointmentsHistorySummary';
+import { AppointmentsHistoryExportMenu } from './AppointmentsHistoryExportMenu';
+import {
+  AppointmentsHistoryListHeader,
+  AppointmentsHistoryToolbar,
+  AppointmentsRequestsListHeader,
+  AppointmentsRequestsToolbar,
+  AppointmentsUpcomingListHeader,
+  AppointmentsUpcomingToolbar,
+} from './AppointmentsHistoryToolbar';
+import { buildHistoryExportFiltersLabel } from './historyExportFilterLabel';
 import { tabSummaryCopy } from './appointmentsTabSummaryModel';
 import {
   computeHistoryEarnedTrend,
@@ -57,6 +66,7 @@ import {
   compareAppointmentsByPriceAsc,
   compareAppointmentsByPriceDesc,
   filterHistoryByPeriod,
+  filterHistoryBySearch,
   filterRequestsByFeature,
   filterRequestsByPeriod,
   groupAppointmentsByDay,
@@ -93,12 +103,6 @@ import { mapMasterAppointmentRowToDemo } from '../../../features/admin/lib/maste
 const APPOINTMENTS_TABS = ['requests', 'upcoming', 'history'] as const satisfies readonly AppointmentsTabId[];
 
 const UPCOMING_VIEW_MODES = ['list', 'calendar'] as const satisfies readonly UpcomingViewMode[];
-
-const APPOINTMENTS_TOOLBAR_LABELS: Record<AppointmentsTabId, string> = {
-  requests: 'Заявки',
-  upcoming: 'Предстоящие',
-  history: 'История',
-};
 
 const APPOINTMENT_FOCUS_PARAM = 'focus';
 
@@ -221,12 +225,15 @@ export function AdminAppointmentsTab({
   const [requestsSort, setRequestsSort] = useState<RequestsSort>('newest');
   const [requestsPeriod, setRequestsPeriod] = useState<RequestsPeriodFilter>('all');
   const [requestsFeature, setRequestsFeature] = useState<RequestsFeatureFilter>('all');
+  const [requestsSearch, setRequestsSearch] = useState('');
   const [upcomingService, setUpcomingService] = useState('all');
   const [upcomingSort, setUpcomingSort] = useState<UpcomingSort>('date');
+  const [upcomingSearch, setUpcomingSearch] = useState('');
   const [historyStatus, setHistoryStatus] = useState<HistoryStatusFilter>('all');
   const [historyPeriod, setHistoryPeriod] = useState<HistoryPeriodFilter>('all');
   const [historySort, setHistorySort] = useState<HistorySort>('newest');
   const [historyService, setHistoryService] = useState('all');
+  const [historySearch, setHistorySearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
@@ -282,11 +289,13 @@ export function AdminAppointmentsTab({
     }
     rows = filterRequestsByPeriod(rows, requestsPeriod);
     rows = filterRequestsByFeature(rows, requestsFeature);
+    rows = filterHistoryBySearch(rows, requestsSearch);
     return [...rows].sort(requestsSortFn);
   }, [
     pendingRows,
     requestsFeature,
     requestsPeriod,
+    requestsSearch,
     requestsService,
     requestsSortFn,
   ]);
@@ -296,10 +305,11 @@ export function AdminAppointmentsTab({
     if (upcomingService !== 'all') {
       rows = rows.filter((a) => a.serviceTitle === upcomingService);
     }
+    rows = filterHistoryBySearch(rows, upcomingSearch);
     return [...rows].sort(
       upcomingSort === 'date' ? compareAppointmentsByDateAsc : compareAppointmentsByDateDesc,
     );
-  }, [upcomingRows, upcomingService, upcomingSort]);
+  }, [upcomingRows, upcomingSearch, upcomingService, upcomingSort]);
 
   const nearest = useMemo(() => pickNearestUpcoming(upcomingFiltered), [upcomingFiltered]);
 
@@ -328,11 +338,6 @@ export function AdminAppointmentsTab({
     [upcomingActiveRows],
   );
 
-  const historyAttentionRows = useMemo(
-    () => historyRows.filter((a) => isRequiresAttentionAppointment(a)),
-    [historyRows],
-  );
-
   const historySortFn = useMemo(() => {
     switch (historySort) {
       case 'oldest':
@@ -356,21 +361,39 @@ export function AdminAppointmentsTab({
     }
     if (historyStatus === 'cancelled') rows = rows.filter((a) => a.status === 'cancelled');
     rows = filterHistoryByPeriod(rows, historyPeriod);
+    rows = filterHistoryBySearch(rows, historySearch);
     return rows;
-  }, [historyRows, historyService, historyStatus, historyPeriod]);
+  }, [historyRows, historyService, historyStatus, historyPeriod, historySearch]);
 
-  const historyAttentionIds = useMemo(
-    () => new Set(historyAttentionRows.map((a) => a.id)),
-    [historyAttentionRows],
+  const historyAttentionRows = useMemo(
+    () => historyFiltered.filter((a) => isRequiresAttentionAppointment(a)),
+    [historyFiltered],
   );
 
   const historyGroups = useMemo(
     () =>
       groupAppointmentsByMonth(
-        historyFiltered.filter((a) => !historyAttentionIds.has(a.id)),
+        historyFiltered.filter((a) => !isRequiresAttentionAppointment(a)),
         historySortFn,
       ),
-    [historyAttentionIds, historyFiltered, historySortFn],
+    [historyFiltered, historySortFn],
+  );
+
+  const historySortedForExport = useMemo(
+    () => [...historyFiltered].sort(historySortFn),
+    [historyFiltered, historySortFn],
+  );
+
+  const historyExportFiltersLabel = useMemo(
+    () =>
+      buildHistoryExportFiltersLabel({
+        service: historyService,
+        status: historyStatus,
+        period: historyPeriod,
+        sort: historySort,
+        search: historySearch,
+      }),
+    [historyPeriod, historySearch, historyService, historySort, historyStatus],
   );
 
   const historySummary = useMemo(() => {
@@ -538,90 +561,75 @@ export function AdminAppointmentsTab({
     ...uniqueServiceTitles(rows).map((title) => ({ id: title, label: title })),
   ];
 
-  const sheetFilterActive =
-    tab === 'requests'
-      ? requestsService !== 'all' ||
-        requestsSort !== 'newest' ||
-        requestsPeriod !== 'all' ||
-        requestsFeature !== 'all'
-      : tab === 'upcoming'
-        ? upcomingService !== 'all' || upcomingSort !== 'date'
-        : historyService !== 'all' ||
-          historySort !== 'newest' ||
-          historyStatus !== 'all' ||
-          historyPeriod !== 'all';
-
-  const sheetAriaLabel = useMemo(() => {
-    if (tab === 'requests') {
-      return sheetFilterActive ? 'Фильтры заявок активны' : 'Фильтр заявок';
-    }
-    if (tab === 'upcoming') {
-      return upcomingService === 'all' ? 'Все услуги' : `Услуга: ${upcomingService}`;
-    }
-    return historyService === 'all' ? 'Все услуги и фильтры' : `Услуга: ${historyService}`;
-  }, [tab, sheetFilterActive, upcomingService, historyService]);
-
   const resetFilters = useCallback(() => {
     if (tab === 'requests') {
       setRequestsService('all');
       setRequestsSort('newest');
       setRequestsPeriod('all');
       setRequestsFeature('all');
+      setRequestsSearch('');
       return;
     }
     if (tab === 'upcoming') {
       setUpcomingService('all');
       setUpcomingSort('date');
+      setUpcomingSearch('');
       return;
     }
     setHistoryStatus('all');
     setHistoryPeriod('all');
     setHistorySort('newest');
     setHistoryService('all');
+    setHistorySearch('');
   }, [tab]);
 
   const renderRequests = () => {
     if (listErrorBlock) return listErrorBlock;
 
     const requestsMobileHeader = tabSummaryCopy('requests', stats);
-    const requestsFilters = (
-      <AppointmentsQuickFilters
-        compact
-        sheetActive={sheetFilterActive}
-        sheetOpen={filterOpen}
-        onOpenSheet={() => setFilterOpen(true)}
-        sheetAriaLabel={sheetAriaLabel}
+    const requestsToolbarFiltersActive =
+      requestsService !== 'all' || requestsSort !== 'newest';
+
+    const requestsSummaryBlock = (
+      <AppointmentsRequestsSummary
+        totalCount={stats.requests}
+        todayCount={requestsTodayCount}
+        expiringCount={requestsExpiringCount}
+        loading={requestsSummaryLoading}
+        mobileHeader={{
+          title: requestsMobileHeader.title,
+          subtitle: requestsMobileHeader.subtitle,
+        }}
       />
     );
-    const requestsSummaryBlock = (
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-5">
-        <AppointmentsRequestsSummary
-          totalCount={stats.requests}
-          todayCount={requestsTodayCount}
-          expiringCount={requestsExpiringCount}
-          loading={requestsSummaryLoading}
-          mobileHeader={{
-            title: requestsMobileHeader.title,
-            subtitle: requestsMobileHeader.subtitle,
-          }}
-          mobileFilter={requestsFilters}
-        />
-        <div className="hidden shrink-0 pt-1 lg:block">
-          <AppointmentsQuickFilters
-            label={APPOINTMENTS_TOOLBAR_LABELS.requests}
-            sheetActive={sheetFilterActive}
-            sheetOpen={filterOpen}
-            onOpenSheet={() => setFilterOpen(true)}
-            sheetAriaLabel={sheetAriaLabel}
-          />
-        </div>
-      </div>
+
+    const requestsToolbarBlock = (
+      <AppointmentsRequestsToolbar
+        search={requestsSearch}
+        onSearch={setRequestsSearch}
+        period={requestsPeriod}
+        onPeriod={setRequestsPeriod}
+        feature={requestsFeature}
+        onFeature={setRequestsFeature}
+        filtersActive={requestsToolbarFiltersActive}
+        filterOpen={filterOpen}
+        onOpenFilters={() => setFilterOpen(true)}
+      />
+    );
+
+    const requestsListHeader = (
+      <AppointmentsRequestsListHeader
+        count={requestsFiltered.length}
+        sort={requestsSort}
+        onSort={setRequestsSort}
+      />
     );
 
     if (requestsInitialLoading) {
       return (
-        <div className="space-y-3 lg:space-y-5">
+        <div className="space-y-3 lg:space-y-4">
           {requestsSummaryBlock}
+          {requestsToolbarBlock}
           {listLoadingBlock}
         </div>
       );
@@ -630,11 +638,13 @@ export function AdminAppointmentsTab({
     if (!requestsFiltered.length) {
       if (pendingRows.length > 0 || stats.requests > 0) {
         return (
-          <div className="space-y-3 lg:space-y-5">
+          <div className="space-y-3 lg:space-y-4">
             {requestsSummaryBlock}
+            {requestsToolbarBlock}
+            {requestsListHeader}
             <AppointmentsEmptyState
               title="Ничего не найдено"
-              text="Попробуйте изменить фильтры даты, сортировки или особенностей"
+              text="Попробуйте изменить поиск, дату, услугу или другие фильтры"
               picture="searchEmpty"
             />
           </div>
@@ -642,8 +652,9 @@ export function AdminAppointmentsTab({
       }
 
       return (
-        <div className="space-y-3 lg:space-y-5">
+        <div className="space-y-3 lg:space-y-4">
           {requestsSummaryBlock}
+          {requestsToolbarBlock}
           <AppointmentsEmptyState
             title="Новых заявок пока нет"
             text="Когда клиент отправит заявку, она появится здесь."
@@ -665,8 +676,10 @@ export function AdminAppointmentsTab({
     }
 
     return (
-      <div className="space-y-3 lg:space-y-5">
+      <div className="space-y-3 lg:space-y-4">
         {requestsSummaryBlock}
+        {requestsToolbarBlock}
+        {requestsListHeader}
         <ul className={apptListGap}>
           {requestsFiltered.map((a) => (
             <li key={a.id}>
@@ -706,54 +719,49 @@ export function AdminAppointmentsTab({
     if (listErrorBlock) return listErrorBlock;
 
     const upcomingMobileHeader = tabSummaryCopy('upcoming', stats);
-    const upcomingFilters = (
-      <AppointmentsQuickFilters
-        compact
-        sheetActive={sheetFilterActive}
-        sheetOpen={filterOpen}
-        onOpenSheet={() => setFilterOpen(true)}
-        sheetAriaLabel={sheetAriaLabel}
-      />
-    );
+    const upcomingToolbarFiltersActive =
+      upcomingService !== 'all' || upcomingSort !== 'date';
     const upcomingViewToggle = (
       <AppointmentsUpcomingViewToggle value={upcomingView} onChange={setUpcomingView} />
     );
-    const upcomingMobileToolbar = (
-      <div className="flex items-center justify-end gap-2">
-        {upcomingViewToggle}
-        {upcomingFilters}
-      </div>
-    );
+
     const upcomingSummaryBlock = (
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-5">
-        <AppointmentsUpcomingSummary
-          totalCount={upcomingFiltered.length}
-          todayCount={upcomingTodayCount}
-          attentionCount={attentionRows.length}
-          loading={upcomingSummaryLoading}
-          mobileHeader={{
-            title: upcomingMobileHeader.title,
-            subtitle: upcomingMobileHeader.subtitle,
-          }}
-          mobileFilter={upcomingMobileToolbar}
-        />
-        <div className="hidden shrink-0 items-center gap-2 pt-1 lg:flex">
-          {upcomingViewToggle}
-          <AppointmentsQuickFilters
-            label={APPOINTMENTS_TOOLBAR_LABELS.upcoming}
-            sheetActive={sheetFilterActive}
-            sheetOpen={filterOpen}
-            onOpenSheet={() => setFilterOpen(true)}
-            sheetAriaLabel={sheetAriaLabel}
-          />
-        </div>
-      </div>
+      <AppointmentsUpcomingSummary
+        totalCount={upcomingFiltered.length}
+        todayCount={upcomingTodayCount}
+        attentionCount={attentionRows.length}
+        loading={upcomingSummaryLoading}
+        mobileHeader={{
+          title: upcomingMobileHeader.title,
+          subtitle: upcomingMobileHeader.subtitle,
+        }}
+      />
+    );
+
+    const upcomingToolbarBlock = (
+      <AppointmentsUpcomingToolbar
+        search={upcomingSearch}
+        onSearch={setUpcomingSearch}
+        filtersActive={upcomingToolbarFiltersActive}
+        filterOpen={filterOpen}
+        onOpenFilters={() => setFilterOpen(true)}
+        trailing={upcomingViewToggle}
+      />
+    );
+
+    const upcomingListHeader = (
+      <AppointmentsUpcomingListHeader
+        count={upcomingFiltered.length}
+        sort={upcomingSort}
+        onSort={setUpcomingSort}
+      />
     );
 
     if (!upcomingFiltered.length && useRemoteList && stats.upcoming > 0) {
       return (
-        <div className="space-y-3 lg:space-y-5">
+        <div className="space-y-3 lg:space-y-4">
           {upcomingSummaryBlock}
+          {upcomingToolbarBlock}
           <div className="rounded-[12px] bg-[#FFF4F6] px-4 py-5 text-center">
             <p className="text-[15px] font-semibold text-[#111827]">Записи загружаются…</p>
             <button type="button" className={`${apptPinkBtn} mt-3`} onClick={() => void remote.reload()}>
@@ -766,18 +774,35 @@ export function AdminAppointmentsTab({
 
     if (upcomingInitialLoading) {
       return (
-        <div className="space-y-3 lg:space-y-5">
+        <div className="space-y-3 lg:space-y-4">
           {upcomingSummaryBlock}
+          {upcomingToolbarBlock}
           {listLoadingBlock}
         </div>
       );
     }
 
     if (!upcomingFiltered.length) {
+      if (upcomingRows.length > 0 || stats.upcoming > 0) {
+        return (
+          <div className="space-y-3 lg:space-y-4">
+            {upcomingSummaryBlock}
+            {upcomingToolbarBlock}
+            {upcomingView === 'list' ? upcomingListHeader : null}
+            <AppointmentsEmptyState
+              title="Ничего не найдено"
+              text="Попробуйте изменить поиск или фильтры"
+              picture="searchEmpty"
+            />
+          </div>
+        );
+      }
+
       if (upcomingView === 'calendar') {
         return (
-          <div className="space-y-3 lg:space-y-5">
+          <div className="space-y-3 lg:space-y-4">
             {upcomingSummaryBlock}
+            {upcomingToolbarBlock}
             <AppointmentsUpcomingCalendar
               appointments={upcomingFiltered}
               nearestId={nearest?.id}
@@ -788,8 +813,9 @@ export function AdminAppointmentsTab({
       }
 
       return (
-        <div className="space-y-3 lg:space-y-5">
+        <div className="space-y-3 lg:space-y-4">
           {upcomingSummaryBlock}
+          {upcomingToolbarBlock}
           <AppointmentsEmptyState
             title="Предстоящих записей нет"
             text="Подтверждённые записи появятся здесь после того, как вы примете заявку"
@@ -820,8 +846,9 @@ export function AdminAppointmentsTab({
 
     if (upcomingView === 'calendar') {
       return (
-        <div className="space-y-3 lg:space-y-5">
+        <div className="space-y-3 lg:space-y-4">
           {upcomingSummaryBlock}
+          {upcomingToolbarBlock}
           <AppointmentsUpcomingCalendar
             appointments={upcomingFiltered}
             nearestId={nearest?.id}
@@ -833,8 +860,10 @@ export function AdminAppointmentsTab({
     }
 
     return (
-      <div className="space-y-3 lg:space-y-5">
+      <div className="space-y-3 lg:space-y-4">
         {upcomingSummaryBlock}
+        {upcomingToolbarBlock}
+        {upcomingListHeader}
 
         {nearest && !isRequiresAttentionAppointment(nearest) ? (
           <section>
@@ -894,48 +923,86 @@ export function AdminAppointmentsTab({
       );
     }
 
-    const historyFilters = (
-      <AppointmentsQuickFilters
-        compact
-        sheetActive={sheetFilterActive}
-        sheetOpen={filterOpen}
-        onOpenSheet={() => setFilterOpen(true)}
-        sheetAriaLabel={sheetAriaLabel}
-      />
-    );
     const historyMobileHeader = tabSummaryCopy('history', stats);
 
+    const historyExportMenuDesktop = (
+      <AppointmentsHistoryExportMenu
+        rows={historySortedForExport}
+        summary={historySummary}
+        filtersLabel={historyExportFiltersLabel}
+        disabled={historySummaryLoading}
+        onSuccess={(format) =>
+          showToast(format === 'word' ? 'Отчёт Word скачан' : 'Таблица Excel скачана')
+        }
+        onError={showErrorToast}
+      />
+    );
+
+    const historyExportMenuMobile = (
+      <AppointmentsHistoryExportMenu
+        rows={historySortedForExport}
+        summary={historySummary}
+        filtersLabel={historyExportFiltersLabel}
+        disabled={historySummaryLoading}
+        compact
+        onSuccess={(format) =>
+          showToast(format === 'word' ? 'Отчёт Word скачан' : 'Таблица Excel скачана')
+        }
+        onError={showErrorToast}
+      />
+    );
+
     const historySummaryBlock = (
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-5">
-        <AppointmentsHistorySummary
-          completedCount={historySummary.completedCount}
-          earnedTotal={historySummary.earnedTotal}
-          cancelledCount={historySummary.cancelledCount}
-          earnedTrend={historyEarnedTrend}
-          earnedTrendPercent={historyEarnedTrendPercent}
-          loading={historySummaryLoading}
-          mobileHeader={{
-            title: historyMobileHeader.title,
-            subtitle: historyMobileHeader.subtitle,
-          }}
-          mobileFilter={historyFilters}
-        />
-        <div className="hidden shrink-0 pt-1 lg:block">
-          <AppointmentsQuickFilters
-            label={APPOINTMENTS_TOOLBAR_LABELS.history}
-            sheetActive={sheetFilterActive}
-            sheetOpen={filterOpen}
-            onOpenSheet={() => setFilterOpen(true)}
-            sheetAriaLabel={sheetAriaLabel}
-          />
-        </div>
-      </div>
+      <AppointmentsHistorySummary
+        completedCount={historySummary.completedCount}
+        earnedTotal={historySummary.earnedTotal}
+        cancelledCount={historySummary.cancelledCount}
+        earnedTrend={historyEarnedTrend}
+        earnedTrendPercent={historyEarnedTrendPercent}
+        loading={historySummaryLoading}
+        mobileHeader={{
+          title: historyMobileHeader.title,
+          subtitle: historyMobileHeader.subtitle,
+        }}
+      />
+    );
+
+    const historyToolbarFiltersActive =
+      historyService !== 'all' || historySort !== 'newest';
+
+    const historyToolbarBlock = (
+      <AppointmentsHistoryToolbar
+        search={historySearch}
+        onSearch={setHistorySearch}
+        status={historyStatus}
+        onStatus={setHistoryStatus}
+        period={historyPeriod}
+        onPeriod={setHistoryPeriod}
+        filtersActive={historyToolbarFiltersActive}
+        filterOpen={filterOpen}
+        onOpenFilters={() => setFilterOpen(true)}
+        exportMenu={
+          <>
+            <div className="lg:hidden">{historyExportMenuMobile}</div>
+            <div className="hidden lg:block">{historyExportMenuDesktop}</div>
+          </>
+        }
+      />
+    );
+
+    const historyListHeader = (
+      <AppointmentsHistoryListHeader
+        count={historyFiltered.length}
+        sort={historySort}
+        onSort={setHistorySort}
+      />
     );
 
     if (historyInitialLoading) {
       return (
-        <div className="space-y-3 lg:space-y-5">
+        <div className="space-y-3 lg:space-y-4">
           {historySummaryBlock}
+          {historyToolbarBlock}
           {listLoadingBlock}
         </div>
       );
@@ -943,11 +1010,13 @@ export function AdminAppointmentsTab({
 
     if (!historyFiltered.length) {
       return (
-        <div className="space-y-3 lg:space-y-5">
+        <div className="space-y-3 lg:space-y-4">
           {historySummaryBlock}
+          {historyToolbarBlock}
+          {historyListHeader}
           <AppointmentsEmptyState
             title="Ничего не найдено"
-            text="Попробуйте изменить фильтры статуса или периода"
+            text="Измените поиск, статус, услугу или период"
             picture="searchEmpty"
           />
         </div>
@@ -955,8 +1024,10 @@ export function AdminAppointmentsTab({
     }
 
     return (
-      <div className="space-y-3 lg:space-y-5">
+      <div className="space-y-3 lg:space-y-4">
         {historySummaryBlock}
+        {historyToolbarBlock}
+        {historyListHeader}
 
         {historyAttentionRows.length ? (
           <section>
@@ -1045,10 +1116,6 @@ export function AdminAppointmentsTab({
           onService={setRequestsService}
           sort={requestsSort}
           onSort={setRequestsSort}
-          period={requestsPeriod}
-          onPeriod={setRequestsPeriod}
-          feature={requestsFeature}
-          onFeature={setRequestsFeature}
           onReset={resetFilters}
         />
       ) : null}
@@ -1075,24 +1142,10 @@ export function AdminAppointmentsTab({
           onService={setHistoryService}
           sort={historySort}
           onSort={setHistorySort}
-          status={historyStatus}
-          onStatus={setHistoryStatus}
-          period={historyPeriod}
-          onPeriod={setHistoryPeriod}
           onReset={resetFilters}
         />
       ) : null}
     </>
-  );
-
-  const toolbar = (
-    <AppointmentsQuickFilters
-      label={APPOINTMENTS_TOOLBAR_LABELS[tab]}
-      sheetActive={sheetFilterActive}
-      sheetOpen={filterOpen}
-      onOpenSheet={() => setFilterOpen(true)}
-      sheetAriaLabel={sheetAriaLabel}
-    />
   );
 
   const tabPanels = (
@@ -1109,7 +1162,6 @@ export function AdminAppointmentsTab({
     >
       {showTabSummaryHeader ? null : <AppointmentsPageHeader tab={tab} stats={stats} />}
       {billingBanner}
-      {usePremiumTabShell ? null : toolbar}
       {tabPanels}
     </section>
   );
@@ -1136,7 +1188,6 @@ export function AdminAppointmentsTab({
                 : `space-y-4 lg:space-y-5 ${appointmentsDesktopCardPad}`
             }
           >
-            <div className={usePremiumTabShell ? 'lg:hidden' : undefined}>{toolbar}</div>
             {tabPanels}
           </div>
         </div>

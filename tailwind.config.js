@@ -121,6 +121,10 @@ export default {
           '0%, 100%': { color: '#9CA3AF', backgroundColor: '#FFFFFF' },
           '50%': { color: '#F47C8C', backgroundColor: '#FFF1F4' },
         },
+        'demo-sheet-up': {
+          '0%': { opacity: '0', transform: 'translateY(28px)' },
+          '100%': { opacity: '1', transform: 'none' },
+        },
       },
       animation: {
         'fade-enter': 'fade-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both',
@@ -139,6 +143,7 @@ export default {
         'booking-empty-float': 'booking-empty-float 3.8s ease-in-out infinite',
         'booking-no-slot-scan': 'booking-no-slot-scan 2.8s ease-in-out infinite',
         'booking-no-slot-badge': 'booking-no-slot-badge 2.4s ease-in-out infinite',
+        'demo-sheet-up': 'demo-sheet-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both',
       },
       borderRadius: {
         card: '1.5rem',

@@ -91,3 +91,19 @@ export function getBePaidFailUrl(): string {
 export function isBePaidTestMode(): boolean {
   return env.BEPAID_ENV !== 'production';
 }
+
+export function isBePaidLiveMode(): boolean {
+  return isBePaidEnabled() && env.BEPAID_ENV === 'production';
+}
+
+export function isWebhookSecretConfigured(): boolean {
+  return Boolean(env.BEPAID_WEBHOOK_SECRET?.trim());
+}
+
+export function getCardUpdateAmountMinor(): number {
+  return env.BEPAID_CARD_UPDATE_AMOUNT_MINOR;
+}
+
+export function getPendingCheckoutTtlMinutes(): number {
+  return env.BEPAID_PENDING_CHECKOUT_TTL_MINUTES;
+}

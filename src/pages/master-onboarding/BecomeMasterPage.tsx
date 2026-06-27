@@ -9,8 +9,12 @@ import {
 } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { isEmptyDisplayValue } from '../../shared/lib/emptyDisplayText';
-import { ADMIN_PATH, HUB_PATH } from '../../app/paths';
+import { ADMIN_PATH, HUB_PATH, PAYMENT_SUCCESS_PATH } from '../../app/paths';
 import { priceForPlan } from '../../features/billing/model/masterPlans';
+import { createBillingCheckout } from '../../features/billing/api/masterBillingApi';
+import { BILLING_COPY, formatBillingUserError } from '../../features/billing/billingCopy';
+import { readPublicAppOrigin } from '../../shared/lib/masterBookingLink';
+import { ProSubscriptionConsentModal } from '../admin/billing/ProSubscriptionConsentModal';
 import type { MasterOnboardingService } from '../../features/profile/lib/demoMasterStorage';
 import type { MasterLocation, MasterVisitType } from '../../features/profile/model/masterLocation';
 import { formatStoredPublicAddress } from '../../features/profile/model/masterLocation';
@@ -86,6 +90,7 @@ import {
 } from './onboardingCertificateImages';
 import { MAX_CERTIFICATE_IMAGE_BYTES } from './OnboardingCertificatePhotoField';
 import type { MasterPlanSelection } from '../../features/master-onboarding/model/masterOnboardingPlanTypes';
+import { normalizePlanSelection } from '../../features/master-onboarding/model/masterOnboardingPlanTypes';
 import {
   AT_HOME_ENTRANCE_MAX,
   AT_HOME_INTERCOM_MAX,
@@ -411,6 +416,8 @@ export function BecomeMasterPage() {
   const [saving, setSaving] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [tariffSelection, setTariffSelection] = useState<MasterPlanSelection>('basic');
+  const [proConsentOpen, setProConsentOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const [categories, setCategories] = useState<ServiceCategoryDto[]>([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
@@ -635,7 +642,7 @@ export function BecomeMasterPage() {
     setServices(draft.services ?? []);
     setCertificates(draft.certificates ?? []);
     setEducationItems(draft.educationItems ?? []);
-    setTariffSelection(draft.tariffSelection ?? 'basic');
+    setTariffSelection(normalizePlanSelection(draft.tariffSelection));
     const restored = Math.max(1, Math.min(TOTAL_STEPS, draft.step || 1));
     const restoredFurthest = Math.max(restored, Math.min(TOTAL_STEPS, draft.furthestStep ?? restored));
     setFurthestStep(restoredFurthest);
@@ -842,6 +849,7 @@ export function BecomeMasterPage() {
   );
 
   const proOnboardingPriceLabel = useMemo(() => `от ${priceForPlan('pro', 'month')} BYN / месяц`, []);
+  const proCheckoutPriceLabel = useMemo(() => `${priceForPlan('pro', 'month')} BYN`, []);
 
   const profileAvatarUrl = useMemo(() => profileDisplayAvatarUrl(profile), [profile]);
 
@@ -1721,6 +1729,166 @@ export function BecomeMasterPage() {
     setCertFieldErrors({});
   }, [goToStep, step]);
 
+  const executePublishAndFinish = useCallback(
+    async (redirectToCheckout: boolean) => {
+      const cat = categories.find((c) => c.id === selectedCategoryId);
+      if (!cat) {
+        setPublishError('Выберите категорию заново.');
+        return;
+      }
+
+      let photoUrl: string | null = null;
+      const photoRaw = profileAvatarUrl?.trim() || profile?.avatar_url?.trim();
+      if (photoRaw && isOnboardingAvatarPhotoUrl(photoRaw)) {
+        try {
+          photoUrl = new URL(photoRaw).toString();
+        } catch {
+          photoUrl = null;
+        }
+      }
+
+      setSaving(true);
+      setPublishError(null);
+
+      try {
+        const { payload: certPayload, pendingLocalBySortOrder } =
+          buildOnboardingCertificatePayload(certificates);
+
+        const contactItems = clientContacts
+          .map((r) => ({ type: r.type, value: r.value.trim() }))
+          .filter((c) => c.value.length > 0);
+        const phoneNorm = phone.trim() ? normalizeBelarusPhone(phone.trim()) : null;
+
+        const onboardingResult = await submitMasterOnboarding({
+          categoryCode: cat.code,
+          name: name.trim(),
+          description: description.trim() || undefined,
+          phone: phoneNorm,
+          contacts: contactItems.length ? contactItems : null,
+          contact: contactsToLegacyContactLine(contactItems) || null,
+          photoUrl,
+          location: {
+            visitType,
+            city: city.trim(),
+            street: street.trim(),
+            building: building.trim() || (street.trim() ? 'б/н' : ''),
+            buildingDetail: houseDetail.trim() || null,
+            salonName: visitType === 'studio' ? salonName.trim() || null : null,
+            district: null,
+            showExactAddressAfterBooking: visitType === 'at_home' ? showExactAddressAfterBooking : false,
+            entrance: entrance.trim() || null,
+            floor: floor.trim() || null,
+            room: room.trim() || null,
+            intercom: intercom.trim() || null,
+            landmark: landmark.trim() || null,
+            directions: directions.trim() || null,
+            clientNote: clientNote.trim() || null,
+            publicAddress: publicAddressForApi,
+            lat: typeof lat === 'number' && Number.isFinite(lat) ? lat : null,
+            lng: typeof lng === 'number' && Number.isFinite(lng) ? lng : null,
+          },
+          scheduleRules: DEFAULT_WEEKDAY_SCHEDULE.map((r) => ({ ...r, isActive: true })),
+          services: services.map((s, i) => ({
+            title: s.title,
+            description: (s.description ?? '').trim().slice(0, 1000),
+            durationMinutes: s.durationMin,
+            priceAmount: s.priceByn,
+            priceType: s.priceType ?? 'fixed',
+            sortOrder: i,
+          })),
+          certificates: certPayload,
+          masterPlan: 'basic',
+          proInterested: false,
+        });
+
+        if (pendingLocalBySortOrder.size > 0) {
+          const created = (onboardingResult.certificates ?? []) as Array<{
+            id: string;
+            sortOrder?: number;
+          }>;
+          await uploadPendingOnboardingCertificatePhotos(created, pendingLocalBySortOrder);
+        }
+
+        const educationPayload = sortEducationItemsChronologically(educationItems)
+          .filter((item) => item.title.trim().length >= 2)
+          .map((item, sortOrder) => ({ item, sortOrder }));
+
+        if (educationPayload.length > 0) {
+          for (const { item, sortOrder } of educationPayload) {
+            await createCareerItem({
+              type: 'education',
+              title: item.title.trim(),
+              place: item.place.trim(),
+              startYear: item.startYear?.trim() ? Number.parseInt(item.startYear.trim(), 10) : null,
+              endYear: item.endYear?.trim() ? Number.parseInt(item.endYear.trim(), 10) : null,
+              description: item.description?.trim().slice(0, 500) || null,
+              sortOrder,
+            });
+          }
+        }
+
+        await refreshProfile();
+        clearDraft();
+
+        if (redirectToCheckout) {
+          setCheckoutLoading(true);
+          const origin = readPublicAppOrigin();
+          const result = await createBillingCheckout({
+            billingPackageMonths: 1,
+            returnUrl: `${origin}${PAYMENT_SUCCESS_PATH}?from=pro`,
+            consentAccepted: true,
+          });
+          setProConsentOpen(false);
+          window.location.assign(result.paymentUrl);
+          return;
+        }
+
+        setSuccess(true);
+      } catch (e) {
+        setPublishError(
+          redirectToCheckout
+            ? formatBillingUserError(e, BILLING_COPY.checkoutFailed)
+            : 'Не удалось опубликовать профиль',
+        );
+      } finally {
+        setSaving(false);
+        setCheckoutLoading(false);
+      }
+    },
+    [
+      categories,
+      certificates,
+      educationItems,
+      city,
+      clientContacts,
+      clientNote,
+      description,
+      directions,
+      entrance,
+      floor,
+      houseDetail,
+      intercom,
+      landmark,
+      lat,
+      lng,
+      name,
+      phone,
+      profile?.avatar_url,
+      profileAvatarUrl,
+      publicAddressForApi,
+      refreshProfile,
+      clearDraft,
+      room,
+      salonName,
+      selectedCategoryId,
+      services,
+      showExactAddressAfterBooking,
+      street,
+      visitType,
+      building,
+    ],
+  );
+
   const publish = useCallback(async () => {
     if (step !== 8) return;
 
@@ -1733,8 +1901,7 @@ export function BecomeMasterPage() {
       return;
     }
 
-    const cat = categories.find((c) => c.id === selectedCategoryId);
-    if (!cat) {
+    if (!categories.find((c) => c.id === selectedCategoryId)) {
       setPublishError('Выберите категорию заново.');
       return;
     }
@@ -1757,139 +1924,26 @@ export function BecomeMasterPage() {
       return;
     }
 
-    let photoUrl: string | null = null;
-    const photoRaw = profileAvatarUrl?.trim() || profile?.avatar_url?.trim();
-    if (photoRaw && isOnboardingAvatarPhotoUrl(photoRaw)) {
-      try {
-        photoUrl = new URL(photoRaw).toString();
-      } catch {
-        photoUrl = null;
-      }
+    if (tariffSelection === 'pro_purchase') {
+      setProConsentOpen(true);
+      return;
     }
 
-    setSaving(true);
-    setPublishError(null);
-
-    try {
-      const { payload: certPayload, pendingLocalBySortOrder } =
-        buildOnboardingCertificatePayload(certificates);
-
-      const contactItems = clientContacts
-        .map((r) => ({ type: r.type, value: r.value.trim() }))
-        .filter((c) => c.value.length > 0);
-      const phoneNorm = phone.trim() ? normalizeBelarusPhone(phone.trim()) : null;
-
-      const onboardingResult = await submitMasterOnboarding({
-        categoryCode: cat.code,
-        name: name.trim(),
-        description: description.trim() || undefined,
-        phone: phoneNorm,
-        contacts: contactItems.length ? contactItems : null,
-        contact: contactsToLegacyContactLine(contactItems) || null,
-        photoUrl,
-        location: {
-          visitType,
-          city: city.trim(),
-          street: street.trim(),
-          building: building.trim() || (street.trim() ? 'б/н' : ''),
-          buildingDetail: houseDetail.trim() || null,
-          salonName: visitType === 'studio' ? salonName.trim() || null : null,
-          district: null,
-          showExactAddressAfterBooking: visitType === 'at_home' ? showExactAddressAfterBooking : false,
-          entrance: entrance.trim() || null,
-          floor: floor.trim() || null,
-          room: room.trim() || null,
-          intercom: intercom.trim() || null,
-          landmark: landmark.trim() || null,
-          directions: directions.trim() || null,
-          clientNote: clientNote.trim() || null,
-          publicAddress: publicAddressForApi,
-          lat: typeof lat === 'number' && Number.isFinite(lat) ? lat : null,
-          lng: typeof lng === 'number' && Number.isFinite(lng) ? lng : null,
-        },
-        scheduleRules: DEFAULT_WEEKDAY_SCHEDULE.map((r) => ({ ...r, isActive: true })),
-        services: services.map((s, i) => ({
-          title: s.title,
-          description: (s.description ?? '').trim().slice(0, 1000),
-          durationMinutes: s.durationMin,
-          priceAmount: s.priceByn,
-          priceType: s.priceType ?? 'fixed',
-          sortOrder: i,
-        })),
-        certificates: certPayload,
-        masterPlan: 'basic',
-        proInterested: tariffSelection === 'pro_interest',
-      });
-
-      if (pendingLocalBySortOrder.size > 0) {
-        const created = (onboardingResult.certificates ?? []) as Array<{
-          id: string;
-          sortOrder?: number;
-        }>;
-        await uploadPendingOnboardingCertificatePhotos(created, pendingLocalBySortOrder);
-      }
-
-      const educationPayload = sortEducationItemsChronologically(educationItems)
-        .filter((item) => item.title.trim().length >= 2)
-        .map((item, sortOrder) => ({ item, sortOrder }));
-
-      if (educationPayload.length > 0) {
-        for (const { item, sortOrder } of educationPayload) {
-          await createCareerItem({
-            type: 'education',
-            title: item.title.trim(),
-            place: item.place.trim(),
-            startYear: item.startYear?.trim() ? Number.parseInt(item.startYear.trim(), 10) : null,
-            endYear: item.endYear?.trim() ? Number.parseInt(item.endYear.trim(), 10) : null,
-            description: item.description?.trim().slice(0, 500) || null,
-            sortOrder,
-          });
-        }
-      }
-
-      await refreshProfile();
-      clearDraft();
-      setSuccess(true);
-    } catch {
-      setPublishError('Не удалось опубликовать профиль');
-    } finally {
-      setSaving(false);
-    }
+    await executePublishAndFinish(false);
   }, [
     categories,
-    certificates,
-    educationItems,
-    city,
     clientContacts,
-    clientNote,
-    description,
-    directions,
-    entrance,
-    floor,
-    houseDetail,
-    intercom,
-    landmark,
-    lat,
-    lng,
+    executePublishAndFinish,
+    isAuthenticated,
     name,
     phone,
-    profile?.avatar_url,
     publicAddressForApi,
-    refreshProfile,
-    clearDraft,
-    room,
-    salonName,
     selectedCategoryId,
     services,
-    showExactAddressAfterBooking,
-    street,
-    validateAddressStep,
-    validateProfileStep,
-    visitType,
-    building,
-    isAuthenticated,
     step,
     tariffSelection,
+    validateAddressStep,
+    validateProfileStep,
   ]);
 
   if (success) {
@@ -2299,7 +2353,7 @@ export function BecomeMasterPage() {
                 <StepTitle
                   eyebrow="Тариф"
                   title="Выберите тариф"
-                  text="Начните бесплатно или подключите Pro для продвижения"
+                  text="Начните бесплатно или оплатите Pro картой через bePaid"
                 />
 
                 {publishError ? (
@@ -2342,7 +2396,7 @@ export function BecomeMasterPage() {
 
                   <div
                     className={`relative flex flex-col rounded-[26px] border bg-white p-4 shadow-[0_10px_28px_rgba(17,17,17,0.05)] transition ${
-                      tariffSelection === 'pro_interest'
+                      tariffSelection === 'pro_purchase'
                         ? 'border-[#E29595]/55 ring-1 ring-[#E29595]/25'
                         : 'border-neutral-100'
                     }`}
@@ -2353,7 +2407,7 @@ export function BecomeMasterPage() {
                     <p className={onboardingEyebrowClass}>Тариф</p>
                     <p className={`mt-1 text-[18px] ${onboardingPreviewTitleClass}`}>Pro</p>
                     <p className="mt-1 text-[15px] font-semibold text-neutral-700">{proOnboardingPriceLabel}</p>
-                    <p className="mt-1 text-[13px] font-medium text-neutral-500">Для роста записей</p>
+                    <p className="mt-1 text-[13px] font-medium text-neutral-500">Оплата картой через bePaid</p>
                     <ul className="mt-3 flex flex-1 flex-col gap-1.5 text-[12px] font-medium leading-snug text-neutral-700">
                       <li>больше услуг</li>
                       <li>выше в поиске</li>
@@ -2365,10 +2419,10 @@ export function BecomeMasterPage() {
                     </ul>
                     <button
                       type="button"
-                      onClick={() => setTariffSelection('pro_interest')}
+                      onClick={() => setTariffSelection('pro_purchase')}
                       className="mt-4 flex min-h-11 w-full items-center justify-center rounded-full bg-[#E29595] px-3 text-[14px] font-semibold text-white shadow-[0_10px_24px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
                     >
-                      Оставить заявку на Pro
+                      Купить Pro
                     </button>
                   </div>
                 </div>
@@ -2450,6 +2504,7 @@ export function BecomeMasterPage() {
                 onClick={() => void publish()}
                 disabled={
                   saving ||
+                  checkoutLoading ||
                   publishBlockingIssues.length > 0 ||
                   !selectedCategoryId ||
                   !isAuthenticated ||
@@ -2457,11 +2512,30 @@ export function BecomeMasterPage() {
                 }
                 className="flex min-h-12 w-full items-center justify-center rounded-full bg-[#E29595] px-4 text-[15px] font-semibold text-white shadow-[0_12px_30px_rgba(226,149,149,0.22)] transition enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {saving ? 'Публикуем…' : 'Опубликовать профиль'}
+                {saving
+                  ? 'Публикуем…'
+                  : checkoutLoading
+                    ? 'Переход к оплате…'
+                    : tariffSelection === 'pro_purchase'
+                      ? 'Опубликовать и оплатить Pro'
+                      : 'Опубликовать профиль'}
               </button>
             )}
           </div>
         </div>
+      ) : null}
+
+      {proConsentOpen ? (
+        <ProSubscriptionConsentModal
+          open={proConsentOpen}
+          onClose={() => {
+            if (!saving && !checkoutLoading) setProConsentOpen(false);
+          }}
+          amountLabel={proCheckoutPriceLabel}
+          packageMonths={1}
+          loading={saving || checkoutLoading}
+          onConfirm={() => void executePublishAndFinish(true)}
+        />
       ) : null}
 
       {categoryChangeConfirmOpen ? (

@@ -1,28 +1,40 @@
 import { useState } from 'react';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
 import { billingOutlineBtn, billingPinkBtn } from './adminBillingTheme';
+import type { BillingPackageMonths } from '../../../features/billing/billingCopy';
+import { billingPackageLabel } from '../../../features/billing/billingCopy';
 
 type Props = {
   open: boolean;
   onClose: () => void;
   amountLabel: string;
-  billingPeriod: 'month' | 'year';
+  billingPeriod?: 'month' | 'year';
+  packageMonths?: BillingPackageMonths;
   autoRenewLegalAllowed?: boolean;
   loading?: boolean;
   onConfirm: () => void | Promise<void>;
 };
+
+function renewalHint(packageMonths: BillingPackageMonths): string {
+  if (packageMonths === 12) return 'раз в 12 месяцев';
+  if (packageMonths === 3) return 'раз в 3 месяца';
+  return 'каждый месяц';
+}
 
 export function ProSubscriptionConsentModal({
   open,
   onClose,
   amountLabel,
   billingPeriod,
+  packageMonths: packageMonthsProp,
   autoRenewLegalAllowed = true,
   loading = false,
   onConfirm,
 }: Props) {
   const [consent, setConsent] = useState(false);
-  const periodWord = billingPeriod === 'year' ? 'год' : 'месяц';
+  const packageMonths = packageMonthsProp ?? (billingPeriod === 'year' ? 12 : 1);
+  const periodLabel = billingPackageLabel(packageMonths);
+  const renewHint = renewalHint(packageMonths);
 
   return (
     <AdminBottomSheet
@@ -38,17 +50,17 @@ export function ProSubscriptionConsentModal({
         {autoRenewLegalAllowed ? (
           <>
             <p className="text-[14px] leading-relaxed text-[#6B7280]">
-              После оплаты {amountLabel} тариф Master Pro активируется сразу. Далее {amountLabel} будут
-              списываться автоматически каждый {periodWord}, пока вы не отмените подписку в разделе «Тарифы».
+              После оплаты {amountLabel} тариф Master Pro активируется на {periodLabel}. Далее оплата будет
+              списываться автоматически {renewHint}, пока вы не отмените подписку в разделе «Тарифы».
             </p>
             <p className="text-[13px] text-[#9CA3AF]">
-              Автопродление каждый {periodWord}. Отменить можно в любой момент.
+              Автопродление {renewHint}. Отменить можно в любой момент.
             </p>
           </>
         ) : (
           <>
             <p className="text-[14px] leading-relaxed text-[#6B7280]">
-              После оплаты {amountLabel} тариф Master Pro активируется на выбранный период. Автосписание
+              После оплаты {amountLabel} тариф Master Pro активируется на {periodLabel}. Автосписание
               подключается после сохранения карты у платёжного провайдера; до этого продление — вручную в
               разделе «Тарифы».
             </p>
@@ -67,8 +79,8 @@ export function ProSubscriptionConsentModal({
           />
           <span className="text-[14px] leading-snug text-[#374151]">
             {autoRenewLegalAllowed
-              ? `Я понимаю, что подписка продлевается автоматически каждый ${periodWord}.`
-              : `Я понимаю условия оплаты тарифа Master Pro на ${periodWord}.`}
+              ? `Я понимаю, что подписка продлевается автоматически ${renewHint}.`
+              : `Я понимаю условия оплаты тарифа Master Pro на ${periodLabel}.`}
           </span>
         </label>
 

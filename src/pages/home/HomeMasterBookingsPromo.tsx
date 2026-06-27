@@ -3,7 +3,6 @@ import { MasterLandingAppointmentsDemo } from './MasterLandingAppointmentsDemo';
 import { MasterLandingCabinetDemoFrame } from './MasterLandingCabinetDemoFrame';
 import { LandingReveal } from './LandingReveal';
 import {
-  homeLandingFeatureVisualBleed,
   homeLandingMasterPromoBody,
   homeLandingMasterPromoCaption,
   homeLandingMasterPromoCta,
@@ -67,7 +66,7 @@ export const HomeMasterBookingsPromo: FC<HomeMasterBookingsPromoProps> = ({
 }) => {
   return (
     <section
-      className={`${homeSection} scroll-mt-28`}
+      className={`${homeSection} scroll-mt-28 overflow-x-clip`}
       aria-labelledby="home-master-promo-heading"
     >
       <LandingReveal as="header" className="min-w-0" variant="blur-up">
@@ -87,7 +86,7 @@ export const HomeMasterBookingsPromo: FC<HomeMasterBookingsPromoProps> = ({
         />
 
         <LandingReveal
-          className={`${homeLandingMasterPromoPhotoCol} ${homeLandingFeatureVisualBleed}`}
+          className={`${homeLandingMasterPromoPhotoCol} min-w-0 overflow-hidden`}
           variant="scale"
           delay={120}
           duration={1100}

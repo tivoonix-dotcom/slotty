@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   HiArrowTrendingUp,
@@ -31,6 +31,7 @@ import {
   OverviewMetricHeroPlaque,
   overviewHairline,
 } from './OverviewSharedUi';
+import { CrmEmptyState, CrmFilterBar } from '../shared/adminCrmUi';
 
 function clampPercent(value: number) {
   return Math.min(100, Math.max(0, value));
@@ -183,6 +184,79 @@ function ClientsRosterList({ roster }: { roster: OverviewClientRosterItem[] }) {
   );
 }
 
+function filterClientRoster(
+  roster: OverviewClientRosterItem[],
+  query: string,
+  filter: 'all' | 'new' | 'returning',
+): OverviewClientRosterItem[] {
+  const q = query.trim().toLowerCase();
+  return roster.filter((client) => {
+    if (filter === 'new' && client.isReturning) return false;
+    if (filter === 'returning' && !client.isReturning) return false;
+    if (!q) return true;
+    const haystack = [client.displayName, client.phone, client.email]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(q);
+  });
+}
+
+function ClientsRosterSection({ roster }: { roster: OverviewClientRosterItem[] }) {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'new' | 'returning'>('all');
+
+  const counts = useMemo(
+    () => ({
+      all: roster.length,
+      new: roster.filter((c) => !c.isReturning).length,
+      returning: roster.filter((c) => c.isReturning).length,
+    }),
+    [roster],
+  );
+
+  const filtered = useMemo(
+    () => filterClientRoster(roster, search, filter),
+    [filter, roster, search],
+  );
+
+  if (!roster.length) return null;
+
+  return (
+    <div className={`border-t ${overviewHairline}`}>
+      <div className="px-5 py-4 sm:px-6">
+        <CrmFilterBar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Имя, телефон или email"
+          chips={[
+            { id: 'all', label: 'Все', count: counts.all },
+            { id: 'new', label: 'Новые', count: counts.new },
+            { id: 'returning', label: 'Повторные', count: counts.returning },
+          ]}
+          activeChipId={filter}
+          onChipChange={(id) => setFilter(id as typeof filter)}
+        />
+      </div>
+      {filtered.length > 0 ? (
+        <ClientsRosterList roster={filtered} />
+      ) : (
+        <div className="px-5 pb-5 sm:px-6">
+          <CrmEmptyState
+            title="Никого не нашли"
+            description="Попробуйте другой запрос или сбросьте фильтр."
+            actionLabel="Сбросить поиск"
+            onAction={() => {
+              setSearch('');
+              setFilter('all');
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ClientsMetricsAndRosterCard({ data }: { data: ClientAnalytics }) {
   return (
     <section className={`overflow-hidden ${overviewDesktopCard}`}>
@@ -191,9 +265,7 @@ function ClientsMetricsAndRosterCard({ data }: { data: ClientAnalytics }) {
         repeatClients={data.repeatClients}
         totalClients={data.totalClients}
       />
-      <div className={`border-t ${overviewHairline}`}>
-        <ClientsRosterList roster={data.roster} />
-      </div>
+      <ClientsRosterSection roster={data.roster} />
     </section>
   );
 }

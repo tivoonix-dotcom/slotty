@@ -8,7 +8,7 @@ import { cancelBookingAutoCompleteJob } from './bookingCompletionJobs.service.js
 import { scheduleJobsAfterBookingCancelled } from '../notifications/notificationJobs.schedule.js';
 import { notifyClientByAppointmentId } from './appointments.clientNotifications.js';
 import { notifyMasterByAppointmentId } from './appointments.masterNotifications.js';
-import { loadAppointmentById } from './appointments.access.js';
+import { clientOwnsAppointment, loadAppointmentById } from './appointments.access.js';
 import { assertCanCompleteVisit, isVisitGuardError } from '../../lib/masterAppointmentLifecycle.js';
 
 async function setAppointmentStatus(
@@ -167,7 +167,7 @@ export async function clientConfirmServiceCompleted(
   appointmentId: string,
 ): Promise<{ masterId: string }> {
   const access = await loadAppointmentById(appointmentId);
-  if (!access || access.client_id !== clientId) {
+  if (!access || !(await clientOwnsAppointment(access.client_id, clientId))) {
     throw ApiError.forbidden('Нельзя изменить чужую запись', 'BOOKING_FORBIDDEN');
   }
 

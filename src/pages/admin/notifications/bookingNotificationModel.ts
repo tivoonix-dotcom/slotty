@@ -2,6 +2,7 @@ import {
   appointmentStatusLabel,
   normalizeDbStatus,
 } from '../../../features/appointments/appointmentStatus';
+import { isVisitOverdue } from '../../../features/appointments/masterAppointmentLifecycle';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import { bookingSourceLabel } from '../appointments/appointmentsFormat';
 import { formatPendingDeadline } from '../appointments/formatPendingDeadline';
@@ -51,11 +52,43 @@ export function formatVisitAddress(address?: string | null): string {
   return value || 'Адрес не указан';
 }
 
-export function bookingNotificationStatusBadge(dbStatus: string): {
+export type BookingNotificationTimingContext = {
+  endsAt?: string | null;
+  now?: Date;
+};
+
+export function resolveBookingVisitEndsAt(
+  appointment: Pick<DemoMasterAppointment, 'endsAt' | 'startsAt' | 'date' | 'time'>,
+): string | null {
+  if (appointment.endsAt) return appointment.endsAt;
+  if (appointment.startsAt) return appointment.startsAt;
+  if (appointment.date && appointment.time) return `${appointment.date}T${appointment.time}:00`;
+  return null;
+}
+
+export function isOverdueBookingNotification(
+  dbStatus: string,
+  timing?: BookingNotificationTimingContext,
+): boolean {
+  const endsAt = timing?.endsAt;
+  if (!endsAt) return false;
+  return isVisitOverdue(endsAt, dbStatus, timing?.now ?? new Date());
+}
+
+export function bookingNotificationStatusBadge(
+  dbStatus: string,
+  timing?: BookingNotificationTimingContext,
+): {
   label: string;
   className: string;
 } {
   const status = normalizeDbStatus(dbStatus);
+  if (isOverdueBookingNotification(status, timing)) {
+    return {
+      label: 'Визит не закрыт',
+      className: 'bg-[#FFF4E8] text-[#B45309]',
+    };
+  }
   if (status === 'pending') {
     return {
       label: 'Ожидает подтверждения',
@@ -111,6 +144,7 @@ export function isPendingBookingStatus(dbStatus: string): boolean {
 
 export function resolveBookingNotificationActions(
   dbStatus: string,
+  timing?: BookingNotificationTimingContext,
 ): BookingNotificationFooterAction[] {
   const status = normalizeDbStatus(dbStatus);
 
@@ -124,6 +158,12 @@ export function resolveBookingNotificationActions(
   }
 
   if (status === 'confirmed' || status === 'client_arrived' || status === 'in_progress') {
+    if (isOverdueBookingNotification(status, timing)) {
+      return [
+        { id: 'open', label: 'Открыть запись', variant: 'primary' },
+        { id: 'close', label: 'Закрыть', variant: 'secondary' },
+      ];
+    }
     return [
       { id: 'open', label: 'Открыть запись', variant: 'primary' },
       { id: 'cancel', label: 'Отменить', variant: 'danger' },
@@ -148,6 +188,7 @@ export function bookingNotificationHint(
   dbStatus: string,
   notificationType: string,
   pendingExpiresAt?: string | null,
+  timing?: BookingNotificationTimingContext,
 ): string {
   if (isPendingBookingStatus(dbStatus)) {
     const deadline = formatPendingDeadline(pendingExpiresAt);
@@ -156,6 +197,9 @@ export function bookingNotificationHint(
   }
   if (isTerminalBookingStatus(dbStatus)) {
     return 'Запись уже закрыта. Откройте карточку, чтобы посмотреть историю и детали.';
+  }
+  if (isOverdueBookingNotification(dbStatus, timing)) {
+    return 'Время записи уже прошло. Откройте карточку и закройте визит или отметьте, что клиент не пришёл.';
   }
   if (notificationType === 'appointment_reminder') {
     return 'Напоминание о предстоящей записи. Откройте карточку, если нужны контакты клиента.';
@@ -197,6 +241,7 @@ export function buildBookingNotificationViewModel(
   },
 ): BookingNotificationViewModel {
   const dbStatus = appointment.dbStatus ?? appointment.status;
+  const timing = { endsAt: resolveBookingVisitEndsAt(appointment) };
   return {
     appointment,
     dbStatus,
@@ -208,6 +253,6 @@ export function buildBookingNotificationViewModel(
     visitAddress: formatVisitAddress(appointment.addressShort),
     serviceCategory: serviceCategoryLabel(extras?.serviceCategory),
     cancelReason: extras?.cancelReason?.trim() || null,
-    statusBadge: bookingNotificationStatusBadge(dbStatus),
+    statusBadge: bookingNotificationStatusBadge(dbStatus, timing),
   };
 }

@@ -31,6 +31,7 @@ import { useAdminNotifications } from '../notifications/AdminNotificationsContex
 import { countReviewNotificationsNeedingReply } from '../../../features/notifications/reviewNotificationAction';
 import { afterBookingMutation } from '../../../features/appointments/bookingDataSync';
 import { MasterProUpsellBanner } from '../shared/MasterProUpsellBanner';
+import { CrmErrorState } from '../shared/adminCrmUi';
 
 const OVERVIEW_TABS = ['summary', 'revenue', 'clients', 'reputation'] as const satisfies readonly OverviewAnalyticsTab[];
 
@@ -75,6 +76,9 @@ function OverviewPanelContent({
   onOpenAppointmentId,
   publicationStatus,
   onPersistDraft,
+  onRetry,
+  subscription,
+  subscriptionLoading,
 }: {
   loading: boolean;
   awaitingSubscription?: boolean;
@@ -105,6 +109,9 @@ function OverviewPanelContent({
   onOpenAppointmentId?: (id: string) => void;
   publicationStatus?: import('../../../features/admin/lib/profileCompletion').MasterPublicationStatus | null;
   onPersistDraft: (next: MasterDraft) => void;
+  onRetry?: () => void;
+  subscription?: import('../../../features/admin/api/adminBillingApi').MasterSubscriptionDto | null;
+  subscriptionLoading?: boolean;
 }) {
   if (proAnalyticsLocked && isOverviewProTab(activeTab)) {
     return <MasterProUpsellBanner variant="analytics" />;
@@ -127,10 +134,11 @@ function OverviewPanelContent({
       isProRequiredApiMessage(error) && isOverviewProTab(activeTab) ? (
         <MasterProUpsellBanner variant="analytics" />
       ) : (
-      <div className="rounded-[24px] border border-[#FEE2E2] bg-[#FEF2F2] p-5">
-        <p className="text-[14px] font-semibold text-[#B91C1C]">{error}</p>
-      </div>
-    );
+        <CrmErrorState
+          message={error}
+          onRetry={onRetry}
+        />
+      );
   } else {
     switch (activeTab) {
       case 'revenue':
@@ -182,6 +190,8 @@ function OverviewPanelContent({
             useCabinetApi={useCabinetApi}
             onPersistDraft={onPersistDraft}
             appointments={appointments}
+            subscription={subscription}
+            subscriptionLoading={subscriptionLoading}
           />
         );
     }
@@ -239,6 +249,7 @@ export function AdminOverviewTab({
     reputation,
     reportRange,
     refreshReputation,
+    refreshOverview,
   } = useOverviewTabData({
     activeTab,
     periodPreset,
@@ -290,6 +301,9 @@ export function AdminOverviewTab({
         onOpenAppointmentId={onOpenAppointmentId}
         publicationStatus={publicationStatus}
         onPersistDraft={onPersistDraft}
+        onRetry={refreshOverview}
+        subscription={subscription}
+        subscriptionLoading={cabinetLoading && subscription == null}
       />
     ),
     [
@@ -315,13 +329,15 @@ export function AdminOverviewTab({
       reportRange.end,
       reportRange.start,
       refreshReputation,
+      refreshOverview,
       revenue,
       reputation,
       serviceCount,
       summary,
       useCabinetApi,
       onPersistDraft,
-      appointments,
+      subscription,
+      cabinetLoading,
     ],
   );
 

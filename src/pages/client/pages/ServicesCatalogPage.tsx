@@ -26,10 +26,9 @@ import { catalogMobileContentBelowHeaderClass } from '../servicesCatalog/catalog
 import { catalogCanvasClass, catalogMobilePadX } from '../servicesCatalog/servicesCatalogTheme';
 import type { CatalogSearchSuggestSelection } from '../servicesCatalog/catalogSearchSuggestTypes';
 import { CLIENT_CONTENT_PAD_BOTTOM } from '../clientNavConstants';
-import { CatalogSeoIntro } from '../../../shared/seo/catalogSeoIntroUi';
-import { SERVICES_CATALOG_INTRO } from '../../../shared/seo/catalogSeoIntro';
 import { JsonLd } from '../../../shared/seo/JsonLd';
 import { buildServicesCatalogStructuredData } from '../../../shared/seo/categoryStructuredData';
+import { useScrollCatalogToTopOnChange } from '../servicesCatalog/scrollCatalogPageToTop';
 
 export function ServicesCatalogPage() {
   const navigate = useNavigate();
@@ -52,18 +51,34 @@ export function ServicesCatalogPage() {
     [filters, search, userLat, userLng],
   );
 
+  const draftApiParams = useMemo(
+    () => catalogFiltersToApiParams(filterDraft, search, { userLat, userLng }),
+    [filterDraft, search, userLat, userLng],
+  );
+
   const { listings, categories, total, loading, error, reload } = useCatalogData(apiParams);
+  const { total: draftTotal, listings: draftListings, loading: draftPreviewLoading } = useCatalogData(
+    draftApiParams,
+    { enabled: filterOpen },
+  );
   useCatalogErrorModal(error, reload, 'Услуги');
 
   useEffect(() => {
     trackAnalyticsEvent(ANALYTICS_EVENTS.catalogOpen);
   }, []);
 
-  const services = useMemo(() => {
-    const cards = mapListingsToServiceCards(listings, categories, { userLat, userLng });
-    if (!filters.onlineBookingOnly) return cards;
-    return cards.filter((s) => Boolean(s.nearestSlotIso));
-  }, [listings, categories, userLat, userLng, filters.onlineBookingOnly]);
+  const catalogScrollKey = useMemo(() => {
+    const p = catalogFiltersToApiParams(filters, search, { userLat, userLng });
+    const { lat: _lat, lng: _lng, ...rest } = p;
+    return JSON.stringify(rest);
+  }, [filters, search, userLat, userLng]);
+
+  useScrollCatalogToTopOnChange(catalogScrollKey);
+
+  const services = useMemo(
+    () => mapListingsToServiceCards(listings, categories, { userLat, userLng }),
+    [listings, categories, userLat, userLng],
+  );
 
   const filtered = services;
 
@@ -107,12 +122,22 @@ export function ServicesCatalogPage() {
 
   const resultCount = total > 0 ? total : filtered.length;
 
+  const filterPreviewCount = filterOpen
+    ? draftPreviewLoading
+      ? resultCount
+      : draftTotal > 0
+        ? draftTotal
+        : draftListings.length
+    : resultCount;
+
+  const hasActiveFiltersOrSearch = activeFilterCount > 0 || Boolean(search.trim());
+
   const resultsProps = {
     loading,
     error,
     onRetry: () => void reload(),
-    servicesEmpty: services.length === 0 && !loading,
-    filteredEmpty: filtered.length === 0 && !loading,
+    servicesEmpty: !hasActiveFiltersOrSearch && services.length === 0 && !loading,
+    filteredEmpty: hasActiveFiltersOrSearch && filtered.length === 0 && !loading,
     showSections,
     filtered,
     catalogServices: services,
@@ -131,6 +156,7 @@ export function ServicesCatalogPage() {
     search,
     onClearSearch: () => setSearch(''),
     onResetFilters: handleResetFilters,
+    onOpenFilters: openFilters,
   };
 
   return (
@@ -165,8 +191,6 @@ export function ServicesCatalogPage() {
         <div
           className={`mx-auto w-full pt-2 ${catalogMobileContentBelowHeaderClass} ${catalogMobilePadX} ${CLIENT_CONTENT_PAD_BOTTOM}`}
         >
-          <CatalogSeoIntro text={SERVICES_CATALOG_INTRO} className="mb-3 px-0.5" />
-
           {!loading && !error && showCategoryRail ? (
             <div className="scrollbar-hidden -mx-0.5 mb-3 flex gap-2 overflow-x-auto px-0.5">
               <ServiceCategoryRail
@@ -190,7 +214,7 @@ export function ServicesCatalogPage() {
       <ServicesCatalogFiltersSheet
         open={filterOpen}
         draft={filterDraft}
-        resultCount={filtered.length}
+        resultCount={filterPreviewCount}
         categories={categories}
         onChange={setFilterDraft}
         onClose={() => setFilterOpen(false)}

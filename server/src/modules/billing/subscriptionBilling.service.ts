@@ -23,9 +23,24 @@ import {
   subscriptionRenewalReminderNotification,
 } from '../notifications/templates/billingNotificationTemplates.js';
 import type { PaymentDto } from '../payments/payment.types.js';
+import type { BillingCheckoutPurpose } from './billingCheckoutPurpose.js';
+import {
+  purposeExtendsProPeriod,
+  purposeMarksPastDueOnFail,
+  purposeToPaymentKind,
+} from './billingCheckoutPurpose.js';
+import {
+  type BillingPackageMonths,
+  computePeriodBounds,
+  inferSubscriptionPackageMonths,
+  packageMonthsToBillingPeriod,
+  resolvePackageAmount,
+} from './billingPackage.js';
 import { createBePaidPayment } from '../payments/payments.service.js';
+import { getCardUpdateAmountMinor } from '../payments/bepaid.config.js';
 import { isBePaidRecurringConfigured } from './bepaidRecurring.client.js';
 import { ensureSubscriptionStatusEnum } from '../../lib/ensureSubscriptionStatusEnum.js';
+import { INSERT_PENDING_BILLING_PAYMENT_SQL } from './billingPendingPaymentSql.js';
 
 export type BillingSubscriptionDto = {
   subscription: MasterSubscriptionWithUsageDto;
@@ -55,6 +70,8 @@ export type BillingSubscriptionDto = {
   nextPaymentHint: string | null;
   autoRenewCapable: boolean;
   autoRenewLegalAllowed: boolean;
+  autoRenewEnabled: boolean;
+  billingPackageMonths: BillingPackageMonths;
 };
 
 export type BillingPaymentListItem = {
@@ -129,8 +146,69 @@ async function loadSubscriptionRow(masterId: string): Promise<SubscriptionDbRow>
   return row;
 }
 
-function periodDays(billingPeriod: 'month' | 'year'): number {
-  return billingPeriod === 'year' ? 365 : 30;
+async function insertPendingBillingPayment(input: {
+  subscriptionId: string;
+  masterId: string;
+  profileId: string;
+  paymentId: string;
+  amount: number;
+  currency: string;
+  purpose: BillingCheckoutPurpose;
+  idempotencyKey: string;
+}): Promise<void> {
+  const kind = purposeToPaymentKind(input.purpose);
+  await query(INSERT_PENDING_BILLING_PAYMENT_SQL, [
+    input.subscriptionId,
+    input.masterId,
+    input.profileId,
+    input.paymentId,
+    input.paymentId,
+    input.amount,
+    input.currency,
+    kind,
+    input.idempotencyKey,
+  ]);
+}
+
+async function createProCheckout(input: {
+  masterId: string;
+  profileId: string;
+  packageMonths: BillingPackageMonths;
+  purpose: BillingCheckoutPurpose;
+  returnUrl?: string;
+  consentAccepted?: boolean;
+}): Promise<{ paymentUrl: string; paymentId: string }> {
+  const billing = await getBillingSubscription(input.masterId);
+  const pkg = resolvePackageAmount(input.packageMonths, {
+    priceMonth: billing.subscription.plan.priceMonth,
+    priceYear: billing.subscription.plan.priceYear,
+  });
+
+  const result = await createBePaidPayment({
+    profileId: input.profileId,
+    masterId: input.masterId,
+    type: 'master_pro_plan',
+    billingPackageMonths: input.packageMonths,
+    billingPeriod: packageMonthsToBillingPeriod(input.packageMonths),
+    returnUrl: input.returnUrl,
+    checkoutPurpose: input.purpose,
+  });
+
+  const subRow = await loadSubscriptionRow(input.masterId);
+  await insertPendingBillingPayment({
+    subscriptionId: subRow.id,
+    masterId: input.masterId,
+    profileId: input.profileId,
+    paymentId: result.paymentId,
+    amount: pkg.amount,
+    currency: billing.currency,
+    purpose: input.purpose,
+    idempotencyKey: `billing_payment:${result.paymentId}`,
+  });
+
+  const url = result.checkout?.redirectUrl?.trim();
+  if (!url) throw ApiError.internal('Не получена ссылка на оплату');
+  return { paymentUrl: url, paymentId: result.paymentId };
 }
 
 export async function expireDueSubscriptions(masterId?: string): Promise<void> {
@@ -361,6 +439,28 @@ export async function getBillingSubscription(masterId: string): Promise<BillingS
     nextPaymentHint = new Date(row.next_charge_at).toISOString();
   }
 
+  const lastPkgRow = await query<{ billing_package_months: number | null }>(
+    `select p.billing_package_months
+       from public.payments p
+      where p.master_id = $1
+        and p.status = 'success'::public.payment_status
+        and p.payment_type = 'master_pro_plan'
+        and p.billing_package_months in (1, 3, 12)
+      order by coalesce(p.paid_at, p.updated_at, p.created_at) desc
+      limit 1`,
+    [masterId],
+  );
+  const lastPkg = lastPkgRow.rows[0]?.billing_package_months;
+  const billingPackageMonths: BillingPackageMonths =
+    lastPkg === 1 || lastPkg === 3 || lastPkg === 12
+      ? lastPkg
+      : inferSubscriptionPackageMonths({
+          billingPeriod: sub.billingPeriod as 'month' | 'year',
+          priceAmount,
+          priceMonth: sub.plan.priceMonth,
+          priceYear: sub.plan.priceYear,
+        });
+
   return {
     subscription: sub,
     uiState,
@@ -389,6 +489,8 @@ export async function getBillingSubscription(masterId: string): Promise<BillingS
     nextPaymentHint,
     autoRenewCapable: isBePaidRecurringConfigured() && Boolean(row.provider_card_token?.trim()),
     autoRenewLegalAllowed: isBePaidRecurringConfigured(),
+    autoRenewEnabled: Boolean(row.auto_renew_enabled),
+    billingPackageMonths,
   };
 }
 
@@ -432,7 +534,7 @@ export async function listBillingPayments(
 export async function createBillingCheckout(input: {
   masterId: string;
   profileId: string;
-  billingPeriod: 'month' | 'year';
+  billingPackageMonths: BillingPackageMonths;
   returnUrl?: string;
   consentAccepted: boolean;
 }): Promise<{ paymentUrl: string; paymentId: string }> {
@@ -444,8 +546,14 @@ export async function createBillingCheckout(input: {
   }
 
   const billing = await getBillingSubscription(input.masterId);
-  if (billing.uiState === 'pro_active' || billing.uiState === 'pro_canceled_at_period_end') {
-    throw ApiError.badRequest('Тариф Pro уже активен', 'PRO_ALREADY_ACTIVE');
+  if (
+    (billing.uiState === 'pro_active' || billing.uiState === 'pro_canceled_at_period_end') &&
+    billing.status !== 'trialing'
+  ) {
+    throw ApiError.badRequest(
+      'Тариф Pro уже активен. Используйте «Продлить» для добавления оплаченного периода.',
+      'PRO_ALREADY_ACTIVE',
+    );
   }
 
   await query(
@@ -456,46 +564,116 @@ export async function createBillingCheckout(input: {
     [input.masterId],
   );
 
-  const idempotencyKey = `checkout:${input.masterId}:${input.billingPeriod}:${Date.now()}`;
-  const result = await createBePaidPayment({
-    profileId: input.profileId,
+  const result = await createProCheckout({
     masterId: input.masterId,
-    type: 'master_pro_plan',
-    billingPeriod: input.billingPeriod,
+    profileId: input.profileId,
+    packageMonths: input.billingPackageMonths,
+    purpose: 'initial_purchase',
     returnUrl: input.returnUrl,
+    consentAccepted: true,
   });
-
-  const subRow = await loadSubscriptionRow(input.masterId);
-  await query(
-    `insert into public.billing_payments (
-       subscription_id, master_id, profile_id, payment_id, provider_payment_id,
-       amount, currency, status, payment_kind, idempotency_key
-     ) values ($1, $2, $3, $4, $4, $5, 'BYN', 'pending', 'initial_payment', $6)
-     on conflict (idempotency_key) do nothing`,
-    [
-      subRow.id,
-      input.masterId,
-      input.profileId,
-      result.paymentId,
-      billing.priceAmount,
-      idempotencyKey,
-    ],
-  );
 
   await recordBillingEvent({
     masterId: input.masterId,
     eventType: 'checkout_started',
     planCode: 'pro',
-    billingPeriod: input.billingPeriod,
-    amount: billing.priceAmount,
+    billingPeriod: packageMonthsToBillingPeriod(input.billingPackageMonths),
+    amount: resolvePackageAmount(input.billingPackageMonths, {
+      priceMonth: billing.subscription.plan.priceMonth,
+      priceYear: billing.subscription.plan.priceYear,
+    }).amount,
     status: 'pending',
     source: 'bepaid',
-    metadata: { paymentId: result.paymentId, consentAccepted: true },
+    metadata: { paymentId: result.paymentId, consentAccepted: true, packageMonths: input.billingPackageMonths },
   });
 
-  const url = result.checkout?.redirectUrl?.trim();
-  if (!url) throw ApiError.internal('Не получена ссылка на оплату');
-  return { paymentUrl: url, paymentId: result.paymentId };
+  return result;
+}
+
+export async function createManualTopupCheckout(input: {
+  masterId: string;
+  profileId: string;
+  billingPackageMonths: BillingPackageMonths;
+  returnUrl?: string;
+}): Promise<{ paymentUrl: string; paymentId: string }> {
+  const billing = await getBillingSubscription(input.masterId);
+  if (
+    billing.uiState !== 'pro_active' &&
+    billing.uiState !== 'pro_canceled_at_period_end' &&
+    billing.status !== 'trialing'
+  ) {
+    throw ApiError.badRequest(
+      'Ручное продление доступно только при активной подписке Pro',
+      'TOPUP_NOT_ALLOWED',
+    );
+  }
+
+  const result = await createProCheckout({
+    masterId: input.masterId,
+    profileId: input.profileId,
+    packageMonths: input.billingPackageMonths,
+    purpose: 'manual_topup',
+    returnUrl: input.returnUrl,
+  });
+
+  await recordBillingEvent({
+    masterId: input.masterId,
+    eventType: 'checkout_started',
+    planCode: 'pro',
+    billingPeriod: packageMonthsToBillingPeriod(input.billingPackageMonths),
+    amount: resolvePackageAmount(input.billingPackageMonths, {
+      priceMonth: billing.subscription.plan.priceMonth,
+      priceYear: billing.subscription.plan.priceYear,
+    }).amount,
+    status: 'pending',
+    source: 'bepaid',
+    metadata: { paymentId: result.paymentId, purpose: 'manual_topup', packageMonths: input.billingPackageMonths },
+  });
+
+  return result;
+}
+
+export async function deletePaymentMethod(masterId: string): Promise<BillingSubscriptionDto> {
+  const row = await loadSubscriptionRow(masterId);
+  if (!row.provider_card_token && !row.card_last4) {
+    throw ApiError.badRequest('Нет привязанной карты', 'NO_PAYMENT_METHOD');
+  }
+
+  await query(
+    `update public.master_subscriptions
+        set provider_card_token = null,
+            card_brand = null,
+            card_last4 = null,
+            card_exp_month = null,
+            card_exp_year = null,
+            auto_renew_enabled = false,
+            next_charge_at = null,
+            updated_at = now()
+      where master_id = $1`,
+    [masterId],
+  );
+
+  await query(
+    `update public.subscription_billing_jobs
+        set status = 'skipped'::public.subscription_billing_job_status,
+            last_error = 'payment_method_removed',
+            updated_at = now()
+      where subscription_id = $1
+        and job_type = 'renewal_charge'
+        and status = 'pending'`,
+    [row.id],
+  );
+
+  await recordBillingEvent({
+    masterId,
+    eventType: 'payment_method_removed',
+    planCode: row.code,
+    status: 'succeeded',
+    source: 'master',
+    metadata: {},
+  });
+
+  return getBillingSubscription(masterId);
 }
 
 export async function cancelSubscriptionAtPeriodEnd(
@@ -630,6 +808,18 @@ export async function createUpdatePaymentMethodCheckout(input: {
     checkoutPurpose: 'update_card',
   });
 
+  const subRow = await loadSubscriptionRow(input.masterId);
+  await insertPendingBillingPayment({
+    subscriptionId: subRow.id,
+    masterId: input.masterId,
+    profileId: input.profileId,
+    paymentId: result.paymentId,
+    amount: getCardUpdateAmountMinor() / 100,
+    currency: billing.currency,
+    purpose: 'update_card',
+    idempotencyKey: `billing_payment:${result.paymentId}`,
+  });
+
   const url = result.checkout?.redirectUrl?.trim();
   if (!url) throw ApiError.internal('Не получена ссылка на оплату');
   return { paymentUrl: url, paymentId: result.paymentId };
@@ -645,28 +835,15 @@ export async function retryFailedSubscriptionPayment(input: {
     throw ApiError.badRequest('Повтор оплаты недоступен в текущем статусе', 'RETRY_NOT_ALLOWED');
   }
 
-  const idempotencyKey = `retry:${input.masterId}:${Date.now()}`;
-  const result = await createBePaidPayment({
-    profileId: input.profileId,
+  const packageMonths: BillingPackageMonths = billing.billingPackageMonths;
+
+  return createProCheckout({
     masterId: input.masterId,
-    type: 'master_pro_plan',
-    billingPeriod: billing.billingPeriod,
+    profileId: input.profileId,
+    packageMonths,
+    purpose: 'retry_payment',
     returnUrl: input.returnUrl,
-    checkoutPurpose: 'renewal',
   });
-
-  const subRow = await loadSubscriptionRow(input.masterId);
-  await query(
-    `insert into public.billing_payments (
-       subscription_id, master_id, profile_id, payment_id, provider_payment_id,
-       amount, currency, status, payment_kind, idempotency_key
-     ) values ($1, $2, $3, $4, $4, $5, 'BYN', 'pending', 'recurring_payment', $6)`,
-    [subRow.id, input.masterId, input.profileId, result.paymentId, billing.priceAmount, idempotencyKey],
-  );
-
-  const url = result.checkout?.redirectUrl?.trim();
-  if (!url) throw ApiError.internal('Не получена ссылка на оплату');
-  return { paymentUrl: url, paymentId: result.paymentId };
 }
 
 function extractCardFromWebhook(body: Record<string, unknown>): {
@@ -700,17 +877,81 @@ function extractCardFromWebhook(body: Record<string, unknown>): {
   return { brand, last4, expMonth, expYear, token };
 }
 
-export async function activateSubscriptionFromPayment(
+export async function fulfillSubscriptionFromPayment(
   payment: PaymentDto,
   webhookBody?: Record<string, unknown>,
 ): Promise<void> {
-  if (!payment.masterId || !payment.billingPeriod) return;
+  if (!payment.masterId) return;
+
+  const purpose: BillingCheckoutPurpose =
+    payment.checkoutPurpose ?? 'initial_purchase';
+  const packageMonths: BillingPackageMonths =
+    payment.billingPackageMonths ?? (payment.billingPeriod === 'year' ? 12 : 1);
+
+  const alreadyPaid = await query<{ id: string }>(
+    `select id from public.billing_payments
+      where payment_id = $1 and status = 'paid'::public.billing_payment_status
+      limit 1`,
+    [payment.id],
+  );
+  if (alreadyPaid.rows[0]) {
+    return;
+  }
 
   const card = webhookBody
     ? extractCardFromWebhook(webhookBody)
     : { brand: null, last4: null, expMonth: null, expYear: null, token: null };
   const brand = payment.paymentMethodBrand ?? card.brand;
-  const days = periodDays(payment.billingPeriod);
+
+  if (purpose === 'update_card') {
+    await withTransaction(async (client: PoolClient) => {
+      await client.query(
+        `update public.master_subscriptions
+            set card_brand = coalesce($2, card_brand),
+                card_last4 = coalesce($3, card_last4),
+                card_exp_month = coalesce($4, card_exp_month),
+                card_exp_year = coalesce($5, card_exp_year),
+                provider_card_token = coalesce($6, provider_card_token),
+                provider = 'bepaid',
+                last_payment_id = $7,
+                updated_at = now()
+          where master_id = $1`,
+        [
+          payment.masterId,
+          brand,
+          card.last4,
+          card.expMonth,
+          card.expYear,
+          card.token,
+          payment.id,
+        ],
+      );
+
+      const providerPaymentId = payment.bepaidTransactionUid ?? payment.id;
+      await client.query(
+        `update public.billing_payments
+            set status = 'paid'::public.billing_payment_status,
+                paid_at = coalesce($2, now()),
+                provider_payment_id = $3,
+                updated_at = now()
+          where payment_id = $1`,
+        [payment.id, payment.paidAt ? new Date(payment.paidAt) : new Date(), providerPaymentId],
+      );
+    });
+
+    await recordBillingEvent({
+      masterId: payment.masterId,
+      eventType: 'payment_method_updated',
+      planCode: 'pro',
+      amount: payment.amount,
+      status: 'succeeded',
+      source: 'bepaid',
+      metadata: { paymentId: payment.id },
+    });
+    return;
+  }
+
+  if (!purposeExtendsProPeriod(purpose)) return;
 
   const planRow = await query<{ id: string; price_month: string; price_year: string }>(
     `select id, price_month::text, price_year::text
@@ -719,63 +960,121 @@ export async function activateSubscriptionFromPayment(
   const plan = planRow.rows[0];
   if (!plan) throw ApiError.internal('План Pro не найден');
 
-  const price =
-    payment.billingPeriod === 'year' ? Number(plan.price_year) : Number(plan.price_month);
-  const renewalCheck = await query<{ payment_kind: string }>(
-    `select payment_kind::text from public.billing_payments where payment_id = $1 limit 1`,
-    [payment.id],
-  );
-  const isRenewal = renewalCheck.rows[0]?.payment_kind === 'recurring_payment';
+  const pkg = resolvePackageAmount(packageMonths, {
+    priceMonth: Number(plan.price_month),
+    priceYear: Number(plan.price_year),
+  });
+  const price = pkg.amount;
+  const billingPeriod = packageMonthsToBillingPeriod(packageMonths);
+
+  const isRenewalLike =
+    purpose === 'retry_payment' ||
+    purpose === 'renewal_charge' ||
+    purpose === 'manual_topup';
 
   let scheduleRenewalSubId: string | null = null;
   let scheduleRenewalPeriodEnd: Date | null = null;
   let wasTrialing = false;
+  let previousCancelAtPeriodEnd = false;
 
   await withTransaction(async (client: PoolClient) => {
-    const sub = await client.query<{ id: string; current_period_end: Date; status: string }>(
-      `select id, current_period_end, status::text as status from public.master_subscriptions where master_id = $1 for update`,
+    const sub = await client.query<{
+      id: string;
+      current_period_end: Date;
+      current_period_start: Date;
+      status: string;
+      trial_ends_at: Date | null;
+      auto_renew_enabled: boolean;
+      cancel_at_period_end: boolean;
+    }>(
+      `select id, current_period_end, current_period_start, status::text as status,
+              trial_ends_at, auto_renew_enabled, cancel_at_period_end
+         from public.master_subscriptions where master_id = $1 for update`,
       [payment.masterId],
     );
     const subRow = sub.rows[0];
     if (!subRow) return;
 
     wasTrialing = subRow.status === 'trialing';
+    previousCancelAtPeriodEnd = subRow.cancel_at_period_end;
 
-    const periodStart = isRenewal ? subRow.current_period_end : new Date();
-    const periodEnd = new Date(periodStart.getTime() + days * 24 * 60 * 60 * 1000);
-    if (!isRenewal && card.token) {
+    const now = new Date();
+    const isProPeriodActive = subRow.current_period_end.getTime() > now.getTime();
+    const bounds = computePeriodBounds({
+      purpose,
+      packageMonths,
+      now,
+      currentPeriodEnd: subRow.current_period_end,
+      subscriptionStatus: subRow.status,
+      trialEndsAt: subRow.trial_ends_at,
+      isProPeriodActive,
+    });
+
+    const periodStart = bounds.periodStart;
+    const periodEnd = bounds.periodEnd;
+
+    const enableAutoRenew =
+      purpose === 'initial_purchase' ||
+      (purpose === 'retry_payment' && !previousCancelAtPeriodEnd);
+
+    if (enableAutoRenew && card.token) {
       scheduleRenewalSubId = subRow.id;
       scheduleRenewalPeriodEnd = periodEnd;
     }
+
+    const nextChargeAt =
+      enableAutoRenew && !previousCancelAtPeriodEnd ? periodEnd : subRow.cancel_at_period_end ? null : periodEnd;
 
     await client.query(
       `update public.master_subscriptions
           set plan_id = $1,
               status = 'active'::public.subscription_status,
               billing_period = $2::public.billing_period,
-              current_period_start = $3,
+              current_period_start = case
+                when $14::text = 'manual_topup' then current_period_start
+                else $3
+              end,
               current_period_end = $4,
-              next_charge_at = $4,
-              cancel_at_period_end = false,
-              cancelled_at = null,
-              cancellation_reason = null,
-              price_amount = $5,
-              currency = $6,
+              next_charge_at = case
+                when $14::text = 'manual_topup' and cancel_at_period_end then null
+                when $14::text = 'manual_topup' then coalesce(next_charge_at, $4)
+                else $5
+              end,
+              cancel_at_period_end = case
+                when $14::text = 'manual_topup' then cancel_at_period_end
+                when $14::text in ('initial_purchase', 'retry_payment') then false
+                else cancel_at_period_end
+              end,
+              cancelled_at = case
+                when $14::text in ('initial_purchase', 'retry_payment') then null
+                else cancelled_at
+              end,
+              cancellation_reason = case
+                when $14::text in ('initial_purchase', 'retry_payment') then null
+                else cancellation_reason
+              end,
+              price_amount = $6,
+              currency = $7,
               provider = 'bepaid',
-              card_brand = coalesce($7, card_brand),
-              card_last4 = coalesce($8, card_last4),
-              card_exp_month = coalesce($9, card_exp_month),
-              card_exp_year = coalesce($10, card_exp_year),
-              provider_card_token = coalesce($11, provider_card_token),
-              auto_renew_enabled = true,
-              last_payment_id = $12,
+              card_brand = coalesce($8, card_brand),
+              card_last4 = coalesce($9, card_last4),
+              card_exp_month = coalesce($10, card_exp_month),
+              card_exp_year = coalesce($11, card_exp_year),
+              provider_card_token = coalesce($12, provider_card_token),
+              auto_renew_enabled = case
+                when $14::text = 'manual_topup' then auto_renew_enabled
+                when $14::text = 'retry_payment' then true
+                else true
+              end,
+              last_payment_id = $13,
               updated_at = now()
-        where master_id = $13`,
+        where master_id = $15`,
       [
         plan.id,
-        payment.billingPeriod,
+        billingPeriod,
         periodStart,
         periodEnd,
+        nextChargeAt,
         price,
         payment.currency,
         brand,
@@ -784,9 +1083,19 @@ export async function activateSubscriptionFromPayment(
         card.expYear,
         card.token,
         payment.id,
+        purpose,
         payment.masterId,
       ],
     );
+
+    if (wasTrialing && subRow.trial_ends_at) {
+      await client.query(
+        `update public.master_subscriptions
+            set trial_consumed = true, updated_at = now()
+          where master_id = $1`,
+        [payment.masterId],
+      );
+    }
 
     await client.query(
       `update public.master_profiles
@@ -815,7 +1124,7 @@ export async function activateSubscriptionFromPayment(
       [payment.id],
     );
     if (!existingBp.rows[0]) {
-      const kind = isRenewal ? 'recurring_payment' : 'initial_payment';
+      const kind = purposeToPaymentKind(purpose);
       await client.query(
         `insert into public.billing_payments (
            subscription_id, master_id, profile_id, payment_id, provider_payment_id,
@@ -836,24 +1145,27 @@ export async function activateSubscriptionFromPayment(
     }
   });
 
+  const eventType =
+    purpose === 'manual_topup' || isRenewalLike ? 'subscription_renewed' : 'subscription_purchased';
+
   await recordBillingEvent({
     masterId: payment.masterId,
-    eventType: isRenewal ? 'subscription_renewed' : 'subscription_purchased',
+    eventType,
     planCode: 'pro',
-    billingPeriod: payment.billingPeriod,
+    billingPeriod,
     amount: payment.amount,
     status: 'succeeded',
     source: 'bepaid',
-    metadata: { paymentId: payment.id },
+    metadata: { paymentId: payment.id, purpose, packageMonths },
   });
 
-  if (wasTrialing && !isRenewal) {
+  if (wasTrialing && purpose === 'initial_purchase') {
     const { recordTrialConvertedToPaid } = await import('./trial.service.js');
     await recordTrialConvertedToPaid(payment.masterId).catch(() => {});
   }
 
   const dto = await getBillingSubscription(payment.masterId);
-  const n = isRenewal
+  const n = isRenewalLike
     ? subscriptionRenewedNotification(dto.currentPeriodEnd)
     : subscriptionActivatedNotification(dto.nextChargeAt ?? dto.currentPeriodEnd);
   await notifyUser({
@@ -865,14 +1177,41 @@ export async function activateSubscriptionFromPayment(
     masterPreferenceEvent: 'billing',
   }).catch(() => {});
 
-  if (scheduleRenewalSubId && scheduleRenewalPeriodEnd && isBePaidRecurringConfigured()) {
+  if (
+    scheduleRenewalSubId &&
+    scheduleRenewalPeriodEnd &&
+    isBePaidRecurringConfigured() &&
+    !previousCancelAtPeriodEnd
+  ) {
     const { ensureRenewalChargeJob } = await import('./billingJobs.service.js');
     await ensureRenewalChargeJob(scheduleRenewalSubId, scheduleRenewalPeriodEnd).catch(() => {});
   }
 }
 
+/** @deprecated use fulfillSubscriptionFromPayment */
+export async function activateSubscriptionFromPayment(
+  payment: PaymentDto,
+  webhookBody?: Record<string, unknown>,
+): Promise<void> {
+  return fulfillSubscriptionFromPayment(payment, webhookBody);
+}
+
 export async function markSubscriptionPaymentFailed(payment: PaymentDto): Promise<void> {
   if (!payment.masterId) return;
+
+  const purpose: BillingCheckoutPurpose = payment.checkoutPurpose ?? 'initial_purchase';
+  if (!purposeMarksPastDueOnFail(purpose)) {
+    await query(
+      `update public.billing_payments
+          set status = 'failed'::public.billing_payment_status,
+              failed_at = now(),
+              failure_reason = $2,
+              updated_at = now()
+        where payment_id = $1`,
+      [payment.id, payment.errorMessage ?? 'payment_failed'],
+    );
+    return;
+  }
 
   await query(
     `update public.master_subscriptions

@@ -66,6 +66,16 @@ export function MasterServicesList({
   });
   const visible = sorted;
   const isDesktop = layout === 'desktop';
+  const previewListClass = previewMode
+    ? 'flex flex-col gap-3'
+    : isDesktop
+      ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-2'
+      : 'space-y-3';
+
+  const previewCardClass = (highlighted: boolean) =>
+    `group flex w-full items-center gap-3 rounded-[16px] bg-white p-3.5 text-left ${
+      highlighted ? 'ring-2 ring-[#F47C8C]/25' : ''
+    }`;
 
   if (!visible.length) {
     return (
@@ -91,16 +101,18 @@ export function MasterServicesList({
         className="mb-4"
       />
 
-      <ul className={isDesktop ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-2' : 'space-y-3'}>
+      <ul className={previewListClass}>
         {visible.map((service) => {
           const highlighted = service.id === highlightServiceId;
-          const cardClass = isDesktop
-            ? `group flex h-full flex-col overflow-hidden rounded-[20px] bg-white text-left ${
-                highlighted ? 'ring-2 ring-[#F47C8C]/25' : ''
-              } ${previewMode ? '' : 'transition hover:-translate-y-0.5'}`
-            : `group flex w-full items-center gap-4 rounded-[16px] bg-white p-4 text-left ${
-                highlighted ? 'bg-[#FFF1F4]' : ''
-              } ${previewMode ? '' : 'transition active:scale-[0.99] hover:bg-[#FFF1F4]'}`;
+          const cardClass = previewMode
+            ? previewCardClass(highlighted)
+            : isDesktop
+              ? `group flex h-full flex-col overflow-hidden rounded-[20px] bg-white text-left ${
+                  highlighted ? 'ring-2 ring-[#F47C8C]/25' : ''
+                } transition hover:-translate-y-0.5`
+              : `group flex w-full items-center gap-4 rounded-[16px] bg-white p-4 text-left ${
+                  highlighted ? 'bg-[#FFF1F4]' : ''
+                } transition active:scale-[0.99] hover:bg-[#FFF1F4]`;
 
           if (isDesktop && !previewMode) {
             return (
@@ -143,16 +155,21 @@ export function MasterServicesList({
           const cardBody = (
             <>
               <ImageReveal
-                src={workPhotoUrl}
+                src={servicePhoto(service)}
                 alt=""
                 className={`shrink-0 rounded-[14px] object-cover ${
-                  isDesktop ? 'h-[72px] w-[72px]' : 'h-16 w-16'
+                  isDesktop || previewMode ? 'h-[72px] w-[72px]' : 'h-16 w-16'
                 }`}
+                style={service.coverImageUrl ? servicePhotoStyle(service) : undefined}
                 loading="lazy"
               />
 
               <div className="min-w-0 flex-1">
-                <p className={`font-bold leading-snug text-[#111827] ${isDesktop ? 'text-[17px]' : 'text-[16px]'}`}>
+                <p
+                  className={`line-clamp-2 font-bold leading-snug text-[#111827] ${
+                    isDesktop || previewMode ? 'text-[17px]' : 'text-[16px]'
+                  }`}
+                >
                   {service.title}
                 </p>
                 <p className="mt-1 inline-flex rounded-[8px] bg-[#F5F5F5] px-2 py-0.5 text-[12px] font-semibold text-[#6B7280] group-hover:bg-white/80">
@@ -161,7 +178,7 @@ export function MasterServicesList({
               </div>
 
               {previewMode ? (
-                <p className="shrink-0 text-right text-[18px] font-bold text-[#111827]">
+                <p className="shrink-0 text-right text-[18px] font-bold tabular-nums text-[#111827]">
                   {formatServicePrice(service)}
                 </p>
               ) : (

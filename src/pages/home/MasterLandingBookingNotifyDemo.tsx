@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type FC } from 'react';
 import { centerInLandingStage, LandingDemoCursor } from './homeLandingDemoCursor';
+import { masterDemoMobileHubClass, masterDemoMobileHubUnderSheetClass } from './homeLandingMasterDemoTheme';
 import {
   MasterLandingDemoNotificationToast,
   MasterLandingNotificationDetail,
   MasterLandingNotificationsHub,
 } from './masterLandingNotificationsDemoUi';
-import { masterLandingDemoDrawerClass } from './MasterLandingDemoCabinetLogo';
-import { masterLandingDemoDrawerOverlayClass } from './masterLandingDemoOverlayTheme';
+import { MasterLandingDemoDrawer } from './MasterLandingDemoDrawer';
 import { afterDemoLayout, MasterLandingDemoSheet, scrollDemoToTop } from './MasterLandingDemoSheet';
 import {
   landingDemoTap,
+  useLandingDemoLayout,
   useLandingDemoReducedMotion,
 } from './masterLandingDemoShared';
 
@@ -28,6 +29,7 @@ export const MasterLandingBookingNotifyDemo: FC = () => {
   const stageRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useLandingDemoReducedMotion();
+  const { mobile } = useLandingDemoLayout();
 
   const [phase, setPhase] = useState<DemoPhase>('idle');
   const [showToast, setShowToast] = useState(false);
@@ -152,18 +154,22 @@ export const MasterLandingBookingNotifyDemo: FC = () => {
     >
       <MasterLandingDemoNotificationToast visible={showToast} />
 
-      <MasterLandingNotificationsHub
-        showIncoming={showIncoming}
-        showConfirmed={showConfirmed}
-        selectedIncoming={selectedIncoming || notifPressing}
-        scrollRef={scrollRef}
-      />
+      <div
+        className={`${masterDemoMobileHubClass} ${
+          mobile && detailOpen ? masterDemoMobileHubUnderSheetClass : ''
+        }`}
+      >
+        <MasterLandingNotificationsHub
+          showIncoming={showIncoming}
+          showConfirmed={showConfirmed}
+          selectedIncoming={selectedIncoming || notifPressing}
+          scrollRef={scrollRef}
+        />
+      </div>
 
       {detailOpen ? (
-        <>
-          <div className={masterLandingDemoDrawerOverlayClass} aria-hidden />
-          <div className={masterLandingDemoDrawerClass}>
-            <MasterLandingDemoSheet
+        <MasterLandingDemoDrawer>
+          <MasterLandingDemoSheet
               title="Новая заявка"
               ariaLabel="Демо: детали уведомления"
               footer={<div className="hidden" aria-hidden />}
@@ -173,8 +179,7 @@ export const MasterLandingBookingNotifyDemo: FC = () => {
                 confirmPressed={confirmPressing}
               />
             </MasterLandingDemoSheet>
-          </div>
-        </>
+        </MasterLandingDemoDrawer>
       ) : null}
 
       {!reducedMotion ? (

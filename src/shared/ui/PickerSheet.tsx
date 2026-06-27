@@ -58,7 +58,7 @@ export function PickerSheet({ open, onClose, title, subtitle, children, footer }
         aria-modal="true"
         data-admin-picker-sheet
         aria-labelledby="picker-sheet-title"
-        className="fixed inset-x-0 bottom-0 z-10 flex max-h-[min(85dvh,640px)] w-full flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_-20px_56px_rgba(17,24,39,0.2)] lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:max-h-[min(80dvh,720px)] lg:w-[min(100%,28rem)] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[28px]"
+        className="fixed inset-x-0 bottom-0 z-10 flex h-auto max-h-[min(85dvh,640px)] w-full flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_-20px_56px_rgba(17,24,39,0.2)] lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:max-h-[min(80dvh,720px)] lg:w-[min(100%,28rem)] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[28px]"
       >
         <div className="mx-auto mb-3 mt-3 h-1 w-10 shrink-0 rounded-full bg-[#EAECEF] lg:hidden" aria-hidden />
 
@@ -86,15 +86,17 @@ export function PickerSheet({ open, onClose, title, subtitle, children, footer }
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-[18px] py-5 lg:px-6">
-          {children}
-        </div>
-
-        {footer ? (
-          <div className="shrink-0 border-t border-[#eef0f5] bg-white px-[18px] py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] lg:px-6">
-            {footer}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 w-full max-h-full shrink self-start overflow-y-auto overflow-x-hidden overscroll-contain px-[18px] py-5 lg:px-6">
+            {children}
           </div>
-        ) : null}
+
+          {footer ? (
+            <div className="mt-auto shrink-0 border-t border-[#eef0f5] bg-white px-[18px] pt-3 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] lg:px-6">
+              {footer}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>,
     document.body,

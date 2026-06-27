@@ -55,6 +55,7 @@ export function ServicesCatalogCategoryMenu({
   }, [open]);
 
   const pick = (code: string | null) => {
+    (document.activeElement as HTMLElement | null)?.blur?.();
     onSelect(code);
     setOpen(false);
   };

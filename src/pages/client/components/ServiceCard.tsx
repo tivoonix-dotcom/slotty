@@ -297,7 +297,7 @@ function ServiceCardGridMetaLines({
   const lineClass = `inline-flex min-w-0 max-w-full items-center gap-1 font-medium leading-tight ${textSize}`;
 
   return (
-    <div className={`flex flex-col gap-0.5 ${density === 'comfortable' ? 'mb-2' : 'mb-1.5'}`}>
+    <div className={`mt-2 flex flex-col ${density === 'comfortable' ? 'mb-2.5 gap-1' : 'mb-2 gap-1'}`}>
       {locationLine ? (
         <p className={`${lineClass} text-[#8E8E93]`}>
           <HiMapPin className={`shrink-0 ${iconSize}`} aria-hidden />
@@ -344,7 +344,7 @@ function ServiceCardGridMasterFooter({
       : 'line-clamp-1 text-[11px] font-semibold leading-tight text-[#111827]';
 
   return (
-    <div className={`mt-auto flex items-center gap-2 ${density === 'comfortable' ? 'pt-2.5' : 'pt-2'}`}>
+    <div className={`mt-auto flex items-center gap-2.5 ${density === 'comfortable' ? 'pt-3' : 'pt-2.5'}`}>
       <MasterCardPortrait
         masterName={service.masterName}
         photoUrl={service.photoUrl}
@@ -404,7 +404,9 @@ function ServiceCardGridMarketplace({
   const choiceBadge = resolveGridChoiceBadge(service);
   const isComfortable = density === 'comfortable';
 
-  const bodyPad = isComfortable ? 'px-2.5 pb-3 pt-2 sm:px-3 sm:pb-3.5' : 'px-2 pb-2.5 pt-1.5 sm:px-2.5 sm:pb-3';
+  const bodyPad = isComfortable
+    ? 'px-3 pb-4 pt-2.5 sm:px-3.5 sm:pb-4'
+    : 'px-2.5 pb-3 pt-2 sm:px-3 sm:pb-3.5';
 
   return (
     <Link
@@ -454,8 +456,8 @@ function ServiceCardGridMarketplace({
         </h3>
 
         <p
-          className={`mt-1.5 text-right font-extrabold leading-none tracking-[-0.03em] text-[#111827] tabular-nums ${
-            isComfortable ? 'text-[20px] sm:text-[21px]' : 'text-[17px] sm:text-[18px]'
+          className={`mt-2 text-right font-extrabold leading-none tracking-[-0.03em] text-[#111827] tabular-nums ${
+            isComfortable ? 'text-[20px] sm:mt-2.5 sm:text-[21px]' : 'text-[17px] sm:text-[18px]'
           }`}
         >
           {priceLabel}

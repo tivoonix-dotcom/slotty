@@ -1,12 +1,12 @@
 export type PaymentMethodId = 'bepaid' | 'erip' | 'visa' | 'mastercard' | 'belkart';
 
-/** Логотипы платёжных систем в `public/photos/pay/`. */
+/** Логотипы платёжных систем в `public/photos/pay/` (генерация: `node scripts/generate-payment-logos.mjs`). */
 export const PAYMENT_PHOTO_ASSETS = {
-  bepaid: '/photos/pay/BePaid_idGp8jSDbK_0.webp',
-  erip: '/photos/pay/ерип.svg',
-  visa: '/photos/pay/Visa-Logo-PNG-Pic.webp',
-  mastercard: '/photos/pay/ma_symbol.svg',
-  belkart: '/photos/pay/belcart.webp',
+  bepaid: '/photos/pay/bepaid.webp',
+  erip: '/photos/pay/erip.webp',
+  visa: '/photos/pay/visa.webp',
+  mastercard: '/photos/pay/mastercard.webp',
+  belkart: '/photos/pay/belkart.webp',
 } as const;
 
 export type PaymentMethodConfig = {
@@ -16,28 +16,25 @@ export type PaymentMethodConfig = {
   src: string;
 };
 
-/** Доп. классы: у Visa в файле лишний прозрачный низ — подтягиваем визуально. */
-export function paymentLogoImageClass(id: PaymentMethodId): string {
-  const base = 'block max-w-full object-contain';
-  if (id === 'visa') return `${base} object-center -mb-2 sm:-mb-2.5`;
-  return `${base} object-center`;
+export function paymentLogoImageClass(_id: PaymentMethodId): string {
+  return 'block max-h-full max-w-full object-contain object-center';
 }
 
 /** Компактная строка (футер, блоки доверия). */
 export function paymentLogoCompactHeightClass(id: PaymentMethodId): string {
   switch (id) {
     case 'visa':
-      return 'h-8 w-auto max-w-[5.25rem] sm:h-9 sm:max-w-[6rem]';
+      return 'h-7 w-auto max-w-[3.25rem] sm:h-8 sm:max-w-[3.75rem]';
     case 'mastercard':
-      return 'h-7 w-auto max-w-[3.25rem] sm:h-8';
+      return 'h-6 w-auto max-w-[2.75rem] sm:h-7 sm:max-w-[3.25rem]';
     case 'bepaid':
-      return 'h-7 w-auto max-w-[5.75rem] sm:h-8 sm:max-w-[6.5rem]';
+      return 'h-6 w-auto max-w-[4.5rem] sm:h-7 sm:max-w-[5.25rem]';
     case 'belkart':
-      return 'h-7 w-auto max-w-[6.5rem] sm:h-8';
+      return 'h-6 w-auto max-w-[5rem] sm:h-7 sm:max-w-[5.75rem]';
     case 'erip':
-      return 'h-7 w-auto max-w-[5rem] sm:h-8';
+      return 'h-6 w-auto max-w-[4.25rem] sm:h-7 sm:max-w-[5rem]';
     default:
-      return 'h-7 w-auto max-w-[5rem] sm:h-8';
+      return 'h-6 w-auto max-w-[4.25rem] sm:h-7 sm:max-w-[5rem]';
   }
 }
 
@@ -45,17 +42,17 @@ export function paymentLogoCompactHeightClass(id: PaymentMethodId): string {
 export function paymentLogoHeightClass(id: PaymentMethodId): string {
   switch (id) {
     case 'visa':
-      return 'h-12 w-auto max-w-[11rem] sm:h-14 sm:max-w-[13rem]';
+      return 'h-10 w-auto max-w-[5.5rem] sm:h-11 sm:max-w-[6.25rem]';
     case 'mastercard':
-      return 'h-12 w-auto max-w-[5.5rem] sm:h-14 sm:max-w-[6.5rem]';
+      return 'h-10 w-auto max-w-[4.5rem] sm:h-11 sm:max-w-[5.25rem]';
     case 'bepaid':
-      return 'h-10 w-auto max-w-[9.5rem] sm:h-11 sm:max-w-[10.5rem]';
+      return 'h-9 w-auto max-w-[7.5rem] sm:h-10 sm:max-w-[8.5rem]';
     case 'belkart':
-      return 'h-10 w-auto max-w-[9rem] sm:h-11 sm:max-w-[10rem]';
+      return 'h-9 w-auto max-w-[8rem] sm:h-10 sm:max-w-[9rem]';
     case 'erip':
-      return 'h-9 w-auto max-w-[8.5rem] sm:h-10 sm:max-w-[9.5rem]';
+      return 'h-8 w-auto max-w-[7rem] sm:h-9 sm:max-w-[8rem]';
     default:
-      return 'h-10 w-auto max-w-[9.5rem] sm:h-12 sm:max-w-[11rem]';
+      return 'h-9 w-auto max-w-[7.5rem] sm:h-10 sm:max-w-[8.5rem]';
   }
 }
 

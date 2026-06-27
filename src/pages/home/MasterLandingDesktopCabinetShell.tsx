@@ -18,9 +18,9 @@ import { adminDesktopNavItemClass, adminSidebarTariffCard } from '../admin/admin
 import { AdminTariffSidebarCardContent } from '../admin/shared/AdminTariffSidebarCardContent';
 import { AdminSectionAttentionBadge } from '../admin/shared/AdminSectionAttentionBadge';
 import {
+  masterLandingDemoDesktopDrawerClass,
   masterLandingDemoHeaderRowPx,
   MasterLandingDemoCabinetLogo,
-  masterLandingDemoDrawerClass,
   masterLandingDemoShellRound,
   masterLandingDemoSidebarColClass,
 } from './MasterLandingDemoCabinetLogo';
@@ -231,7 +231,7 @@ export const MasterLandingDesktopCabinetShell: FC<MasterLandingDesktopCabinetShe
             <DemoBackdrop section={activeSection} />
           </div>
           <div className={masterLandingDemoShellBackdropClass} aria-hidden />
-          <div className={masterLandingDemoDrawerClass}>{children}</div>
+          <div className={masterLandingDemoDesktopDrawerClass}>{children}</div>
         </>
       ) : (
         <div className="absolute inset-0 z-10 flex min-h-0 flex-col overflow-hidden rounded-[inherit] bg-[#f6f7fb]">

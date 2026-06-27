@@ -117,7 +117,7 @@ export function OnboardingStep5Services({
       className={`overflow-hidden rounded-[16px] ring-1 ring-[#EAECEF] ${catalogCanvasClass}`}
       aria-label="Превью услуг в каталоге"
     >
-      <div className="pointer-events-none p-4 sm:p-5">
+      <div className="pointer-events-none p-3 sm:p-4">
         <MasterServicesList
           services={previewServices}
           categoryCode={categoryCode ?? undefined}

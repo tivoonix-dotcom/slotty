@@ -10,12 +10,13 @@ import {
 } from '../../../features/billing/model/masterPlans';
 import {
   getBillingPlans,
-  switchMySubscriptionMock,
   type BillingPlanDto,
 } from '../../../features/admin/api/adminBillingApi';
 import {
   cancelSubscriptionAutoRenew,
   createBillingCheckout,
+  createManualTopupCheckout,
+  deletePaymentMethod,
   getBillingSubscription,
   listBillingPayments,
   resumeSubscriptionAutoRenew,
@@ -24,6 +25,8 @@ import {
   type BillingPaymentDto,
   type BillingSubscriptionResponse,
 } from '../../../features/billing/api/masterBillingApi';
+import type { BillingPackageMonths } from '../../../features/billing/billingCopy';
+import { BILLING_COPY, billingPackageLabel, formatBillingUserError } from '../../../features/billing/billingCopy';
 import { getMasterDraft } from '../../../features/master/model/masterDraftStorage';
 import { ensureDemoAppointmentsSeeded } from '../../../features/master/model/demoMasterAppointments';
 import { AdminBottomSheet } from '../shared/AdminBottomSheet';
@@ -51,19 +54,20 @@ import {
 import { BillingSubscriptionStatusPanel } from './BillingSubscriptionStatusPanel';
 import { BillingPaymentHistorySheet } from './BillingPaymentHistorySheet';
 import { BillingPaymentDetailSheet } from './BillingPaymentDetailSheet';
+import { BillingPeriodSwitch } from './BillingPeriodSwitch';
 import { ProSubscriptionConsentModal } from './ProSubscriptionConsentModal';
 
 function planCodeToPlanId(code: string): PlanId {
   return code === 'pro' ? 'pro' : 'free';
 }
 
-function formatPriceFromPlans(plans: BillingPlanDto[], planId: PlanId, period: BillingPeriod): string {
+function formatPriceFromPlans(plans: BillingPlanDto[], planId: PlanId, packageMonths: BillingPackageMonths): string {
   const p = plans.find((x) => x.code === planId);
-  if (!p) return formatPlanPrice(planId, period);
+  if (!p) return formatPlanPrice(planId, packageMonths === 12 ? 'year' : 'month');
   if (p.code === 'free') return '0 BYN / месяц';
-  const n = period === 'year' ? p.priceYear : p.priceMonth;
-  const unit = period === 'year' ? 'год' : 'месяц';
-  return `${n} BYN / ${unit}`;
+  if (packageMonths === 12) return `${p.priceYear} BYN / ${billingPackageLabel(12)}`;
+  if (packageMonths === 3) return `${p.priceMonth * 3} BYN / ${billingPackageLabel(3)}`;
+  return `${p.priceMonth} BYN / ${billingPackageLabel(1)}`;
 }
 
 function splitPlanPrice(line: string): { value: string; unit: string } {
@@ -78,13 +82,15 @@ export function AdminBillingTab() {
   const { entitlements, limits: entitlementsLimits } = useMasterPlanEntitlements();
 
   const [planState, setPlanState] = useState<MasterPlanState>(() => getCurrentMasterPlan());
-  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(() => getCurrentMasterPlan().billingPeriod);
+  const [packageMonths, setPackageMonths] = useState<BillingPackageMonths>(1);
+  const [topupOpen, setTopupOpen] = useState(false);
   const [mockProOpen, setMockProOpen] = useState(false);
   const [consentOpen, setConsentOpen] = useState(false);
   const [proPaymentPending, setProPaymentPending] = useState(false);
   const { toast, showToast, showErrorToast, clearToast } = useAdminToast();
 
   const [plansError, setPlansError] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState(false);
   const [apiLoading, setApiLoading] = useState(() => Boolean(useCabinetApi));
   const [apiPlans, setApiPlans] = useState<BillingPlanDto[] | null>(null);
   const [billingDetail, setBillingDetail] = useState<BillingSubscriptionResponse | null>(null);
@@ -94,6 +100,8 @@ export function AdminBillingTab() {
   const [showHistory, setShowHistory] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<BillingPaymentDto | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [cardActionError, setCardActionError] = useState<string | null>(null);
+  const [loadRetryKey, setLoadRetryKey] = useState(0);
 
   const reloadBilling = useCallback(async () => {
     if (!useCabinetApi) return;
@@ -114,16 +122,19 @@ export function AdminBillingTab() {
     let cancelled = false;
     (async () => {
       setApiLoading(true);
+      setPlansError(false);
+      setSubscriptionError(false);
       try {
         const [plans, billing] = await Promise.all([getBillingPlans(), getBillingSubscription()]);
         if (cancelled) return;
         setApiPlans(plans);
         setBillingDetail(billing);
         applySubscription(billing.subscription);
-        setPlansError(false);
       } catch {
         if (cancelled) return;
         setPlansError(true);
+        setSubscriptionError(true);
+        setBillingDetail(null);
       } finally {
         if (!cancelled) setApiLoading(false);
       }
@@ -131,12 +142,12 @@ export function AdminBillingTab() {
     return () => {
       cancelled = true;
     };
-  }, [useCabinetApi, applySubscription]);
+  }, [useCabinetApi, applySubscription, loadRetryKey]);
 
   useEffect(() => {
-    if (!subscription) return;
-    setBillingPeriod(subscription.billingPeriod === 'year' ? 'year' : 'month');
-  }, [subscription?.id]);
+    if (!billingDetail?.billingPackageMonths) return;
+    setPackageMonths(billingDetail.billingPackageMonths);
+  }, [billingDetail?.billingPackageMonths, billingDetail?.subscription?.id]);
 
   const apiSub = subscription;
   const useLiveBilling = Boolean(useCabinetApi && apiSub);
@@ -155,7 +166,12 @@ export function AdminBillingTab() {
       }
     : planState;
 
-  const billingPeriodView: BillingPeriod = billingPeriod;
+  const activeSubscriptionPackageMonths: BillingPackageMonths =
+    billingDetail?.billingPackageMonths ??
+    (billingDetail?.billingPeriod === 'year' ? 12 : 1);
+  const proCardIsCurrent = isProEntitled && packageMonths === activeSubscriptionPackageMonths;
+
+  const billingPeriodView: BillingPeriod = packageMonths === 12 ? 'year' : 'month';
 
   useEffect(() => {
     if (!useLiveBilling) {
@@ -194,78 +210,59 @@ export function AdminBillingTab() {
   const monthlyCount = useLiveBilling && apiSub ? apiSub.usage.monthlyAppointments : monthlyCountDemo;
 
   const persistPeriod = useCallback(
-    (next: BillingPeriod) => {
-      if (next === billingPeriod) return;
-      setBillingPeriod(next);
+    (next: BillingPackageMonths) => {
+      if (next === packageMonths) return;
+      setPackageMonths(next);
       if (useLiveBilling) return;
       const merged: MasterPlanState = {
         ...planState,
-        billingPeriod: next,
+        billingPeriod: next === 12 ? 'year' : 'month',
         updatedAt: new Date().toISOString(),
       };
       saveCurrentMasterPlan(merged);
       setPlanState(merged);
     },
-    [billingPeriod, planState, useLiveBilling],
+    [packageMonths, planState, useLiveBilling],
   );
 
   const applyPlan = useCallback(
     async (plan: PlanId) => {
       if (useLiveBilling) {
-        try {
-          const updated = await switchMySubscriptionMock(plan, billingPeriodView);
-          applySubscription(updated);
-          await reloadBilling();
-          setBillingPeriod(updated.billingPeriod === 'year' ? 'year' : 'month');
-          showToast(plan === 'free' ? 'Тариф Free' : 'Тариф обновлён');
-        } catch (e) {
-          showErrorToast(e instanceof Error ? e.message : 'Не удалось сменить тариф');
-        }
+        showErrorToast('Смена тарифа без оплаты недоступна в production');
         return;
       }
       const next: MasterPlanState = {
         plan,
-        billingPeriod,
+        billingPeriod: packageMonths === 12 ? 'year' : 'month',
         updatedAt: new Date().toISOString(),
       };
       saveCurrentMasterPlan(next);
       setPlanState(next);
     },
-    [applySubscription, billingPeriod, billingPeriodView, reloadBilling, showErrorToast, showToast, useLiveBilling],
+    [planState, packageMonths, showToast, useLiveBilling, showErrorToast],
   );
 
   const confirmMockDemo = useCallback(() => {
     const next: MasterPlanState = {
       plan: 'pro',
-      billingPeriod,
+      billingPeriod: packageMonths === 12 ? 'year' : 'month',
       updatedAt: new Date().toISOString(),
     };
     saveCurrentMasterPlan(next);
     setPlanState(next);
     setMockProOpen(false);
-    showToast('Тариф Pro подключён');
-  }, [billingPeriod, showToast]);
+    showToast('Тариф Pro (demo)');
+  }, [packageMonths, showToast]);
 
   const confirmMock = useCallback(
-    async (promoCode?: string | null) => {
+    async (_promoCode?: string | null) => {
       if (useLiveBilling) {
-        try {
-          const updated = await switchMySubscriptionMock('pro', billingPeriodView, {
-            promoCode: promoCode ?? null,
-          });
-          applySubscription(updated);
-          await reloadBilling();
-          setBillingPeriod(updated.billingPeriod === 'year' ? 'year' : 'month');
-          setMockProOpen(false);
-          showToast('Тариф Pro подключён');
-        } catch (e) {
-          showErrorToast(e instanceof Error ? e.message : 'Не удалось подключить Pro');
-        }
+        showErrorToast('Оплата доступна только через bePaid');
         return;
       }
       confirmMockDemo();
     },
-    [applySubscription, billingPeriodView, confirmMockDemo, reloadBilling, showErrorToast, showToast, useLiveBilling],
+    [confirmMockDemo, showErrorToast, useLiveBilling],
   );
 
   const loadPayments = useCallback(async () => {
@@ -290,18 +287,51 @@ export function AdminBillingTab() {
       const origin = readPublicAppOrigin();
       const returnUrl = `${origin}${PAYMENT_SUCCESS_PATH}?from=pro`;
       const result = await createBillingCheckout({
-        billingPeriod: billingPeriodView,
+        billingPackageMonths: packageMonths,
         returnUrl,
         consentAccepted: true,
       });
       setConsentOpen(false);
       window.location.assign(result.paymentUrl);
     } catch (e) {
-      showErrorToast(e instanceof Error ? e.message : 'Не удалось создать платёж');
+      showErrorToast(formatBillingUserError(e, BILLING_COPY.checkoutFailed));
     } finally {
       setCheckoutLoading(false);
     }
-  }, [billingPeriodView, showErrorToast]);
+  }, [packageMonths, showErrorToast]);
+
+  const handleTopup = useCallback(async () => {
+    setBillingBusy(true);
+    try {
+      const origin = readPublicAppOrigin();
+      const returnUrl = `${origin}${PAYMENT_SUCCESS_PATH}?from=topup`;
+      const { paymentUrl, paymentId } = await createManualTopupCheckout({
+        billingPackageMonths: packageMonths,
+        returnUrl,
+      });
+      setTopupOpen(false);
+      window.location.assign(paymentUrl);
+      void paymentId;
+    } catch (e) {
+      showErrorToast(formatBillingUserError(e, BILLING_COPY.topupFailed));
+      setBillingBusy(false);
+    }
+  }, [packageMonths, showErrorToast]);
+
+  const handleDeleteCard = useCallback(async () => {
+    if (!window.confirm(BILLING_COPY.deleteCardConfirm)) return;
+    setBillingBusy(true);
+    try {
+      await deletePaymentMethod();
+      await reloadBilling();
+      void refreshSubscription?.();
+      showToast(BILLING_COPY.cardDeleted);
+    } catch (e) {
+      showErrorToast(formatBillingUserError(e, BILLING_COPY.billingActionFailed));
+    } finally {
+      setBillingBusy(false);
+    }
+  }, [reloadBilling, refreshSubscription, showErrorToast, showToast]);
 
   const runBillingAction = useCallback(
     async (fn: () => Promise<void>) => {
@@ -311,7 +341,7 @@ export function AdminBillingTab() {
         await reloadBilling();
         void refreshSubscription?.();
       } catch (e) {
-        showErrorToast(e instanceof Error ? e.message : 'Ошибка');
+        showErrorToast(formatBillingUserError(e, BILLING_COPY.billingActionFailed));
       } finally {
         setBillingBusy(false);
       }
@@ -320,18 +350,28 @@ export function AdminBillingTab() {
   );
 
   const redirectToPayment = useCallback(
-    async (createUrl: () => Promise<{ paymentUrl: string }>) => {
+    async (createUrl: () => Promise<{ paymentUrl: string }>, friendlyError: string) => {
       setBillingBusy(true);
+      setCardActionError(null);
       try {
         const { paymentUrl } = await createUrl();
         window.location.assign(paymentUrl);
       } catch (e) {
-        showErrorToast(e instanceof Error ? e.message : 'Не удалось открыть оплату');
+        const msg = formatBillingUserError(e, friendlyError);
+        setCardActionError(msg);
+        showErrorToast(msg);
         setBillingBusy(false);
       }
     },
     [showErrorToast],
   );
+
+  const handleUpdateCard = useCallback(() => {
+    void redirectToPayment(
+      () => updatePaymentMethodCheckout(`${readPublicAppOrigin()}${PAYMENT_SUCCESS_PATH}?from=card`),
+            BILLING_COPY.retryPaymentFailed,
+    );
+  }, [redirectToPayment]);
 
   const maxSvc = Math.max(1, limits.maxServices ?? 3);
   const maxAppt = Math.max(1, limits.maxMonthlyAppointments ?? 20);
@@ -341,15 +381,16 @@ export function AdminBillingTab() {
 
   const freePriceLine =
     useLiveBilling && apiPlans
-      ? formatPriceFromPlans(apiPlans, 'free', billingPeriodView)
+      ? formatPriceFromPlans(apiPlans, 'free', packageMonths)
       : formatPlanPrice('free', billingPeriodView);
 
   const proPriceLine =
     useLiveBilling && apiPlans
-      ? formatPriceFromPlans(apiPlans, 'pro', billingPeriodView)
+      ? formatPriceFromPlans(apiPlans, 'pro', packageMonths)
       : formatPlanPrice('pro', billingPeriodView);
 
   const proPriceParts = splitPlanPrice(proPriceLine);
+  const proPriceUnit = ` / ${billingPackageLabel(packageMonths)}`;
 
   const showProCheckoutCta =
     !useLiveBilling || !billingDetail || uiState === 'free' || uiState === 'expired' || uiState === 'past_due';
@@ -363,14 +404,23 @@ export function AdminBillingTab() {
         </div>
       ) : null}
 
-      {useCabinetApi && !cabinetLoading && !subscription ? (
-        <p className={billingErrorBanner}>
-          Не удалось загрузить подписку. Обновите страницу или повторите позже.
-        </p>
-      ) : null}
-
-      {plansError ? (
-        <p className={billingErrorBanner}>Не удалось загрузить список тарифов.</p>
+      {useCabinetApi && !cabinetLoading && !apiLoading && (plansError || subscriptionError) ? (
+        <div className={`${billingErrorBanner} space-y-2`}>
+          <p>
+            {plansError && subscriptionError
+              ? `${BILLING_COPY.plansLoadFailed} ${BILLING_COPY.subscriptionLoadFailed}`
+              : plansError
+                ? BILLING_COPY.plansLoadFailed
+                : BILLING_COPY.subscriptionLoadFailed}
+          </p>
+          <button
+            type="button"
+            onClick={() => setLoadRetryKey((k) => k + 1)}
+            className={billingOutlineBtn}
+          >
+            {BILLING_COPY.retryAction}
+          </button>
+        </div>
       ) : null}
     </>
   );
@@ -379,14 +429,8 @@ export function AdminBillingTab() {
   const proActive = proActiveCard;
   const freePriceValue = freePriceLine.split(' / ')[0] ?? freePriceLine;
   const freePriceUnit = freePriceLine.includes(' / ') ? ` / ${freePriceLine.split(' / ')[1]}` : '';
-  const proPriceUnit =
-    proPriceParts.unit && proPriceParts.unit.startsWith('/')
-      ? proPriceParts.unit
-      : proPriceParts.unit
-        ? ` / ${proPriceParts.unit}`
-        : '/ месяц';
 
-  const demoNote = !useLiveBilling ? (
+  const demoNote = !useLiveBilling && isDevDemoAllowed() ? (
     <p className={billingSoftNote}>
       Оплата картой появится позже. Сейчас Pro можно активировать в demo-режиме для проверки кабинета.
     </p>
@@ -397,7 +441,10 @@ export function AdminBillingTab() {
       <BillingSubscriptionStatusPanel
         billing={billingDetail}
         busy={billingBusy}
+        cardActionError={cardActionError}
         onConnectPro={() => setConsentOpen(true)}
+        onManualTopup={() => setTopupOpen(true)}
+        onDeleteCard={() => void handleDeleteCard()}
         onCancelAutoRenew={() =>
           void runBillingAction(async () => {
             await cancelSubscriptionAutoRenew();
@@ -410,14 +457,12 @@ export function AdminBillingTab() {
             showToast('Автопродление включено');
           })
         }
-        onUpdateCard={() =>
-          void redirectToPayment(() =>
-            updatePaymentMethodCheckout(`${readPublicAppOrigin()}${PAYMENT_SUCCESS_PATH}?from=card`),
-          )
-        }
+        onUpdateCard={handleUpdateCard}
+        onRetryCardAction={handleUpdateCard}
         onRetryPayment={() =>
-          void redirectToPayment(() =>
-            retrySubscriptionPayment(`${readPublicAppOrigin()}${PAYMENT_SUCCESS_PATH}?from=retry`),
+          void redirectToPayment(
+            () => retrySubscriptionPayment(`${readPublicAppOrigin()}${PAYMENT_SUCCESS_PATH}?from=retry`),
+            BILLING_COPY.retryPaymentFailed,
           )
         }
         onShowHistory={() => setShowHistory(true)}
@@ -427,8 +472,8 @@ export function AdminBillingTab() {
   const plansSection = (
     <BillingPlansSection
       plan={planStateView.plan}
-      billingPeriod={billingPeriodView}
-      onPeriodChange={persistPeriod}
+      packageMonths={packageMonths}
+      onPackageChange={persistPeriod}
       servicesLen={servicesLen}
       maxSvc={maxSvc}
       monthlyCount={monthlyCount}
@@ -440,8 +485,9 @@ export function AdminBillingTab() {
       proPriceUnit={proPriceUnit}
       freeActive={freeActive}
       proActive={proActive}
+      proCardIsCurrent={proCardIsCurrent}
       showProCheckoutCta={showProCheckoutCta}
-      proCtaLabel="Подключить Pro"
+      proCtaLabel={BILLING_COPY.connectPro}
       useLiveBilling={useLiveBilling}
       showPaymentLogos
       proPaymentPendingBanner={
@@ -455,8 +501,15 @@ export function AdminBillingTab() {
       demoNote={demoNote}
       onSelectFree={() => void applyPlan('free')}
       onSelectPro={() => {
-        if (useLiveBilling) setConsentOpen(true);
-        else setMockProOpen(true);
+        if (useLiveBilling) {
+          if (isProEntitled && uiState !== 'past_due' && uiState !== 'free' && uiState !== 'expired') {
+            setTopupOpen(true);
+          } else {
+            setConsentOpen(true);
+          }
+        } else {
+          setMockProOpen(true);
+        }
       }}
     />
   );
@@ -509,11 +562,30 @@ export function AdminBillingTab() {
         open={consentOpen && useLiveBilling}
         onClose={() => setConsentOpen(false)}
         amountLabel={proPriceParts.value}
-        billingPeriod={billingPeriodView}
+        packageMonths={packageMonths}
         autoRenewLegalAllowed={billingDetail?.autoRenewLegalAllowed ?? false}
         loading={checkoutLoading}
         onConfirm={handleCheckout}
       />
+
+      <AdminBottomSheet
+        open={topupOpen}
+        onClose={() => setTopupOpen(false)}
+        title={BILLING_COPY.extendPro}
+        variant="catalog"
+      >
+        <div className="space-y-4 px-1">
+          <BillingPeriodSwitch packageMonths={packageMonths} onPackage={persistPeriod} />
+          <button
+            type="button"
+            disabled={billingBusy}
+            onClick={() => void handleTopup()}
+            className={billingPinkBtn}
+          >
+            {BILLING_COPY.extendPro}
+          </button>
+        </div>
+      </AdminBottomSheet>
 
       <AdminBottomSheet
         open={mockProOpen}

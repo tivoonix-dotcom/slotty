@@ -298,7 +298,7 @@ export function SlottySelect({
       <PickerSheet
         open={open && useSheet}
         onClose={close}
-        title={sheetTitle}
+        title={ariaLabel?.trim() || sheetTitle}
         subtitle={sheetSubtitle}
         footer={
           <button type="button" className={pickerSheetPrimaryBtn} onClick={close}>

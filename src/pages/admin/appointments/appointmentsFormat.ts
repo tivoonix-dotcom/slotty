@@ -6,6 +6,7 @@ import {
 import { dbStatusToUi, isUpcomingTabStatus } from '../../../features/appointments/appointmentStatus';
 import { profileDisplayInitials } from '../../../features/profile/lib/profileDisplayAvatar';
 import { formatBynRu } from '../overview/overviewFormat';
+import { resolveClientDisplayName } from './appointmentDetailHelpers';
 import { formatPendingDeadline } from './formatPendingDeadline';
 import type { RequestsFeatureFilter, RequestsPeriodFilter } from './appointmentsTypes';
 
@@ -242,6 +243,26 @@ export function pickNearestUpcoming(
   const candidates = [...pending, ...upcoming];
   if (!candidates.length) return null;
   return [...candidates].sort(compareAppointmentsByDateAsc)[0] ?? null;
+}
+
+export function filterHistoryBySearch(
+  rows: DemoMasterAppointment[],
+  query: string,
+): DemoMasterAppointment[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return rows;
+
+  return rows.filter((row) => {
+    const haystack = [
+      resolveClientDisplayName(row),
+      row.serviceTitle,
+      row.contact ?? '',
+      row.clientNote ?? '',
+    ]
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(q);
+  });
 }
 
 export function filterHistoryByPeriod(

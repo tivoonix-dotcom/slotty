@@ -2,12 +2,11 @@ import { useCallback, useEffect, useRef, useState, type FC } from 'react';
 import { BY } from 'country-flag-icons/react/1x1';
 import { sheetFieldClass, sheetLabelClass } from '../admin/profile/adminProfileCabinetTheme';
 import { centerInLandingStage, LandingDemoCursor } from './homeLandingDemoCursor';
-import { masterDemoFieldActive, masterDemoFormPanel } from './homeLandingMasterDemoTheme';
-import { masterLandingDemoDrawerClass } from './MasterLandingDemoCabinetLogo';
+import { masterDemoFieldActive, masterDemoFormPanel, masterDemoMobileHubClass, masterDemoMobileHubUnderSheetClass } from './homeLandingMasterDemoTheme';
+import { MasterLandingDemoDrawer } from './MasterLandingDemoDrawer';
 import {
   MASTER_LANDING_DEMO_MASTER_NAME,
 } from './masterLandingDemoPersona';
-import { masterLandingDemoDrawerOverlayClass } from './masterLandingDemoOverlayTheme';
 import { MasterLandingProfileHub } from './masterLandingProfileDemoUi';
 import {
   afterDemoLayout,
@@ -19,6 +18,7 @@ import {
 import {
   landingDemoTap,
   landingDemoType,
+  useLandingDemoLayout,
   useLandingDemoReducedMotion,
 } from './masterLandingDemoShared';
 
@@ -42,6 +42,7 @@ export const MasterLandingProfileDemo: FC = () => {
   const stageRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useLandingDemoReducedMotion();
+  const { mobile } = useLandingDemoLayout();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editPressed, setEditPressed] = useState(false);
@@ -172,17 +173,21 @@ export const MasterLandingProfileDemo: FC = () => {
       aria-label="Демо: редактирование профиля мастера"
       aria-hidden
     >
-      <MasterLandingProfileHub
-        name={savedName}
-        about={savedAbout}
-        editPressed={editPressed || editPressing}
-      />
+      <div
+        className={`${masterDemoMobileHubClass} ${
+          mobile && drawerOpen ? masterDemoMobileHubUnderSheetClass : ''
+        }`}
+      >
+        <MasterLandingProfileHub
+          name={savedName}
+          about={savedAbout}
+          editPressed={editPressed || editPressing}
+        />
+      </div>
 
       {drawerOpen ? (
-        <>
-          <div className={masterLandingDemoDrawerOverlayClass} aria-hidden />
-          <div className={masterLandingDemoDrawerClass}>
-            <MasterLandingDemoSheet
+        <MasterLandingDemoDrawer>
+          <MasterLandingDemoSheet
               scrollRef={scrollRef}
               title="Редактировать профиль"
               ariaLabel="Демо: форма редактирования профиля"
@@ -191,6 +196,7 @@ export const MasterLandingProfileDemo: FC = () => {
                 rightLabel: 'Сохранить',
                 rightPressing: savePressing,
                 rightDataAttr: 'save',
+                compact: mobile,
               })}
             >
               <div className={masterDemoFormPanel}>
@@ -231,8 +237,7 @@ export const MasterLandingProfileDemo: FC = () => {
                 </label>
               </div>
             </MasterLandingDemoSheet>
-          </div>
-        </>
+        </MasterLandingDemoDrawer>
       ) : null}
 
       {!reducedMotion ? (

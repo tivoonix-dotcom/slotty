@@ -28,6 +28,18 @@ const SORT_LABELS: Record<CatalogFiltersState['sort'], string> = {
   duration_desc: 'Дольше',
 };
 
+export function catalogSortTriggerLabel(sort: CatalogFiltersState['sort']): string {
+  if (sort === 'catalog') return 'По умолчанию';
+  return SORT_LABELS[sort];
+}
+
+export function catalogSortSelectOptions(): Array<{ value: CatalogFiltersState['sort']; label: string }> {
+  return (Object.keys(SORT_LABELS) as CatalogFiltersState['sort'][]).map((value) => ({
+    value,
+    label: `Сортировка: ${catalogSortTriggerLabel(value)}`,
+  }));
+}
+
 export function catalogFilterChipLabel(
   key: keyof CatalogFiltersState,
   value: CatalogFiltersState[keyof CatalogFiltersState],

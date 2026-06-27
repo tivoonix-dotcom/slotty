@@ -99,6 +99,7 @@ export function useOverviewTabData({
     () => initialBundle?.reputation ?? null,
   );
   const [reputationTick, setReputationTick] = useState(0);
+  const [refreshTick, setRefreshTick] = useState(0);
   const hasApiDataRef = useRef(false);
   hasApiDataRef.current = proAnalyticsLocked
     ? apiClients !== null && apiReputation !== null
@@ -161,7 +162,7 @@ export function useOverviewTabData({
     return () => {
       cancelled = true;
     };
-  }, [periodPreset, proAnalyticsLocked, useCabinetApi]);
+  }, [periodPreset, proAnalyticsLocked, refreshTick, useCabinetApi, overviewReady]);
 
   /** Актуализация активной вкладки с бэкенда (отдельный endpoint). */
   useEffect(() => {
@@ -217,9 +218,10 @@ export function useOverviewTabData({
     return () => {
       cancelled = true;
     };
-  }, [activeTab, overviewReady, periodPreset, proAnalyticsLocked, reputationTick, useCabinetApi, fetching]);
+  }, [activeTab, overviewReady, periodPreset, proAnalyticsLocked, reputationTick, refreshTick, useCabinetApi, fetching]);
 
   const refreshReputation = () => setReputationTick((n) => n + 1);
+  const refreshOverview = () => setRefreshTick((n) => n + 1);
 
   const reportRange = useCabinetApi && apiPeriodRange ? apiPeriodRange : localRange;
 
@@ -260,6 +262,7 @@ export function useOverviewTabData({
     clients,
     reputation,
     refreshReputation,
+    refreshOverview,
     useCabinetApi,
   };
 }

@@ -158,6 +158,7 @@ export function categoryFiltersToApiParams(
   f: CategoryMasterFilters,
   base: Pick<CatalogListingsParams, 'category' | 'limit'> & { search?: string },
   hasGeo: boolean,
+  geo?: { userLat?: number | null; userLng?: number | null },
 ): CatalogListingsParams {
   const p: CatalogListingsParams = { ...base };
   if (base.search?.trim()) p.search = base.search.trim();
@@ -169,6 +170,14 @@ export function categoryFiltersToApiParams(
   if (f.duration !== 'any') p.duration = f.duration;
   if (f.promotionOnly) p.promotionOnly = true;
   if (f.verifiedOnly) p.verifiedOnly = true;
+  if (f.onlyWithSlots) p.onlyWithSlots = true;
+
+  const lat = geo?.userLat != null && Number.isFinite(geo.userLat) ? geo.userLat : undefined;
+  const lng = geo?.userLng != null && Number.isFinite(geo.userLng) ? geo.userLng : undefined;
+  if (lat != null && lng != null) {
+    p.lat = lat;
+    p.lng = lng;
+  }
 
   if (f.minRating === '45') p.minRating = 4.5;
   else if (f.minRating === '48') p.minRating = 4.8;

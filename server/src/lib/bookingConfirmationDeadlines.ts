@@ -11,8 +11,8 @@ export const BOOKING_CONFIRMATION_RULES = {
   URGENT_THRESHOLD_MS: 3 * 60 * 60_000,
   /** Порог «далёкой» заявки — больше 24 ч до визита. */
   FAR_BOOKING_THRESHOLD_MS: 24 * 60 * 60_000,
-  /** Платформенный минимум до начала слота (MVP: без last-minute). */
-  PLATFORM_MIN_BOOKING_LEAD_MS: 60 * 60_000,
+  /** Платформенный минимум до начала слота (0 = только правила мастера). */
+  PLATFORM_MIN_BOOKING_LEAD_MS: 0,
   /** Напоминание мастеру о pending через N после создания. */
   MASTER_PENDING_REMINDER_MS: 30 * 60_000,
   /** Предупреждение мастеру за N до истечения pending. */

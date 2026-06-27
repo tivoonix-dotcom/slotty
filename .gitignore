@@ -18,7 +18,6 @@ dbpass.txt
 test-results/
 
 # Local payment brand kit (production assets in public/images/payment/)
-public/photos/pay/
 
 # Supabase CLI cache
 supabase/.temp/

@@ -4,11 +4,12 @@ import {
   MasterLandingAppointmentDetail,
   MasterLandingAppointmentsHub,
 } from './masterLandingAppointmentsDemoUi';
-import { masterLandingDemoDrawerClass } from './MasterLandingDemoCabinetLogo';
-import { masterLandingDemoDrawerOverlayClass } from './masterLandingDemoOverlayTheme';
+import { MasterLandingDemoDrawer } from './MasterLandingDemoDrawer';
 import { afterDemoLayout, MasterLandingDemoSheet, scrollDemoToTop } from './MasterLandingDemoSheet';
+import { masterDemoMobileHubClass, masterDemoMobileHubUnderSheetClass } from './homeLandingMasterDemoTheme';
 import {
   landingDemoTap,
+  useLandingDemoLayout,
   useLandingDemoReducedMotion,
 } from './masterLandingDemoShared';
 
@@ -29,6 +30,7 @@ export const MasterLandingAppointmentsDemo: FC = () => {
   const stageRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useLandingDemoReducedMotion();
+  const { mobile } = useLandingDemoLayout();
 
   const [phase, setPhase] = useState<DemoPhase>('idle');
   const [activeTab, setActiveTab] = useState<DemoTab>('requests');
@@ -146,29 +148,32 @@ export const MasterLandingAppointmentsDemo: FC = () => {
       aria-label="Демо: записи мастера"
       aria-hidden
     >
-      <MasterLandingAppointmentsHub
-        activeTab={activeTab}
-        showRequest={showRequest}
-        showUpcoming={showUpcoming}
-        requestPressed={requestPressed || confirmPressing}
-        confirmPressed={confirmPressing}
-        detailsPressed={detailsPressing}
-        scrollRef={scrollRef}
-      />
+      <div
+        className={`${masterDemoMobileHubClass} ${
+          mobile && detailOpen ? masterDemoMobileHubUnderSheetClass : ''
+        }`}
+      >
+        <MasterLandingAppointmentsHub
+          activeTab={activeTab}
+          showRequest={showRequest}
+          showUpcoming={showUpcoming}
+          requestPressed={requestPressed || confirmPressing}
+          confirmPressed={confirmPressing}
+          detailsPressed={detailsPressing}
+          scrollRef={scrollRef}
+        />
+      </div>
 
       {detailOpen ? (
-        <>
-          <div className={masterLandingDemoDrawerOverlayClass} aria-hidden />
-          <div className={masterLandingDemoDrawerClass}>
-            <MasterLandingDemoSheet
+        <MasterLandingDemoDrawer>
+          <MasterLandingDemoSheet
               title="Предстоящая запись"
               ariaLabel="Демо: детали записи"
               footer={<div className="hidden" aria-hidden />}
             >
               <MasterLandingAppointmentDetail />
             </MasterLandingDemoSheet>
-          </div>
-        </>
+        </MasterLandingDemoDrawer>
       ) : null}
 
       {!reducedMotion ? (
