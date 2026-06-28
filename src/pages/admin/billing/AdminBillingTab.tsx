@@ -517,7 +517,14 @@ export function AdminBillingTab() {
   return (
     <>
       <section className={`-mx-4 min-w-0 space-y-3 overflow-x-hidden px-4 pb-8 lg:hidden ${BILLING_PAGE_BG}`}>
-        <BillingMobileHeader plan={planStateView.plan} period={billingPeriodView} />
+        <BillingMobileHeader
+          plan={planStateView.plan}
+          period={billingPeriodView}
+          servicesLabel={servicesHeroLabel}
+          appointmentsLabel={appointmentsHeroLabel}
+          scheduleDays={limits.scheduleHorizonDays}
+          isPro={isPro}
+        />
         {statusBanners}
         {!apiLoading && !(useCabinetApi && cabinetLoading) ? (
           <>

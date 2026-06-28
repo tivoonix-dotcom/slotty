@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { EMPTY_BOOKING_DATE } from '../../shared/lib/emptyDisplayText';
 import { HiClock, HiStar } from 'react-icons/hi2';
 import { masterShowsVerifiedBadge } from '../../features/masters/lib/masterVerifiedBadge';
-import { MasterVerifiedBadge } from '../../shared/ui/MasterVerifiedBadge';
+import { MasterInlineBadges } from '../../shared/ui/MasterInlineBadges';
 import type { DemoMasterProfile, DemoMasterService } from '../../features/services/model/demoMasters';
 import { formatReviewsCountLabel } from '../../features/services/model/demoMasters';
 import { formatDurationMinutes, formatMasterCardSpecialty } from '../client/lib/catalogFormat';
@@ -85,6 +85,7 @@ export function BookingFlowDesktopView({
   ruleLines,
 }: Props) {
   const showVerified = masterShowsVerifiedBadge(master);
+  const showPro = master.isProEntitled === true;
   const slotPromo = selectedSlot?.promotion;
   const displayPrice =
     slotPromo && slotPromo.discountedPrice >= 0 ? slotPromo.discountedPrice : service.price;
@@ -120,8 +121,8 @@ export function BookingFlowDesktopView({
                   >
                     {master.masterName}
                   </Link>
-                  {showVerified ? (
-                    <MasterVerifiedBadge className="mt-1 h-5 w-5 shrink-0 text-[#F47C8C]" />
+                  {showVerified || showPro ? (
+                    <MasterInlineBadges verified={showVerified} pro={showPro} size="md" className="mt-1" />
                   ) : null}
                 </div>
                 <p className="mt-1 text-[14px] font-medium text-[#6B7280]">

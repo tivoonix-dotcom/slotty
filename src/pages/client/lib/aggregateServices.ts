@@ -57,6 +57,7 @@ export type AggregatedServiceCard = {
   /** Расстояние до пользователя, км (API или клиентский расчёт). */
   distanceKm?: number | null;
   isVerified?: boolean;
+  isProEntitled?: boolean;
 };
 
 export type MapListingsGeo = {
@@ -192,6 +193,7 @@ export function mapListingsToServiceCards(
         visitLabel: visitFormatChipLabel(row),
         distanceKm,
         isVerified: row.isVerified ?? false,
+        isProEntitled: row.isProEntitled === true,
       };
     });
 }

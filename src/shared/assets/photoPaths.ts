@@ -94,7 +94,7 @@ export const PHOTOS = {
     noRequests: photo('no-requests-found/empty.webp'),
     urgentHelp: photo('urgent-help/1.webp'),
     status: photo('status/1.webp'),
-    proBadge: photo('pro/badge.webp'),
+    proBadge: photo('pro-icon.png'),
     barbershop: photo('barbershop/fon.webp'),
   },
   podium: (place: 1 | 2 | 3) => photo(`podium/${place}.webp`),

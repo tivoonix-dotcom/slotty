@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { HiCalendarDays, HiPhone } from 'react-icons/hi2';
 import { masterShowsVerifiedBadge } from '../../../features/masters/lib/masterVerifiedBadge';
-import { MasterVerifiedBadge } from '../../../shared/ui/MasterVerifiedBadge';
+import { MasterInlineBadges } from '../../../shared/ui/MasterInlineBadges';
 import type { MasterTopAchievement } from '../lib/resolveMasterTopRankStatus';
 import type { ExtendedMasterProfile, NearestSlotInfo } from './types';
 import { openPhoneDial, resolveMasterCallablePhone } from './masterProfileUtils';
@@ -37,6 +37,7 @@ export function MasterProfileDesktopSidebar({
   );
   const hasSlot = Boolean(nearest?.label);
   const showVerified = masterShowsVerifiedBadge(master);
+  const showPro = master.isProEntitled === true;
 
   const handleCall = useCallback(() => {
     if (callablePhone && openPhoneDial(callablePhone)) return;
@@ -74,10 +75,14 @@ export function MasterProfileDesktopSidebar({
 
         <div className="border-t border-[#F0F0F0] pt-4">
           <p className="mb-2 text-[13px] font-medium text-[#8E8E93]">О мастере</p>
-          {showVerified ? (
+          {showVerified || showPro ? (
             <p className="mb-3 flex items-center gap-1.5 text-[13px] font-medium text-[#374151]">
-              <MasterVerifiedBadge className="h-4 w-4 shrink-0 text-[#F47C8C]" />
-              Проверенный мастер
+              <MasterInlineBadges verified={showVerified} pro={showPro} />
+              {showVerified && showPro
+                ? 'Проверенный Pro мастер'
+                : showPro
+                  ? 'Pro мастер'
+                  : 'Проверенный мастер'}
             </p>
           ) : null}
           <MasterProfileSidebarStats master={master} topAchievements={topAchievements} />

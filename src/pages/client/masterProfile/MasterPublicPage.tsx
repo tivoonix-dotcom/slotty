@@ -219,6 +219,7 @@ export function MasterPublicPage() {
           toolbar={
             <MasterProfileMobileToolbar
               masterName={master.masterName}
+              showPro={master.isProEntitled === true}
               isFavorite={isFavorite}
               onFavoriteToggle={() => void toggleFavorite()}
               favoriteDisabled={favoriteDisabled}

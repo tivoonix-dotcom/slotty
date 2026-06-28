@@ -40,6 +40,7 @@ import {
 import type { MasterTopAchievementKind } from '../lib/resolveMasterTopRankStatus';
 
 import { ImageReveal } from '../../../shared/ui/ImageReveal';
+import { MasterInlineBadges } from '../../../shared/ui/MasterInlineBadges';
 import { MasterCardPortrait } from './MasterCardPortrait';
 import { ServiceBadge, ServicePhotoBadge } from './ServiceBadge';
 import { ServiceCardBookingAside } from './ServiceCardBookingAside';
@@ -64,6 +65,21 @@ type Props = {
   /** compact — 2 колонки mobile; comfortable — 3 колонки desktop */
   density?: 'compact' | 'comfortable';
 };
+
+function ServiceCardMasterName({
+  service,
+  className = '',
+}: {
+  service: AggregatedServiceCard;
+  className?: string;
+}) {
+  return (
+    <span className={`inline-flex min-w-0 max-w-full items-center gap-1 ${className}`}>
+      <span className="truncate">{service.masterName}</span>
+      {service.isProEntitled ? <MasterInlineBadges pro size="xs" /> : null}
+    </span>
+  );
+}
 
 function StatRow({
   icon,
@@ -354,7 +370,7 @@ function ServiceCardGridMasterFooter({
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex min-w-0 items-center justify-between gap-1">
-          <p className={`${nameClass} min-w-0 flex-1`}>{service.masterName}</p>
+          <ServiceCardMasterName service={service} className={`${nameClass} min-w-0 flex-1`} />
           <ServiceCardGridRatingBlock
             avgRating={service.avgRating}
             totalReviews={service.totalReviews}
@@ -583,7 +599,9 @@ export function ServiceCard({ service, layout = 'stack', surface = 'card', densi
             <h3 className="mt-0.5 text-[16px] font-bold leading-snug text-[#111827] lg:text-[17px]">
               {service.title}
             </h3>
-            <p className="mt-0.5 line-clamp-1 text-[13px] text-[#8E8E93] lg:hidden">{service.masterName}</p>
+            <p className="mt-0.5 line-clamp-1 text-[13px] text-[#8E8E93] lg:hidden">
+              <ServiceCardMasterName service={service} />
+            </p>
           </div>
 
           <div className="hidden shrink-0 items-center gap-0 lg:flex">
@@ -660,7 +678,10 @@ export function ServiceCard({ service, layout = 'stack', surface = 'card', densi
               photoMaxEdge={80}
             />
             <div className="min-w-0">
-              <p className="truncate text-[15px] font-bold text-[#111827]">{service.masterName}</p>
+              <ServiceCardMasterName
+                service={service}
+                className="truncate text-[15px] font-bold text-[#111827]"
+              />
               <div className="mt-0.5">
                 <ServiceCardRatingReviews
                   avgRating={service.avgRating}
@@ -747,7 +768,7 @@ export function ServiceCard({ service, layout = 'stack', surface = 'card', densi
               {service.title}
             </h3>
             <p className="mt-1 line-clamp-2 text-[14px] leading-snug text-[#6B7280]">
-              {service.masterName}
+              <ServiceCardMasterName service={service} />
             </p>
             {service.categoryName ? (
               <p className={`mt-2 ${catalogDesktopSectionLabel}`}>

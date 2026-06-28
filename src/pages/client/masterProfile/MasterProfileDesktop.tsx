@@ -62,6 +62,7 @@ export function MasterProfileDesktop({
     <div className={`hidden min-h-dvh lg:block ${masterProfileCanvasClass}`}>
       <MasterProfileDesktopToolbar
         masterName={master.masterName}
+        showPro={master.isProEntitled === true}
         isFavorite={isFavorite}
         favoriteDisabled={favoriteDisabled}
         onFavoriteToggle={onFavoriteToggle}

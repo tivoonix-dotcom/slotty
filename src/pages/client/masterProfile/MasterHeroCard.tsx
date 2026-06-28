@@ -2,7 +2,7 @@ import { LOCATION_EMPTY_SENTINEL } from '../../../shared/lib/emptyDisplayText';
 import type { ReactNode } from 'react';
 import { HiCalendarDays, HiClock, HiHomeModern, HiMapPin, HiStar } from 'react-icons/hi2';
 import { masterShowsVerifiedBadge } from '../../../features/masters/lib/masterVerifiedBadge';
-import { MasterVerifiedBadge } from '../../../shared/ui/MasterVerifiedBadge';
+import { MasterInlineBadges } from '../../../shared/ui/MasterInlineBadges';
 import type { MasterLocation } from '../../../features/profile/model/masterLocation';
 import { MasterCardPortrait } from '../components/MasterCardPortrait';
 import { formatReviewsCountLabel } from '../../../features/services/model/demoMasters';
@@ -100,6 +100,7 @@ export function MasterHeroCard({
   const locationChip = formatProfileLocationChip(master.location);
   const visitChip = visitChipLabel(master.location.visitType);
   const showVerified = masterShowsVerifiedBadge(master);
+  const showPro = master.isProEntitled === true;
   const isNewMaster = master.reviewsCount <= 0 && master.rating <= 0;
   const bookingsCount = estimatedBookingsCount(master.reviewsCount);
   const hasSlot = Boolean(nearest?.label);
@@ -128,8 +129,8 @@ export function MasterHeroCard({
             <h1 className="line-clamp-2 text-[20px] font-semibold leading-snug tracking-tight text-[#111827]">
               {master.masterName}
             </h1>
-            {showVerified ? (
-              <MasterVerifiedBadge className="mt-0.5 h-4 w-4 shrink-0 text-[#F47C8C]" />
+            {showVerified || showPro ? (
+              <MasterInlineBadges verified={showVerified} pro={showPro} className="mt-0.5" />
             ) : null}
           </div>
           <p className="mt-0.5 line-clamp-1 text-[13px] font-medium text-[#6B7280]">

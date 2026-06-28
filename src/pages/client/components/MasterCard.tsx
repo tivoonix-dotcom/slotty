@@ -9,8 +9,7 @@ import {
   HiStar,
 } from 'react-icons/hi2';
 import { masterShowsVerifiedBadge } from '../../../features/masters/lib/masterVerifiedBadge';
-import { MasterProBadge } from '../../../shared/ui/MasterProBadge';
-import { MasterVerifiedBadge } from '../../../shared/ui/MasterVerifiedBadge';
+import { MasterInlineBadges } from '../../../shared/ui/MasterInlineBadges';
 import { getBookingPath, getMasterPath } from '../../../app/paths';
 import type { ServiceListingRecord } from '../../../features/services/model/demoMasters';
 import { formatReviewsCountLabel } from '../../../features/services/model/demoMasters';
@@ -379,10 +378,9 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
               <h3 className="text-[18px] font-bold leading-snug tracking-[-0.02em] text-[#111827]">
                 {listing.masterName}
               </h3>
-              {showVerified ? (
-                <MasterVerifiedBadge className="mt-1 h-4 w-4 shrink-0 text-[#F47C8C]" />
+              {showVerified || showPro ? (
+                <MasterInlineBadges verified={showVerified} pro={showPro} className="mt-0.5" />
               ) : null}
-              {showPro ? <MasterProBadge className="mt-0.5 h-4 w-4" /> : null}
             </div>
 
             <div className="mt-2">
@@ -476,10 +474,9 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
                   <h3 className="min-w-0 truncate text-[16px] font-semibold leading-snug tracking-[-0.02em] text-[#111827]">
                     {listing.masterName}
                   </h3>
-                  {showVerified ? (
-                    <MasterVerifiedBadge className="h-4 w-4 shrink-0 text-[#F47C8C]" />
+                  {showVerified || showPro ? (
+                    <MasterInlineBadges verified={showVerified} pro={showPro} />
                   ) : null}
-                  {showPro ? <MasterProBadge className="h-4 w-4" /> : null}
                 </div>
                 <p className="mt-0.5 truncate text-[12px] font-medium leading-snug text-[#6B7280]">
                   {formatMasterCardSpecialty(listing.category)}
@@ -628,10 +625,9 @@ export function MasterCard({ listing, userLat, userLng, layout = 'list' }: Props
                 <h3 className="min-w-0 truncate text-[16px] font-semibold leading-snug tracking-[-0.02em] text-[#111827]">
                   {listing.masterName}
                 </h3>
-                {showVerified ? (
-                  <MasterVerifiedBadge className="h-4 w-4 shrink-0 text-[#F47C8C]" />
+                {showVerified || showPro ? (
+                  <MasterInlineBadges verified={showVerified} pro={showPro} />
                 ) : null}
-                {showPro ? <MasterProBadge className="h-4 w-4" /> : null}
               </div>
               <p className="mt-0.5 truncate text-[12px] font-medium leading-snug text-[#8E8E93]">
                 {formatMasterCardSpecialty(listing.category)}

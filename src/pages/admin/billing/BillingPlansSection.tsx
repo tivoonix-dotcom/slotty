@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { HiChevronDown } from 'react-icons/hi2';
 import type { BillingPackageMonths } from '../../../features/billing/billingCopy';
 import { BILLING_COPY, billingPackageLabel } from '../../../features/billing/billingCopy';
 import type { PlanId } from '../../../features/billing/model/masterPlans';
@@ -74,32 +75,50 @@ export function BillingPlansSection({
   onSelectFree,
   onSelectPro,
 }: BillingPlansSectionProps) {
+  const [expanded, setExpanded] = useState(false);
   const isFree = plan === 'free';
   const showBePaidOnCta = showPaymentLogos && useLiveBilling && showProCheckoutCta && !proActive;
 
   return (
     <section className={`${billingDesktopCard} w-full min-w-0 p-4 sm:p-5 lg:p-6`}>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+      <button
+        type="button"
+        onClick={() => setExpanded((open) => !open)}
+        aria-expanded={expanded}
+        className="flex w-full items-start justify-between gap-3 text-left transition hover:opacity-90 active:scale-[0.995]"
+      >
+        <div className="min-w-0 flex-1">
           <h2 className="text-[18px] font-bold tracking-[-0.03em] text-[#111827] sm:text-[20px]">
             Выберите тариф
           </h2>
           <p className="mt-1 max-w-xl text-[14px] font-medium leading-snug text-[#6B7280]">
-            Сравните Free и Pro — период оплаты в карточке Pro, использование — в Free.
+            {expanded
+              ? 'Сравните Free и Pro — период оплаты в карточке Pro, использование — в Free.'
+              : 'Нажмите, чтобы сравнить Free и Pro'}
           </p>
         </div>
-      </div>
+        <span
+          className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F5F5F5] text-[#6B7280] transition-transform duration-200 ${
+            expanded ? 'rotate-180' : ''
+          }`}
+          aria-hidden
+        >
+          <HiChevronDown className="h-5 w-5" />
+        </span>
+      </button>
 
-      {liveBillingNote ? <div className="mt-4">{liveBillingNote}</div> : null}
+      {expanded ? (
+        <>
+          {liveBillingNote ? <div className="mt-4">{liveBillingNote}</div> : null}
 
-      {proPaymentPendingBanner || demoNote ? (
-        <div className="mt-4 space-y-3">
-          {proPaymentPendingBanner}
-          {demoNote}
-        </div>
-      ) : null}
+          {proPaymentPendingBanner || demoNote ? (
+            <div className="mt-4 space-y-3">
+              {proPaymentPendingBanner}
+              {demoNote}
+            </div>
+          ) : null}
 
-      <div className="mt-5 grid w-full min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch lg:gap-5">
+          <div className="mt-5 grid w-full min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch lg:gap-5">
         <LandingPricingCard
           className="order-2 h-full lg:order-1"
           name="Free"
@@ -183,6 +202,8 @@ export function BillingPlansSection({
           />
         </div>
       </div>
+        </>
+      ) : null}
     </section>
   );
 }

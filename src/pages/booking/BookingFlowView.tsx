@@ -4,7 +4,7 @@ import { EMPTY_BOOKING_DATE, EMPTY_BOOKING_TIME } from '../../shared/lib/emptyDi
 import { getMasterPath } from '../../app/paths';
 import { HiClock, HiStar } from 'react-icons/hi2';
 import { masterShowsVerifiedBadge } from '../../features/masters/lib/masterVerifiedBadge';
-import { MasterVerifiedBadge } from '../../shared/ui/MasterVerifiedBadge';
+import { MasterInlineBadges } from '../../shared/ui/MasterInlineBadges';
 import type { DemoMasterProfile } from '../../features/services/model/demoMasters';
 import { formatReviewsCountLabel } from '../../features/services/model/demoMasters';
 import type { DemoMasterService } from '../../features/services/model/demoMasters';
@@ -96,6 +96,7 @@ export function BookingFlowView({
   ruleLines,
 }: Props) {
   const showVerified = masterShowsVerifiedBadge(master);
+  const showPro = master.isProEntitled === true;
   const slotPromo = selectedSlot?.promotion;
   const displayPrice =
     slotPromo && slotPromo.discountedPrice >= 0
@@ -176,8 +177,8 @@ export function BookingFlowView({
               >
                 {master.masterName}
               </Link>
-              {showVerified ? (
-                <MasterVerifiedBadge className="mt-0.5 h-4 w-4 shrink-0 text-[#F47C8C]" />
+              {showVerified || showPro ? (
+                <MasterInlineBadges verified={showVerified} pro={showPro} className="mt-0.5" />
               ) : null}
             </div>
             <p className="mt-0.5 text-[13px] font-medium text-[#6B7280]">

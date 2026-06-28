@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { HiArrowLeft, HiFlag, HiHeart, HiShare } from 'react-icons/hi2';
 import { SERVICES_PATH } from '../../../app/paths';
+import { MasterInlineBadges } from '../../../shared/ui/MasterInlineBadges';
 
 type Props = {
   masterName?: string;
+  showPro?: boolean;
   isFavorite: boolean;
   onFavoriteToggle: () => void;
   onShare: () => void;
@@ -16,6 +18,7 @@ type Props = {
 
 export function MasterProfileToolbarInner({
   masterName,
+  showPro = false,
   isFavorite,
   onFavoriteToggle,
   onShare,
@@ -51,14 +54,17 @@ export function MasterProfileToolbarInner({
       </Link>
 
       {masterName?.trim() ? (
-        <p
-          className={`pointer-events-none absolute left-1/2 top-1/2 z-0 max-w-[min(52vw,16rem)] -translate-x-1/2 -translate-y-1/2 truncate px-2 text-center text-[15px] font-bold tracking-[-0.02em] text-[#111827] transition-opacity duration-300 xl:max-w-[20rem] xl:text-[16px] ${
+        <div
+          className={`pointer-events-none absolute left-1/2 top-1/2 z-0 flex max-w-[min(52vw,16rem)] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-1 px-2 transition-opacity duration-300 xl:max-w-[20rem] ${
             showCenterTitle ? 'opacity-100' : 'opacity-0'
           }`}
           aria-hidden={!showCenterTitle}
         >
-          {masterName.trim()}
-        </p>
+          <span className="truncate text-center text-[15px] font-bold tracking-[-0.02em] text-[#111827] xl:text-[16px]">
+            {masterName.trim()}
+          </span>
+          {showPro ? <MasterInlineBadges pro size="xs" /> : null}
+        </div>
       ) : null}
 
       <div className="relative z-10 flex shrink-0 items-center gap-2">

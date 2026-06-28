@@ -11,7 +11,7 @@ import {
 } from '../lib/catalogFormat';
 import { sortMastersByTopRank } from '../../../features/masters/lib/masterTopScore';
 import { TOP_MASTERS_PODIUM_BG, type TopMastersPodiumRank } from '../lib/topMastersPodiumAssets';
-import { catalogPrimaryBtn } from '../servicesCatalog/servicesCatalogTheme';
+import { MasterInlineBadges } from '../../../shared/ui/MasterInlineBadges';
 import { MasterCardPortrait } from './MasterCardPortrait';
 
 type Props = {
@@ -112,9 +112,12 @@ function TopMasterMiniCard({
           </Link>
 
           <Link to={getMasterPath(listing.masterId)} className="w-full text-center">
-            <p className="truncate px-0.5 text-[12px] font-semibold leading-tight text-[#111827]">
-              {shortMasterName(listing.masterName, 14)}
-            </p>
+            <div className="flex items-center justify-center gap-0.5 px-0.5">
+              <p className="truncate text-[12px] font-semibold leading-tight text-[#111827]">
+                {shortMasterName(listing.masterName, 14)}
+              </p>
+              {listing.isProEntitled ? <MasterInlineBadges pro size="xs" /> : null}
+            </div>
             <p className="mt-0.5 truncate text-[10px] font-medium text-[#4B5563]">
               {formatMasterCategoryLabel(listing.category)}
             </p>
@@ -184,9 +187,12 @@ function TopMasterWideCard({ listing, rank }: { listing: ServiceListingRecord; r
         imageClassName="h-14 w-14 rounded-[18px] object-cover"
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-semibold text-[#111827]">
-          {shortMasterName(listing.masterName, 20)}
-        </p>
+        <div className="flex min-w-0 items-center gap-1">
+          <p className="truncate text-[15px] font-semibold text-[#111827]">
+            {shortMasterName(listing.masterName, 20)}
+          </p>
+          {listing.isProEntitled ? <MasterInlineBadges pro size="xs" /> : null}
+        </div>
         <p className="mt-0.5 flex items-center gap-1 text-[12px] text-[#6B7280]">
           {!rating.isNew ? (
             <>

@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
-export const MASTER_PRO_BADGE_SRC = '/photos/pro/badge.webp';
+export const MASTER_PRO_BADGE_SRC = '/photos/pro-icon.png';
 
 const TOOLTIP_Z = 280;
 const TOOLTIP_GAP = 8;

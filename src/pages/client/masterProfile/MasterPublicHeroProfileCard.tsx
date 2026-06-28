@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { HiCalendarDays, HiHomeModern, HiMapPin } from 'react-icons/hi2';
 import { masterShowsVerifiedBadge } from '../../../features/masters/lib/masterVerifiedBadge';
-import { MasterProBadge } from '../../../shared/ui/MasterProBadge';
-import { MasterVerifiedBadge } from '../../../shared/ui/MasterVerifiedBadge';
+import { MasterInlineBadges } from '../../../shared/ui/MasterInlineBadges';
 import { formatMasterCardSpecialty } from '../lib/catalogFormat';
 import { clientPinkBtn } from '../clientTheme';
 import type { ExtendedMasterProfile, NearestSlotInfo } from './types';
@@ -57,7 +56,6 @@ export function MasterPublicHeroProfileCard({
   const locationChip = formatMasterProfileLocationChip(master.location);
   const showVerified = masterShowsVerifiedBadge(master);
   const showPro = master.isProEntitled === true;
-  const badgeSize = isMobile ? 'mt-1 h-4 w-4' : 'mt-1.5 h-6 w-6';
   const hasSlot = Boolean(nearest?.label);
   const [bioExpanded, setBioExpanded] = useState(false);
   const bio = master.bio?.trim() ?? '';
@@ -94,10 +92,14 @@ export function MasterPublicHeroProfileCard({
                 >
                   {master.masterName}
                 </h1>
-                {showVerified ? (
-                  <MasterVerifiedBadge className={`shrink-0 text-[#F47C8C] ${badgeSize}`} />
+                {showVerified || showPro ? (
+                  <MasterInlineBadges
+                    verified={showVerified}
+                    pro={showPro}
+                    size={isMobile ? 'sm' : 'md'}
+                    className={isMobile ? 'mt-1' : 'mt-1.5'}
+                  />
                 ) : null}
-                {showPro ? <MasterProBadge className={badgeSize} /> : null}
               </div>
 
               <p className={`mt-1 font-medium text-[#6B7280] ${isMobile ? 'text-[14px]' : 'text-[15px]'}`}>

@@ -3,6 +3,7 @@ import { MasterProfileToolbarInner } from './MasterProfileToolbarInner';
 
 type Props = {
   masterName: string;
+  showPro?: boolean;
   isFavorite: boolean;
   onFavoriteToggle: () => void;
   onShare: () => void;
@@ -12,6 +13,7 @@ type Props = {
 
 export function MasterProfileDesktopToolbar({
   masterName,
+  showPro = false,
   isFavorite,
   onFavoriteToggle,
   onShare,
@@ -46,6 +48,7 @@ export function MasterProfileDesktopToolbar({
       <div className="w-full px-6 py-2.5 xl:px-10">
         <MasterProfileToolbarInner
           masterName={masterName}
+          showPro={showPro}
           isFavorite={isFavorite}
           onFavoriteToggle={onFavoriteToggle}
           onShare={onShare}
