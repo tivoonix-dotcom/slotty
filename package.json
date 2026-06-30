@@ -10,6 +10,7 @@
     "dev:server": "npm run dev --prefix server",
     "dev:browser": "concurrently -k -n api,web -c blue,magenta \"npm run dev:server\" \"vite --open\"",
     "build": "tsc && vite build && node scripts/prerender-public-pages.mjs",
+    "build:railway": "tsc && vite build",
     "build:no-prerender": "tsc && vite build",
     "prerender": "node scripts/prerender-public-pages.mjs",
     "preview": "vite preview",

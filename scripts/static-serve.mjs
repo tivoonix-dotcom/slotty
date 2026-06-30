@@ -159,6 +159,21 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/slotty-runtime-config.json') {
+    const apiUrl = (process.env.VITE_API_URL || process.env.API_URL || process.env.SITEMAP_API_BASE || '')
+      .trim()
+      .replace(/\/$/, '');
+    const publicAppUrl = (process.env.VITE_PUBLIC_APP_URL || process.env.PUBLIC_APP_URL || '')
+      .trim()
+      .replace(/\/$/, '');
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
+    res.end(JSON.stringify({ apiUrl: apiUrl || null, publicAppUrl: publicAppUrl || null }));
+    return;
+  }
+
   if (req.method === 'GET' && pathname === '/sitemap-masters.xml') {
     void proxySitemapMasters(res);
     return;

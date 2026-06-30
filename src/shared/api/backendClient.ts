@@ -1,9 +1,18 @@
+import { getRuntimeApiBaseUrl } from './runtimeApiConfig';
+
 const AUTH_TOKEN_KEY = 'slotty_auth_token';
 
+function normalizeApiOrigin(raw: string | undefined | null): string | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed) return undefined;
+  return trimmed.replace(/\/$/, '');
+}
+
 export function getApiBaseUrl(): string | undefined {
-  const raw = import.meta.env.VITE_API_URL?.trim();
-  if (!raw) return undefined;
-  return raw.replace(/\/$/, '');
+  return (
+    normalizeApiOrigin(import.meta.env.VITE_API_URL) ??
+    getRuntimeApiBaseUrl()
+  );
 }
 
 export function getStoredAuthToken(): string | null {
@@ -32,7 +41,7 @@ export type ApiFetchOptions = RequestInit & {
 };
 
 /**
- * JSON API to SLOTTY backend. Base URL: `VITE_API_URL` (no trailing slash).
+ * JSON API to SLOTTY backend. Base URL: `VITE_API_URL` или runtime `/slotty-runtime-config.json`.
  * Paths must start with `/api/...`.
  */
 export async function apiFetch(path: string, init: ApiFetchOptions = {}): Promise<Response> {

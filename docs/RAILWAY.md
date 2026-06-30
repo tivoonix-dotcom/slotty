@@ -6,8 +6,12 @@
 
 | Сервис | Root Directory | Build | Start | Назначение |
 |--------|----------------|-------|-------|------------|
-| **slotty-web** | `/` (корень репо) | `npm run build` | `npm start` | Статика Vite (`dist/`) через `scripts/static-serve.mjs` |
+| **slotty-web** | `/` (корень репо) | `npm run build:railway` | `npm start` | Статика Vite (`dist/`) через `scripts/static-serve.mjs` |
 | **slotty-api** | `server` | `npm run build` | `npm start` | Express API |
+
+В репозитории лежат `railway.toml` (фронт) и `server/railway.toml` (API). В настройках сервиса API укажите **Config file path**: `/server/railway.toml`.
+
+**Критично после деплоя:** на **slotty-web** должны быть переменные `VITE_API_URL` (URL API без `/api`) и `SITEMAP_API_BASE` (тот же URL). Фронт подхватывает их и при сборке, и в рантайме через `/slotty-runtime-config.json` — без пересборки, если задать env только на web-сервисе.
 
 Оба получают **публичный HTTPS URL** от Railway (домен вида `*.up.railway.app` или свой).
 

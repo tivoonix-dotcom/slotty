@@ -59,8 +59,13 @@ function waitForServer(url, timeoutMs = 30_000) {
 }
 
 async function main() {
-  if (process.env.SKIP_PRERENDER === '1') {
-    console.log('[prerender] skipped (SKIP_PRERENDER=1)');
+  if (
+    process.env.SKIP_PRERENDER === '1' ||
+    process.env.RAILWAY_ENVIRONMENT ||
+    process.env.RAILWAY_SERVICE_ID ||
+    process.env.CI === 'true'
+  ) {
+    console.log('[prerender] skipped (SKIP_PRERENDER / Railway / CI)');
     return;
   }
 

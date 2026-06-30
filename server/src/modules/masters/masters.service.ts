@@ -307,7 +307,7 @@ type ReviewRow = {
 
 export async function getMasterDetail(masterId: string) {
   const { stabilizePortraitForProfile } = await import('../../lib/stabilizePortraitForProfile.js');
-  await stabilizePortraitForProfile(masterId);
+  void stabilizePortraitForProfile(masterId).catch(() => undefined);
 
   const mp = await query<{
     master_id: string;
