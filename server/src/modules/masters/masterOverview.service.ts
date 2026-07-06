@@ -1,3 +1,4 @@
+import { TtlCache } from '../../lib/ttlCache.js';
 import { query } from '../../config/db.js';
 import { markReviewNotificationsReplied } from '../notifications/notifications.service.js';
 import { ApiError } from '../../utils/ApiError.js';
@@ -9,7 +10,13 @@ import {
   resolveClientPhone,
 } from '../../lib/clientAnalyticsIdentity.js';
 import { resolveClientDisplayIdentity } from '../../lib/clientDisplayIdentity.js';
-import { isoDateLocal } from './masterOverview.dateUtils.js';
+import {
+  addDays,
+  isoDateLocal,
+  overviewChartWindow,
+  previousOverviewReportPeriod,
+  OVERVIEW_MAX_RANGE_DAYS,
+} from './masterOverview.dateUtils.js';
 import {
   computeOverviewClients,
   computeOverviewReputation,
@@ -20,6 +27,8 @@ import {
   type OverviewPeriodPreset,
   type MasterOverviewReviewRow,
 } from './masterOverview.analytics.js';
+
+const overviewBundleCache = new TtlCache<Awaited<ReturnType<typeof buildMasterOverviewBundle>>>(45_000);
 
 function mapDbAppointmentStatus(s: string): OverviewAppointmentRow['status'] {
   const ui = dbStatusToUi(s);
@@ -39,8 +48,23 @@ function padTimeFromDate(d: Date): string {
   return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 }
 
-/** Все записи мастера для аналитики (без лимита списка кабинета). */
-async function loadOverviewAppointments(masterId: string): Promise<OverviewAppointmentRow[]> {
+/** Окно загрузки записей: период + предыдущий период для трендов + ближайшие будущие визиты. */
+function resolveOverviewSqlWindow(preset: OverviewPeriodPreset): { startIso: string; endIso: string } {
+  const period = resolveOverviewPeriodRange(preset, []);
+  const prev = previousOverviewReportPeriod(period.start, period.end);
+  const chart = overviewChartWindow(period.start, period.end, OVERVIEW_MAX_RANGE_DAYS);
+  let startIso = period.start;
+  if (prev && prev.start < startIso) startIso = prev.start;
+  if (chart.chartStart < startIso) startIso = chart.chartStart;
+  return { startIso, endIso: period.end };
+}
+
+/** Записи мастера для аналитики — с фильтром по периоду, без полного скана таблицы. */
+async function loadOverviewAppointments(
+  masterId: string,
+  preset: OverviewPeriodPreset,
+): Promise<OverviewAppointmentRow[]> {
+  const { startIso, endIso } = resolveOverviewSqlWindow(preset);
   const r = await query<{
     id: string;
     client_id: string;
@@ -65,8 +89,13 @@ async function loadOverviewAppointments(masterId: string): Promise<OverviewAppoi
        from public.appointments a
        left join public.profiles p on p.id = a.client_id
       where a.master_id = $1
-      order by a.starts_at asc`,
-    [masterId],
+        and (
+          (a.starts_at >= $2::timestamptz and a.starts_at < ($3::date + interval '1 day'))
+          or a.starts_at >= now()
+        )
+      order by a.starts_at asc
+      limit 5000`,
+    [masterId, `${startIso}T00:00:00`, endIso],
   );
 
   return r.rows.map((row) => {
@@ -104,7 +133,12 @@ async function loadOverviewAppointments(masterId: string): Promise<OverviewAppoi
   });
 }
 
-async function loadMasterReviews(masterId: string): Promise<MasterOverviewReviewRow[]> {
+async function loadMasterReviews(
+  masterId: string,
+  preset: OverviewPeriodPreset,
+): Promise<MasterOverviewReviewRow[]> {
+  const { startIso } = resolveOverviewSqlWindow(preset);
+  const reviewSince = isoDateLocal(addDays(new Date(`${startIso}T12:00:00`), -365));
   const r = await query<{
     id: string;
     rating: number;
@@ -131,8 +165,10 @@ async function loadMasterReviews(masterId: string): Promise<MasterOverviewReview
        left join public.profiles p on p.id = r.client_id
        left join public.master_profiles mp on mp.master_id = r.client_id
       where r.master_id = $1 and r.status = 'published'
-      order by r.created_at desc`,
-    [masterId],
+        and r.created_at >= $2::timestamptz
+      order by r.created_at desc
+      limit 500`,
+    [masterId, `${reviewSince}T00:00:00`],
   );
 
   return r.rows.map((row) => {
@@ -171,14 +207,13 @@ export type MasterOverviewBundle = {
   periodEnd: string;
 };
 
-/** Одна загрузка записей и отзывов — без 4× повторных запросов к БД. */
-export async function getMasterOverviewBundle(
+async function buildMasterOverviewBundle(
   masterId: string,
   preset: OverviewPeriodPreset,
 ): Promise<MasterOverviewBundle> {
   const [appointments, reviews] = await Promise.all([
-    loadOverviewAppointments(masterId),
-    loadMasterReviews(masterId),
+    loadOverviewAppointments(masterId, preset),
+    loadMasterReviews(masterId, preset),
   ]);
   const { start, end } = resolveOverviewPeriodRange(preset, appointments);
   return {
@@ -191,28 +226,71 @@ export async function getMasterOverviewBundle(
   };
 }
 
+/** Одна загрузка записей и отзывов — без 4× повторных запросов к БД. */
+export async function getMasterOverviewBundle(
+  masterId: string,
+  preset: OverviewPeriodPreset,
+): Promise<MasterOverviewBundle> {
+  const cacheKey = `${masterId}:${preset}`;
+  const cached = overviewBundleCache.get(cacheKey);
+  if (cached) return cached;
+  const bundle = await buildMasterOverviewBundle(masterId, preset);
+  overviewBundleCache.set(cacheKey, bundle);
+  return bundle;
+}
+
+export type MasterOverviewFreeBundle = Pick<
+  MasterOverviewBundle,
+  'clients' | 'reputation' | 'periodStart' | 'periodEnd'
+>;
+
+/** Free-тариф: клиенты + репутация одним round-trip (без двойной загрузки appointments). */
+export async function getMasterOverviewFreeBundle(
+  masterId: string,
+  preset: OverviewPeriodPreset,
+): Promise<MasterOverviewFreeBundle> {
+  const cacheKey = `free:${masterId}:${preset}`;
+  const cached = overviewBundleCache.get(cacheKey);
+  if (cached) {
+    return {
+      clients: cached.clients,
+      reputation: cached.reputation,
+      periodStart: cached.periodStart,
+      periodEnd: cached.periodEnd,
+    };
+  }
+  const bundle = await buildMasterOverviewBundle(masterId, preset);
+  overviewBundleCache.set(cacheKey, bundle);
+  return {
+    clients: bundle.clients,
+    reputation: bundle.reputation,
+    periodStart: bundle.periodStart,
+    periodEnd: bundle.periodEnd,
+  };
+}
+
 export async function getMasterOverviewSummary(masterId: string, preset: OverviewPeriodPreset) {
-  const appointments = await loadOverviewAppointments(masterId);
+  const appointments = await loadOverviewAppointments(masterId, preset);
   const { start, end } = resolveOverviewPeriodRange(preset, appointments);
   return computeOverviewSummary(appointments, start, end);
 }
 
 export async function getMasterOverviewRevenue(masterId: string, preset: OverviewPeriodPreset) {
-  const appointments = await loadOverviewAppointments(masterId);
+  const appointments = await loadOverviewAppointments(masterId, preset);
   const { start, end } = resolveOverviewPeriodRange(preset, appointments);
   return computeOverviewRevenue(appointments, start, end);
 }
 
 export async function getMasterOverviewClients(masterId: string, preset: OverviewPeriodPreset) {
-  const appointments = await loadOverviewAppointments(masterId);
+  const appointments = await loadOverviewAppointments(masterId, preset);
   const { start, end } = resolveOverviewPeriodRange(preset, appointments);
   return computeOverviewClients(appointments, start, end);
 }
 
 export async function getMasterOverviewReputation(masterId: string, preset: OverviewPeriodPreset) {
-  const appointments = await loadOverviewAppointments(masterId);
+  const appointments = await loadOverviewAppointments(masterId, preset);
   const { start, end } = resolveOverviewPeriodRange(preset, appointments);
-  const reviews = await loadMasterReviews(masterId);
+  const reviews = await loadMasterReviews(masterId, preset);
   return computeOverviewReputation(reviews, start, end);
 }
 
@@ -370,4 +448,12 @@ export async function postMasterReviewReply(masterId: string, reviewId: string, 
   }
 
   await markReviewNotificationsReplied(masterId, reviewId);
+  overviewBundleCache.delete(`${masterId}:month`);
+  overviewBundleCache.delete(`${masterId}:week`);
+  overviewBundleCache.delete(`${masterId}:today`);
+  overviewBundleCache.delete(`${masterId}:all`);
+  overviewBundleCache.delete(`free:${masterId}:month`);
+  overviewBundleCache.delete(`free:${masterId}:week`);
+  overviewBundleCache.delete(`free:${masterId}:today`);
+  overviewBundleCache.delete(`free:${masterId}:all`);
 }

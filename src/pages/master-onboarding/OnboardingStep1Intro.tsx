@@ -183,9 +183,12 @@ export function OnboardingStep1Intro({ onStart }: Props) {
 
         {onStart ? (
           <button type="button" onClick={onStart} className={`relative z-20 mt-6 lg:hidden ${startButtonClass}`}>
-            Начать заполнение
+            Начать бесплатно
           </button>
         ) : null}
+        <p className="relative z-20 mt-3 text-center text-[12px] font-medium leading-snug text-neutral-500 lg:hidden">
+          До 3 активных услуг на бесплатном тарифе. Pro — если нужно больше.
+        </p>
       </div>
 
       <div className="hidden min-w-0 lg:flex lg:flex-col lg:justify-center">
@@ -196,6 +199,14 @@ export function OnboardingStep1Intro({ onStart }: Props) {
         <p className="mt-3 max-w-md text-[16px] leading-relaxed text-neutral-500">
           Заполнение займёт около 10 минут. Можно сохранить черновик и вернуться позже.
         </p>
+
+        <div className="mt-5 max-w-md rounded-[18px] bg-[#F0FAF4] px-4 py-3.5 ring-1 ring-[#BBF7D0]">
+          <p className="text-[14px] font-semibold text-[#166534]">Можно начать бесплатно</p>
+          <p className="mt-1 text-[13px] leading-snug text-[#2D6A4F]">
+            На бесплатном тарифе — до 3 активных услуг, профиль и онлайн-запись. Оплата не обязательна, если вы
+            укладываетесь в лимиты. Pro нужен для большего числа услуг и расширенных функций.
+          </p>
+        </div>
 
         <ul className="mt-8 space-y-2.5" aria-label="Разделы анкеты">
           {SLIDES.map((s, i) => {
@@ -229,7 +240,7 @@ export function OnboardingStep1Intro({ onStart }: Props) {
 
         {onStart ? (
           <button type="button" onClick={onStart} className={`mt-8 max-w-sm ${startButtonClass}`}>
-            Начать заполнение
+            Начать бесплатно
           </button>
         ) : null}
       </div>

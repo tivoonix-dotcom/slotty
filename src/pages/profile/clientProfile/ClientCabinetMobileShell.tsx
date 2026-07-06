@@ -7,10 +7,7 @@ import { ClientCabinetMobileMenu } from './ClientCabinetMobileMenu';
 import { ClientMobileCabinetHeader } from './ClientMobileCabinetHeader';
 import { ClientProfileMobileTabBar } from './ClientProfileMobileTabBar';
 import type { ClientProfileMainTab } from './clientCabinetMobileTabs';
-import {
-  CLIENT_CABINET_MOBILE_TAB_BAR_HEIGHT,
-  clientCabinetMobileCanvasClass,
-} from './clientCabinetMobileTheme';
+import { clientCabinetMobileCanvasClass } from './clientCabinetMobileTheme';
 import { useClientCabinetShellData } from './useClientCabinetShellData';
 
 type Props = {
@@ -54,7 +51,7 @@ export function ClientCabinetMobileShell({
   }, []);
 
   const shellPadBottom = tabsVisible
-    ? `pb-[calc(${CLIENT_CABINET_MOBILE_TAB_BAR_HEIGHT}+1.25rem+env(safe-area-inset-bottom,0px))]`
+    ? 'pb-[calc(3.5rem+2rem+env(safe-area-inset-bottom,0px))]'
     : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]';
 
   return (

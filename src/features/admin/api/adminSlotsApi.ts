@@ -29,8 +29,12 @@ function mapMySlot(row: Record<string, unknown>): MySlotDto {
   };
 }
 
-export async function getMySlots(): Promise<MySlotDto[]> {
-  const res = await apiFetch('/api/masters/me/slots');
+export async function getMySlots(opts?: { from?: string; limit?: number }): Promise<MySlotDto[]> {
+  const qs = new URLSearchParams();
+  if (opts?.from) qs.set('from', opts.from);
+  if (opts?.limit != null) qs.set('limit', String(opts.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  const res = await apiFetch(`/api/masters/me/slots${suffix}`);
   if (!res.ok) throw new Error(await readApiError(res));
   const j = (await res.json()) as { slots?: Record<string, unknown>[] };
   return (j.slots ?? []).map(mapMySlot);

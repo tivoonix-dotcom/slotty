@@ -14,6 +14,7 @@ import {
   preloadFavoriteMasterIds,
   syncLocalFavoritesToServer,
 } from '../profile/lib/favoriteMastersResolve';
+import { completeTelegramBrowserHandoffIfNeeded } from './lib/telegramBrowserHandoff';
 import {
   completeGoogleLoginPending,
   loginWithEmail,
@@ -33,6 +34,8 @@ import { useTelegram } from '../../shared/hooks/useTelegram';
 import { readTelegramUserIdFromInitDataRaw } from '../../shared/lib/telegramWebApp';
 import type { AuthSessionResponse, BackendProfile } from './types';
 import { normalizeBackendProfile, sessionRefreshToken } from './types';
+
+const TELEGRAM_INIT_DATA_WAIT_MS = 12_000;
 
 type AuthContextValue = {
   profile: BackendProfile | null;
@@ -148,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (action.type === 'telegram') {
           const session = await loginWithTelegram(action.initDataRaw, { consents });
           applySession(session);
+          await completeTelegramBrowserHandoffIfNeeded();
           onSuccess?.();
           return;
         }
@@ -229,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 applyMePayload(me);
               }
               void syncLocalFavoritesToServer().then(() => preloadFavoriteMasterIds());
+              await completeTelegramBrowserHandoffIfNeeded();
               return;
             }
             setStoredAuthToken(null);
@@ -272,6 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setConsentBlock(null);
           }
           void syncLocalFavoritesToServer().then(() => preloadFavoriteMasterIds());
+          await completeTelegramBrowserHandoffIfNeeded();
           return;
         }
 
@@ -296,6 +302,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [isReady, initDataRaw, isTelegramWebApp, applyMePayload, openConsentBlock]);
+
+  // Не зависать на вечной загрузке, если initData в Mini App не пришёл.
+  useEffect(() => {
+    if (!isReady || !isTelegramWebApp || initDataRaw) return undefined;
+    const t = window.setTimeout(() => {
+      setSessionLoading(false);
+    }, TELEGRAM_INIT_DATA_WAIT_MS);
+    return () => window.clearTimeout(t);
+  }, [isReady, isTelegramWebApp, initDataRaw]);
+
+  // Handoff: если сессия уже есть, но URL ещё с tg_browser_pending.
+  useEffect(() => {
+    if (!isReady || !token) return;
+    void completeTelegramBrowserHandoffIfNeeded();
+  }, [isReady, token]);
 
   useEffect(() => {
     syncMasterFlagFromProfile(profile ?? undefined);

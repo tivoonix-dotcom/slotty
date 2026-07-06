@@ -142,11 +142,14 @@ export function ClientNotificationsPage() {
     />
   );
 
+  const showMobileSummary =
+    enabled && (initialLoading || error || notifications.length > 0);
+
   const mobileBody = (
     <section
       className={`-mx-4 min-w-0 space-y-3 px-4 pb-[calc(5.75rem+1.25rem+env(safe-area-inset-bottom,0px))] lg:hidden ${NOTIFICATIONS_PAGE_BG}`}
     >
-      {summaryBlock}
+      {showMobileSummary ? summaryBlock : null}
       {content}
     </section>
   );

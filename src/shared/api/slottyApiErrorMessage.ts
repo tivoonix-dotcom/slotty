@@ -96,7 +96,7 @@ const PAYMENT_MESSAGES: Record<string, string> = {
 
 const LIMIT_MESSAGES: Record<string, string> = {
   LIMIT_SERVICES_REACHED:
-    'Достигнут лимит услуг по тарифу. Оформите Pro или деактивируйте лишние услуги.',
+    'На бесплатном тарифе доступно до 3 активных услуг. Отключите лишние услуги или выберите Pro.',
   LIMIT_SCHEDULE_DAYS_REACHED:
     'На вашем тарифе нельзя создавать окна так далеко.',
   LIMIT_MONTHLY_APPOINTMENTS_REACHED:

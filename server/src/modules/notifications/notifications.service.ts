@@ -58,9 +58,10 @@ export async function listNotifications(
        left join public.reviews rev
          on n.related_entity_type = 'review' and rev.id = n.related_entity_id
       where n.user_id = any($1::uuid[])
+        and ($2::text is null or n.audience = $2::public.notification_audience)
       order by n.created_at desc
       limit 200`,
-    [ownerIds],
+    [ownerIds, audience ?? null],
   );
   const mapped = r.rows.map((row) => {
     let metadata = parseBookingNotificationMetadata(row.metadata);

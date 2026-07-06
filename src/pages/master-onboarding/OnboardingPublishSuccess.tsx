@@ -58,8 +58,8 @@ export function OnboardingPublishSuccess({ masterName, onOpenProfile }: Props) {
                     </h1>
 
                     <p className="mt-3 max-w-md text-[15px] font-medium leading-relaxed text-[#6B7280] lg:text-[16px]">
-                      Услуги и профиль сохранены. Чтобы клиенты могли записаться онлайн, создайте окна в
-                      расписании и опубликуйте профиль в кабинете.
+                      Услуги и профиль сохранены в черновике. Чтобы клиенты могли записаться онлайн,
+                      создайте окна в расписании и включите публикацию профиля в кабинете.
                     </p>
                   </div>
 

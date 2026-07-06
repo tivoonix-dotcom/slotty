@@ -49,6 +49,11 @@ import {
   uploadMasterPortfolioImage,
 } from './masters.storage.js';
 import { completeMyMasterOnboarding } from './masterOnboardingComplete.service.js';
+import {
+  getMasterOnboardingProgress,
+  syncOnboardingProgressFromClient,
+  upsertMasterOnboardingProgress,
+} from './masterOnboardingProgress.service.js';
 import { masterDisplayNamePassesQuality } from '../../lib/masterDisplayNamePolicy.js';
 import { masterServicesRouter } from '../services/services.routes.js';
 import { masterBundlesRouter, masterPromotionsRouter } from '../service-extras/serviceExtras.routes.js';
@@ -494,6 +499,7 @@ const onboardingServiceSchema = z.object({
   priceAmount: z.coerce.number().finite().min(0).max(MAX_SERVICE_PRICE_AMOUNT),
   priceType: z.enum(['fixed', 'from']).optional(),
   sortOrder: z.coerce.number().int().finite().min(0).optional(),
+  isActive: z.boolean().optional(),
 });
 
 const onboardingCertificateSchema = z.object({
@@ -550,6 +556,7 @@ const onboardingBody = z
     /** Без оплаты через онбординг принимается только basic. */
     masterPlan: z.literal('basic').optional(),
     proInterested: z.boolean().optional().default(false),
+    proCheckoutIntent: z.boolean().optional().default(false),
   })
   .superRefine((data, ctx) => {
     const list = data.contacts ?? [];
@@ -596,6 +603,59 @@ mastersRouter.post(
           : body.primaryCategoryCode,
     });
     res.status(201).json(out);
+  }),
+);
+
+mastersRouter.get(
+  '/me/onboarding-progress',
+  authMiddleware,
+  requireMasterPlatformWrite,
+  asyncHandler(async (req, res) => {
+    const progress = await getMasterOnboardingProgress(req.user!.id);
+    res.json({ progress });
+  }),
+);
+
+const patchOnboardingProgressBody = z.object({
+  currentStep: z.number().int().min(1).max(8).optional(),
+  furthestStep: z.number().int().min(1).max(8).optional(),
+  selectedTariff: z.enum(['basic', 'pro_purchase']).nullable().optional(),
+  draftSnapshot: z.record(z.unknown()).nullable().optional(),
+  onboardingStatus: z.enum([
+    'draft',
+    'profile_started',
+    'services_added',
+    'schedule_added',
+    'tariff_selected',
+    'checkout_pending',
+    'payment_processing',
+    'payment_failed',
+    'subscription_active',
+    'ready_to_publish',
+    'completed',
+  ]).optional(),
+});
+
+mastersRouter.patch(
+  '/me/onboarding-progress',
+  authMiddleware,
+  requireMasterPlatformWrite,
+  asyncHandler(async (req, res) => {
+    const body = patchOnboardingProgressBody.parse(req.body);
+    const progress =
+      body.currentStep != null || body.furthestStep != null
+        ? await syncOnboardingProgressFromClient(req.user!.id, {
+            currentStep: body.currentStep ?? body.furthestStep ?? 1,
+            furthestStep: body.furthestStep ?? body.currentStep ?? 1,
+            selectedTariff: body.selectedTariff,
+            draftSnapshot: body.draftSnapshot ?? undefined,
+          })
+        : await upsertMasterOnboardingProgress(req.user!.id, {
+            selectedTariff: body.selectedTariff,
+            draftSnapshot: body.draftSnapshot,
+            onboardingStatus: body.onboardingStatus,
+          });
+    res.json({ progress });
   }),
 );
 
@@ -646,6 +706,7 @@ mastersRouter.post(
         priceAmount: s.priceAmount,
         priceType: s.priceType,
         sortOrder: s.sortOrder,
+        isActive: s.isActive,
       })),
       certificates: body.certificates.map((c) => ({
         title: c.title,
@@ -659,6 +720,7 @@ mastersRouter.post(
       cancellationPolicy: body.cancellationPolicy?.trim() || null,
       masterPlan: body.masterPlan,
       proInterested: body.proInterested,
+      proCheckoutIntent: body.proCheckoutIntent,
     });
     res.status(201).json(out);
   }),

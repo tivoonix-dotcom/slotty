@@ -150,6 +150,7 @@ export type MasterOnboardingServicePayload = {
   priceAmount: number;
   priceType?: 'fixed' | 'from';
   sortOrder?: number;
+  isActive?: boolean;
 };
 
 export type MasterOnboardingCertificatePayload = {
@@ -184,6 +185,8 @@ export type MasterOnboardingPayload = {
   /** Сейчас без оплаты сохраняется только basic. */
   masterPlan?: 'basic';
   proInterested?: boolean;
+  /** Публикация перед оплатой Pro — Free-лимит не блокирует сохранение. */
+  proCheckoutIntent?: boolean;
 };
 
 export type MasterOnboardingResponse = {

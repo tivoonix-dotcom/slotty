@@ -8,6 +8,11 @@ import {
   contactsToLegacyContactLine,
   type MasterContactPayload,
 } from './masterContactsCodec.js';
+import {
+  resolveOnboardingCompleteContext,
+  shouldServiceBeActiveOnOnboardingComplete,
+  validateOnboardingServices,
+} from './masterOnboardingPlanLimits.js';
 
 export type OnboardingLocationInput = {
   visitType: 'studio' | 'at_home';
@@ -44,6 +49,7 @@ export type OnboardingServiceInput = {
   priceAmount: number;
   priceType?: 'fixed' | 'from';
   sortOrder?: number;
+  isActive?: boolean;
 };
 
 export type OnboardingCertificateInput = {
@@ -73,6 +79,8 @@ export type CompleteMasterOnboardingInput = {
   /** Через онбординг без оплаты сохраняется только basic. */
   masterPlan?: 'basic';
   proInterested?: boolean;
+  /** Публикация перед переходом к оплате Pro — Free-лимит не блокирует сохранение. */
+  proCheckoutIntent?: boolean;
 };
 
 function num(v: string | null): number | null {
@@ -217,11 +225,12 @@ async function insertServiceRow(
   categoryId: string,
   svc: OnboardingServiceInput,
   fallbackOrder: number,
+  isActive: boolean,
 ): Promise<void> {
   await client.query(
     `insert into public.master_services (
        master_id, category_id, title, description, duration_minutes, price_amount, price_type, is_active, sort_order
-     ) values ($1, $2, $3, $4, $5, $6, $7, true, $8)`,
+     ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
     [
       masterId,
       categoryId,
@@ -230,6 +239,7 @@ async function insertServiceRow(
       svc.durationMinutes,
       svc.priceAmount,
       svc.priceType ?? 'fixed',
+      isActive,
       svc.sortOrder ?? fallbackOrder,
     ],
   );
@@ -484,6 +494,7 @@ export async function completeMyMasterOnboarding(masterId: string, body: Complet
     }
 
     const proInterested = Boolean(body.proInterested);
+    const proCheckoutIntent = Boolean(body.proCheckoutIntent);
     const proStatus = proInterested ? 'interested' : null;
 
     await upsertPublishedProfile(client, masterId, {
@@ -505,14 +516,10 @@ export async function completeMyMasterOnboarding(masterId: string, body: Complet
       isProfileActive: false,
     });
 
-    const { getMasterEntitlementsWithClient } = await import('../billing/entitlements.service.js');
-    const ent = await getMasterEntitlementsWithClient(client, masterId);
-    const maxServices = ent.limits.maxServices;
-    if (maxServices != null && body.services.length > maxServices) {
-      throw ApiError.badRequest(
-        `На текущем тарифе можно добавить не более ${maxServices} услуг`,
-        'LIMIT_SERVICES_REACHED',
-      );
+    const completeContext = resolveOnboardingCompleteContext(proCheckoutIntent);
+    const serviceCountValidation = validateOnboardingServices(body.services, completeContext);
+    if (!serviceCountValidation.ok) {
+      throw ApiError.badRequest(serviceCountValidation.message, serviceCountValidation.code);
     }
 
     await replacePrimaryLocation(client, masterId, body.location);
@@ -521,7 +528,8 @@ export async function completeMyMasterOnboarding(masterId: string, body: Complet
     await deactivateAllServices(client, masterId);
     let i = 0;
     for (const svc of body.services) {
-      await insertServiceRow(client, masterId, categoryId, svc, i);
+      const isActive = shouldServiceBeActiveOnOnboardingComplete(i, completeContext, svc.isActive);
+      await insertServiceRow(client, masterId, categoryId, svc, i, isActive);
       i += 1;
     }
 
@@ -548,8 +556,13 @@ export async function completeMyMasterOnboarding(masterId: string, body: Complet
     }).catch(() => {});
   }
 
-  const { tryStartProTrial } = await import('../billing/trial.service.js');
-  await tryStartProTrial(masterId);
+  if (!body.proCheckoutIntent) {
+    const { tryStartProTrial } = await import('../billing/trial.service.js');
+    await tryStartProTrial(masterId);
+  }
+
+  const { markOnboardingAfterComplete } = await import('./masterOnboardingProgress.service.js');
+  await markOnboardingAfterComplete(masterId, { proCheckoutIntent: Boolean(body.proCheckoutIntent) }).catch(() => {});
 
   return result;
 }

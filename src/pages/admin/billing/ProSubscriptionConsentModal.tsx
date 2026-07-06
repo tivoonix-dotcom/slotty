@@ -13,6 +13,8 @@ type Props = {
   autoRenewLegalAllowed?: boolean;
   loading?: boolean;
   onConfirm: () => void | Promise<void>;
+  /** Дополнительный контекст (например, онбординг с 4+ услугами). */
+  contextHint?: string;
 };
 
 function renewalHint(packageMonths: BillingPackageMonths): string {
@@ -30,6 +32,7 @@ export function ProSubscriptionConsentModal({
   autoRenewLegalAllowed = true,
   loading = false,
   onConfirm,
+  contextHint,
 }: Props) {
   const [consent, setConsent] = useState(false);
   const packageMonths = packageMonthsProp ?? (billingPeriod === 'year' ? 12 : 1);
@@ -47,6 +50,11 @@ export function ProSubscriptionConsentModal({
       variant="catalog"
     >
       <div className="space-y-4">
+        {contextHint ? (
+          <p className="rounded-[14px] bg-[#F0FAF4] px-3 py-2.5 text-[13px] leading-snug text-[#2D6A4F] ring-1 ring-[#BBF7D0]">
+            {contextHint}
+          </p>
+        ) : null}
         {autoRenewLegalAllowed ? (
           <>
             <p className="text-[14px] leading-relaxed text-[#6B7280]">

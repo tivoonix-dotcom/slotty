@@ -4,6 +4,7 @@ import { corsOptions } from './config/cors.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFound } from './middlewares/notFound.js';
 import { requestIdMiddleware } from './middlewares/requestId.js';
+import { requestPerfMiddleware } from './middlewares/requestPerf.js';
 import { healthRouter } from './modules/health/health.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { profilesRouter } from './modules/profiles/profiles.routes.js';
@@ -35,6 +36,7 @@ export function createApp() {
   const trustProxy = resolveTrustProxySetting();
   app.set('trust proxy', trustProxy);
   app.use(requestIdMiddleware);
+  app.use(requestPerfMiddleware);
   app.use(cors(corsOptions));
   app.use(express.json({ limit: '1mb' }));
 

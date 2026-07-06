@@ -46,7 +46,7 @@ function IntegrationsLoadingSkeleton() {
 }
 
 export function SettingsIntegrationsPage() {
-  const telegramUrl = useTelegramLoginUrl();
+  const { url: telegramUrl } = useTelegramLoginUrl();
   const config = usePublicAppConfig();
   const hasApi = Boolean(getApiBaseUrl());
 

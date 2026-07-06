@@ -28,12 +28,31 @@ const CLIENT_PENDING_TITLES = new Set(['Заявка отправлена']);
 
 const MASTER_PENDING_TITLES = new Set(['Заявка ждёт решения', 'Заявка скоро истечёт']);
 
+const MASTER_CANCELLED_TITLES = new Set(['Клиент отменил запись']);
+
+function isMasterExpiredBooking(row: NotificationLike): boolean {
+  if (row.title.trim() !== 'Заявка истекла') return false;
+  const body = row.body.trim();
+  return body.includes('Вы не успели подтвердить') || body.startsWith('Заявка истекла:');
+}
+
+function isMasterReminder(row: NotificationLike): boolean {
+  if (row.body.includes('Клиент должен быть у вас')) return true;
+  if (row.title.includes('у вас')) return true;
+  return false;
+}
+
 function isMasterSystemNotification(row: NotificationLike): boolean {
   const title = row.title.trim();
   if (title === 'Новый отзыв') return true;
   if (title === 'Вы в топе мастеров') return true;
+  if (title === 'Архив данных готов') return true;
+  if (title === 'Клиент сообщил о проблеме') return true;
+  if (title === 'Запрос на удаление аккаунта') return true;
   if (title.startsWith('Категория профиля')) return true;
   if (title.startsWith('Заявка на смену категории')) return true;
+  if (title.startsWith('Ответ поддержки:')) return true;
+  if (title.startsWith('Обращение ')) return true;
   if (/тариф|Pro|оплат/i.test(title)) return true;
   return false;
 }
@@ -56,10 +75,12 @@ export function resolveNotificationAudience(row: NotificationLike): Notification
   if (CLIENT_ONLY_TYPES.has(type)) return 'client';
   if (MASTER_ONLY_TYPES.has(type)) return 'master';
   if (type === 'appointment_cancelled') {
-    return row.title === 'Клиент отменил запись' ? 'master' : 'client';
+    if (MASTER_CANCELLED_TITLES.has(row.title.trim())) return 'master';
+    if (isMasterExpiredBooking(row)) return 'master';
+    return 'client';
   }
   if (type === 'appointment_reminder') {
-    return row.title.includes('у вас') ? 'master' : 'client';
+    return isMasterReminder(row) ? 'master' : 'client';
   }
   if (type === 'system') {
     return isMasterSystemNotification(row) ? 'master' : 'client';

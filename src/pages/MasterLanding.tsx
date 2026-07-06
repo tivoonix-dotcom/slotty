@@ -1,11 +1,12 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BECOME_MASTER_PATH, getMasterRegisterPath, SERVICES_PATH } from '../app/paths';
+import { useAuth } from '../features/auth/AuthProvider';
 import {
-  ADMIN_PATH,
-  BECOME_MASTER_PATH,
-  getMasterRegisterPath,
-  SERVICES_PATH,
-} from '../app/paths';
+  resolveMasterEntryLabel,
+  resolveMasterEntryPath,
+  resolveMasterHeroCtaLabel,
+} from '../features/auth/lib/resolveMasterEntryPath';
 import { useIsMasterUser } from '../features/profile/hooks/useIsMasterUser';
 import { HomeForMasters } from './home/HomeForMasters';
 import { HomeMasterBookingsPromo } from './home/HomeMasterBookingsPromo';
@@ -21,21 +22,32 @@ import { MasterLandingJsonLd } from '../shared/seo/MasterLandingJsonLd';
 export function MasterLanding() {
   useLandingHashScroll();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const isMasterUser = useIsMasterUser();
 
-  const registerPath = useMemo(() => getMasterRegisterPath(BECOME_MASTER_PATH), []);
+  const masterEntry = useMemo(
+    () => ({ isAuthenticated, isMasterUser }),
+    [isAuthenticated, isMasterUser],
+  );
+
+  const masterEntryPath = useMemo(() => resolveMasterEntryPath(masterEntry), [masterEntry]);
+  const masterEntryLabel = useMemo(() => resolveMasterEntryLabel(masterEntry), [masterEntry]);
+  const heroCtaLabel = useMemo(() => resolveMasterHeroCtaLabel(masterEntry), [masterEntry]);
+  const guestRegisterPath = useMemo(() => getMasterRegisterPath(BECOME_MASTER_PATH), []);
 
   const onBecomeMaster = useCallback(() => {
-    if (isMasterUser) {
-      navigate(ADMIN_PATH);
-      return;
-    }
-    navigate(registerPath);
-  }, [isMasterUser, navigate, registerPath]);
+    navigate(masterEntryPath);
+  }, [navigate, masterEntryPath]);
 
   const onCatalog = useCallback(() => {
     navigate(SERVICES_PATH);
   }, [navigate]);
+
+  const promoCtaLabel = isMasterUser
+    ? 'Открыть кабинет'
+    : isAuthenticated
+      ? 'Продолжить регистрацию'
+      : 'Начать бесплатно';
 
   return (
     <div className="min-h-dvh bg-[#E29595] text-neutral-900">
@@ -43,17 +55,24 @@ export function MasterLanding() {
       <div className="overflow-x-clip rounded-b-[2.5rem] bg-white sm:rounded-b-[3rem]">
         <HomeHeader />
 
-        <MasterLandingHero onBecomeMaster={onBecomeMaster} onCatalog={onCatalog} />
+        <MasterLandingHero
+          onBecomeMaster={onBecomeMaster}
+          onCatalog={onCatalog}
+          becomeMasterLabel={heroCtaLabel}
+        />
 
         <HomeForMasters
-          masterCtaPath={registerPath}
-          masterCtaLabel="Стать мастером"
+          masterEntryPath={masterEntryPath}
+          masterEntryLabel={masterEntryLabel}
+          guestRegisterPath={guestRegisterPath}
+          isMasterUser={isMasterUser}
+          isAuthenticated={isAuthenticated}
         />
 
         <main
           className={`relative z-10 overflow-x-clip ${homeShell} pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-0`}
         >
-          <HomeMasterBookingsPromo onMasterCabinet={onBecomeMaster} ctaLabel="Начать бесплатно" />
+          <HomeMasterBookingsPromo onMasterCabinet={onBecomeMaster} ctaLabel={promoCtaLabel} />
 
           <HomeTariffs />
 

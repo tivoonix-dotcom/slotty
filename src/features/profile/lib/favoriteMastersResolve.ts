@@ -28,10 +28,20 @@ export function mirrorApiFavoritesToLocalCache(favorites: FavoriteMasterDto[]): 
 }
 
 /** Отправляет id из localStorage на сервер (после входа). */
-export async function syncLocalFavoritesToServer(): Promise<void> {
+let favoritesSyncedThisSession = false;
+
+export function resetFavoritesSyncSessionForTests(): void {
+  favoritesSyncedThisSession = false;
+}
+
+export async function syncLocalFavoritesToServer(opts?: { force?: boolean }): Promise<void> {
+  if (!opts?.force && favoritesSyncedThisSession) return;
   if (!getApiBaseUrl() || !getStoredAuthToken()) return;
   const ids = getFavoriteMasterIds();
-  if (!ids.length) return;
+  if (!ids.length) {
+    favoritesSyncedThisSession = true;
+    return;
+  }
   try {
     await syncMyFavoriteMasters(ids);
   } catch {
@@ -48,6 +58,7 @@ export async function syncLocalFavoritesToServer(): Promise<void> {
   } catch {
     /* кэш обновится при следующем открытии профиля */
   }
+  favoritesSyncedThisSession = true;
 }
 
 /** Загружает id избранного с API и кладёт в localStorage (для карточек мастеров). */

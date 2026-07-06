@@ -34,6 +34,7 @@ import {
   OverviewSectionCard,
 } from './OverviewSharedUi';
 import { OverviewSummaryHeroBackground } from './OverviewSummaryHeroBackground';
+import { MasterPlanStatusBanner } from '../shared/MasterPlanStatusBanner';
 
 type SummaryProps = {
   metrics: {
@@ -170,6 +171,8 @@ function OverviewSummaryPanelMobile({
         totalRevenue={totalRevenue}
         appointmentsPath={appointmentsPath}
       />
+
+      {useCabinetApi ? <MasterPlanStatusBanner className="lg:hidden" /> : null}
 
       <OverviewOpsPanel
         ops={ops}
@@ -633,6 +636,8 @@ function OverviewSummaryPanelDesktop({
           </OverviewKpiCarousel>
         </div>
       </div>
+
+      {useCabinetApi ? <MasterPlanStatusBanner /> : null}
 
       <OverviewOpsPanel
         ops={ops}

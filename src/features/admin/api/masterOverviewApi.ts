@@ -40,6 +40,19 @@ export type OverviewBundleApiDto = {
   periodEnd: string;
 };
 
+export type OverviewFreeBundleApiDto = Pick<
+  OverviewBundleApiDto,
+  'clients' | 'reputation' | 'periodStart' | 'periodEnd'
+>;
+
+export async function fetchOverviewFreeBundle(
+  period: OverviewPeriodPreset,
+): Promise<OverviewFreeBundleApiDto> {
+  const res = await apiFetch(`/api/masters/me/overview/free-bundle${overviewQuery(period)}`);
+  if (!res.ok) throw new Error(await readApiError(res));
+  return (await res.json()) as OverviewFreeBundleApiDto;
+}
+
 export async function fetchOverviewBundle(period: OverviewPeriodPreset): Promise<OverviewBundleApiDto> {
   const res = await apiFetch(`/api/masters/me/overview/bundle${overviewQuery(period)}`);
   if (!res.ok) throw new Error(await readApiError(res));

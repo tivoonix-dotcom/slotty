@@ -29,6 +29,38 @@ export async function loginWithTelegram(
   return (await res.json()) as AuthSessionResponse;
 }
 
+export async function createTelegramBrowserLoginPending(returnPath?: string): Promise<{ pendingId: string }> {
+  const res = await apiFetch('/api/auth/telegram/browser-pending', {
+    method: 'POST',
+    skipAuth: true,
+    body: JSON.stringify({ returnPath }),
+  });
+  if (!res.ok) throw new Error(await readAuthApiError(res));
+  return (await res.json()) as { pendingId: string };
+}
+
+export type TelegramBrowserPendingPoll =
+  | { status: 'waiting' }
+  | { status: 'complete'; token: string; profile: AuthSessionResponse['profile'] };
+
+export async function pollTelegramBrowserLoginPending(
+  pendingId: string,
+): Promise<TelegramBrowserPendingPoll> {
+  const res = await apiFetch(`/api/auth/telegram/browser-pending/${encodeURIComponent(pendingId)}`, {
+    skipAuth: true,
+  });
+  if (!res.ok) throw new Error(await readAuthApiError(res));
+  return (await res.json()) as TelegramBrowserPendingPoll;
+}
+
+export async function completeTelegramBrowserLoginPending(pendingId: string): Promise<void> {
+  const res = await apiFetch(
+    `/api/auth/telegram/browser-pending/${encodeURIComponent(pendingId)}/complete`,
+    { method: 'POST' },
+  );
+  if (!res.ok) throw new Error(await readAuthApiError(res));
+}
+
 export async function loginWithGoogle(
   idToken: string,
   options?: LoginOptions,

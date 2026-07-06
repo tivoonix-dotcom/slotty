@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ADMIN_BILLING_PATH, MASTER_SETTINGS_BILLING_PATH } from '../../app/paths';
+import { ADMIN_BILLING_PATH, ADMIN_PATH, MASTER_SETTINGS_BILLING_PATH } from '../../app/paths';
 import {
   getBillingSubscription,
   getPaymentStatus,
@@ -20,6 +20,7 @@ export function PaymentSuccessPage() {
   const paymentId = params.get('payment_id') ?? params.get('paymentId');
   const from = params.get('from');
   const returnPath = paymentReturnPath(from);
+  const fromOnboarding = from === 'onboarding';
 
   const [pollState, setPollState] = useState<PollState>(paymentId ? 'polling' : 'timeout');
   const [proConfirmed, setProConfirmed] = useState(false);
@@ -123,9 +124,16 @@ export function PaymentSuccessPage() {
       ) : null}
 
       {pollState === 'success' && proConfirmed ? (
-        <p className="text-[14px] text-neutral-600">
-          Подписка обновлена. Через несколько секунд вы будете перенаправлены в кабинет.
-        </p>
+        <>
+          <p className="text-[14px] text-neutral-600">
+            {fromOnboarding
+              ? BILLING_COPY.paymentSuccessOnboardingLead
+              : 'Подписка обновлена. Через несколько секунд вы будете перенаправлены в кабинет.'}
+          </p>
+          {fromOnboarding ? (
+            <p className="mt-2 text-[14px] text-neutral-600">{BILLING_COPY.paymentSuccessOnboardingServices}</p>
+          ) : null}
+        </>
       ) : null}
 
       {pollState === 'failed' ? (
@@ -151,10 +159,10 @@ export function PaymentSuccessPage() {
           </button>
         ) : null}
         <Link
-          to={returnPath}
+          to={fromOnboarding ? ADMIN_PATH : returnPath}
           className="inline-flex min-h-11 items-center justify-center rounded-[12px] bg-[#F47C8C] px-5 text-[14px] font-semibold text-white"
         >
-          {BILLING_COPY.backToBilling}
+          {fromOnboarding ? BILLING_COPY.paymentSuccessOnboardingCabinet : BILLING_COPY.backToBilling}
         </Link>
         <Link
           to={from === 'settings' ? MASTER_SETTINGS_BILLING_PATH : ADMIN_BILLING_PATH}

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import type { DemoAppointmentRecord, DemoAppointmentTab } from '../../../features/appointments/model/demoAppointments';
 import type { FavoriteMasterDto } from '../../../features/profile/api/clientFavorites';
 import type { BackendProfile } from '../../../features/auth/types';
-import { SERVICES_PATH } from '../../../app/paths';
+import { BECOME_MASTER_PATH, SERVICES_PATH } from '../../../app/paths';
 import { AppointmentsEmptyState } from '../../admin/appointments/AppointmentsEmptyState';
 import { APPOINTMENTS_REQUESTS_EMPTY_ILLUSTRATION_SRC } from '../../admin/appointments/adminAppointmentsTheme';
 import { NothingFoundCard } from '../../../shared/ui/NothingFoundCard';
@@ -54,6 +54,7 @@ type Props = {
   favoritesLoading: boolean;
   favoritesError: string | null;
   hasApiBackend: boolean;
+  isMasterCabinet: boolean;
   onEditProfile: () => void;
   onOpenDetails: (row: DemoAppointmentRecord) => void;
   onCancel: (row: DemoAppointmentRecord) => void;
@@ -133,6 +134,7 @@ export function ClientProfileCabinetContent({
   favoritesLoading,
   favoritesError,
   hasApiBackend,
+  isMasterCabinet,
   onEditProfile,
   onOpenDetails,
   onCancel,
@@ -280,7 +282,7 @@ export function ClientProfileCabinetContent({
       ) : null}
 
       {mainTab === 'profile' ? (
-        <div className="pb-4">
+        <div className="pb-6 max-lg:pb-8">
           <ClientProfileIdentityCard
             displayName={displayName}
             roleSubtitle={roleSubtitle}
@@ -318,6 +320,17 @@ export function ClientProfileCabinetContent({
               value={profile?.role === 'master' ? 'Мастер SLOTTY' : 'Клиент SLOTTY'}
             />
           </div>
+          {!isMasterCabinet ? (
+            <p className="mt-4 px-1 text-center text-[14px] leading-relaxed text-[#6B7280]">
+              Вы не мастер?{' '}
+              <Link
+                to={BECOME_MASTER_PATH}
+                className="font-semibold text-[#F47C8C] underline decoration-[#F47C8C]/35 underline-offset-[3px] transition hover:text-[#E86B7D]"
+              >
+                Хотите стать мастером?
+              </Link>
+            </p>
+          ) : null}
         </div>
       ) : null}
     </>

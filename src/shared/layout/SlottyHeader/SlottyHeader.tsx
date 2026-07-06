@@ -362,10 +362,10 @@ export function SlottyHeader({
   const mobileMenuDark = barMobileMenuDark || isDarkLanding;
   const mobileNavLinkClass = mobileMenuDark
     ? 'block py-3.5 text-[18px] font-medium text-white/90 transition hover:text-white'
-    : 'block py-3.5 text-[18px] font-medium lowercase text-[#1A1A1A]';
+    : 'block py-3.5 text-[18px] font-medium text-[#1A1A1A]';
   const mobileNavBtnClass = mobileMenuDark
     ? 'block w-full py-3.5 text-left text-[18px] font-medium text-white/90 transition hover:text-white'
-    : 'block w-full py-3.5 text-left text-[18px] font-medium lowercase text-[#1A1A1A]';
+    : 'block w-full py-3.5 text-left text-[18px] font-medium text-[#1A1A1A]';
   const mobileBurgerBtnClass = mobileMenuDark
     ? 'relative z-50 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-white/10 active:scale-95'
     : 'relative z-50 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5 active:scale-95';
@@ -1217,7 +1217,7 @@ function LandingDesktopNav({
         onClick={onCatalogClick}
         aria-current={catalogActive ? 'page' : undefined}
       >
-        каталог
+        Каталог
       </Link>
 
       {onMasterLanding ? (
@@ -1228,7 +1228,7 @@ function LandingDesktopNav({
             onClick={() => onAnchorClick(LANDING_ANCHOR_MASTER_HOME)}
             aria-current={masterHomeActive ? 'page' : undefined}
           >
-            главная
+            Главная
           </button>
 
           <button
@@ -1236,7 +1236,7 @@ function LandingDesktopNav({
             className={navLink(false)}
             onClick={() => onAnchorClick(LANDING_ANCHOR_FOR_MASTERS)}
           >
-            возможности
+            Возможности
           </button>
 
           <button
@@ -1244,7 +1244,7 @@ function LandingDesktopNav({
             className={navLink(false)}
             onClick={() => onAnchorClick(LANDING_ANCHOR_TARIFFS)}
           >
-            тарифы
+            Тарифы
           </button>
 
           <Link
@@ -1252,7 +1252,7 @@ function LandingDesktopNav({
             className={navLink(false)}
             aria-label="Лендинг для клиентов"
           >
-            клиентам
+            Клиентам
           </Link>
 
           <button
@@ -1260,7 +1260,7 @@ function LandingDesktopNav({
             className={navLink(false)}
             onClick={() => onAnchorClick(LANDING_ANCHOR_FAQ)}
           >
-            вопросы
+            Вопросы
           </button>
         </>
       ) : (
@@ -1270,7 +1270,7 @@ function LandingDesktopNav({
             className={navLink(clientHomeActive)}
             aria-current={clientHomeActive ? 'page' : undefined}
           >
-            клиентам
+            Клиентам
           </Link>
 
           <Link
@@ -1278,7 +1278,7 @@ function LandingDesktopNav({
             className={navLink(masterLandingActive)}
             aria-current={masterLandingActive ? 'page' : undefined}
           >
-            стать мастером
+            Стать мастером
           </Link>
 
           <button
@@ -1286,7 +1286,7 @@ function LandingDesktopNav({
             className={navLink(false)}
             onClick={() => onAnchorClick(LANDING_ANCHOR_FAQ)}
           >
-            вопросы
+            Вопросы
           </button>
         </>
       )}

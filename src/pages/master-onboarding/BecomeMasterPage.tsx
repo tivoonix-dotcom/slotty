@@ -7,7 +7,7 @@ import {
   useState,
   type ChangeEvent,
 } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { isEmptyDisplayValue } from '../../shared/lib/emptyDisplayText';
 import { ADMIN_PATH, HUB_PATH, PAYMENT_SUCCESS_PATH } from '../../app/paths';
 import { priceForPlan } from '../../features/billing/model/masterPlans';
@@ -68,7 +68,27 @@ import {
   fallbackCategoryCodeById,
   ONBOARDING_FALLBACK_CATEGORIES,
 } from '../../features/master-onboarding/onboardingFallbackCategories';
+import { OnboardingAccountBar } from './OnboardingAccountBar';
+import { OnboardingAuthGate } from './OnboardingAuthGate';
 import { OnboardingStep5Services } from './OnboardingStep5Services';
+import {
+  canAddServiceDuringOnboarding,
+  countActiveOnboardingServices,
+  exceedsFreeActiveServiceLimit,
+  findDuplicateOnboardingService,
+  hasDuplicateOnboardingServices,
+  ONBOARDING_BASIC_MAX_SERVICES,
+  ONBOARDING_MAX_SERVICES,
+} from './onboardingServiceUtils';
+import { ONBOARDING_PLAN_COPY } from './onboardingPlanCopy';
+import {
+  mergeOnboardingStepFromSources,
+  onboardingPaymentStatusHint,
+  resolveRestoredTariff,
+} from './onboardingProgressMerge';
+import { useOnboardingServerProgress } from './useOnboardingServerProgress';
+import type { OnboardingProgressDto } from '../../features/master-onboarding/api/onboardingProgressApi';
+import { OnboardingFreeLimitSheet } from './OnboardingFreeLimitSheet';
 import { OnboardingStep6Trust } from './OnboardingStep6Trust';
 import { OnboardingStep7Review } from './OnboardingStep7Review';
 import { navigateAfterPublish, OnboardingPublishSuccess } from './OnboardingPublishSuccess';
@@ -227,6 +247,8 @@ function collectPublishBlockingIssues(params: {
     out.push({ id: 'services-empty', message: 'Добавьте хотя бы одну услугу', fixStep: 5 });
   } else if (services.some((s) => !isServiceValidForPublish(s))) {
     out.push({ id: 'services-invalid', message: 'Проверьте услуги', fixStep: 5 });
+  } else if (hasDuplicateOnboardingServices(services)) {
+    out.push({ id: 'services-duplicate', message: 'Удалите одинаковые услуги', fixStep: 5 });
   }
 
   const phoneTrim = phone.trim();
@@ -392,10 +414,11 @@ function StepTitle({
 
 export function BecomeMasterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { urlStep, setUrlStep } = useOnboardingStepUrl(TOTAL_STEPS);
   /** true, когда step меняем из приложения (не из history) — чтобы не откатывать шаг. */
   const stepChangeFromAppRef = useRef(false);
-  const { isAuthenticated, isLoading: authLoading, profile, backendConfigured, refreshProfile } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, profile, backendConfigured, refreshProfile, logout } = useAuth();
   const isMasterUser = useIsMasterUser();
   const { telegramUserPreview, telegramUserPhotoUrl } = useTelegram();
 
@@ -417,7 +440,10 @@ export function BecomeMasterPage() {
   const [publishError, setPublishError] = useState<string | null>(null);
   const [tariffSelection, setTariffSelection] = useState<MasterPlanSelection>('basic');
   const [proConsentOpen, setProConsentOpen] = useState(false);
+  const [freeLimitSheetOpen, setFreeLimitSheetOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [serverPaymentHint, setServerPaymentHint] = useState<string | null>(null);
+  const serverProgressMergedRef = useRef(false);
 
   const [categories, setCategories] = useState<ServiceCategoryDto[]>([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
@@ -615,6 +641,66 @@ export function BecomeMasterPage() {
     data: draftData,
     enabled: !success && draftHydrated,
   });
+
+  const handleServerProgressLoaded = useCallback(
+    (progress: OnboardingProgressDto | null) => {
+      if (!progress) return;
+      setServerPaymentHint(onboardingPaymentStatusHint(progress));
+      if (serverProgressMergedRef.current) return;
+      serverProgressMergedRef.current = true;
+      const local = draftDataRef.current;
+      const merged = mergeOnboardingStepFromSources(progress, local);
+      setTariffSelection(resolveRestoredTariff(progress, normalizePlanSelection(local.tariffSelection)));
+      stepChangeFromAppRef.current = true;
+      setStep(merged.step);
+      setFurthestStep(merged.furthestStep);
+      setUrlStep(merged.step, true);
+    },
+    [setUrlStep],
+  );
+
+  const { queueSync } = useOnboardingServerProgress({
+    enabled: draftHydrated && !success,
+    isAuthenticated,
+    onLoaded: handleServerProgressLoaded,
+  });
+
+  useEffect(() => {
+    if (!draftHydrated || !isAuthenticated || success) return;
+    queueSync({
+      currentStep: step,
+      furthestStep: furthestStep,
+      selectedTariff: tariffSelection,
+    });
+  }, [draftHydrated, furthestStep, isAuthenticated, queueSync, step, success, tariffSelection]);
+
+  useEffect(() => {
+    if (!draftHydrated) return;
+    const intent = searchParams.get('intent');
+    if (intent === 'pro_retry') {
+      setTariffSelection('pro_purchase');
+      setServerPaymentHint(ONBOARDING_PLAN_COPY.paymentFailedOnboarding);
+      if (step < 8) {
+        stepChangeFromAppRef.current = true;
+        setStep(8);
+        setFurthestStep((f) => Math.max(f, 8));
+        setUrlStep(8, true);
+      }
+      return;
+    }
+    if (intent === 'free') {
+      setTariffSelection('basic');
+      setServerPaymentHint(
+        'Чтобы продолжить бесплатно, оставьте до 3 активных услуг — отключите лишние на этом шаге.',
+      );
+      if (step !== 5) {
+        stepChangeFromAppRef.current = true;
+        setStep(5);
+        setFurthestStep((f) => Math.max(f, 5));
+        setUrlStep(5, true);
+      }
+    }
+  }, [draftHydrated, searchParams, setUrlStep, step]);
 
   const hydratedStorageKeyRef = useRef<string | null>(null);
 
@@ -848,6 +934,11 @@ export function BecomeMasterPage() {
     [clientContacts, name, phone, publicAddressForApi, selectedCategoryId, services],
   );
 
+  const activeServiceCount = useMemo(() => countActiveOnboardingServices(services), [services]);
+
+  const freeServiceLimitBlocksPublish =
+    tariffSelection === 'basic' && exceedsFreeActiveServiceLimit(activeServiceCount);
+
   const proOnboardingPriceLabel = useMemo(() => `от ${priceForPlan('pro', 'month')} BYN / месяц`, []);
   const proCheckoutPriceLabel = useMemo(() => `${priceForPlan('pro', 'month')} BYN`, []);
 
@@ -948,6 +1039,22 @@ export function BecomeMasterPage() {
 
     if (desc.length > 1000) errs.description = 'Не длиннее 1000 символов.';
 
+    if (Object.keys(errs).length === 0) {
+      const nextPayload = {
+        title,
+        durationMin: duration,
+        priceByn: price,
+        priceType: svcPriceType,
+        description: desc || undefined,
+      };
+
+      if (!svcEditingId && !canAddServiceDuringOnboarding(services.length)) {
+        errs.form = `Можно добавить не более ${ONBOARDING_MAX_SERVICES} услуг. Удалите лишнюю, чтобы добавить новую.`;
+      } else if (findDuplicateOnboardingService(services, nextPayload, svcEditingId)) {
+        errs.form = 'Такая услуга уже есть в списке. Измените поля или удалите дубликат.';
+      }
+    }
+
     setSvcFieldErrors((prev) => {
       const next = { ...prev };
       delete next.form;
@@ -955,7 +1062,7 @@ export function BecomeMasterPage() {
     });
     if (Object.keys(errs).length > 0) return;
 
-    const nextPayload = {
+    const servicePayload = {
       title,
       durationMin: duration,
       priceByn: price,
@@ -966,21 +1073,70 @@ export function BecomeMasterPage() {
 
     if (svcEditingId) {
       setServices((prev) =>
-        prev.map((s) => (s.id === svcEditingId ? { ...s, ...nextPayload, id: s.id, sortOrder: s.sortOrder } : s)),
+        prev.map((s) =>
+          s.id === svcEditingId ? { ...s, ...servicePayload, id: s.id, sortOrder: s.sortOrder } : s,
+        ),
       );
     } else {
       setServices((prev) => [
         ...prev,
         {
           id: newEntityId('svc'),
-          ...nextPayload,
+          ...servicePayload,
           sortOrder: prev.length,
         },
       ]);
     }
 
     cancelSvcForm();
-  }, [cancelSvcForm, svcDesc, svcDur, svcEditingId, svcPrice, svcPriceType, svcTitle]);
+  }, [cancelSvcForm, services, svcDesc, svcDur, svcEditingId, svcPrice, svcPriceType, svcTitle]);
+
+  const startEditService = useCallback((service: OnboardingService) => {
+    setSvcEditingId(service.id);
+    setSvcTitle(service.title);
+    setSvcDur(String(service.durationMin));
+    setSvcPrice(String(service.priceByn));
+    setSvcPriceType(service.priceType ?? 'fixed');
+    setSvcDesc(service.description ?? '');
+    setSvcHighlightId(null);
+    setSvcFieldErrors({});
+    setSvcTouched({});
+    setSvcAttemptedAdd(false);
+  }, []);
+
+  const removeService = useCallback(
+    (id: string) => {
+      setServices((prev) =>
+        prev.filter((service) => service.id !== id).map((service, index) => ({ ...service, sortOrder: index })),
+      );
+      if (svcEditingId === id) cancelSvcForm();
+    },
+    [cancelSvcForm, svcEditingId],
+  );
+
+  const toggleServiceActive = useCallback((id: string) => {
+    setServices((prev) => {
+      const target = prev.find((service) => service.id === id);
+      if (!target) return prev;
+      const currentlyActive = target.isActive !== false;
+      const activeCount = countActiveOnboardingServices(prev);
+      if (!currentlyActive && activeCount >= ONBOARDING_BASIC_MAX_SERVICES) {
+        setSvcFieldErrors({ form: ONBOARDING_PLAN_COPY.freeActiveLimitReached });
+        return prev;
+      }
+      setSvcFieldErrors((errors) => {
+        if (!errors.form) return errors;
+        const next = { ...errors };
+        delete next.form;
+        return next;
+      });
+      return prev.map((service) =>
+        service.id === id ? { ...service, isActive: !currentlyActive } : service,
+      );
+    });
+  }, []);
+
+  const serviceAddLimitReached = !canAddServiceDuringOnboarding(services.length);
 
   const revokeCertImageBlob = useCallback(() => {
     if (certImageBlobRef.current) {
@@ -1654,6 +1810,20 @@ export function BecomeMasterPage() {
       return;
     }
 
+    if (step === 5 && countActiveOnboardingServices(services) === 0) {
+      setSvcFieldErrors({ form: 'Включите хотя бы одну активную услугу в списке ниже' });
+      scrollToOnboardingField('services');
+      setStepNavigateHint('Включите хотя бы одну активную услугу');
+      return;
+    }
+
+    if (step === 5 && hasDuplicateOnboardingServices(services)) {
+      setSvcFieldErrors({ form: 'Есть одинаковые услуги. Удалите дубликат или измените поля.' });
+      scrollToOnboardingField('services');
+      setStepNavigateHint('Удалите одинаковые услуги');
+      return;
+    }
+
     if (step === 7) {
       if (publishBlockingIssues.length > 0) {
         scrollToOnboardingField('review-issues');
@@ -1795,10 +1965,12 @@ export function BecomeMasterPage() {
             priceAmount: s.priceByn,
             priceType: s.priceType ?? 'fixed',
             sortOrder: i,
+            isActive: s.isActive !== false,
           })),
           certificates: certPayload,
           masterPlan: 'basic',
-          proInterested: false,
+          proInterested: redirectToCheckout,
+          proCheckoutIntent: redirectToCheckout,
         });
 
         if (pendingLocalBySortOrder.size > 0) {
@@ -1835,7 +2007,7 @@ export function BecomeMasterPage() {
           const origin = readPublicAppOrigin();
           const result = await createBillingCheckout({
             billingPackageMonths: 1,
-            returnUrl: `${origin}${PAYMENT_SUCCESS_PATH}?from=pro`,
+            returnUrl: `${origin}${PAYMENT_SUCCESS_PATH}?from=onboarding`,
             consentAccepted: true,
           });
           setProConsentOpen(false);
@@ -1893,7 +2065,7 @@ export function BecomeMasterPage() {
     if (step !== 8) return;
 
     if (!isAuthenticated) {
-      setPublishError('Войдите через Telegram, чтобы опубликовать профиль.');
+      setPublishError('Войдите через Google, Telegram или email, чтобы опубликовать профиль.');
       return;
     }
     if (!getApiBaseUrl()) {
@@ -1929,8 +2101,14 @@ export function BecomeMasterPage() {
       return;
     }
 
+    if (exceedsFreeActiveServiceLimit(activeServiceCount)) {
+      setFreeLimitSheetOpen(true);
+      return;
+    }
+
     await executePublishAndFinish(false);
   }, [
+    activeServiceCount,
     categories,
     clientContacts,
     executePublishAndFinish,
@@ -1983,9 +2161,20 @@ export function BecomeMasterPage() {
               </button>
             )}
 
-            <span className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-white/90 px-2.5 py-1.5 text-[13px] font-semibold tabular-nums leading-none text-neutral-600 shadow-none sm:px-3">
-              {step} / {TOTAL_STEPS}
-            </span>
+            <div className="flex shrink-0 items-center gap-2">
+              {!authLoading && isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="inline-flex min-h-9 items-center justify-center rounded-full bg-white/90 px-3 py-1.5 text-[13px] font-semibold leading-tight text-[#B91C1C] shadow-none transition hover:bg-[#FEE2E2] active:opacity-80 sm:px-3.5 sm:text-[14px]"
+                >
+                  Выйти
+                </button>
+              ) : null}
+              <span className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-white/90 px-2.5 py-1.5 text-[13px] font-semibold tabular-nums leading-none text-neutral-600 shadow-none sm:px-3">
+                {step} / {TOTAL_STEPS}
+              </span>
+            </div>
           </div>
 
           <div
@@ -2016,18 +2205,19 @@ export function BecomeMasterPage() {
           step > 1 ? (step === 7 ? 'lg:pb-[7.5rem]' : 'lg:pb-[6.5rem]') : ''
         }`}
       >
-      {step >= 2 && (!backendConfigured || (!authLoading && !isAuthenticated)) ? (
+      {step >= 2 && backendConfigured && !authLoading ? (
         <div className={`${ONBOARDING_PAGE_WRAP} space-y-2 pt-3`}>
-          {!backendConfigured ? (
-            <p className="rounded-[18px] bg-[#FFF4E8] px-4 py-3 text-[13px] font-semibold leading-snug text-[#B66A24]">
-              Не задан <span className="font-mono text-[12px]">VITE_API_URL</span> — категории и публикация профиля не заработают, пока не подключите бэкенд.
-            </p>
-          ) : null}
-          {!authLoading && !isAuthenticated ? (
-            <p className="rounded-[18px] bg-[#FFF4E8] px-4 py-3 text-[13px] font-semibold leading-snug text-[#B66A24]">
-              Войдите через Telegram, чтобы сохранить анкету на сервере. Пока можно просмотреть шаги анкеты.
-            </p>
-          ) : null}
+          {isAuthenticated ? (
+            <OnboardingAccountBar profile={profile} onLogout={logout} />
+          ) : (
+            <OnboardingAuthGate onAuthenticated={() => void refreshProfile()} />
+          )}
+        </div>
+      ) : step >= 2 && !backendConfigured ? (
+        <div className={`${ONBOARDING_PAGE_WRAP} space-y-2 pt-3`}>
+          <p className="rounded-[18px] bg-[#FFF4E8] px-4 py-3 text-[13px] font-semibold leading-snug text-[#B66A24]">
+            Не задан <span className="font-mono text-[12px]">VITE_API_URL</span> — категории и публикация профиля не заработают, пока не подключите бэкенд.
+          </p>
         </div>
       ) : null}
 
@@ -2283,6 +2473,15 @@ export function BecomeMasterPage() {
                   onSubmit={submitServiceForm}
                   onCancelEdit={cancelSvcForm}
                   services={services}
+                  onStartEditService={startEditService}
+                  onRemoveService={removeService}
+                  onToggleServiceActive={toggleServiceActive}
+                  addDisabled={serviceAddLimitReached}
+                  addDisabledHint={
+                    serviceAddLimitReached
+                      ? `Достигнут лимит ${ONBOARDING_MAX_SERVICES} услуг. Удалите услугу, чтобы добавить другую.`
+                      : undefined
+                  }
                 />
             ) : null}
 
@@ -2353,7 +2552,7 @@ export function BecomeMasterPage() {
                 <StepTitle
                   eyebrow="Тариф"
                   title="Выберите тариф"
-                  text="Начните бесплатно или оплатите Pro картой через bePaid"
+                  text={ONBOARDING_PLAN_COPY.tariffStepLead}
                 />
 
                 {publishError ? (
@@ -2362,9 +2561,15 @@ export function BecomeMasterPage() {
                   </p>
                 ) : null}
 
-                {services.length > 3 && tariffSelection === 'basic' ? (
-                  <p className="mt-4 rounded-[22px] bg-[#F8F6F6] px-4 py-3 text-[13px] font-medium leading-snug text-neutral-600">
-                    На базовом тарифе можно опубликовать до 3 услуг. Остальные можно активировать после подключения Pro.
+                {exceedsFreeActiveServiceLimit(activeServiceCount) && tariffSelection === 'basic' ? (
+                  <p className="mt-4 rounded-[22px] bg-[#FFF4E8] px-4 py-3 text-[13px] font-medium leading-snug text-[#B66A24]">
+                    {ONBOARDING_PLAN_COPY.tariffFreeOverLimit}
+                  </p>
+                ) : null}
+
+                {services.length > ONBOARDING_BASIC_MAX_SERVICES && tariffSelection === 'pro_purchase' ? (
+                  <p className="mt-4 rounded-[22px] bg-[#F0FAF4] px-4 py-3 text-[13px] font-medium leading-snug text-[#2D6A4F]">
+                    {ONBOARDING_PLAN_COPY.tariffProSelected(services.length)}
                   </p>
                 ) : null}
 
@@ -2375,23 +2580,35 @@ export function BecomeMasterPage() {
                     }`}
                   >
                     <p className={onboardingEyebrowClass}>Тариф</p>
-                    <p className={`mt-1 text-[18px] ${onboardingPreviewTitleClass}`}>Базовый</p>
-                    <p className="mt-1 text-[20px] font-semibold text-[#E29595]">0 BYN</p>
-                    <p className="mt-1 text-[13px] font-medium text-neutral-500">Для старта</p>
+                    <p className={`mt-1 text-[18px] ${onboardingPreviewTitleClass}`}>{ONBOARDING_PLAN_COPY.tariffFreeName}</p>
+                    <p className="mt-1 text-[20px] font-semibold text-[#E29595]">{ONBOARDING_PLAN_COPY.tariffFreePrice}</p>
+                    <p className="mt-1 text-[13px] font-medium text-neutral-500">{ONBOARDING_PLAN_COPY.tariffFreeTagline}</p>
                     <ul className="mt-3 flex flex-1 flex-col gap-1.5 text-[12px] font-medium leading-snug text-neutral-700">
-                      <li>до 3 услуг</li>
-                      <li>обычная позиция в поиске</li>
+                      <li>до {ONBOARDING_BASIC_MAX_SERVICES} активных услуг</li>
+                      <li>базовая онлайн-запись</li>
                       <li>профиль мастера</li>
-                      <li>записи от клиентов</li>
+                      <li>базовое расписание</li>
                       <li>базовая поддержка</li>
                     </ul>
                     <button
                       type="button"
-                      onClick={() => setTariffSelection('basic')}
-                      className="mt-4 flex min-h-11 w-full items-center justify-center rounded-full bg-[#F1EFEF] px-3 text-[14px] font-semibold text-neutral-900 transition active:scale-[0.98]"
+                      onClick={() => {
+                        if (exceedsFreeActiveServiceLimit(activeServiceCount)) {
+                          setFreeLimitSheetOpen(true);
+                          return;
+                        }
+                        setTariffSelection('basic');
+                      }}
+                      disabled={exceedsFreeActiveServiceLimit(activeServiceCount)}
+                      className="mt-4 flex min-h-11 w-full items-center justify-center rounded-full bg-[#F1EFEF] px-3 text-[14px] font-semibold text-neutral-900 transition enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Остаться на базовом
+                      {ONBOARDING_PLAN_COPY.tariffFreeCta}
                     </button>
+                    {exceedsFreeActiveServiceLimit(activeServiceCount) ? (
+                      <p className="mt-2 text-center text-[11px] font-medium leading-snug text-[#B66A24]">
+                        {ONBOARDING_PLAN_COPY.tariffFreeBlocked}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div
@@ -2422,7 +2639,7 @@ export function BecomeMasterPage() {
                       onClick={() => setTariffSelection('pro_purchase')}
                       className="mt-4 flex min-h-11 w-full items-center justify-center rounded-full bg-[#E29595] px-3 text-[14px] font-semibold text-white shadow-[0_10px_24px_rgba(226,149,149,0.22)] transition active:scale-[0.98]"
                     >
-                      Купить Pro
+                      {ONBOARDING_PLAN_COPY.tariffProCta}
                     </button>
                   </div>
                 </div>
@@ -2487,6 +2704,30 @@ export function BecomeMasterPage() {
                 </div>
               </div>
             ) : null}
+            {step === TOTAL_STEPS && !authLoading && !isAuthenticated ? (
+              <p className="mb-2 rounded-[18px] bg-[#FFF4E8] px-3 py-2.5 text-center text-[13px] font-semibold leading-snug text-[#B66A24]">
+                Чтобы опубликовать профиль,{' '}
+                <a href="#onboarding-auth-gate" className="underline underline-offset-2">
+                  войдите через Google, Telegram или email
+                </a>
+                .
+              </p>
+            ) : null}
+            {step === TOTAL_STEPS && freeServiceLimitBlocksPublish ? (
+              <p className="mb-2 rounded-[18px] bg-[#FFF4E8] px-3 py-2.5 text-center text-[13px] font-semibold leading-snug text-[#B66A24]">
+                {ONBOARDING_PLAN_COPY.tariffFreeBlocked}
+              </p>
+            ) : null}
+            {serverPaymentHint && (step === 7 || step === TOTAL_STEPS) ? (
+              <p className="mb-2 rounded-[18px] bg-[#EEF6FF] px-3 py-2.5 text-center text-[13px] font-semibold leading-snug text-[#1D4ED8]">
+                {serverPaymentHint}
+              </p>
+            ) : null}
+            {step === TOTAL_STEPS ? (
+              <p className="mb-2 rounded-[18px] bg-[#F3F4F6] px-3 py-2.5 text-center text-[13px] font-medium leading-snug text-[#4B5563]">
+                {ONBOARDING_PLAN_COPY.profileDraftNotice}
+              </p>
+            ) : null}
             {step < TOTAL_STEPS ? (
               <button
                 type="button"
@@ -2506,6 +2747,7 @@ export function BecomeMasterPage() {
                   saving ||
                   checkoutLoading ||
                   publishBlockingIssues.length > 0 ||
+                  freeServiceLimitBlocksPublish ||
                   !selectedCategoryId ||
                   !isAuthenticated ||
                   !getApiBaseUrl()
@@ -2517,8 +2759,8 @@ export function BecomeMasterPage() {
                   : checkoutLoading
                     ? 'Переход к оплате…'
                     : tariffSelection === 'pro_purchase'
-                      ? 'Опубликовать и оплатить Pro'
-                      : 'Опубликовать профиль'}
+                      ? ONBOARDING_PLAN_COPY.tariffPublishPro
+                      : ONBOARDING_PLAN_COPY.tariffPublishFree}
               </button>
             )}
           </div>
@@ -2534,9 +2776,25 @@ export function BecomeMasterPage() {
           amountLabel={proCheckoutPriceLabel}
           packageMonths={1}
           loading={saving || checkoutLoading}
+          contextHint={ONBOARDING_PLAN_COPY.tariffProConsentHint(services.length)}
           onConfirm={() => void executePublishAndFinish(true)}
         />
       ) : null}
+
+      <OnboardingFreeLimitSheet
+        open={freeLimitSheetOpen}
+        activeCount={activeServiceCount}
+        onClose={() => setFreeLimitSheetOpen(false)}
+        onChoosePro={() => {
+          setFreeLimitSheetOpen(false);
+          setTariffSelection('pro_purchase');
+          setProConsentOpen(true);
+        }}
+        onAdjustServices={() => {
+          setFreeLimitSheetOpen(false);
+          goToStep(5);
+        }}
+      />
 
       {categoryChangeConfirmOpen ? (
         <div

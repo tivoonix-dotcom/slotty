@@ -37,6 +37,7 @@ async function notifyPlatformAdminsInApp(params: {
         type: 'system',
         title: params.title,
         body: params.body,
+        audience: 'master',
         relatedEntityType: 'support_ticket',
         relatedEntityId: params.ticketCode,
       }).catch(() => undefined),
@@ -143,6 +144,7 @@ export async function notifyMasterSupportAdminReply(params: {
   await notifyUser({
     userId: params.userId,
     type: 'system',
+    audience: 'master',
     title,
     body,
     relatedEntityType: 'support_ticket',
@@ -177,6 +179,7 @@ export async function notifyMasterSupportStatusChanged(params: {
   await notifyUser({
     userId: params.userId,
     type: 'system',
+    audience: 'master',
     title,
     body,
     relatedEntityType: 'support_ticket',

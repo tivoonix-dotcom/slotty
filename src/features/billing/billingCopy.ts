@@ -27,6 +27,10 @@ export const BILLING_COPY = {
     'Ожидаем подтверждение от платёжной системы. Это может занять до минуты.',
   backToBilling: 'Вернуться к тарифам',
   backToPayment: 'Вернуться к оплате',
+  backToOnboardingTariff: 'Вернуться к выбору тарифа',
+  paymentSuccessOnboardingLead: 'Оплата прошла успешно. Pro активирован.',
+  paymentSuccessOnboardingServices: 'Теперь доступны все добавленные услуги.',
+  paymentSuccessOnboardingCabinet: 'Перейти в кабинет',
   cardDeleted: 'Карта удалена',
   autoRenewOffAfterDelete: 'Автопродление отключено',
   cardNotLinkedAutoRenew: 'Карта не привязана. Автопродление невозможно.',
@@ -67,5 +71,18 @@ export function billingPackageLabel(months: BillingPackageMonths): string {
 
 export function paymentReturnPath(from: string | null): string {
   if (from === 'settings') return '/master/settings/billing';
+  if (from === 'onboarding') return '/become-master?step=8';
   return '/admin/billing';
+}
+
+export function onboardingPaymentRetryPath(): string {
+  return '/become-master?step=8&intent=pro_retry';
+}
+
+export function onboardingPaymentTariffPath(): string {
+  return '/become-master?step=8';
+}
+
+export function onboardingPaymentFreePath(): string {
+  return '/become-master?step=5&intent=free';
 }

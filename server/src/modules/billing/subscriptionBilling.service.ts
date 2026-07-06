@@ -587,6 +587,9 @@ export async function createBillingCheckout(input: {
     metadata: { paymentId: result.paymentId, consentAccepted: true, packageMonths: input.billingPackageMonths },
   });
 
+  const { markOnboardingCheckoutCreated } = await import('../masters/masterOnboardingProgress.service.js');
+  await markOnboardingCheckoutCreated(input.masterId, result.paymentId).catch(() => {});
+
   return result;
 }
 
@@ -1108,6 +1111,16 @@ export async function fulfillSubscriptionFromPayment(
       [payment.masterId, periodEnd],
     );
 
+    if (purpose === 'initial_purchase' || purpose === 'retry_payment') {
+      await client.query(
+        `update public.master_services
+            set is_active = true,
+                updated_at = now()
+          where master_id = $1 and is_active = false`,
+        [payment.masterId],
+      );
+    }
+
     const providerPaymentId = payment.bepaidTransactionUid ?? payment.id;
     await client.query(
       `update public.billing_payments
@@ -1186,6 +1199,14 @@ export async function fulfillSubscriptionFromPayment(
     const { ensureRenewalChargeJob } = await import('./billingJobs.service.js');
     await ensureRenewalChargeJob(scheduleRenewalSubId, scheduleRenewalPeriodEnd).catch(() => {});
   }
+
+  if (
+    payment.masterId &&
+    (purpose === 'initial_purchase' || purpose === 'retry_payment')
+  ) {
+    const { markOnboardingPaymentSuccess } = await import('../masters/masterOnboardingProgress.service.js');
+    await markOnboardingPaymentSuccess(payment.masterId, payment.id).catch(() => {});
+  }
 }
 
 /** @deprecated use fulfillSubscriptionFromPayment */
@@ -1251,6 +1272,11 @@ export async function markSubscriptionPaymentFailed(payment: PaymentDto): Promis
     telegramHtml: n.telegramHtml,
     masterPreferenceEvent: 'billing',
   }).catch(() => {});
+
+  if (purpose === 'initial_purchase' || purpose === 'retry_payment') {
+    const { markOnboardingPaymentFailed } = await import('../masters/masterOnboardingProgress.service.js');
+    await markOnboardingPaymentFailed(payment.masterId, payment.id).catch(() => {});
+  }
 }
 
 /** Напоминание о скором списании (вызывать из cron/worker). */

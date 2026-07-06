@@ -1,8 +1,10 @@
 import type { CSSProperties, Ref } from 'react';
-import { useLocation } from 'react-router-dom';
-import { PROFILE_NOTIFICATIONS_PATH } from '../../../app/paths';
+import { Link, useLocation } from 'react-router-dom';
+import { HEADER_LOGO_SRC } from '../../../app/headerLogo';
+import { HUB_PATH, PROFILE_NOTIFICATIONS_PATH } from '../../../app/paths';
 import { useIsMasterUser } from '../../../features/profile/hooks/useIsMasterUser';
 import { CabinetRoleSwitch } from '../../../shared/layout/CabinetRoleSwitch';
+import { SlottyImg } from '../../../shared/ui/SlottyImg';
 import { ADMIN_CABINET_SHELL_MAX } from '../../admin/overview/adminOverviewTheme';
 import { NotificationBellLink } from '../../admin/notifications/notificationBellUi';
 
@@ -103,7 +105,21 @@ export function ClientMobileCabinetHeader({
         <div className="flex min-h-10 w-full min-w-0 items-center gap-2">
           {isMasterUser ? (
             <CabinetRoleSwitch active="client" compact className="min-w-0 max-w-[11.5rem] shrink" />
-          ) : null}
+          ) : (
+            <Link
+              to={HUB_PATH}
+              aria-label="SLOTTY — на главную"
+              className="inline-flex h-10 shrink-0 items-center overflow-visible transition hover:opacity-60 active:scale-[0.99]"
+            >
+              <SlottyImg
+                src={HEADER_LOGO_SRC}
+                alt=""
+                decoding="async"
+                fetchPriority="low"
+                className="h-10 w-auto max-w-[min(12rem,42vw)] -translate-x-6 object-contain object-left"
+              />
+            </Link>
+          )}
           <HeaderActions
             className="ml-auto"
             isNotifications={isNotifications}

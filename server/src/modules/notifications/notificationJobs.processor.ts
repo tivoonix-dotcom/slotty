@@ -249,6 +249,7 @@ export async function processNotificationJob(job: NotificationJobRow): Promise<P
       type: notifyType,
       title,
       body,
+      audience: forMaster ? 'master' : 'client',
       relatedEntityType: 'appointment',
       relatedEntityId: job.appointment_id,
     });

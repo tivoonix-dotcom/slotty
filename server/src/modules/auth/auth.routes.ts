@@ -30,7 +30,7 @@ import {
   createGoogleLinkHandoff,
 } from './googleLinkHandoff.store.js';
 import { syncMasterAccountVerified } from './accountVerification.js';
-import { listAuthIdentitiesForProfile } from './authIdentities.service.js';
+import { listAuthIdentitiesForProfile, resolveCanonicalProfileId } from './authIdentities.service.js';
 import {
   requestPasswordReset,
   resetPasswordWithToken,
@@ -46,7 +46,12 @@ import {
   revokeOtherAuthSessions,
 } from './authSessions.service.js';
 import { recordProfileSecurityEvent } from './profileSecurityAudit.service.js';
-import { resolveCanonicalProfileId } from './authIdentities.service.js';
+import {
+  completeTelegramBrowserPending,
+  createTelegramBrowserPending,
+  pollTelegramBrowserPending,
+} from './telegramLoginPending.store.js';
+import { getProfileById } from '../profiles/profiles.service.js';
 
 export const authRouter = Router();
 
@@ -122,6 +127,50 @@ authRouter.post(
     const gate = buildConsentGateFromRequest(req, body.consents, 'telegram');
     const out = await loginWithTelegram(body.initDataRaw, gate, issueSessionContextFromRequest(req));
     res.json(out);
+  }),
+);
+
+const telegramBrowserPendingBody = z.object({
+  returnPath: z.string().max(256).optional(),
+});
+
+authRouter.post(
+  '/telegram/browser-pending',
+  authCredentialLimiter,
+  asyncHandler(async (req, res) => {
+    const body = telegramBrowserPendingBody.parse(req.body ?? {});
+    const raw = body.returnPath?.trim();
+    const returnPath =
+      raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/login';
+    const pendingId = createTelegramBrowserPending(returnPath);
+    res.json({ pendingId });
+  }),
+);
+
+authRouter.get(
+  '/telegram/browser-pending/:pendingId',
+  authCredentialLimiter,
+  asyncHandler(async (req, res) => {
+    const pendingId = z.string().uuid().parse(req.params.pendingId);
+    res.json(pollTelegramBrowserPending(pendingId));
+  }),
+);
+
+authRouter.post(
+  '/telegram/browser-pending/:pendingId/complete',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const pendingId = z.string().uuid().parse(req.params.pendingId);
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+    if (!token) {
+      throw ApiError.unauthorized('Требуется авторизация', 'AUTH_REQUIRED');
+    }
+    const profile = await getProfileById(req.user!.id);
+    completeTelegramBrowserPending(pendingId, {
+      token,
+      profile: profile as unknown as Record<string, unknown>,
+    });
+    res.json({ ok: true });
   }),
 );
 

@@ -31,6 +31,7 @@ export async function notifyMasterBookingExpired(appointmentId: string): Promise
   const metadata = await buildBookingNotificationMetadataForAppointment(ctx.appointmentId);
   await notifyUser({
     userId: ctx.masterId,
+    audience: 'master',
     ...payload,
     relatedEntityType: 'appointment',
     relatedEntityId: ctx.appointmentId,
@@ -47,6 +48,7 @@ export async function notifyMasterBookingCreated(ctx: AppointmentNotifyContext):
   const metadata = await buildBookingNotificationMetadataForAppointment(ctx.appointmentId);
   await notifyUser({
     userId: ctx.masterId,
+    audience: 'master',
     ...payload,
     ...related(ctx),
     metadata,

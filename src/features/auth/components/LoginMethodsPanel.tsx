@@ -1,10 +1,11 @@
 import { EMPTY_NOT_LINKED } from '../../../shared/lib/emptyDisplayText';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { HiArrowPath, HiCheck } from 'react-icons/hi2';
 import { Link, useSearchParams } from 'react-router-dom';
 import { FORGOT_PASSWORD_PATH } from '../../../app/paths';
 import {
   createGoogleLinkHandoff,
+  createTelegramBrowserLoginPending,
   fetchAuthIdentities,
   linkEmail,
   linkGoogle,
@@ -12,10 +13,17 @@ import {
   loginWithEmail,
   loginWithGoogle,
   loginWithTelegram,
+  pollTelegramBrowserLoginPending,
   startGoogleOAuth,
   registerWithEmail,
   sendEmailVerification,
 } from '../api/authApi';
+import { buildTelegramBrowserHandoffUrl } from '../lib/telegramLoginLink';
+import {
+  clearStoredTelegramBrowserPendingId,
+  persistTelegramBrowserPendingId,
+  readStoredTelegramBrowserPendingId,
+} from '../lib/telegramBrowserHandoff';
 import { messageForAuthErrorCode } from '../lib/authApiErrors';
 import { usePublicAppConfig } from '../hooks/usePublicAppConfig';
 import { useTelegramLoginUrl } from '../hooks/useTelegramLoginUrl';
@@ -68,6 +76,8 @@ type Props = {
   appearance?: 'default' | 'page' | 'sheet' | 'okx';
   /** master-login = /master/login; master-register = /master/register */
   authIntent?: 'master-login' | 'master-register';
+  /** Куда вернуться после OAuth (если нет ?from= в URL). */
+  oauthReturnPath?: string;
   /** Вызывается после успешного входа или привязки; для входа передаётся актуальный profile. */
   onLinked?: (profile?: BackendProfile) => void;
 };
@@ -242,10 +252,11 @@ export function LoginMethodsPanel({
   mode = 'settings',
   appearance = 'default',
   authIntent,
+  oauthReturnPath,
   onLinked,
 }: Props) {
   const [searchParams] = useSearchParams();
-  const loginReturnPath = searchParams.get('from') ?? undefined;
+  const loginReturnPath = oauthReturnPath ?? searchParams.get('from') ?? undefined;
   const { isAuthenticated, applySession, refreshProfile, openConsentBlock } = useAuth();
   const { initDataRaw, isTelegramWebApp } = useTelegram();
   const isMasterRegister = authIntent === 'master-register';
@@ -290,8 +301,23 @@ export function LoginMethodsPanel({
   /** Кабинет: карточки с иконками и прогрессом (страница «Настройки» или bottom sheet). */
   const settingsCardsLayout = isSettings && (sheetStyle || pageStyle);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
-  const telegramLoginUrl = useTelegramLoginUrl(loginReturnPath);
+  const { url: telegramLoginUrl, botUsername: telegramBotUsername } = useTelegramLoginUrl(loginReturnPath);
   const inTelegramApp = Boolean(initDataRaw && isTelegramWebApp);
+  const [tgBrowserPendingId, setTgBrowserPendingId] = useState<string | null>(() =>
+    inTelegramApp ? null : readStoredTelegramBrowserPendingId(),
+  );
+  const [tgBrowserWaiting, setTgBrowserWaiting] = useState(() =>
+    inTelegramApp ? false : Boolean(readStoredTelegramBrowserPendingId()),
+  );
+  const tgBrowserPollRef = useRef<(() => void) | null>(null);
+
+  const browserReturnPath = useMemo(() => {
+    if (loginReturnPath?.startsWith('/')) return loginReturnPath;
+    if (typeof window !== 'undefined') {
+      return `${window.location.pathname}${window.location.search}`;
+    }
+    return '/login';
+  }, [loginReturnPath]);
 
   const reload = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -310,6 +336,98 @@ export function LoginMethodsPanel({
   useEffect(() => {
     if (isSettings) void reload();
   }, [isSettings, reload]);
+
+  useEffect(() => {
+    if (!tgBrowserPendingId || inTelegramApp) return undefined;
+    let cancelled = false;
+    let attempts = 0;
+    let timer: number | undefined;
+
+    const finish = (profile?: BackendProfile) => {
+      clearStoredTelegramBrowserPendingId();
+      setTgBrowserWaiting(false);
+      setTgBrowserPendingId(null);
+      if (profile) onLinked?.(profile);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      try {
+        const result = await pollTelegramBrowserLoginPending(tgBrowserPendingId);
+        if (cancelled) return;
+        if (result.status === 'complete') {
+          applySession({ token: result.token, profile: result.profile });
+          finish(result.profile);
+          return;
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Вход через Telegram не завершён');
+          clearStoredTelegramBrowserPendingId();
+          setTgBrowserWaiting(false);
+          setTgBrowserPendingId(null);
+        }
+        return;
+      }
+      if (attempts >= 120) {
+        if (!cancelled) {
+          setError('Время ожидания истекло. Нажмите «Telegram» ещё раз.');
+          clearStoredTelegramBrowserPendingId();
+          setTgBrowserWaiting(false);
+          setTgBrowserPendingId(null);
+        }
+        return;
+      }
+      timer = window.setTimeout(() => void tick(), 2000);
+    };
+
+    tgBrowserPollRef.current = () => void tick();
+    void tick();
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void tick();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      cancelled = true;
+      tgBrowserPollRef.current = null;
+      if (timer) window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [applySession, inTelegramApp, onLinked, tgBrowserPendingId]);
+
+  const startBrowserTelegramLogin = useCallback(async () => {
+    if (!telegramBotUsername) {
+      setError(
+        'Telegram-бот не настроен. Задайте TELEGRAM_BOT_TOKEN на сервере или VITE_TELEGRAM_BOT_USERNAME на фронте.',
+      );
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      const { pendingId } = await createTelegramBrowserLoginPending(browserReturnPath);
+      persistTelegramBrowserPendingId(pendingId);
+      setTgBrowserPendingId(pendingId);
+      setTgBrowserWaiting(true);
+      const handoffUrl = buildTelegramBrowserHandoffUrl(telegramBotUsername, pendingId);
+      const opened = window.open(handoffUrl, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        window.location.assign(handoffUrl);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не удалось начать вход через Telegram');
+      clearStoredTelegramBrowserPendingId();
+      setTgBrowserWaiting(false);
+      setTgBrowserPendingId(null);
+    } finally {
+      setBusy(false);
+    }
+  }, [browserReturnPath, telegramBotUsername]);
 
   const emailIdentity = identities.find((i) => i.provider === 'email');
 
@@ -383,11 +501,11 @@ export function LoginMethodsPanel({
     }
 
     setError(
-      telegramLoginUrl
+      telegramBotUsername
         ? null
         : 'Telegram-бот не настроен. Задайте TELEGRAM_BOT_TOKEN на сервере или VITE_TELEGRAM_BOT_USERNAME на фронте.',
     );
-  }, [applySession, initDataRaw, isTelegramWebApp, onLinked, openConsentFlow, signupConsents, telegramLoginUrl]);
+  }, [applySession, initDataRaw, isTelegramWebApp, onLinked, openConsentFlow, signupConsents, telegramBotUsername]);
 
   const renderTelegramLoginControl = (className: string, label: string) => {
     const content = (
@@ -403,15 +521,13 @@ export function LoginMethodsPanel({
         </button>
       );
     }
-    if (telegramLoginUrl) {
-      return (
-        <a href={telegramLoginUrl} className={`${className} no-underline`}>
-          {content}
-        </a>
-      );
-    }
     return (
-      <button type="button" disabled={busy} onClick={() => void handleLoginTelegram()} className={className}>
+      <button
+        type="button"
+        disabled={busy || tgBrowserWaiting || !telegramBotUsername}
+        onClick={() => void startBrowserTelegramLogin()}
+        className={className}
+      >
         {content}
       </button>
     );
@@ -627,6 +743,13 @@ export function LoginMethodsPanel({
           {emailMode === 'register' && !allConsentsChecked ? (
             <p className="text-center text-[12px] leading-relaxed text-[#9CA3AF]">
               Сначала отметьте документы выше, затем войдите через Google или Telegram.
+            </p>
+          ) : null}
+
+          {tgBrowserWaiting ? (
+            <p className="rounded-2xl bg-[#EFF6FF] px-4 py-3 text-[13px] font-medium leading-snug text-[#1D4ED8]">
+              Завершите вход в Telegram: нажмите Start, затем «Открыть SLOTTY». После этого вернитесь в этот
+              браузер — вход подтвердится автоматически.
             </p>
           ) : null}
 

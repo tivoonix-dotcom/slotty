@@ -36,7 +36,7 @@ export const LANDING_HEADER_ACTIONS_CELL_CLASS =
   'col-start-2 row-start-1 flex shrink-0 flex-nowrap items-center justify-self-end gap-2 lg:col-start-3 lg:gap-3';
 
 export const LANDING_NAV_LINK_CLASS =
-  'inline-flex shrink-0 items-center justify-center whitespace-nowrap px-0 text-[15px] font-semibold leading-none lowercase tracking-[-0.01em] text-[#1A1A1A] transition hover:text-[#C97B7B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E29595]/35';
+  'inline-flex shrink-0 items-center justify-center whitespace-nowrap px-0 text-[15px] font-semibold leading-none tracking-[-0.01em] text-[#1A1A1A] transition hover:text-[#C97B7B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E29595]/35';
 
 export const LANDING_ICON_BTN_CLASS =
   'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F1EFEF] text-[#1A1A1A] transition hover:bg-[#E9E6E6] active:scale-[0.97]';

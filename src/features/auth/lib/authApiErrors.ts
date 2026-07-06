@@ -22,6 +22,8 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   GOOGLE_TOKEN_INVALID: 'Не удалось войти через Google.',
   GOOGLE_TOKEN_AUDIENCE: 'Не удалось войти через Google.',
   TELEGRAM_NOT_AVAILABLE: 'Вход через Telegram доступен внутри Telegram Web App.',
+  TELEGRAM_LOGIN_PENDING_EXPIRED:
+    'Сессия входа через Telegram устарела. Вернитесь на страницу регистрации и нажмите «Telegram» ещё раз.',
   EMAIL_LOGIN_FAILED: 'Неверный email или пароль.',
   EMAIL_PASSWORD_NOT_SET:
     'Для этого email войдите через Google или задайте пароль в кабинете в разделе «Способы входа».',

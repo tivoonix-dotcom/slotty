@@ -162,7 +162,11 @@ export function NotificationsSummary({
     <>
       {mobileHeader ? (
         <section className="overflow-hidden rounded-[16px] bg-white ring-1 ring-[#EEEEEE] lg:hidden">
-          <div className="flex items-start justify-between gap-3 border-b border-[#EEEEEE] px-4 py-3.5">
+          <div
+            className={`flex items-start justify-between gap-3 px-4 py-3.5 ${
+              mobileFiltersPanel ? 'border-b border-[#EEEEEE]' : ''
+            }`}
+          >
             <div className="min-w-0 flex-1">
               {loading ? (
                 <>
@@ -184,9 +188,9 @@ export function NotificationsSummary({
             </div>
           </div>
 
-          <div className="px-4 py-3.5 sm:py-4">
-            {mobileFiltersPanel ? <div>{mobileFiltersPanel}</div> : null}
-          </div>
+          {mobileFiltersPanel ? (
+            <div className="px-4 py-3.5 sm:py-4">{mobileFiltersPanel}</div>
+          ) : null}
         </section>
       ) : null}
 

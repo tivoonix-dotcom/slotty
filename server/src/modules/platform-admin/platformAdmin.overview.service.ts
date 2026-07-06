@@ -1,4 +1,5 @@
 import { query } from '../../config/db.js';
+import { TtlCache } from '../../lib/ttlCache.js';
 
 export type PlatformAdminOverview = {
   usersTotal: number;
@@ -12,7 +13,9 @@ export type PlatformAdminOverview = {
   cancellationsLast7Days: number;
 };
 
-export async function getPlatformAdminOverview(): Promise<PlatformAdminOverview> {
+const overviewCache = new TtlCache<PlatformAdminOverview>(60_000);
+
+async function loadPlatformAdminOverview(): Promise<PlatformAdminOverview> {
   const r = await query<{
     users_total: string;
     clients_total: string;
@@ -52,4 +55,12 @@ export async function getPlatformAdminOverview(): Promise<PlatformAdminOverview>
     bookingsToday: Number(row.bookings_today),
     cancellationsLast7Days: Number(row.cancellations_last_7_days),
   };
+}
+
+export async function getPlatformAdminOverview(): Promise<PlatformAdminOverview> {
+  const cached = overviewCache.get('global');
+  if (cached) return cached;
+  const data = await loadPlatformAdminOverview();
+  overviewCache.set('global', data);
+  return data;
 }

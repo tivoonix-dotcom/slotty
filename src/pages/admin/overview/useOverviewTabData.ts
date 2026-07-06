@@ -2,10 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import {
   fetchOverviewBundle,
-  fetchOverviewClients,
+  fetchOverviewFreeBundle,
   fetchOverviewReputation,
-  fetchOverviewRevenue,
-  fetchOverviewSummary,
   type OverviewSummaryApiDto,
 } from '../../../features/admin/api/masterOverviewApi';
 import {
@@ -16,7 +14,6 @@ import {
   computeClientAnalytics,
   computeRevenueAnalytics,
   emptyClientAnalytics,
-  isOverviewProTab,
   overviewPeriodRange,
   overviewSummaryMetrics,
   type ClientAnalytics,
@@ -37,7 +34,7 @@ type SummaryMetrics = {
 };
 
 export function useOverviewTabData({
-  activeTab,
+  activeTab: _activeTab,
   periodPreset,
   appointments,
   useCabinetApi,
@@ -78,7 +75,6 @@ export function useOverviewTabData({
   );
 
   const [fetching, setFetching] = useState(false);
-  const [tabFetching, setTabFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiPeriodRange, setApiPeriodRange] = useState<{ start: string; end: string } | null>(
     () =>
@@ -105,11 +101,10 @@ export function useOverviewTabData({
     ? apiClients !== null && apiReputation !== null
     : apiSummary !== null;
 
-  /** Загрузка при смене периода: bundle (Pro) или клиенты+репутация (Free). */
+  /** Загрузка аналитики: bundle (Pro), free-bundle (Free), точечное обновление репутации. */
   useEffect(() => {
     if (!useCabinetApi) {
       setFetching(false);
-      setTabFetching(false);
       setError(null);
       setApiSummary(null);
       setApiRevenue(null);
@@ -130,16 +125,21 @@ export function useOverviewTabData({
     void (async () => {
       try {
         if (proAnalyticsLocked) {
+          if (reputationTick > 0 && refreshTick === 0) {
+            const reputation = await fetchOverviewReputation(periodPreset);
+            if (cancelled) return;
+            setApiReputation(reputation);
+            setApiPeriodRange({ start: reputation.periodStart, end: reputation.periodEnd });
+            return;
+          }
+
           setApiSummary(null);
           setApiRevenue(null);
-          const [clients, reputation] = await Promise.all([
-            fetchOverviewClients(periodPreset),
-            fetchOverviewReputation(periodPreset),
-          ]);
+          const freeBundle = await fetchOverviewFreeBundle(periodPreset);
           if (cancelled) return;
-          setApiClients(clients);
-          setApiReputation(reputation);
-          setApiPeriodRange({ start: clients.periodStart, end: clients.periodEnd });
+          setApiClients(freeBundle.clients);
+          setApiReputation(freeBundle.reputation);
+          setApiPeriodRange({ start: freeBundle.periodStart, end: freeBundle.periodEnd });
         } else {
           const bundle = await fetchOverviewBundle(periodPreset);
           if (cancelled) return;
@@ -162,63 +162,7 @@ export function useOverviewTabData({
     return () => {
       cancelled = true;
     };
-  }, [periodPreset, proAnalyticsLocked, refreshTick, useCabinetApi, overviewReady]);
-
-  /** Актуализация активной вкладки с бэкенда (отдельный endpoint). */
-  useEffect(() => {
-    if (!overviewReady || !useCabinetApi || fetching) return;
-    if (proAnalyticsLocked && isOverviewProTab(activeTab)) return;
-
-    let cancelled = false;
-    setTabFetching(true);
-
-    void (async () => {
-      try {
-        switch (activeTab) {
-          case 'summary': {
-            const summary = await fetchOverviewSummary(periodPreset);
-            if (cancelled) return;
-            setApiSummary(summary);
-            setApiPeriodRange({ start: summary.periodStart, end: summary.periodEnd });
-            break;
-          }
-          case 'revenue': {
-            const revenue = await fetchOverviewRevenue(periodPreset);
-            if (cancelled) return;
-            setApiRevenue(revenue);
-            break;
-          }
-          case 'clients': {
-            const clients = await fetchOverviewClients(periodPreset);
-            if (cancelled) return;
-            setApiClients(clients);
-            setApiPeriodRange({ start: clients.periodStart, end: clients.periodEnd });
-            break;
-          }
-          case 'reputation': {
-            const reputation = await fetchOverviewReputation(periodPreset);
-            if (cancelled) return;
-            setApiReputation(reputation);
-            setApiPeriodRange({ start: reputation.periodStart, end: reputation.periodEnd });
-            break;
-          }
-          default:
-            break;
-        }
-        if (!cancelled) setError(null);
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Не удалось загрузить аналитику');
-        }
-      } finally {
-        if (!cancelled) setTabFetching(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, overviewReady, periodPreset, proAnalyticsLocked, reputationTick, refreshTick, useCabinetApi, fetching]);
+  }, [periodPreset, proAnalyticsLocked, refreshTick, reputationTick, useCabinetApi, overviewReady]);
 
   const refreshReputation = () => setReputationTick((n) => n + 1);
   const refreshOverview = () => setRefreshTick((n) => n + 1);
@@ -253,7 +197,7 @@ export function useOverviewTabData({
 
   return {
     loading,
-    tabRefreshing: useCabinetApi && tabFetching,
+    tabRefreshing: false,
     error: useCabinetApi ? error : null,
     reportRange,
     summary,

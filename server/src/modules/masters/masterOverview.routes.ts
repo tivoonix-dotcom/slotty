@@ -5,6 +5,7 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import {
   getMasterOverviewBundle,
   getMasterOverviewClients,
+  getMasterOverviewFreeBundle,
   getMasterOverviewReputation,
   getMasterOverviewRevenue,
   getMasterOverviewSummary,
@@ -48,6 +49,15 @@ masterOverviewRouter.get(
   asyncHandler(async (req, res) => {
     const q = periodQuery.parse(req.query);
     const data = await getMasterOverviewRevenue(req.user!.id, q.period);
+    res.json(data);
+  }),
+);
+
+masterOverviewRouter.get(
+  '/free-bundle',
+  asyncHandler(async (req, res) => {
+    const q = periodQuery.parse(req.query);
+    const data = await getMasterOverviewFreeBundle(req.user!.id, q.period);
     res.json(data);
   }),
 );

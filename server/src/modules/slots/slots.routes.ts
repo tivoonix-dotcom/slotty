@@ -35,10 +35,16 @@ slotsPublicRouter.get(
 
 export const masterSlotsRouter = Router();
 
+const mySlotsQuery = z.object({
+  from: z.coerce.date().optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
+});
+
 masterSlotsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const rows = await listMySlots(req.user!.id);
+    const q = mySlotsQuery.parse(req.query);
+    const rows = await listMySlots(req.user!.id, { from: q.from, limit: q.limit });
     res.json({ slots: rows });
   }),
 );

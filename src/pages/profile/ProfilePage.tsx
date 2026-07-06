@@ -360,7 +360,7 @@ export function ProfilePage() {
         setFavoritesError(null);
         try {
           if (opts?.syncLocal !== false && !silent) {
-            await syncLocalFavoritesToServer();
+            await syncLocalFavoritesToServer({ force: false });
           }
           setFavorites(await fetchFavoritesForDisplay());
           favoritesEverLoadedRef.current = true;
@@ -393,14 +393,15 @@ export function ProfilePage() {
   );
 
   useEffect(() => {
+    if (mainTab !== 'appointments') return;
     void loadClientAppointments();
-  }, [loadClientAppointments, searchParams]);
+  }, [mainTab, loadClientAppointments]);
 
   useEffect(() => {
     return subscribeBookingDataRefresh(() => {
-      void loadClientAppointments();
+      if (mainTab === 'appointments') void loadClientAppointments();
     });
-  }, [loadClientAppointments]);
+  }, [loadClientAppointments, mainTab]);
 
   const focusAppointmentId = searchParams.get('focus');
   const focusBookingCode = searchParams.get('code');

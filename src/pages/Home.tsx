@@ -4,9 +4,10 @@ import {
   BOOKING_PATH,
   getProfilePath,
   getServiceCategoryPath,
-  MASTER_START_PATH,
   SERVICES_PATH,
 } from '../app/paths';
+import { useAuth } from '../features/auth/AuthProvider';
+import { resolveMasterEntryPath } from '../features/auth/lib/resolveMasterEntryPath';
 import { useIsMasterUser } from '../features/profile/hooks/useIsMasterUser';
 import { setProfileRole } from '../features/profile/lib/setProfileRole';
 import { useTelegram } from '../shared/hooks/useTelegram';
@@ -26,6 +27,7 @@ export function Home() {
   useLandingHashScroll();
   const navigate = useNavigate();
   const { isReady, masterId, isTelegramWebApp } = useTelegram();
+  const { isAuthenticated } = useAuth();
   const nativeStart = useMemo(() => readTelegramWebAppStartParam(), []);
   const isMasterUser = useIsMasterUser();
 
@@ -49,8 +51,8 @@ export function Home() {
   }, [pickClientRoleAnd]);
 
   const onBecomeMaster = useCallback(() => {
-    navigate(MASTER_START_PATH);
-  }, [navigate]);
+    navigate(resolveMasterEntryPath({ isAuthenticated, isMasterUser }));
+  }, [isAuthenticated, isMasterUser, navigate]);
 
   const onProfileTab = useCallback(
     (tab: 'appointments' | 'favorites') => {

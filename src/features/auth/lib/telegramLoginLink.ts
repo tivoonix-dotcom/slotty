@@ -1,5 +1,11 @@
 import { readViteTelegramBotUsername } from '../../../shared/lib/masterBookingLink';
 
+/** Deep link: открыть бота с /start tgp_<pendingId> для входа из браузера. */
+export function buildTelegramBrowserHandoffUrl(botUsername: string, pendingId: string): string {
+  const bot = botUsername.trim().replace(/^@+/, '');
+  return `https://t.me/${bot}?start=${encodeURIComponent(`tgp_${pendingId}`)}`;
+}
+
 /** Deep link: открыть бота с /start login → кнопка Web App на страницу входа. */
 export function buildTelegramLoginUrlForBot(botUsername: string, returnPath?: string): string {
   const bot = botUsername.trim().replace(/^@+/, '');

@@ -1,10 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getApiBaseUrl } from '../../../shared/api/backendClient';
 import { readViteTelegramBotUsername } from '../../../shared/lib/masterBookingLink';
 import { buildTelegramLoginUrlForBot } from '../lib/telegramLoginLink';
 
+export type TelegramLoginConfig = {
+  url: string | null;
+  botUsername: string | null;
+};
+
 /** URL для входа через Telegram (Vite env или /api/public/config с бэкенда). */
-export function useTelegramLoginUrl(returnPath?: string): string | null {
+export function useTelegramLoginUrl(returnPath?: string): TelegramLoginConfig {
   const [botFromApi, setBotFromApi] = useState<string | undefined>();
 
   const bot = readViteTelegramBotUsername() ?? botFromApi;
@@ -30,5 +35,8 @@ export function useTelegramLoginUrl(returnPath?: string): string | null {
     };
   }, []);
 
-  return useMemo(() => (bot ? buildTelegramLoginUrlForBot(bot, returnPath) : null), [bot, returnPath]);
+  return {
+    botUsername: bot ?? null,
+    url: bot ? buildTelegramLoginUrlForBot(bot, returnPath) : null,
+  };
 }

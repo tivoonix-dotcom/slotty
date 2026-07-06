@@ -31,6 +31,7 @@ export async function notifyAdminsAccountDeletionRequested(params: {
         type: 'system',
         title,
         body,
+        audience: 'master',
         relatedEntityType: 'account_deletion_request',
         relatedEntityId: params.requestId,
       }).catch(() => undefined),

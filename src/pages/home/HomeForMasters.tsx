@@ -1,6 +1,5 @@
 import { useEffect, type FC, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MASTER_START_PATH } from '../../app/paths';
 import {
   LANDING_MASTERS_TAB_APPOINTMENTS,
   LANDING_MASTERS_TAB_PROFILE,
@@ -75,15 +74,20 @@ const MASTERS_BLOCKS: MastersBlock[] = [
 ];
 
 export type HomeForMastersProps = {
-  masterCtaPath: string;
-  masterCtaLabel: string;
+  masterEntryPath: string;
+  masterEntryLabel: string;
+  /** Только для гостей: вторая кнопка «Регистрация мастера». */
+  guestRegisterPath: string;
   isMasterUser?: boolean;
+  isAuthenticated?: boolean;
 };
 
 export const HomeForMasters: FC<HomeForMastersProps> = ({
-  masterCtaPath,
-  masterCtaLabel,
+  masterEntryPath,
+  masterEntryLabel,
+  guestRegisterPath,
   isMasterUser = false,
+  isAuthenticated = false,
 }) => {
   const location = useLocation();
 
@@ -137,7 +141,7 @@ export const HomeForMasters: FC<HomeForMastersProps> = ({
               </LandingReveal>
 
               <LandingReveal
-                className={`${homeLandingMastersRowDemoCol} ${homeLandingMastersDemoBleed}`}
+                className={`${homeLandingMastersRowDemoCol} ${homeLandingMastersDemoBleed} pointer-events-none`}
                 variant="right"
                 delay={120 + index * 80}
                 duration={1050}
@@ -157,26 +161,24 @@ export const HomeForMasters: FC<HomeForMastersProps> = ({
       </div>
 
       <div
-        className={`${homeLandingMastersShell} mx-auto mt-10 flex max-w-lg gap-2 sm:mt-14 sm:gap-3 ${
-          isMasterUser ? 'max-w-md' : ''
+        className={`${homeLandingMastersShell} relative z-20 mx-auto mt-10 flex max-w-lg gap-2 sm:mt-14 sm:gap-3 ${
+          isMasterUser || isAuthenticated ? 'max-w-md' : ''
         }`}
       >
-        {!isMasterUser && (
+        <Link
+          to={masterEntryPath}
+          className={`${homePinkBtn} font-landing relative z-10 min-h-12 flex-1 text-center text-[13px] shadow-none sm:text-[14px]`}
+        >
+          {masterEntryLabel}
+        </Link>
+        {!isMasterUser && !isAuthenticated ? (
           <Link
-            to={masterCtaPath}
-            className={`${homePinkBtn} font-landing min-h-12 flex-1 text-center text-[13px] shadow-none sm:text-[14px]`}
-          >
-            {masterCtaLabel}
-          </Link>
-        )}
-        {!isMasterUser && (
-          <Link
-            to={MASTER_START_PATH}
-            className={`${homeOutlineBtn} font-landing min-h-12 flex-1 text-center text-[13px] sm:text-[14px]`}
+            to={guestRegisterPath}
+            className={`${homeOutlineBtn} font-landing relative z-10 min-h-12 flex-1 text-center text-[13px] sm:text-[14px]`}
           >
             Регистрация мастера
           </Link>
-        )}
+        ) : null}
       </div>
     </section>
   );

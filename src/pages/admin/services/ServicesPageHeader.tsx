@@ -8,12 +8,19 @@ type Props = {
   activeTab: ServicesTabId;
   metrics: ServicesTabMetrics;
   extrasLocked?: boolean;
+  /** Free: счётчик активных услуг в свёрнутой сводке. */
+  freeActiveCount?: number;
+  freeMaxCount?: number;
+  showFreeLimitHint?: boolean;
 };
 
 export function ServicesPageHeader({
   activeTab,
   metrics,
   extrasLocked = false,
+  freeActiveCount,
+  freeMaxCount = 3,
+  showFreeLimitHint = false,
 }: Props) {
   const hideHero = extrasLocked && (activeTab === 'bundles' || activeTab === 'promotions');
   const [heroOpen, setHeroOpen] = useState(false);
@@ -34,6 +41,11 @@ export function ServicesPageHeader({
             {summary.badge}: {summary.value}
           </p>
           <p className="mt-0.5 text-[13px] font-medium leading-snug text-[#6B7280]">{summary.subtitle}</p>
+          {showFreeLimitHint && activeTab === 'catalog' && freeActiveCount != null ? (
+            <p className="mt-1 text-[12px] font-semibold text-[#F47C8C]">
+              Активные услуги: {freeActiveCount} из {freeMaxCount} на бесплатном тарифе
+            </p>
+          ) : null}
         </div>
         <button
           type="button"

@@ -33,9 +33,14 @@ const HERO_STATS = [
 export type MasterLandingHeroProps = {
   onBecomeMaster: () => void;
   onCatalog: () => void;
+  becomeMasterLabel?: string;
 };
 
-export const MasterLandingHero: FC<MasterLandingHeroProps> = ({ onBecomeMaster, onCatalog }) => {
+export const MasterLandingHero: FC<MasterLandingHeroProps> = ({
+  onBecomeMaster,
+  onCatalog,
+  becomeMasterLabel = 'Регистрация мастера',
+}) => {
   return (
     <section
       id={LANDING_ANCHOR_MASTER_HOME}
@@ -66,7 +71,7 @@ export const MasterLandingHero: FC<MasterLandingHeroProps> = ({ onBecomeMaster, 
         <LandingReveal immediate variant="scale" delay={180}>
           <div className={homeHeroCtaRow}>
             <button type="button" onClick={() => onBecomeMaster()} className={homeHeroBecomeMasterBtn}>
-              регистрация мастера
+              {becomeMasterLabel}
             </button>
             <button
               type="button"

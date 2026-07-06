@@ -21,11 +21,25 @@ function isLoginStartPayload(payload: string): boolean {
   return payload === 'login' || payload.startsWith('login_');
 }
 
+function isBrowserHandoffStartPayload(payload: string): boolean {
+  return payload.startsWith('tgp_');
+}
+
+function parseBrowserHandoffPendingId(payload: string): string | null {
+  if (!isBrowserHandoffStartPayload(payload)) return null;
+  const id = payload.slice('tgp_'.length).trim();
+  return id.length > 0 ? id : null;
+}
+
 function webAppUrlForStart(startText?: string): string | undefined {
   const base = webAppBaseUrl();
   if (!base) return undefined;
   const payload = startText ? parseStartPayload(startText) : null;
   if (!payload) return base;
+  const browserPendingId = parseBrowserHandoffPendingId(payload);
+  if (browserPendingId) {
+    return `${base}/login?${new URLSearchParams({ tg_browser_pending: browserPendingId }).toString()}`;
+  }
   if (isLoginStartPayload(payload)) {
     if (payload.startsWith('login_')) {
       const from = `/${payload.slice('login_'.length).replace(/_/g, '/')}`;
@@ -121,7 +135,13 @@ export async function sendTelegramStartReply(chatId: number, startText = '/start
 
   const payload = parseStartPayload(startText);
   let text = START_TEXT;
-  if (payload && isLoginStartPayload(payload)) {
+  if (payload && isBrowserHandoffStartPayload(payload)) {
+    text =
+      'Вход в SLOTTY из браузера.\n\n' +
+      '1. Нажмите кнопку «Открыть SLOTTY» ниже.\n' +
+      '2. Войдите автоматически в приложении.\n' +
+      '3. Вернитесь в браузер на страницу регистрации — вход подтвердится сам.';
+  } else if (payload && isLoginStartPayload(payload)) {
     text =
       'Вход в SLOTTY через Telegram.\n\n' +
       'Нажмите кнопку ниже — откроется приложение, вход выполнится автоматически.';

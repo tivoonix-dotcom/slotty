@@ -35,6 +35,7 @@ export async function notifyClientBookingCreated(ctx: AppointmentNotifyContext):
   const payload = clientBookingRequestCreated(ctx);
   await notifyUser({
     userId: ctx.clientId,
+    audience: 'client',
     ...payload,
     ...related(ctx),
     bookingCode: ctx.voucherNumber,
@@ -48,6 +49,7 @@ export async function notifyClientBookingConfirmed(ctx: AppointmentNotifyContext
   const payload = clientBookingConfirmed(ctx);
   await notifyUser({
     userId: ctx.clientId,
+    audience: 'client',
     ...payload,
     ...related(ctx),
     telegramReplyMarkup: clientMarkup(ctx, true),
@@ -61,6 +63,7 @@ export async function notifyClientBookingCancelledByMaster(ctx: AppointmentNotif
   const payload = clientBookingCancelledByMaster(ctx);
   await notifyUser({
     userId: ctx.clientId,
+    audience: 'client',
     ...payload,
     ...related(ctx),
     telegramReplyMarkup: clientMarkup(ctx),
@@ -73,6 +76,7 @@ export async function notifyClientBookingCompleted(ctx: AppointmentNotifyContext
   const payload = clientBookingCompleted(ctx);
   await notifyUser({
     userId: ctx.clientId,
+    audience: 'client',
     ...payload,
     ...related(ctx),
     telegramReplyMarkup: clientMarkup(ctx),
@@ -84,6 +88,7 @@ export async function notifyClientBookingExpired(ctx: AppointmentNotifyContext):
   const payload = clientBookingExpired(ctx);
   await notifyUser({
     userId: ctx.clientId,
+    audience: 'client',
     ...payload,
     ...related(ctx),
     telegramReplyMarkup: clientMarkup(ctx),
@@ -100,6 +105,7 @@ export async function notifyClientDisputedAck(ctx: AppointmentNotifyContext): Pr
   const payload = clientBookingDisputedAck(ctx);
   await notifyUser({
     userId: ctx.clientId,
+    audience: 'client',
     ...payload,
     ...related(ctx),
     telegramReplyMarkup: clientMarkup(ctx),
@@ -111,6 +117,7 @@ export async function notifyClientDisputedByMaster(ctx: AppointmentNotifyContext
   const payload = clientBookingDisputedByMaster(ctx);
   await notifyUser({
     userId: ctx.clientId,
+    audience: 'client',
     ...payload,
     ...related(ctx),
     telegramReplyMarkup: clientMarkup(ctx),
@@ -123,6 +130,7 @@ export async function notifyClientBookingNoShow(ctx: AppointmentNotifyContext): 
   const payload = clientBookingNoShow(ctx);
   await notifyUser({
     userId: ctx.clientId,
+    audience: 'client',
     ...payload,
     ...related(ctx),
     telegramReplyMarkup: clientMarkup(ctx),
@@ -135,6 +143,7 @@ export async function notifyClientBookingCancelledBySelf(ctx: AppointmentNotifyC
   const payload = clientBookingCancelledBySelf(ctx);
   await notifyUser({
     userId: ctx.clientId,
+    audience: 'client',
     ...payload,
     ...related(ctx),
     telegramReplyMarkup: clientMarkup(ctx),

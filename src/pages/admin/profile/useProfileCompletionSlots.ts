@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getMySlots } from '../../../features/admin/api/adminSlotsApi';
 import { countActiveBookableSlots } from '../../../features/admin/lib/profileCompletion';
 import { subscribeMasterSlotsChanged } from '../shared/masterSlotsInvalidation';
+import { overviewSlotsQueryFromToday } from '../overview/overviewSlotsQuery';
 
 export function useProfileCompletionSlots(useCabinetApi: boolean, cabinetLoading: boolean) {
   const [activeCount, setActiveCount] = useState<number | null>(null);
@@ -18,7 +19,7 @@ export function useProfileCompletionSlots(useCabinetApi: boolean, cabinetLoading
     setLoading(true);
     setLoadError(null);
     try {
-      const slots = await getMySlots();
+      const slots = await getMySlots(overviewSlotsQueryFromToday());
       setActiveCount(countActiveBookableSlots(slots));
     } catch {
       setActiveCount(null);

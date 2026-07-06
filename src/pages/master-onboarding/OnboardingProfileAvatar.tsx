@@ -216,7 +216,9 @@ export function OnboardingProfileAvatar({
               : `Покажем «${initials}» из имени, пока нет снимка. Можно пропустить.`}
           </p>
           {!isAuthenticated ? (
-            <p className="mt-2 text-[12px] font-medium text-[#B66A24]">Войдите через Telegram, чтобы загрузить фото</p>
+            <p className="mt-2 text-[12px] font-medium text-[#B66A24]">
+              Войдите через Google, Telegram или email, чтобы загрузить фото
+            </p>
           ) : null}
         </div>
       </div>

@@ -5,6 +5,7 @@ import { BECOME_MASTER_PATH, getMasterLoginPath, MASTER_START_PATH } from '../..
 import { useAuth } from '../../features/auth/AuthProvider';
 import { LoginAccountHint } from '../../features/auth/components/LoginAccountHint';
 import { LoginMethodsPanel } from '../../features/auth/components/LoginMethodsPanel';
+import { hasMasterCabinetAccess } from '../../features/auth/lib/hasMasterCabinetAccess';
 import { getPostLoginPath } from '../../features/auth/lib/postLoginRedirect';
 import type { BackendProfile } from '../../features/auth/types';
 import { LoadingScreen } from '../../shared/ui/LoadingVideo';
@@ -44,6 +45,9 @@ export function MasterRegisterPage() {
   }
 
   if (isAuthenticated) {
+    if (!hasMasterCabinetAccess(profile)) {
+      return <Navigate to={BECOME_MASTER_PATH} replace />;
+    }
     return <Navigate to={afterRegisterPath} replace />;
   }
 
@@ -60,7 +64,7 @@ export function MasterRegisterPage() {
       <LoginAccountHint />
 
       <div className={`mt-8 min-h-[20rem] lg:min-h-[28rem] ${AUTH_FORM_PANEL_CLASS}`}>
-        <LoginMethodsPanel mode="login" appearance="page" authIntent="master-register" onLinked={onLinked} />
+        <LoginMethodsPanel mode="login" appearance="page" authIntent="master-register" oauthReturnPath={location.pathname + location.search} onLinked={onLinked} />
       </div>
 
       <p className="mt-8 text-center text-[14px] text-[#6B7280] lg:text-left">

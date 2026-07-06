@@ -119,7 +119,8 @@ function normalizeService(service: MasterOnboardingService, index: number): Mana
 export function AdminServicesTab({ draft, onPersist }: Props) {
   const navigate = useNavigate();
   const { useCabinetApi, commitDraftBaseline, appointments } = useAdminMasterCabinet();
-  const { canUseBundlesAndPromotions, freeServiceLimitReached } = useMasterPlanEntitlements();
+  const { canUseBundlesAndPromotions, freeServiceLimitReached, isProEntitled, isFreeServiceLimitReached, servicesCount, limits } =
+    useMasterPlanEntitlements();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<ServiceSheetMode>('full');
   const [freeLimitOpen, setFreeLimitOpen] = useState(false);
@@ -410,9 +411,18 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     }
 
     if (!editingId && freeServiceLimitReached) {
-      setFormError('На тарифе Free можно не больше 3 услуг.');
+      setFormError('На бесплатном тарифе можно иметь до 3 активных услуг. Отключите другую или подключите Pro.');
       setFreeLimitOpen(true);
       return;
+    }
+
+    if (editingId && activeFlag && !existing?.isActive) {
+      const activeCount = services.filter((s) => s.isActive && s.id !== editingId).length;
+      if (!isProEntitled && isFreeServiceLimitReached(activeCount)) {
+        setFormError('На бесплатном тарифе можно иметь до 3 активных услуг. Отключите другую или подключите Pro.');
+        setFreeLimitOpen(true);
+        return;
+      }
     }
 
     await runServiceAction(async () => {
@@ -528,6 +538,8 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
     editingId,
     freeServiceLimitReached,
     isActive,
+    isFreeServiceLimitReached,
+    isProEntitled,
     commitServices,
     persistServices,
     price,
@@ -544,6 +556,13 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
 
   const toggleActive = useCallback(
     async (service: ManagedService) => {
+      if (!service.isActive) {
+        const activeCount = services.filter((item) => item.isActive).length;
+        if (!isProEntitled && isFreeServiceLimitReached(activeCount)) {
+          setFreeLimitOpen(true);
+          return;
+        }
+      }
       if (!service.isActive && !service.imageUrl?.trim()) {
         setListError('Сначала загрузите фото услуги — без него услугу нельзя показать в каталоге.');
         return;
@@ -583,7 +602,7 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
         setListError(e instanceof Error ? e.message : 'Не удалось сохранить');
       }
     },
-    [commitServices, persistServices, services, showSuccessToast, useCabinetApi],
+    [commitServices, isFreeServiceLimitReached, isProEntitled, persistServices, services, showSuccessToast, useCabinetApi],
   );
 
   const duplicateService = useCallback(
@@ -1125,6 +1144,9 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
           activeTab={activeTab}
           metrics={tabMetrics}
           extrasLocked={extrasLocked}
+          freeActiveCount={servicesCount}
+          freeMaxCount={limits.maxServices ?? 3}
+          showFreeLimitHint={!isProEntitled && useCabinetApi}
         />
         {statusAlerts}
         <AdminTabContentTransition activeKey={activeTab}>{tabPanels}</AdminTabContentTransition>
@@ -1144,6 +1166,9 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
             activeTab={activeTab}
             metrics={tabMetrics}
             extrasLocked={extrasLocked}
+            freeActiveCount={servicesCount}
+            freeMaxCount={limits.maxServices ?? 3}
+            showFreeLimitHint={!isProEntitled && useCabinetApi}
           />
           {statusAlerts}
           <AdminTabContentTransition activeKey={activeTab} className="min-w-0 space-y-6">
@@ -1438,7 +1463,8 @@ export function AdminServicesTab({ draft, onPersist }: Props) {
         }
       >
         <p className="text-[15px] leading-relaxed text-[#6B7280]">
-          На бесплатном тарифе можно добавить до 3 услуг. Откройте Pro, чтобы добавить больше.
+          На бесплатном тарифе можно иметь до 3 активных услуг одновременно. Отключите другую услугу,
+          чтобы включить новую, или подключите Pro для неограниченного числа активных услуг.
         </p>
       </AdminBottomSheet>
     </>

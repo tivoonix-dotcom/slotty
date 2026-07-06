@@ -277,13 +277,23 @@ export async function listPublicSlots(filters: {
   });
 }
 
-export async function listMySlots(masterId: string) {
+export async function listMySlots(
+  masterId: string,
+  opts?: { from?: Date; limit?: number },
+) {
+  const clauses = ['master_id = $1'];
+  const params: unknown[] = [masterId];
+  if (opts?.from) {
+    params.push(opts.from);
+    clauses.push(`starts_at >= $${params.length}::timestamptz`);
+  }
+  const limit = opts?.limit != null ? Math.min(Math.max(opts.limit, 1), 500) : null;
   const r = await query(
     `select id, master_id, service_id, starts_at, ends_at, status::text, source::text, created_at
        from public.master_availability_slots
-      where master_id = $1
-      order by starts_at desc`,
-    [masterId],
+      where ${clauses.join(' and ')}
+      order by starts_at desc${limit != null ? ` limit ${limit}` : ''}`,
+    params,
   );
   return r.rows;
 }

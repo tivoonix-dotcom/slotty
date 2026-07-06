@@ -12,7 +12,7 @@ export function ReturnToTelegramButton({
   className = sheetOutlineBtnClass,
   label = 'Вернуться в Telegram',
 }: Props) {
-  const telegramUrl = useTelegramLoginUrl(MASTER_SETTINGS_SECURITY_PATH);
+  const telegramUrl = useTelegramLoginUrl(MASTER_SETTINGS_SECURITY_PATH).url;
 
   if (!telegramUrl) return null;
 

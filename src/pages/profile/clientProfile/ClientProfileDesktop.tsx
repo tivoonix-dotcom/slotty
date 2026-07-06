@@ -149,6 +149,7 @@ export function ClientProfileDesktop({
       favoritesLoading={favoritesLoading}
       favoritesError={favoritesError}
       hasApiBackend={hasApiBackend}
+      isMasterCabinet={isMasterCabinet}
       onEditProfile={onEditProfile}
       onOpenDetails={onOpenDetails}
       onCancel={onCancel}

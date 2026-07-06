@@ -275,6 +275,7 @@ async function deliverReminderForRow(row: DueAppointmentRow, kind: ReminderKind)
     await notifyUser({
       userId: row.client_id,
       type: 'appointment_reminder',
+      audience: 'client',
       title: meta.clientTitle,
       body: clientBody,
       ...related,
@@ -287,6 +288,7 @@ async function deliverReminderForRow(row: DueAppointmentRow, kind: ReminderKind)
     await notifyUser({
       userId: row.master_id,
       type: 'appointment_reminder',
+      audience: 'master',
       title: meta.masterTitle,
       body: masterBody,
       ...related,

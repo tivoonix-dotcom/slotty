@@ -2,6 +2,10 @@ import { sendSlottyEmailDetailed } from '../auth/email/resendMail.js';
 import { isResendConfigured, resolveResendFrom } from '../email/emailConfig.js';
 import { resolveAccountEmail } from '../profiles/profiles.service.js';
 import { insertUserNotification, type NotificationType } from './notificationsInsert.js';
+import {
+  resolveNotificationAudience,
+  type NotificationAudience,
+} from './notificationAudience.js';
 import type { BookingNotificationMetadata } from './bookingNotificationMetadata.js';
 import { logNotificationDelivery } from './notificationDeliveriesInsert.js';
 import { sendNotificationToProfile } from '../telegram/telegramProfileNotifications.js';
@@ -20,11 +24,29 @@ export type NotifyUserEmail = {
   text?: string;
 };
 
+function resolveParamsAudience(params: {
+  audience?: NotificationAudience;
+  masterPreferenceEvent?: MasterNotificationEventKey | null;
+  type: NotificationType;
+  title: string;
+  body: string;
+}): NotificationAudience {
+  if (params.audience) return params.audience;
+  if (params.masterPreferenceEvent) return 'master';
+  return resolveNotificationAudience({
+    type: params.type,
+    title: params.title,
+    body: params.body,
+  });
+}
+
 export type NotifyUserParams = {
   userId: string;
   type: NotificationType;
   title: string;
   body: string;
+  /** Явная аудитория in-app уведомления (клиентский / мастерский кабинет). */
+  audience?: NotificationAudience;
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
   telegramHtml?: string;
@@ -197,12 +219,15 @@ export async function deliverInAppAndTelegram(
   const event = params.masterPreferenceEvent;
   let notificationId: string | null = null;
 
+  const audience = resolveParamsAudience(params);
+
   if (await masterAllowsChannel(params.userId, event, 'in_app')) {
     notificationId = await insertUserNotification({
       userId: params.userId,
       type: params.type,
       title: params.title,
       body: params.body,
+      audience,
       relatedEntityType: params.relatedEntityType,
       relatedEntityId: params.relatedEntityId,
       metadata: params.metadata ?? null,
@@ -260,6 +285,7 @@ async function deliverEmailFromNotifyParams(params: NotifyUserParams): Promise<v
 export async function notifyUser(params: NotifyUserParams): Promise<void> {
   const event = params.masterPreferenceEvent;
   let notificationId: string | null = null;
+  const audience = resolveParamsAudience(params);
 
   if (await masterAllowsChannel(params.userId, event, 'in_app')) {
     notificationId = await insertUserNotification({
@@ -267,6 +293,7 @@ export async function notifyUser(params: NotifyUserParams): Promise<void> {
       type: params.type,
       title: params.title,
       body: params.body,
+      audience,
       relatedEntityType: params.relatedEntityType,
       relatedEntityId: params.relatedEntityId,
       metadata: params.metadata ?? null,

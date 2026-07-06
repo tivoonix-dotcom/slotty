@@ -1,11 +1,14 @@
 import { useCallback } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { LEGAL_PD_CONSENT_PATH, LEGAL_PRIVACY_PATH, LEGAL_TERMS_PATH } from '../../app/paths';
 import { legalReturnState } from '../legal/useLegalPageBack';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { LoginAccountHint } from '../../features/auth/components/LoginAccountHint';
 import { LoginMethodsPanel } from '../../features/auth/components/LoginMethodsPanel';
+import { TelegramBrowserHandoffSuccess } from '../../features/auth/components/TelegramBrowserHandoffSuccess';
+import { TG_BROWSER_PENDING_PARAM } from '../../features/auth/lib/telegramBrowserHandoff';
 import { getPostClientLoginPath } from '../../features/auth/lib/postLoginRedirect';
+import { useTelegram } from '../../shared/hooks/useTelegram';
 import { LoadingScreen } from '../../shared/ui/LoadingVideo';
 import { AuthSplitLayout } from './AuthSplitLayout';
 import { AUTH_SUBTITLE_CLASS, AUTH_TITLE_CLASS } from './authPageLayout';
@@ -13,9 +16,12 @@ import { AUTH_SUBTITLE_CLASS, AUTH_TITLE_CLASS } from './authPageLayout';
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated, isLoading } = useAuth();
+  const { isTelegramWebApp } = useTelegram();
 
   const afterLoginPath = getPostClientLoginPath(location.search);
+  const browserHandoffPendingId = searchParams.get(TG_BROWSER_PENDING_PARAM)?.trim() ?? null;
 
   const onLinked = useCallback(() => {
     navigate(afterLoginPath, { replace: true });
@@ -23,6 +29,10 @@ export function LoginPage() {
 
   if (isLoading) {
     return <LoadingScreen className="bg-white" />;
+  }
+
+  if (isAuthenticated && isTelegramWebApp && browserHandoffPendingId) {
+    return <TelegramBrowserHandoffSuccess pendingId={browserHandoffPendingId} />;
   }
 
   if (isAuthenticated) {

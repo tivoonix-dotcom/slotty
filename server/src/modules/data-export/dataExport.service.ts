@@ -512,6 +512,7 @@ export async function processDataExportJob(jobId: string): Promise<void> {
     await notifyUser({
       userId,
       type: 'system',
+      audience: 'master',
       title: 'Архив данных готов',
       body: 'ZIP-архив с Excel-таблицами и отчётом по кабинету мастера доступен для скачивания в разделе «Данные и приватность».',
       relatedEntityType: 'data_export_job',

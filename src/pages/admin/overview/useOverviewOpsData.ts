@@ -4,6 +4,7 @@ import { fetchMasterAppointmentStats } from '../../../features/admin/api/masterC
 import type { DemoMasterAppointment } from '../../../features/master/model/demoMasterAppointments';
 import { subscribeMasterSlotsChanged } from '../shared/masterSlotsInvalidation';
 import { computeOverviewOpsSnapshot } from './overviewOpsSnapshot';
+import { overviewSlotsQueryFromToday } from './overviewSlotsQuery';
 
 export function useOverviewOpsData({
   appointments,
@@ -30,7 +31,10 @@ export function useOverviewOpsData({
     setLoading(true);
     setSlotsLoadError(null);
     try {
-      const [nextSlots, stats] = await Promise.all([getMySlots(), fetchMasterAppointmentStats()]);
+      const [nextSlots, stats] = await Promise.all([
+        getMySlots(overviewSlotsQueryFromToday()),
+        fetchMasterAppointmentStats(),
+      ]);
       setSlots(nextSlots);
       setPendingCount(stats.pending);
     } catch {
